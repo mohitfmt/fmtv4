@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-rhd);
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-bitter);
+}
+
+@layer base {
+  :root {
+    --background: rgba(255, 255, 255, 1);
+    --foreground: rgba(33, 28, 26, 1);
+    --card: rgba(255, 255, 255, 1);
+    --card-foreground: rgba(33, 28, 26, 1);
+    --popover: rgba(255, 255, 255, 1);
+    --popover-foreground: rgba(33, 28, 26, 1);
+    --primary: rgba(66, 55, 52, 1);
+    --primary-foreground: rgba(250, 249, 247, 1);
+    --secondary: rgba(244, 242, 239, 1);
+    --secondary-foreground: rgba(66, 55, 52, 1);
+    --muted: rgba(244, 242, 239, 1);
+    --muted-foreground: rgba(111, 106, 108, 1);
+    --accent: rgba(244, 242, 239, 1);
+    --accent-foreground: rgba(66, 55, 52, 1);
+    --destructive: rgba(229, 51, 51, 1);
+    --destructive-foreground: rgba(250, 249, 247, 1);
+    --border: rgba(230, 228, 228, 1);
+    --input: rgba(230, 228, 228, 1);
+    --ring: rgba(33, 28, 26, 1);
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: rgba(33, 28, 26, 1);
+    --foreground: rgba(250, 249, 247, 1);
+    --card: rgba(33, 28, 26, 1);
+    --card-foreground: rgba(250, 249, 247, 1);
+    --popover: rgba(33, 28, 26, 1);
+    --popover-foreground: rgba(250, 249, 247, 1);
+    --primary: rgba(250, 249, 247, 1);
+    --primary-foreground: rgba(66, 55, 52, 1);
+    --secondary: rgba(38, 36, 34, 1);
+    --secondary-foreground: rgba(250, 249, 247, 1);
+    --muted: rgba(38, 36, 34, 1);
+    --muted-foreground: rgba(80, 74, 74, 1);
+    --accent: rgba(38, 36, 34, 1);
+    --accent-foreground: rgba(250, 249, 247, 1);
+    --destructive: rgba(96, 29, 29, 1);
+    --destructive-foreground: rgba(250, 249, 247, 1);
+    --border: rgba(38, 36, 34, 1);
+    --input: rgba(38, 36, 34, 1);
+    --ring: rgba(208, 207, 204, 1);
+  }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
