@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      target: deps
+    command: npm run dev
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G

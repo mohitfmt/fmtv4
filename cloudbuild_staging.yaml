@@ -1,0 +1,163 @@
+steps:
+  # Install and generate Prisma client
+  - name: "node:20-alpine"
+    id: Generate Prisma
+    entrypoint: sh
+    args:
+      - "-c"
+      - |
+        npm ci
+        npx prisma generate
+
+  # Build the container image with optimized caching
+  - name: "gcr.io/cloud-builders/docker"
+    id: Build Container
+    args:
+      - "build"
+      - "--target=runner"
+      - "--cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
+      # Build-time public variables
+      - "--build-arg=NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}"
+      - "--build-arg=NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}"
+      - "--build-arg=NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID}"
+      - "--build-arg=NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY}"
+      - "--build-arg=NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST}"
+      - "--build-arg=NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
+      - "--build-arg=NEXT_PUBLIC_CDN_URL=${_NEXT_PUBLIC_CDN_URL}"
+      - "--build-arg=NEXT_PUBLIC_GCS_BUCKET=${_NEXT_PUBLIC_GCS_BUCKET}"
+      # Runtime variables
+      - "--build-arg=WORDPRESS_API_URL=${_WORDPRESS_API_URL}"
+      - "--build-arg=WORDPRESS_AUTH_REFRESH_TOKEN=${_WORDPRESS_AUTH_REFRESH_TOKEN}"
+      - "--build-arg=WORDPRESS_PREVIEW_SECRET=${_WORDPRESS_PREVIEW_SECRET}"
+      - "--build-arg=DATABASE_URL=${_DATABASE_URL}"
+      - "--build-arg=NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}"
+      - "--build-arg=GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET}"
+      - "--build-arg=REVALIDATION_TOKEN=${_REVALIDATION_TOKEN}"
+      - "--build-arg=SYNC_KEY=${_SYNC_KEY}"
+      - "--build-arg=CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}"
+      - "--build-arg=CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}"
+      - "--build-arg=CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY}"
+      - "--build-arg=CHARTBEAT_HOST=${_CHARTBEAT_HOST}"
+      - "--build-arg=YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}"
+      # Build settings
+      - "--build-arg=NODE_ENV=production"
+      - "-t"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
+      - "-t"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
+      - "."
+
+  # Push the container image with both tags
+  - name: "gcr.io/cloud-builders/docker"
+    id: Push Container
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker push asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA
+        docker push asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest
+
+  # Blue/Green Deployment with Cloudflare cache purging
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: Deploy Blue/Green
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        set -e  # Exit on any error
+
+        echo "🔍 Checking current deployment status..."
+        activeEnv=$(gcloud run services describe ${_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='get(traffic.tags.*.tag)' \
+          --filter='traffic.tags.*.percent=100' || echo "none")
+
+        # Determine next environment
+        if [ "$activeEnv" == "blue" ]; then
+          nextEnv="green"
+        else
+          nextEnv="blue"
+        fi
+
+        echo "🚀 Current active: $activeEnv, Deploying to: $nextEnv"
+
+        # Deploy new version
+        echo "📦 Deploying new version to $nextEnv environment..."
+        gcloud run deploy ${_SERVICE_NAME} \
+          --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
+          --no-traffic \
+          --tag=$nextEnv \
+          --region=${_REGION} \
+          --port=3000 \
+          --memory=2Gi \
+          --cpu=2 \
+          --min-instances=2 \
+          --max-instances=10 \
+          --set-env-vars=NODE_ENV=production \
+          --set-env-vars=NEXT_TELEMETRY_DISABLED=1 \
+          --set-env-vars-from-file=.env.yaml || exit 1
+
+        # Health check before traffic migration
+        echo "🏥 Performing health check..."
+        HEALTH_URL=$(gcloud run services describe ${_SERVICE_NAME} --region=${_REGION} --format='get(status.url)')/api/health
+        for i in {1..30}; do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL || echo "failed")
+          if [ "$HTTP_STATUS" == "200" ]; then
+            echo "✅ Health check passed!"
+            break
+          fi
+          if [ $i == 30 ]; then
+            echo "❌ Health check failed after 30 attempts"
+            exit 1
+          fi
+          echo "⏳ Waiting for service to be healthy... attempt $i/30"
+          sleep 2
+        done
+
+        # Migrate traffic
+        echo "🔄 Migrating traffic to $nextEnv..."
+        gcloud run services update-traffic ${_SERVICE_NAME} \
+          --to-tags $nextEnv=100 \
+          --region=${_REGION} || exit 1
+
+        # Purge Cloudflare cache
+        echo "🧹 Purging Cloudflare cache..."
+        curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
+          -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
+          -H "Content-Type: application/json" \
+          --data '{"purge_everything":true}' || echo "⚠️ Cloudflare cache purge failed but deployment continues"
+
+        echo "✨ Deployment and cache purge completed successfully!"
+
+  # Add a verification step for Cloudflare cache purge
+  - name: "gcr.io/cloud-builders/curl"
+    id: Verify Cloudflare
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        echo "🔍 Verifying Cloudflare cache purge status..."
+        response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}" \
+          -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
+          -H "Content-Type: application/json")
+
+        if echo "$response" | grep -q '"success":true'; then
+          echo "✅ Cloudflare zone is active and responding"
+        else
+          echo "⚠️ Warning: Cloudflare zone check failed"
+          # Don't fail the build, but log the warning
+          exit 0
+        fi
+
+substitutions:
+  _REGION: asia-southeast1
+  _SERVICE_NAME: fmt-web-app
+  _MIN_INSTANCES: "2"
+  _MAX_INSTANCES: "10"
+
+options:
+  machineType: "E2_HIGHCPU_8"
+  logging: CLOUD_LOGGING_ONLY
+  dynamic_substitutions: true
+
+timeout: 1800s

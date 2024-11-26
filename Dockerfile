@@ -1,0 +1,106 @@
+# Dependency stage
+FROM node:20.12-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Builder stage
+FROM node:20.12-alpine AS builder
+WORKDIR /app
+
+# Environment Variables for build time (public variables)
+ARG NEXT_PUBLIC_COMSCORE_ID
+ARG NEXT_PUBLIC_LOTAME_CLIENT_ID
+ARG NEXT_PUBLIC_CB_UID
+ARG NEXT_PUBLIC_CHARTBEAT_API_KEY
+ARG NEXT_PUBLIC_CHARTBEAT_HOST
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ARG NEXT_PUBLIC_CDN_URL
+ARG NEXT_PUBLIC_GCS_BUCKET
+
+# Set build-time environment variables
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_COMSCORE_ID=${NEXT_PUBLIC_COMSCORE_ID}
+ENV NEXT_PUBLIC_LOTAME_CLIENT_ID=${NEXT_PUBLIC_LOTAME_CLIENT_ID}
+ENV NEXT_PUBLIC_CB_UID=${NEXT_PUBLIC_CB_UID}
+ENV NEXT_PUBLIC_CHARTBEAT_API_KEY=${NEXT_PUBLIC_CHARTBEAT_API_KEY}
+ENV NEXT_PUBLIC_CHARTBEAT_HOST=${NEXT_PUBLIC_CHARTBEAT_HOST}
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+ENV NEXT_PUBLIC_CDN_URL=${NEXT_PUBLIC_CDN_URL}
+ENV NEXT_PUBLIC_GCS_BUCKET=${NEXT_PUBLIC_GCS_BUCKET}
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build Next.js
+RUN npm run build
+
+# Runner stage
+FROM node:20.12-alpine AS runner
+WORKDIR /app
+
+# Runtime environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+# Runtime args that need to be available during container execution
+ARG WORDPRESS_API_URL
+ARG WORDPRESS_AUTH_REFRESH_TOKEN
+ARG WORDPRESS_PREVIEW_SECRET
+ARG DATABASE_URL
+ARG NEXTAUTH_SECRET
+ARG GOOGLE_CLIENT_SECRET
+ARG REVALIDATION_TOKEN
+ARG SYNC_KEY
+ARG CLOUDFLARE_API_TOKEN
+ARG CLOUDFLARE_ZONE_ID
+ARG CHARTBEAT_API_KEY
+ARG CHARTBEAT_HOST
+ARG YOUTUBE_API_KEY
+
+# Set runtime environment variables
+ENV WORDPRESS_API_URL=${WORDPRESS_API_URL}
+ENV WORDPRESS_AUTH_REFRESH_TOKEN=${WORDPRESS_AUTH_REFRESH_TOKEN}
+ENV WORDPRESS_PREVIEW_SECRET=${WORDPRESS_PREVIEW_SECRET}
+ENV DATABASE_URL=${DATABASE_URL}
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+ENV REVALIDATION_TOKEN=${REVALIDATION_TOKEN}
+ENV SYNC_KEY=${SYNC_KEY}
+ENV CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+ENV CLOUDFLARE_ZONE_ID=${CLOUDFLARE_ZONE_ID}
+ENV CHARTBEAT_API_KEY=${CHARTBEAT_API_KEY}
+ENV CHARTBEAT_HOST=${CHARTBEAT_HOST}
+ENV YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Set directory permissions
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Copy necessary files
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/next.config.mjs ./
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Start Next.js
+CMD ["node", "server.js"]
