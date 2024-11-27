@@ -2,7 +2,9 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query", "info", "warn", "error"],
+});
 
 interface ContentUpdate {
   id: string;
@@ -46,12 +48,34 @@ const COLLECTION_PAGES = {
   ],
 };
 
+async function validateConnection() {
+  try {
+    await prisma.$connect();
+    console.log("Successfully connected to MongoDB");
+
+    // Test log creation
+    const testLog = await prisma.syncLog.create({
+      data: {
+        level: "INFO",
+        category: "SYNC",
+        message: "Database connection test",
+        metadata: { test: true },
+      },
+    });
+    console.log("Test log created:", testLog);
+  } catch (error) {
+    console.error("Database connection error:", error);
+    throw error;
+  }
+}
+
 async function revalidateContent(updates: ContentUpdate[]) {
   const revalidatedPaths = new Set<string>();
 
   try {
     // Log start of process
-    await prisma.SyncLog.create({
+
+    await prisma.syncLog.create({
       data: {
         level: "INFO",
         category: "SYNC",
@@ -68,7 +92,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidatePath(articlePath);
         revalidatedPaths.add(articlePath);
 
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "INFO",
             category: "REVALIDATE",
@@ -77,7 +101,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "ERROR",
             category: "REVALIDATE",
@@ -100,7 +124,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidatePath(path);
         revalidatedPaths.add(path);
 
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "INFO",
             category: "REVALIDATE",
@@ -109,7 +133,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "ERROR",
             category: "REVALIDATE",
@@ -124,7 +148,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
     if (revalidatedPaths.size > 0) {
       try {
         await purgeCloudflareCache(Array.from(revalidatedPaths));
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "INFO",
             category: "CACHE",
@@ -133,7 +157,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.SyncLog.create({
+        await prisma.syncLog.create({
           data: {
             level: "ERROR",
             category: "CACHE",
@@ -146,7 +170,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
 
     return revalidatedPaths;
   } catch (error) {
-    await prisma.SyncLog.create({
+    await prisma.syncLog.create({
       data: {
         level: "ERROR",
         category: "SYNC",
@@ -198,29 +222,55 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Send immediate acknowledgment
-  res.status(200).json({ received: true });
+  try {
+    // Validate database connection first
+    await validateConnection();
 
-  await prisma.SyncLog.create({
-    data: {
-      level: "INFO",
-      category: "SYNC",
-      message: "Received sync request",
-      metadata: { method: req.method, body: req.body },
-    },
-  });
-  // Process the update asynchronously
-  if (req.method === "POST") {
+    // Send immediate acknowledgment
+    res.status(200).json({ received: true });
+
+    // Create initial log with try-catch
     try {
-      const payload = req.body as UpdatePayload;
-      console.log(`[SYNC] Processing ${payload.updates.length} updates`);
-
-      await revalidateContent(payload.updates);
-      console.log("[SYNC] Update processing completed");
+      const logEntry = await prisma.syncLog.create({
+        data: {
+          level: "INFO",
+          category: "SYNC",
+          message: "Received sync request",
+          metadata: {
+            method: req.method,
+            body: req.body,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      });
+      console.log("Created log entry:", logEntry);
     } catch (error) {
-      console.error("[ERROR] Update processing failed:", error);
-      // Error is logged but not returned since response is already sent
+      console.error("Failed to create initial log:", error);
     }
+
+    // Process the update asynchronously
+    if (req.method === "POST") {
+      try {
+        const payload = req.body as UpdatePayload;
+        await revalidateContent(payload.updates);
+      } catch (error) {
+        console.error("[ERROR] Update processing failed:", error);
+        await prisma.syncLog.create({
+          data: {
+            level: "ERROR",
+            category: "SYNC",
+            message: "Update processing failed",
+            metadata: { error: String(error) },
+          },
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Handler error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    // Disconnect prisma client
+    await prisma.$disconnect();
   }
 }
 
