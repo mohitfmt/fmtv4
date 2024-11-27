@@ -6,45 +6,48 @@ steps:
     args:
       - "-c"
       - |
+        echo "📦 Installing dependencies..."
         npm ci
+        echo "🔧 Generating Prisma client..."
         npx prisma generate
 
   # Build container image
   - name: "gcr.io/cloud-builders/docker"
     id: Build Container
+    entrypoint: "bash"
     args:
-      - "build"
-      - "--target=runner"
-      - "--cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
-      # Build-time public variables
-      - "--build-arg=NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}"
-      - "--build-arg=NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}"
-      - "--build-arg=NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID}"
-      - "--build-arg=NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY}"
-      - "--build-arg=NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST}"
-      - "--build-arg=NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
-      - "--build-arg=NEXT_PUBLIC_CDN_URL=https://freemalaysiatoday.com"
-      - "--build-arg=NEXT_PUBLIC_GCS_BUCKET=https://media.freemalaysiatoday.com"
-      # Runtime variables
-      - "--build-arg=WORDPRESS_API_URL=${_WORDPRESS_API_URL}"
-      - "--build-arg=WORDPRESS_AUTH_REFRESH_TOKEN=${_WORDPRESS_AUTH_REFRESH_TOKEN}"
-      - "--build-arg=WORDPRESS_PREVIEW_SECRET=${_WORDPRESS_PREVIEW_SECRET}"
-      - "--build-arg=DATABASE_URL=${_DATABASE_URL}"
-      - "--build-arg=NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}"
-      - "--build-arg=GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET}"
-      - "--build-arg=REVALIDATION_TOKEN=${_REVALIDATION_TOKEN}"
-      - "--build-arg=SYNC_KEY=${_SYNC_KEY}"
-      - "--build-arg=CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}"
-      - "--build-arg=CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}"
-      - "--build-arg=CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY}"
-      - "--build-arg=CHARTBEAT_HOST=${_CHARTBEAT_HOST}"
-      - "--build-arg=YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}"
-      - "--build-arg=NODE_ENV=production"
-      - "-t"
-      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
-      - "-t"
-      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
-      - "."
+      - "-c"
+      - |
+        echo "🏗️ Starting Docker build..."
+        docker build \
+          --progress=plain \
+          --no-cache \
+          --target=runner \
+          --build-arg NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID} \
+          --build-arg NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID} \
+          --build-arg NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID} \
+          --build-arg NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY} \
+          --build-arg NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST} \
+          --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
+          --build-arg NEXT_PUBLIC_CDN_URL="https://freemalaysiatoday.com" \
+          --build-arg NEXT_PUBLIC_GCS_BUCKET="https://media.freemalaysiatoday.com" \
+          --build-arg WORDPRESS_API_URL=${_WORDPRESS_API_URL} \
+          --build-arg WORDPRESS_AUTH_REFRESH_TOKEN=${_WORDPRESS_AUTH_REFRESH_TOKEN} \
+          --build-arg WORDPRESS_PREVIEW_SECRET=${_WORDPRESS_PREVIEW_SECRET} \
+          --build-arg DATABASE_URL=${_DATABASE_URL} \
+          --build-arg NEXTAUTH_SECRET=${_NEXTAUTH_SECRET} \
+          --build-arg GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET} \
+          --build-arg REVALIDATION_TOKEN=${_REVALIDATION_TOKEN} \
+          --build-arg SYNC_KEY=${_SYNC_KEY} \
+          --build-arg CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN} \
+          --build-arg CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID} \
+          --build-arg CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY} \
+          --build-arg CHARTBEAT_HOST=${_CHARTBEAT_HOST} \
+          --build-arg YOUTUBE_API_KEY=${_YOUTUBE_API_KEY} \
+          --build-arg NODE_ENV=production \
+          -t asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
+          -t asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest \
+          .
 
   # Push container image
   - name: "gcr.io/cloud-builders/docker"
@@ -103,7 +106,7 @@ steps:
 
 substitutions:
   _REGION: asia-southeast1
-  _SERVICE_NAME: fmt-web-app
+  _SERVICE_NAME: fmt-v4
 
 options:
   machineType: "E2_HIGHCPU_8"

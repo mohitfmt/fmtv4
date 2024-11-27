@@ -3,15 +3,16 @@ FROM node:20.12-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
+# Copy package files and prisma
 COPY package.json package-lock.json ./
+COPY prisma ./prisma
 RUN npm ci
 
 # Builder stage
 FROM node:20.12-alpine AS builder
 WORKDIR /app
 
-# Environment Variables for build time (public variables)
+# Environment Variables for build time
 ARG NEXT_PUBLIC_COMSCORE_ID
 ARG NEXT_PUBLIC_LOTAME_CLIENT_ID
 ARG NEXT_PUBLIC_CB_UID
@@ -20,10 +21,14 @@ ARG NEXT_PUBLIC_CHARTBEAT_HOST
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ARG NEXT_PUBLIC_CDN_URL
 ARG NEXT_PUBLIC_GCS_BUCKET
+ARG DATABASE_URL
+ARG WORDPRESS_API_URL
 
 # Set build-time environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DATABASE_URL=${DATABASE_URL}
+ENV WORDPRESS_API_URL=${WORDPRESS_API_URL}
 ENV NEXT_PUBLIC_COMSCORE_ID=${NEXT_PUBLIC_COMSCORE_ID}
 ENV NEXT_PUBLIC_LOTAME_CLIENT_ID=${NEXT_PUBLIC_LOTAME_CLIENT_ID}
 ENV NEXT_PUBLIC_CB_UID=${NEXT_PUBLIC_CB_UID}
@@ -33,8 +38,9 @@ ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
 ENV NEXT_PUBLIC_CDN_URL=${NEXT_PUBLIC_CDN_URL}
 ENV NEXT_PUBLIC_GCS_BUCKET=${NEXT_PUBLIC_GCS_BUCKET}
 
-# Copy dependencies from deps stage
+# Copy dependencies and source files
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 COPY . .
 
 # Generate Prisma client
@@ -52,7 +58,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Runtime args that need to be available during container execution
+# Runtime args
 ARG WORDPRESS_API_URL
 ARG WORDPRESS_AUTH_REFRESH_TOKEN
 ARG WORDPRESS_PREVIEW_SECRET
@@ -86,15 +92,15 @@ ENV YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Set directory permissions
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Create required directories and set permissions
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next
 
 # Copy necessary files
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/prisma ./prisma
 
 # Switch to non-root user
 USER nextjs
