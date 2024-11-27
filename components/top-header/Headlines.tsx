@@ -7,7 +7,7 @@ const Headlines = () => {
           <p>{headline.categoryName}</p>
         </div>;
       })} */}
-      kuch to dikha do 
+      News Headlines will appear here.
     </div>
   );
 };

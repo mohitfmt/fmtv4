@@ -15,7 +15,7 @@ const TopBar = () => {
         )}`}</time>
       </div>
       <Headlines />
-      search box newsletter social icons sigin
+      search-box newsletter social-icons sigin-button
       <ThemeToggle />
     </section>
   );
