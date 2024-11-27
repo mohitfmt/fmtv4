@@ -1,10 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"],
-});
+import prisma from "@/lib/prisma";
 
 interface ContentUpdate {
   id: string;
@@ -21,14 +17,6 @@ interface UpdatePayload {
   timestamp: string;
 }
 
-// interface LogEntry {
-//   level: "INFO" | "WARN" | "ERROR";
-//   category: "REVALIDATE" | "SYNC" | "CACHE";
-//   message: string;
-//   metadata?: Record<string, any>;
-// }
-
-// Collection pages that need to be revalidated
 const COLLECTION_PAGES = {
   sections: [
     "/category/nation",
@@ -41,40 +29,13 @@ const COLLECTION_PAGES = {
   ],
   special: [
     "/", // Homepage
-    // "/latest-news", // Latest news page
-    // "/trending", // Trending articles
-    // "/most-read", // Most read articles
-    // "/editors-picks", // Editor's picks
   ],
 };
-
-async function validateConnection() {
-  try {
-    await prisma.$connect();
-    console.log("Successfully connected to MongoDB");
-
-    // Test log creation
-    const testLog = await prisma.syncLog.create({
-      data: {
-        level: "INFO",
-        category: "SYNC",
-        message: "Database connection test",
-        metadata: { test: true },
-      },
-    });
-    console.log("Test log created:", testLog);
-  } catch (error) {
-    console.error("Database connection error:", error);
-    throw error;
-  }
-}
 
 async function revalidateContent(updates: ContentUpdate[]) {
   const revalidatedPaths = new Set<string>();
 
   try {
-    // Log start of process
-
     await prisma.syncLog.create({
       data: {
         level: "INFO",
@@ -210,8 +171,6 @@ async function purgeCloudflareCache(paths: string[]) {
         `Cloudflare purge failed: ${result.errors?.[0]?.message}`
       );
     }
-
-    console.log(`[CACHE] Purged ${urls.length} URLs from Cloudflare`);
   } catch (error) {
     console.error("[CACHE] Purge failed:", error);
     throw error;
@@ -223,15 +182,12 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    // Validate database connection first
-    await validateConnection();
-
     // Send immediate acknowledgment
     res.status(200).json({ received: true });
 
     // Create initial log with try-catch
     try {
-      const logEntry = await prisma.syncLog.create({
+      await prisma.syncLog.create({
         data: {
           level: "INFO",
           category: "SYNC",
@@ -243,7 +199,6 @@ export default async function handler(
           },
         },
       });
-      console.log("Created log entry:", logEntry);
     } catch (error) {
       console.error("Failed to create initial log:", error);
     }
@@ -268,9 +223,6 @@ export default async function handler(
   } catch (error) {
     console.error("Handler error:", error);
     res.status(500).json({ error: "Internal server error" });
-  } finally {
-    // Disconnect prisma client
-    await prisma.$disconnect();
   }
 }
 
