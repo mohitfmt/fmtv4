@@ -201,6 +201,14 @@ export default async function handler(
   // Send immediate acknowledgment
   res.status(200).json({ received: true });
 
+  await prisma.syncLog.create({
+    data: {
+      level: "INFO",
+      category: "SYNC",
+      message: "Received sync request",
+      metadata: { method: req.method, body: req.body },
+    },
+  });
   // Process the update asynchronously
   if (req.method === "POST") {
     try {
