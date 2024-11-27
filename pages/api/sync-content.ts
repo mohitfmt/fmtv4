@@ -51,7 +51,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
 
   try {
     // Log start of process
-    await prisma.syncLog.create({
+    await prisma.SyncLog.create({
       data: {
         level: "INFO",
         category: "SYNC",
@@ -68,7 +68,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidatePath(articlePath);
         revalidatedPaths.add(articlePath);
 
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "INFO",
             category: "REVALIDATE",
@@ -77,7 +77,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "ERROR",
             category: "REVALIDATE",
@@ -100,7 +100,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidatePath(path);
         revalidatedPaths.add(path);
 
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "INFO",
             category: "REVALIDATE",
@@ -109,7 +109,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "ERROR",
             category: "REVALIDATE",
@@ -124,7 +124,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
     if (revalidatedPaths.size > 0) {
       try {
         await purgeCloudflareCache(Array.from(revalidatedPaths));
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "INFO",
             category: "CACHE",
@@ -133,7 +133,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
           },
         });
       } catch (error) {
-        await prisma.syncLog.create({
+        await prisma.SyncLog.create({
           data: {
             level: "ERROR",
             category: "CACHE",
@@ -146,7 +146,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
 
     return revalidatedPaths;
   } catch (error) {
-    await prisma.syncLog.create({
+    await prisma.SyncLog.create({
       data: {
         level: "ERROR",
         category: "SYNC",
@@ -201,7 +201,7 @@ export default async function handler(
   // Send immediate acknowledgment
   res.status(200).json({ received: true });
 
-  await prisma.syncLog.create({
+  await prisma.SyncLog.create({
     data: {
       level: "INFO",
       category: "SYNC",
