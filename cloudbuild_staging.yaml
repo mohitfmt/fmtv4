@@ -90,7 +90,9 @@ steps:
           --cpu=2 \
           --min-instances=2 \
           --max-instances=10 \
-          --set-env-vars="NODE_ENV=production;NEXT_TELEMETRY_DISABLED=1;DATABASE_URL=${_DATABASE_URL}" \
+          --set-env-vars="NODE_ENV=production" \
+          --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
+          --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
           --quiet
 
         # Verify deployment
