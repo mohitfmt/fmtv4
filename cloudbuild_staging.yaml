@@ -14,51 +14,48 @@ steps:
   # Build container image with caching
   - name: "gcr.io/cloud-builders/docker"
     id: Build Container
-    entrypoint: "bash"
     args:
-      - "-c"
-      - |
-        echo "🏗️ Starting Docker build..."
-        docker build \
-          --progress=plain \
-          --cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest \
-          --target=runner \
-          --build-arg NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID} \
-          --build-arg NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID} \
-          --build-arg NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID} \
-          --build-arg NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY} \
-          --build-arg NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST} \
-          --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
-          --build-arg NEXT_PUBLIC_CDN_URL="https://freemalaysiatoday.com" \
-          --build-arg NEXT_PUBLIC_GCS_BUCKET="https://media.freemalaysiatoday.com" \
-          --build-arg WORDPRESS_API_URL=${_WORDPRESS_API_URL} \
-          --build-arg WORDPRESS_AUTH_REFRESH_TOKEN=${_WORDPRESS_AUTH_REFRESH_TOKEN} \
-          --build-arg WORDPRESS_PREVIEW_SECRET=${_WORDPRESS_PREVIEW_SECRET} \
-          --build-arg DATABASE_URL=${_DATABASE_URL} \
-          --build-arg NEXTAUTH_SECRET=${_NEXTAUTH_SECRET} \
-          --build-arg GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET} \
-          --build-arg REVALIDATION_TOKEN=${_REVALIDATION_TOKEN} \
-          --build-arg SYNC_KEY=${_SYNC_KEY} \
-          --build-arg CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN} \
-          --build-arg CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID} \
-          --build-arg CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY} \
-          --build-arg CHARTBEAT_HOST=${_CHARTBEAT_HOST} \
-          --build-arg YOUTUBE_API_KEY=${_YOUTUBE_API_KEY} \
-          --build-arg NODE_ENV=production \
-          -t asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
-          -t asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest \
-          .
+      - "build"
+      - "--progress=plain"
+      - "--cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
+      - "--target=runner"
+      - "--build-arg"
+      - "NODE_ENV=production"
+      - "--build-arg"
+      - "NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CDN_URL=https://freemalaysiatoday.com"
+      - "--build-arg"
+      - "NEXT_PUBLIC_GCS_BUCKET=https://media.freemalaysiatoday.com"
+      - "-t"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
+      - "-t"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
+      - "."
 
-  # Push both container images
+  # Push container images
   - name: "gcr.io/cloud-builders/docker"
     id: Push Container
-    entrypoint: "bash"
     args:
-      - "-c"
-      - |
-        echo "📤 Pushing images..."
-        docker push asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA
-        docker push asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest
+      - "push"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
+
+  # Push latest tag
+  - name: "gcr.io/cloud-builders/docker"
+    id: Push Latest
+    args:
+      - "push"
+      - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
 
   # Blue/Green Deployment
   - name: "gcr.io/cloud-builders/gcloud"
@@ -81,7 +78,7 @@ steps:
         
         echo "🚀 Current active: $activeEnv, Deploying to: $nextEnv"
         
-        # Deploy new version
+        # Deploy new version with runtime environment variables
         echo "📦 Deploying new version..."
         gcloud run deploy ${_SERVICE_NAME} \
           --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
@@ -93,28 +90,33 @@ steps:
           --cpu=2 \
           --min-instances=2 \
           --max-instances=10 \
-          --set-env-vars=^--^NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1,WORDPRESS_API_URL=${_WORDPRESS_API_URL},WORDPRESS_AUTH_REFRESH_TOKEN=${_WORDPRESS_AUTH_REFRESH_TOKEN},WORDPRESS_PREVIEW_SECRET=${_WORDPRESS_PREVIEW_SECRET},DATABASE_URL=${_DATABASE_URL},NEXTAUTH_SECRET=${_NEXTAUTH_SECRET},GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},REVALIDATION_TOKEN=${_REVALIDATION_TOKEN},SYNC_KEY=${_SYNC_KEY},CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN},CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID},CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY},CHARTBEAT_HOST=${_CHARTBEAT_HOST},YOUTUBE_API_KEY=${_YOUTUBE_API_KEY} \
-          --set-env-vars=NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID},NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID},NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID},NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY},NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST},NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID},NEXT_PUBLIC_CDN_URL=https://freemalaysiatoday.com,NEXT_PUBLIC_GCS_BUCKET=https://media.freemalaysiatoday.com
-
+          --set-env-vars="NODE_ENV=production;NEXT_TELEMETRY_DISABLED=1;DATABASE_URL=${_DATABASE_URL}" \
+          --quiet
 
         # Verify deployment
         echo "🔍 Verifying deployment..."
-        sleep 10  # Give the service some time to start
+        sleep 10
         
         # Switch traffic
         echo "🔄 Switching traffic..."
         gcloud run services update-traffic ${_SERVICE_NAME} \
           --to-tags $nextEnv=100 \
-          --region=${_REGION}
+          --region=${_REGION} \
+          --quiet
         
-        # Purge Cloudflare cache
-        echo "🧹 Purging Cloudflare cache..."
-        curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
-          -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
-          -H "Content-Type: application/json" \
-          --data '{"purge_everything":true}'
-        
-        echo "✨ Deployment completed successfully!"
+        if [ $? -eq 0 ]; then
+          # Purge Cloudflare cache only if deployment successful
+          echo "🧹 Purging Cloudflare cache..."
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+          
+          echo "✨ Deployment completed successfully!"
+        else
+          echo "❌ Deployment failed"
+          exit 1
+        fi
 
 substitutions:
   _REGION: asia-southeast1
