@@ -56,44 +56,64 @@ steps:
       - "push"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
 
-  # Blue/Green Deployment
+  # Blue/Green Deployment with improved error handling
   - name: "gcr.io/cloud-builders/gcloud"
     id: Deploy
     entrypoint: "bash"
     args:
       - "-c"
       - |
-        # Get current active environment
-        activeEnv=$(gcloud run services describe ${_SERVICE_NAME} \
-          --region=${_REGION} \
-          --format='get(traffic.tags.*.tag)' \
-          --filter='traffic.tags.*.percent=100' || echo "none")
-        
-        # Set next environment
-        nextEnv="blue"
-        if [ "$activeEnv" == "blue" ]; then
-          nextEnv="green"
-        fi
-        
-        echo "🚀 Deploying to $nextEnv environment..."
-        
-        # Deploy new version
-        gcloud run deploy ${_SERVICE_NAME} \
-          --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
-          --no-traffic \
-          --tag=$nextEnv \
-          --region=${_REGION} \
-          --port=3000 \
-          --memory=2Gi \
-          --cpu=2 \
-          --min-instances=2 \
-          --max-instances=10 \
-          --set-env-vars=NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1
+        echo "🔍 Checking if service exists..."
+        if gcloud run services describe ${_SERVICE_NAME} --region=${_REGION} 2>/dev/null; then
+          # Service exists - do blue/green deployment
+          echo "✅ Service exists, performing blue/green deployment"
+          
+          # Get current active environment
+          activeEnv=$(gcloud run services describe ${_SERVICE_NAME} \
+            --region=${_REGION} \
+            --format='value(status.traffic.tags)' || echo "none")
+          
+          # Set next environment
+          nextEnv="blue"
+          if [[ "$activeEnv" == *"blue"* ]]; then
+            nextEnv="green"
+          fi
+          
+          echo "🚀 Current active: $activeEnv, Deploying to: $nextEnv"
+          
+          # Deploy new version
+          gcloud run deploy ${_SERVICE_NAME} \
+            --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
+            --no-traffic \
+            --tag=$nextEnv \
+            --region=${_REGION} \
+            --port=3000 \
+            --memory=2Gi \
+            --cpu=2 \
+            --min-instances=2 \
+            --max-instances=10 \
+            --set-env-vars=NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1
 
-        # Switch traffic
-        gcloud run services update-traffic ${_SERVICE_NAME} \
-          --to-tags $nextEnv=100 \
-          --region=${_REGION}
+          # Switch traffic
+          gcloud run services update-traffic ${_SERVICE_NAME} \
+            --to-tags $nextEnv=100 \
+            --region=${_REGION}
+            
+        else
+          # First time deployment
+          echo "🆕 First time deployment, creating service..."
+          gcloud run deploy ${_SERVICE_NAME} \
+            --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
+            --region=${_REGION} \
+            --port=3000 \
+            --memory=2Gi \
+            --cpu=2 \
+            --min-instances=2 \
+            --max-instances=10 \
+            --set-env-vars=NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1 \
+            --tag=blue \
+            --allow-unauthenticated
+        fi
         
         # Purge Cloudflare cache
         echo "🧹 Purging Cloudflare cache..."
