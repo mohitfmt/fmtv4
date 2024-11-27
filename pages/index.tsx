@@ -8,6 +8,8 @@ export default function Home() {
   return (
     <div>
       <TopHeader />
+      <h1>Body</h1>
+      <h2>Footer</h2>
     </div>
   );
 }
