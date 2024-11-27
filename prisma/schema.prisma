@@ -35,3 +35,12 @@ model TrendingTag {
   slug  String
   uri   String
 }
+
+model SyncLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  level     String
+  category  String
+  message   String
+  metadata  Json?
+  timestamp DateTime @default(now())
+}

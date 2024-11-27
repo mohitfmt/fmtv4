@@ -1,5 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 interface ContentUpdate {
   id: string;
@@ -15,6 +18,13 @@ interface UpdatePayload {
   updates: ContentUpdate[];
   timestamp: string;
 }
+
+// interface LogEntry {
+//   level: "INFO" | "WARN" | "ERROR";
+//   category: "REVALIDATE" | "SYNC" | "CACHE";
+//   message: string;
+//   metadata?: Record<string, any>;
+// }
 
 // Collection pages that need to be revalidated
 const COLLECTION_PAGES = {
@@ -40,6 +50,16 @@ async function revalidateContent(updates: ContentUpdate[]) {
   const revalidatedPaths = new Set<string>();
 
   try {
+    // Log start of process
+    await prisma.syncLog.create({
+      data: {
+        level: "INFO",
+        category: "SYNC",
+        message: `Processing ${updates.length} updates`,
+        metadata: { updateCount: updates.length },
+      },
+    });
+
     // 1. Revalidate individual article pages
     for (const update of updates) {
       try {
@@ -48,18 +68,27 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidatePath(articlePath);
         revalidatedPaths.add(articlePath);
 
-        // Log success but don't stop on error
-        console.log(`[REVALIDATE] Article: ${update.title}`);
+        await prisma.syncLog.create({
+          data: {
+            level: "INFO",
+            category: "REVALIDATE",
+            message: `Article: ${update.title}`,
+            metadata: { articleId: update.id, path: articlePath },
+          },
+        });
       } catch (error) {
-        console.error(
-          `[ERROR] Failed to revalidate article ${update.link}:`,
-          error
-        );
-        // Continue with other updates
+        await prisma.syncLog.create({
+          data: {
+            level: "ERROR",
+            category: "REVALIDATE",
+            message: `Failed to revalidate article ${update.link}`,
+            metadata: { error: String(error), articleId: update.id },
+          },
+        });
       }
     }
 
-    // 2. Revalidate all collection pages
+    // 2. Revalidate collection pages
     const collectionPaths = [
       ...COLLECTION_PAGES.sections,
       ...COLLECTION_PAGES.special,
@@ -70,30 +99,61 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidateTag(`page-${path}`);
         await revalidatePath(path);
         revalidatedPaths.add(path);
-        console.log(`[REVALIDATE] Collection: ${path}`);
+
+        await prisma.syncLog.create({
+          data: {
+            level: "INFO",
+            category: "REVALIDATE",
+            message: `Collection: ${path}`,
+            metadata: { path },
+          },
+        });
       } catch (error) {
-        console.error(
-          `[ERROR] Failed to revalidate collection ${path}:`,
-          error
-        );
-        // Continue with other pages
+        await prisma.syncLog.create({
+          data: {
+            level: "ERROR",
+            category: "REVALIDATE",
+            message: `Failed to revalidate collection ${path}`,
+            metadata: { error: String(error), path },
+          },
+        });
       }
     }
 
     // 3. Handle Cloudflare cache
     if (revalidatedPaths.size > 0) {
       try {
-        // Once we have the APIKEY and ZONEID, we can purge the cache
         await purgeCloudflareCache(Array.from(revalidatedPaths));
+        await prisma.syncLog.create({
+          data: {
+            level: "INFO",
+            category: "CACHE",
+            message: `Purged ${revalidatedPaths.size} URLs from Cloudflare`,
+            metadata: { paths: Array.from(revalidatedPaths) },
+          },
+        });
       } catch (error) {
-        console.error("[ERROR] Cloudflare cache purge failed:", error);
-        // Continue execution
+        await prisma.syncLog.create({
+          data: {
+            level: "ERROR",
+            category: "CACHE",
+            message: "Cloudflare cache purge failed",
+            metadata: { error: String(error) },
+          },
+        });
       }
     }
 
     return revalidatedPaths;
   } catch (error) {
-    console.error("[ERROR] Revalidation process failed:", error);
+    await prisma.syncLog.create({
+      data: {
+        level: "ERROR",
+        category: "SYNC",
+        message: "Revalidation process failed",
+        metadata: { error: String(error) },
+      },
+    });
     throw error;
   }
 }
