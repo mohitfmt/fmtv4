@@ -5,12 +5,13 @@ import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const Headlines = () => {
+  // in Sync-Content API wrote await mutate("api/top-news"); in handler 
   const { data: posts, error } = useSWR("/api/top-news", fetcher, {
     fallbackData: [],
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
-    refreshInterval: 3000000,
-    dedupingInterval: 30000,
+    refreshInterval: 3000000, // 50 minutes
+    dedupingInterval: 30000, // 30 seconds (Prevents multiple requests for the same data within 30 seconds)
   });
   const [isHovering, setIsHovering] = useState(false);
 
