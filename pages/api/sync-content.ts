@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { mutate } from "swr";
 
 interface ContentUpdate {
   id: string;
@@ -152,6 +153,7 @@ async function purgeCloudflareCache(paths: string[]) {
   const urls = paths.map((path) => `https://www.freemalaysiatoday.com${path}`);
 
   try {
+    await mutate("api/top-news");
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
       {
