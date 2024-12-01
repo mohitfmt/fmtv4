@@ -1,4 +1,4 @@
-import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
+import { getHeadlineNews } from "@/lib/gql-queries/get-headline-news";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
@@ -20,14 +20,14 @@ export default async function handler(
 
     const topNewsPosts = await Promise.all(
       categories.map(async (category) => {
-        const posts = await getCategoryNews(category, 1, false);
+        const posts = await getHeadlineNews(category, 1, false);
         return posts[0] ? { ...posts[0], categoryName: category } : null;
       })
     );
 
     const filteredPosts = topNewsPosts.filter(Boolean);
 
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate");
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
     res.status(200).json(filteredPosts);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch top news" });

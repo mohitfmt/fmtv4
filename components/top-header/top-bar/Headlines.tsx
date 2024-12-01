@@ -5,13 +5,13 @@ import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const Headlines = () => {
-  // in Sync-Content API wrote await mutate("api/top-news"); in handler 
+  // in Sync-Content API wrote await mutate("api/top-news"); in handler
   const { data: posts, error } = useSWR("/api/top-news", fetcher, {
     fallbackData: [],
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
-    refreshInterval: 3000000, // 50 minutes
-    dedupingInterval: 30000, // 30 seconds (Prevents multiple requests for the same data within 30 seconds)
+    revalidateIfStale: true,
+    refreshInterval: 60000, // 60 seconds
   });
   const [isHovering, setIsHovering] = useState(false);
 
@@ -44,7 +44,10 @@ const Headlines = () => {
 
   return (
     <div className="flex flex-1 items-center gap-2 overflow-hidden text-sm">
-      <h3 className="font-bold uppercase font-rhd">Headlines</h3>
+      <h3 className="uppercase font-rhd flex flex-col items-end">
+        <span className="tracking-wider font-bold text-lg -mb-1">Latest</span>
+        <span className=" tracking-tight">Headlines</span>
+      </h3>
       <div className="relative flex items-center overflow-x-hidden">
         <div
           className="animate-marquee whitespace-nowrap"
@@ -59,10 +62,10 @@ const Headlines = () => {
               href={post?.uri}
               prefetch={false}
             >
-              <span className="uppercase p-1 px-2 bg-yellow-300 text-black text-xs tracking-wider font-semibold mr-2 rounded-lg">
+              <span className="uppercase p-1 px-2.5 bg-yellow-300 text-black text-sm tracking-wider font-semibold mr-2 rounded-lg">
                 {makeDisplayName4Category(post.categoryName)} &rarr;
               </span>
-              <span className="text-sm">{post?.title}</span>
+              <span className="">{post?.title}</span>
             </Link>
           ))}
         </div>

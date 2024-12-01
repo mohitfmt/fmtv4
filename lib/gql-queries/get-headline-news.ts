@@ -1,6 +1,6 @@
 import { gqlFetchAPI } from "./gql-fetch-api";
 
-export async function getCategoryNews(
+export async function getHeadlineNews(
   categoryName: string,
   limit: number,
   preview: boolean
@@ -27,32 +27,15 @@ export async function getCategoryNews(
             edges {
               node {
                 title
-                excerpt
                 slug
                 uri
                 date
-                featuredImage {
-                  node {
-                    sourceUrl
-                  }
-                }
                 categories {
                   edges {
                     node {
                       slug
                       name
                       id
-                    }
-                  }
-                }
-                author {
-                  node {
-                    slug
-                    name
-                    firstName
-                    lastName
-                    avatar {
-                      url
                     }
                   }
                 }

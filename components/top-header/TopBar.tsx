@@ -1,21 +1,24 @@
-import { format } from "date-fns";
 import { ThemeToggle } from "../ThemeToggle";
-import Headlines from "./Headlines";
+import Headlines from "./top-bar/Headlines";
+import LastUpdatedDateTime from "./top-bar/LastUpdatedDateTime";
+import NewsletterButton from "./top-bar/NewsletterButton";
+import SearchNews from "./top-bar/SearchNews";
+import SignInButton from "./top-bar/SignInButton";
+import { SocialIcons } from "./top-bar/SocialIcons";
 
 const TopBar = () => {
   return (
-    <section className="flex bg-stone-800 text-stone-100 justify-between items-center px-2">
-      {/* Will have last updated date time Mon, 18 Nov, 2024 at 12:32 
-      this time will come from CMS last updated time */}
-      <div className="p-2 text-sm uppercase hidden md:flex flex-col">
-        <div className="font-bold tracking-widest">Last Updated at</div>
-        <time dateTime={new Date().toString()} className="text-xs">{`${format(
-          new Date(),
-          "E, dd MMM, yyyy hh:mm"
-        )}`}</time>
-      </div>
+    <section className="flex bg-stone-800 text-stone-100 justify-between items-center p-2 gap-2">
+      <LastUpdatedDateTime />
+      <span className="hidden md:block border-l-[0.5px] h-10 border-stone-500 mx-1" />
       <Headlines />
-      search-box newsletter social-icons sigin-button
+      <span className="hidden md:block border-l-[0.5px] h-10 border-stone-500 mx-1" />
+      <SearchNews />
+      <span className="hidden md:block border-l-[0.5px] h-10 border-stone-500 mx-1" />
+      <NewsletterButton />
+      <span className="hidden md:block border-l-[0.5px] h-10 border-stone-500 mx-1" />
+      <SocialIcons />
+      <SignInButton />
       <ThemeToggle />
     </section>
   );

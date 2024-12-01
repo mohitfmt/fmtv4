@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
-import { mutate } from "swr";
 
 interface ContentUpdate {
   id: string;
@@ -188,7 +187,7 @@ export default async function handler(
 
     // Create initial log with try-catch
     try {
-      await mutate("api/top-news");
+      // await mutate("api/top-news", undefined, { revalidate: true });
       await prisma.syncLog.create({
         data: {
           level: "INFO",
