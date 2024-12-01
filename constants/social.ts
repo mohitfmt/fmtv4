@@ -1,4 +1,3 @@
-// constants/social.ts
 import {
   Facebook,
   Instagram,
@@ -34,7 +33,7 @@ export const social = [
   {
     name: "Wikipedia",
     url: "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
-    icon: FileText, // Using FileText as closest alternative
+    icon: FileText,
     color: "#FFFFFF",
   },
   {
@@ -64,7 +63,7 @@ export const social = [
   {
     name: "TikTok",
     url: "https://www.tiktok.com/@freemalaysiatoday?_t=8UsJzt8DCWP&_r=1",
-    icon: CircleUser, // Using CircleUser as closest alternative
+    icon: CircleUser,
     color: "#FFFFFF",
   },
   {

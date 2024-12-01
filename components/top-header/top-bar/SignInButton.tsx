@@ -6,7 +6,7 @@ const SignInButton = () => {
     <Button
       variant="outline"
       size="icon"
-      className="bg-background border-border"
+      className="bg-background text-foreground border-border br-border"
     >
       <LogIn className="h-[1.2rem] w-[1.2rem]" />
       <span className="sr-only">SignIn / Login</span>
