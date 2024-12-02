@@ -1,4 +1,4 @@
-import { ThemeToggle } from "../ThemeToggle";
+import { ThemeToggle } from "./top-bar/ThemeToggle";
 import Headlines from "./top-bar/Headlines";
 import LastUpdatedDateTime from "./top-bar/LastUpdatedDateTime";
 import NewsletterButton from "./top-bar/NewsletterButton";

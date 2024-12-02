@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { LogIn } from "lucide-react";
+import { SignIn } from "@phosphor-icons/react";
 
 const SignInButton = () => {
   return (
     <Button
       variant="outline"
       size="icon"
-      className="bg-background text-foreground border-border br-border"
+      className="bg-background text-foreground border-border br-border border-white border-[0.5px]"
     >
-      <LogIn className="h-[1.2rem] w-[1.2rem]" />
+      <SignIn weight="bold" />
       <span className="sr-only">SignIn / Login</span>
     </Button>
   );

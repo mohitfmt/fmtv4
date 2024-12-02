@@ -7,10 +7,7 @@ import FooterSocialIcons from "./FooterSocialIcons";
 import CopyrightSection from "./CopyrightSection";
 import FooterOtherLinks from "./FooterOtherLinks";
 
-
-
 const Footer: React.FC = () => {
-  
   const filteredNavigation = navigation.filter((item) => item.id !== 1);
   const singleNavItems = filteredNavigation.filter((item) => !item.items);
   const groupedNavItems = filteredNavigation.filter((item) => item.items);
@@ -24,7 +21,6 @@ const Footer: React.FC = () => {
   return (
     <footer className="z-8 bg-stone-800 text-stone-100 py-12 z-8">
       <div className="container mx-auto md:px-7 px-2">
-
         {/* Logo Section */}
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <div className="flex justify-center items-center lg:justify-start md:mb-4">
@@ -66,8 +62,3 @@ const Footer: React.FC = () => {
 };
 
 export default Footer;
-
-
-
-
-

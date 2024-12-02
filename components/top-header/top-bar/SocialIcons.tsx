@@ -10,7 +10,7 @@ interface SocialIconsProps {
 
 export const SocialIcons: React.FC<SocialIconsProps> = ({
   className = "",
-  iconClassName = "w-5 h-5",
+  iconClassName = "w-6 h-6",
   useColors = false,
 }) => {
   return (
@@ -29,6 +29,7 @@ export const SocialIcons: React.FC<SocialIconsProps> = ({
           <Icon
             className={iconClassName}
             style={useColors ? { color } : undefined}
+            weight="regular"
           />
         </Link>
       ))}
