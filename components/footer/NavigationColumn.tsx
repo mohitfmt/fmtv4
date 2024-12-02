@@ -1,8 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { LogoSVG } from "@/components/ui/icons/LogoSVG";
-import { navigation } from "@/constants/navigation";
-import { social } from "@/constants/social";
 
 type NavItem = {
     id: number;
