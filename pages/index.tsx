@@ -1,5 +1,5 @@
-import Footer from "@/components/footer/Footer";
-import TopHeader from "@/components/top-header/TopHeader";
+import Container from "@/components/Container";
+
 // import { getCategoryNews } from "@/lib/gqlQueries";
 // import { GetStaticProps } from "next";
 
@@ -7,12 +7,14 @@ import TopHeader from "@/components/top-header/TopHeader";
 
 export default function Home() {
   return (
-    <div>
-      <TopHeader />
-      <main>
-        <h1>Body</h1>
-      </main>
-      <Footer />
-    </div>
+    <>
+      <Container>
+        <main className="my-2">
+          <div className="min-h-[50vh]">
+            <h1>Body</h1>
+          </div>
+        </main>
+      </Container>
+    </>
   );
 }
