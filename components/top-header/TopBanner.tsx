@@ -28,7 +28,7 @@ export default function TopBanner() {
           </div>
         </div>
       </header>
-      <div className="sticky top-[52.5px] z-8 bg-background z-9 ">
+      <div className="sticky top-[59.4px] bg-background z-10">
         <TopNavbar navigation={navigation} />
       </div>
     </>
