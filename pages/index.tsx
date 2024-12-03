@@ -1,6 +1,5 @@
 import LTRNewsPreview from "@/components/common/LTRNewsPreview";
 import SectionHeading from "@/components/common/SectionHeading";
-import Footer from "@/components/footer/Footer";
 import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
