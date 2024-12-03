@@ -1,8 +1,6 @@
 import LTRNewsPreview from "@/components/common/LTRNewsPreview";
 import SectionHeading from "@/components/common/SectionHeading";
 import Footer from "@/components/footer/Footer";
-import { LTRNewsPreviewSkeleton } from "@/components/skeletons/common/LTRNewsPreviewSkeleton";
-import TopHeader from "@/components/top-header/TopHeader";
 import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
@@ -13,8 +11,6 @@ import { PrismaClient } from "@prisma/client";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import Script from "next/script";
-import { Suspense } from "react";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -97,10 +93,7 @@ export default function Home({
           }}
           type="application/ld+json"
         />
-        <Script
-          src="https://apis.google.com/js/platform.js"
-          strategy="lazyOnload"
-        />
+        <script src="https://apis.google.com/js/platform.js" async defer />
         <meta
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
