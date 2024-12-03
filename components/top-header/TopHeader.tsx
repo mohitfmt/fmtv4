@@ -1,3 +1,4 @@
+import TopBanner from "./TopBanner";
 import TopBar from "./TopBar";
 
 // Last updated date time
@@ -8,8 +9,7 @@ const TopHeader = () => {
   return (
     <div>
       <TopBar />
-      <h2>logoBar</h2>
-      <h3>menuBar</h3>
+      <TopBanner />
     </div>
   );
 };
