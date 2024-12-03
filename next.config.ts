@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   images: {
-    domains: ["media.freemalaysiatoday.com"],
     remotePatterns: [
       {
         protocol: protocol.slice(0, -1) as "https" | "http",
