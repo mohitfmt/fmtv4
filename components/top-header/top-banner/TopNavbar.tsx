@@ -16,56 +16,46 @@ interface Props {
 const TopNavbar = ({ navigation }: Props) => {
   const router = useRouter();
 
-  const normalizePath = (path: string) => path.replace(/\/$/, "");
-
+  // Function to check if the item is active
   const isActive = (href: string) => {
-    return normalizePath(router.pathname) === normalizePath(href);
-  };
-
-  const isParentActive = (items?: NavItem[]) => {
-    return items?.some((item) => isActive(item.href));
+    return router.pathname === href;
   };
 
   return (
-    <nav className="border-b border-gray-400 pt-3 pb-2 px-4 font-semibold hidden xl:block overflow-x-clip relative">
-      <ul className="flex justify-between items-center min-w-full">
+    <nav className="border-b border-stone-400 py-2 px-4 font-semibold block overflow-x-scroll xl:overflow-x-clip relative">
+      <ul className="flex justify-between px-3 items-center min-w-full">
         {navigation.map((item) => (
           <li key={item.id} className="group relative">
             <div className="flex items-center">
               <Link
                 href={item.href}
-                className={`hover:bg-blue-600 hover:text-white px-2 py-0.5 rounded-md text-lg tracking-wide flex items-center ${isActive(item.href) || isParentActive(item.items)
-                  ? "bg-blue-600 text-white"
-                  : ""
-                  }`}
+                className={`font-bitter px-1 py-1 rounded-md text-md font-bold tracking-wide flex items-center ${
+                  isActive(item.href) ? "bg-accent-blue text-white" : "hover:bg-accent-blue hover:text-white"
+                }`}
               >
                 {item.title}
                 {item.items && (
-                  <span className="ml-1  hover:text-white">
-                    <CaretDown
-                      size={12}
-                      className="group-hover:hidden"
-                    />
-                    <CaretUp
-                      size={12}
-                      className="hidden group-hover:block"
-                    />
+                  <span className="ml-1 hidden xl:block hover:text-white">
+                    {isActive(item.href) ? (
+                      <CaretUp size={12} />
+                    ) : (
+                      <CaretDown size={12} />
+                    )}
                   </span>
                 )}
               </Link>
             </div>
             {item.items && (
               <ul
-                className="absolute hidden group-hover:block py-1 border border-gray-200 rounded-md 
-                bg-white dark:bg-secondary z-50 shadow-lg"
+                className="absolute hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg"
               >
                 {item.items.map((subItem) => (
                   <li key={subItem.id}>
                     <Link
                       href={subItem.href}
-                      className={`hover:bg-blue-600 hover:text-white p-2 block whitespace-nowrap px-5 py-2 
-                      text-gray-900 dark:text-gray-100 ${isActive(subItem.href) ? "bg-blue-600 text-white" : ""
-                        }`}
+                      className={`p-2 block whitespace-nowrap px-5 py-2 rounded-md text-stone-800 dark:text-stone-100 ${
+                        isActive(subItem.href) ? "bg-accent-blue text-white" : "hover:bg-accent-blue hover:text-white"
+                      }`}
                     >
                       {subItem.title}
                     </Link>

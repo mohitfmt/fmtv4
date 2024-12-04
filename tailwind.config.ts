@@ -17,6 +17,7 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+      
         card: {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
@@ -40,6 +41,9 @@ export default {
         accent: {
           DEFAULT: "var(--accent)",
           foreground: "var(--accent-foreground)",
+          yellow:"var(--accent-yellow)",
+          blue:"var(--accent-blue)",
+          red:"var(--accent-red)"
         },
         destructive: {
           DEFAULT: "var(--destructive)",
@@ -48,12 +52,18 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      top:
+      {
+        topNavTop:"var(--navbar-top)",
+        mobileNavTop:"var(--mobileNav-top)"
+      }
     },
   },
   plugins: [tailwindcssAnimate],

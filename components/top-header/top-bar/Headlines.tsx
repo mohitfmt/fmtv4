@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
+import { ArrowRight } from "@phosphor-icons/react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -16,9 +17,8 @@ const Headlines = () => {
   const [isHovering, setIsHovering] = useState(false);
 
   const customStyle = {
-    animation: `marquee 60s linear infinite ${
-      isHovering ? "paused" : "running"
-    }`,
+    animation: `marquee 60s linear infinite ${isHovering ? "paused" : "running"
+      }`,
   };
   let categoryDisplayName = "Breaking News";
   const makeDisplayName4Category = (catName: string) => {
@@ -48,6 +48,7 @@ const Headlines = () => {
         <span className="tracking-wider font-bold text-lg -mb-1">Latest</span>
         <span className=" tracking-tight">Headlines</span>
       </h3>
+
       <div className="relative flex items-center overflow-x-hidden">
         <div
           className="animate-marquee whitespace-nowrap"
@@ -62,9 +63,15 @@ const Headlines = () => {
               href={post?.uri}
               prefetch={false}
             >
-              <span className="uppercase p-1 px-2.5 bg-yellow-300 text-black text-sm tracking-wider font-semibold mr-2 rounded-lg">
-                {makeDisplayName4Category(post.categoryName)} &rarr;
+
+
+              <span className="uppercase py-0.5 px-2 bg-accent-yellow text-black text-sm tracking-wide font-semibold mr-2 rounded-lg">
+                <span className="flex items-center">
+                  {makeDisplayName4Category(post.categoryName)}
+                  <ArrowRight size={15} className="inline ml-1 font-bolder" />
+                </span>
               </span>
+
               <span className="">{post?.title}</span>
             </Link>
           ))}

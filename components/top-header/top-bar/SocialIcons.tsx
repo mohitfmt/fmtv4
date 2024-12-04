@@ -10,12 +10,12 @@ interface SocialIconsProps {
 
 export const SocialIcons: React.FC<SocialIconsProps> = ({
   className = "",
-  iconClassName = "w-6 h-6",
+  iconClassName = "hover:text-accent-yellow",
   useColors = false,
 }) => {
   return (
     <nav
-      className={`flex flex-row items-center gap-0 md:gap-0.5 overflow-hidden ${className}`}
+      className={`flex flex-wrap flex-row items-center gap-y-2 md:gap-0.5 overflow-hidden ${className}`}
     >
       {social.map(({ name, url, icon: Icon, color }) => (
         <Link

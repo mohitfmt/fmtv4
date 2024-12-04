@@ -27,7 +27,7 @@ export function ThemeToggle() {
         <Button
           variant="outline"
           size="icon"
-          className="bg-background text-foreground border-border border-white border-[0.5px]"
+          className="bg-transparent  hover:bg-accent-yellow dark:text-white lg:text-white border-black dark:border-white lg:border-white br-border"
         >
           <Sun
             weight="bold"
@@ -41,19 +41,22 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          <Sun weight="bold" className="mr-2 h-4 w-4" />
-          <span>Light</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          <Moon weight="bold" className="mr-2 h-4 w-4" />
-          <span>Dark</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          <Monitor weight="bold" className="mr-2 h-4 w-4" />
-          <span>System</span>
-        </DropdownMenuItem>
+        {[
+          { theme: "light", icon: Sun, label: "Light" },
+          { theme: "dark", icon: Moon, label: "Dark" },
+          { theme: "system", icon: Monitor, label: "System" },
+        ].map(({ theme, icon: Icon, label }) => (
+          <DropdownMenuItem
+            key={theme}
+            onClick={() => setTheme(theme)}
+            className="cursor-pointer"
+          >
+            <Icon weight="bold" className="mr-2 h-4 w-4" />
+            <span>{label}</span>
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
+
     </DropdownMenu>
   );
 }

@@ -2,20 +2,24 @@ import TopNavbar from "./top-banner/TopNavbar";
 import { navigation } from "@/constants/navigation";
 import MobileNavbar from "./top-banner/MobileNavbar";
 import { LogoSVG } from "../ui/icons/LogoSVG";
+import SearchNews from "./top-bar/SearchNews";
 import Link from "next/link";
 
 export default function TopBanner() {
   return (
     <>
-      <header>
-        <div className="flex flex-row items-center justify-between p-2">
+      <header className="sticky lg:-top-20 top-14 z-20 bg-background br-b border-stone-400">
+        <div className="flex flex-row items-center justify-between py-2">
           <Link
             href="/"
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex flex-col items-center"
           >
-            <LogoSVG className="h-10 w-20 md:h-20 md:w-40" role="img"
-              aria-label="Free Malaysia Today - Logo SVG" />
+            <LogoSVG
+              className="h-10 w-20 md:h-20 md:w-40"
+              role="img"
+              aria-label="Free Malaysia Today - Logo SVG"
+            />
 
             <span className="sr-only">Home</span>
           </Link>
@@ -23,12 +27,13 @@ export default function TopBanner() {
             {/* Ad Slot */}
           </div>
 
-          <div>
+          <div className="flex items-center lg:hidden">
+            <SearchNews />
             <MobileNavbar navigation={navigation} />
           </div>
         </div>
       </header>
-      <div className="sticky top-[59.4px] bg-background z-10">
+      <div className="lg:sticky top-[59.4px] bg-background z-30">
         <TopNavbar navigation={navigation} />
       </div>
     </>
