@@ -43,10 +43,10 @@ const Headlines = () => {
   };
 
   return (
-    <div className="flex flex-1 items-center gap-2 overflow-hidden text-sm">
-      <h3 className="uppercase font-rhd flex flex-col items-end">
-        <span className="tracking-wider font-bold text-lg -mb-1">Latest</span>
-        <span className=" tracking-tight">Headlines</span>
+    <div className="flex flex-1 items-center gap-2 overflow-hidden">
+      <h3 className="uppercase font-rhd flex flex-col items-end leading-none">
+        <span className="tracking-widest">Latest</span>
+        <span className="font-semibold">Headlines</span>
       </h3>
 
       <div className="relative flex items-center overflow-x-hidden">

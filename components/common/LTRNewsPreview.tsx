@@ -28,7 +28,7 @@ const LTRNewsPreview = ({
           )}
         </figure>
         <div className="flex-1">
-          <h4 className="text-xs text-red-700 dark:text-red-300 flex gap-2 items-center justify-between">
+          <h4 className="text-xs text-accent-red flex gap-2 items-center justify-between">
             {preferredCategory && (
               <span
                 key={preferredCategory?.node?.id}
@@ -37,12 +37,12 @@ const LTRNewsPreview = ({
                 {preferredCategory?.node?.name.toUpperCase()}
               </span>
             )}
-            <span className="text-sm font-bitter font-semibold text-blue-700 dark:text-blue-300 tracking-wider">
+            <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
               <PublishingDateTime dateString={date} size={16} />
             </span>
           </h4>
           <Link href={uri} title={title}>
-            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-600">
+            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-400">
               {title}
             </h3>
           </Link>

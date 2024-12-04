@@ -22,15 +22,17 @@ const TopNavbar = ({ navigation }: Props) => {
   };
 
   return (
-    <nav className="border-b border-stone-400 py-2 px-4 font-semibold block overflow-x-scroll xl:overflow-x-clip relative">
-      <ul className="flex justify-between px-3 items-center min-w-full">
+    <nav className="border-b border-stone-400 py-2 font-semibold block overflow-x-scroll xl:overflow-x-clip relative">
+      <ul className="flex px-0.5 items-center min-w-full">
         {navigation.map((item) => (
           <li key={item.id} className="group relative">
             <div className="flex items-center">
               <Link
                 href={item.href}
-                className={`font-bitter px-1 py-1 rounded-md text-md font-bold tracking-wide flex items-center ${
-                  isActive(item.href) ? "bg-accent-blue text-white" : "hover:bg-accent-blue hover:text-white"
+                className={`px-2.5 py-1.5 rounded-md text-md font-bold tracking-wide flex items-center ${
+                  isActive(item.href)
+                    ? "bg-accent-blue text-white"
+                    : "hover:bg-accent-blue hover:text-white"
                 }`}
               >
                 {item.title}
@@ -46,15 +48,15 @@ const TopNavbar = ({ navigation }: Props) => {
               </Link>
             </div>
             {item.items && (
-              <ul
-                className="absolute hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg"
-              >
+              <ul className="absolute hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg">
                 {item.items.map((subItem) => (
                   <li key={subItem.id}>
                     <Link
                       href={subItem.href}
                       className={`p-2 block whitespace-nowrap px-5 py-2 rounded-md text-stone-800 dark:text-stone-100 ${
-                        isActive(subItem.href) ? "bg-accent-blue text-white" : "hover:bg-accent-blue hover:text-white"
+                        isActive(subItem.href)
+                          ? "bg-accent-blue text-white"
+                          : "hover:bg-accent-blue hover:text-white"
                       }`}
                     >
                       {subItem.title}

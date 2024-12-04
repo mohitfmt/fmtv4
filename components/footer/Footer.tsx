@@ -19,7 +19,7 @@ const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="z-8 bg-stone-800 text-stone-100 py-12 z-8">
+    <footer className="bg-stone-800 text-stone-100 pt-8 pb-2 z-8">
       <div className="container mx-auto md:px-1 px-2">
         {/* Logo Section */}
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">

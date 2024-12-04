@@ -3,7 +3,7 @@ import React from "react";
 
 export default function FooterOtherLinks() {
   return (
-    <div className="flex flex-wrap justify-center gap-4 py-4 text-sm text-gray-300">
+    <div className="flex flex-wrap justify-center gap-4 py-2 text-sm text-gray-300">
       {[
         "contact-us",
         "about-us",

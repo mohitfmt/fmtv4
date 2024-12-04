@@ -1,5 +1,5 @@
 const CopyrightSection: React.FC = () => (
-  <div className="mt-8 text-center space-y-2 text-xs text-gray-400">
+  <div className="text-center py-4 text-xs text-gray-400">
     <p className="max-w-2xl mx-auto">
       Registration on or use of this site constitutes acceptance of our Terms of
       Service, Privacy Policy and Cookies Policy.

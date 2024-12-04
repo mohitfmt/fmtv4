@@ -1,20 +1,18 @@
 import { format } from "date-fns";
+import TopBarSeperator from "./TopBarSeperator";
 
 const LastUpdatedDateTime = () => {
   return (
     // Bring Last Updated Date time from Sync-Content API
-    <div className="flex items-center gap-1">
-      <div className="text-sm uppercase hidden md:flex flex-col">
-        <div className="tracking-widest text-xs">Last Updated</div>
+    <div className="hidden xl:flex items-center gap-1">
+      <div className="uppercase hidden md:flex flex-col leading-none">
+        <div className="tracking-wider text-sm font-extralight">Last Updated</div>
         <time
           dateTime={new Date().toString()}
-          className="font-semibold tracking-tighter text-xs "
-        >{`${format(new Date(), "E, dd MMM, yyyy")}`}</time>
+          className="font-semibold"
+        >{`${format(new Date(), "dd MMM, HH:mm")}`}</time>
       </div>
-      <p className="font-black md:text-lg text-sm hidden md:block">{`${format(new Date(), "HH:mm")}`}</p>
-
-      
-     
+      <TopBarSeperator />
     </div>
   );
 };

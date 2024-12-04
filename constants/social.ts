@@ -2,13 +2,13 @@ import {
   FacebookLogo,
   InstagramLogo,
   TwitterLogo,
-  // FileText,
+  FileText,
   PaperPlaneTilt,
   YoutubeLogo,
   WhatsappLogo,
   LinkedinLogo,
   TiktokLogo,
-  // Newspaper,
+  Newspaper,
 } from "@phosphor-icons/react";
 
 export const social = [
@@ -30,12 +30,12 @@ export const social = [
     icon: TwitterLogo,
     color: "#1DA1F2",
   },
-  // {
-  //   name: "Wikipedia",
-  //   url: "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
-  //   icon: FileText,
-  //   color: "#FFFFFF",
-  // },
+  {
+    name: "Wikipedia",
+    url: "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
+    icon: FileText,
+    color: "#FFFFFF",
+  },
   {
     name: "Telegram",
     url: "https://t.me/FreeMalaysiaToday",
@@ -66,10 +66,10 @@ export const social = [
     icon: TiktokLogo,
     color: "#FFFFFF",
   },
-  // {
-  //   name: "Google News",
-  //   url: "https://news.google.com/publications/CAAqBwgKMJ6DqAwwsIu2BA?hl=en-MY&gl=MY&ceid=MY%3Aen",
-  //   icon: Newspaper,
-  //   color: "#4285F4",
-  // },
+  {
+    name: "Google News",
+    url: "https://news.google.com/publications/CAAqBwgKMJ6DqAwwsIu2BA?hl=en-MY&gl=MY&ceid=MY%3Aen",
+    icon: Newspaper,
+    color: "#4285F4",
+  },
 ] as const;

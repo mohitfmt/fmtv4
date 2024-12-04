@@ -22,7 +22,7 @@ const SearchNews = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative hidden md:block">
       {/* Toggle Button for Search or Close */}
       <button
         type="button"
