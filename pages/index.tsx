@@ -220,9 +220,10 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     videoPosts[0] && { ...videoPosts[0].node, categoryName: "video" },
   ].filter(Boolean);
 
-  const columnistsIds = await prisma?.columnist?.findMany({
+  const columnistsIds = await prisma.columnist.findMany({
     select: { userId: true },
   });
+  // console.log("columnistsIds", columnistsIds);
   const columnistIds = columnistsIds?.map((id: any) => id?.userId);
   const columnists = await getColumnists(columnistIds, preview);
   const trendingTags = await prisma.trendingTag.findMany();
