@@ -8,10 +8,13 @@ const LastUpdatedDateTime = () => {
         <div className="tracking-widest text-xs">Last Updated</div>
         <time
           dateTime={new Date().toString()}
-          className="font-semibold tracking-tighter text-xs"
+          className="font-semibold tracking-tighter text-xs "
         >{`${format(new Date(), "E, dd MMM, yyyy")}`}</time>
       </div>
-      <p className="font-black text-lg">{`${format(new Date(), "HH:mm")}`}</p>
+      <p className="font-black md:text-lg text-sm hidden md:block">{`${format(new Date(), "HH:mm")}`}</p>
+
+      
+     
     </div>
   );
 };

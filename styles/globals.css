@@ -36,6 +36,12 @@ h6 {
     --border: rgba(230, 228, 228, 1);
     --input: rgba(230, 228, 228, 1);
     --ring: rgba(33, 28, 26, 1);
+
+    --accent-yellow: #f2a838;
+    /* FMT-v3:yellow- #F1A838 */
+    --accent-blue: #1d5aaa;
+    --accent-red: #a92c23;
+
     --radius: 0.5rem;
   }
 
@@ -59,6 +65,7 @@ h6 {
     --border: rgba(38, 36, 34, 1);
     --input: rgba(38, 36, 34, 1);
     --ring: rgba(208, 207, 204, 1);
+
   }
   * {
     @apply border-border;

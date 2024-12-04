@@ -1,34 +1,87 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { SearchIcon } from "lucide-react";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 
 const SearchNews = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       router.push(`/search?term=${encodeURIComponent(searchTerm)}`);
+      setIsOpen(false);
+      setSearchTerm("");
     }
   };
 
+  const handleClose = () => {
+    setIsOpen(false);
+    setSearchTerm("");
+  };
+
   return (
-    <form onSubmit={handleSearch} className="flex">
-      <input
-        id="search"
-        type="text"
-        maxLength={160}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="rounded-md border border-stone-500 bg-stone-900 outline-none p-1 px-2 pr-7 font-rhd font-semibold"
-        placeholder="Search for..."
-      />
-      <button type="submit" className="-ml-6" aria-label="Search">
-        <SearchIcon className="px-0.5" />
-        <span className="sr-only">Search</span>
+    <div className="relative">
+      {/* Toggle Button for Search or Close */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 hover:bg-accent-yellow rounded-full transition-colors"
+        aria-label={isOpen ? "Close search" : "Open search"}
+      >
+        <MagnifyingGlass size={24} className="lg:text-white text-foreground" />
       </button>
-    </form>
+
+      {/* Search Input Overlay */}
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black opacity-70 z-10"
+            onClick={handleClose}
+          />
+
+          {/* Centered Search Form */}
+          <div className="fixed  top-16 sm:top-10.7 md:top-15 inset-0 z-20 flex items-top justify-center h-[55px] ">
+            <form
+              onSubmit={handleSearch}
+              className="flex items-center bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-white rounded-lg shadow-lg md:w-[70%] w-[90%] p-2 border border-yellow-400"
+            >
+              <div className="relative flex-1">
+                <input
+                  id="search"
+                  type="text"
+                  maxLength={100}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-md border-none bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-white outline-none p-2 px-3 font-semibold focus:ring-1 dark:focus:ring-white focus:ring-black"
+                  placeholder="Search for news..."
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="absolute dark:text-white right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-yellow-400 text-black rounded-full transition-colors"
+                  aria-label="Submit search"
+                >
+                  <MagnifyingGlass size={24} />
+                </button>
+              </div>
+
+              {/* Cancel Button with Close Functionality */}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="ml-2 p-2 hover:bg-stone-200 text-stone-700 dark:text-white rounded-full transition-colors"
+                aria-label="Clear and close search"
+              >
+                <X size={20} />
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
