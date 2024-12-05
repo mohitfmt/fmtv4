@@ -6,7 +6,10 @@ interface NewsletterModalProps {
   onClose: () => void;
 }
 
-const NewsletterModal: React.FC<NewsletterModalProps> = ({ isOpen, onClose }) => {
+const NewsletterModal: React.FC<NewsletterModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const [email, setEmail] = useState<string>("");
   const [isValidEmail, setIsValidEmail] = useState<boolean>(false);
   const [showValidation, setShowValidation] = useState<boolean>(false);
@@ -25,7 +28,9 @@ const NewsletterModal: React.FC<NewsletterModalProps> = ({ isOpen, onClose }) =>
     }
   }, [email]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
     if (isValidEmail) {
       try {
@@ -43,6 +48,7 @@ const NewsletterModal: React.FC<NewsletterModalProps> = ({ isOpen, onClose }) =>
     // Simulate an API call with a delay
     return new Promise((resolve) => {
       setTimeout(() => {
+        console.log("Saving email to database:", email);
         resolve();
       }, 1000);
     });

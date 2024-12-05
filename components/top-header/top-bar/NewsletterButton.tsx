@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import NewsletterModal from "./NewsletterModal";
 import { Button } from "@/components/ui/button";
-import { Envelope } from "@phosphor-icons/react";
 
 const NewsletterButton = () => {
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);

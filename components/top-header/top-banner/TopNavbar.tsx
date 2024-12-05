@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
 
 interface NavItem {
   id: number;

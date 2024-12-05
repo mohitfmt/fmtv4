@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import PopText from "./PopText";
 
-const PublishingDateTime = ({ dateString, size = 26 }: any) => {
+const PublishingDateTime = ({ dateString }: any) => {
   const [timeString, setTimeString] = useState("");
   const [tooltipString, setTooltipString] = useState("");
 
@@ -67,11 +67,7 @@ const PublishingDateTime = ({ dateString, size = 26 }: any) => {
 
   return (
     <PopText content={tooltipString} position="left" isHtml={true}>
-      {/* <div className="flex gap-1 items-center">
-        <DateTimeIcon dateString={dateString} size={size / 4} /> */}
       <div className={`max-w-20 text-center`}>{timeString}</div>
-      {/* </div> */}
-
       <time className="hidden" dateTime={parseISO(dateString).toISOString()}>
         {timeString}
       </time>

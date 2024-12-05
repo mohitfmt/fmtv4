@@ -51,6 +51,7 @@ export async function getColumnists(ids: string[], preview: boolean) {
       },
     },
     firstPost: 1,
+    preview,
   };
 
   try {
