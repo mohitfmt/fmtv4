@@ -15,7 +15,7 @@ const LTRNewsPreview = ({
   const tooltipExcerpt = excerpt.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories.edges);
   return (
-    <article className="mb-4 px-1 rounded border-b border-gray-200 transition-shadow hover:shadow-lg">
+    <article className="mb-4 px-1 rounded border-b border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md transition-shadow">
       <div className="flex">
         <figure className="w-2/5 mr-2 mt-1 rounded-lg overflow-hidden transition-transform transform hover:scale-105">
           {featuredImage && (

@@ -22,7 +22,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className="lg:flex ml-1">
+    <div className="lg:flex">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

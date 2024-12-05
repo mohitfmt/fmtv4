@@ -17,8 +17,9 @@ const Headlines = () => {
   const [isHovering, setIsHovering] = useState(false);
 
   const customStyle = {
-    animation: `marquee 60s linear infinite ${isHovering ? "paused" : "running"
-      }`,
+    animation: `marquee 60s linear infinite ${
+      isHovering ? "paused" : "running"
+    }`,
   };
   let categoryDisplayName = "Breaking News";
   const makeDisplayName4Category = (catName: string) => {
@@ -63,16 +64,13 @@ const Headlines = () => {
               href={post?.uri}
               prefetch={false}
             >
-
-
-              <span className="uppercase py-0.5 px-2 bg-accent-yellow text-black text-sm tracking-wide font-semibold mr-2 rounded-lg">
-                <span className="flex items-center">
+              <span className="uppercase py-0.5 px-2 bg-accent-yellow text-sm tracking-wide font-semibold mr-2 rounded-lg">
+                <span className="flex items-center text-black">
                   {makeDisplayName4Category(post.categoryName)}
                   <ArrowRight size={15} className="inline ml-1 font-bolder" />
                 </span>
               </span>
-
-              <span className="">{post?.title}</span>
+              <span>{post?.title}</span>
             </Link>
           ))}
         </div>

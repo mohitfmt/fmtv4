@@ -1,5 +1,6 @@
 import LTRNewsPreview from "@/components/common/LTRNewsPreview";
 import SectionHeading from "@/components/common/SectionHeading";
+import TTBNewsPreview from "@/components/common/TTBNewsPreview";
 import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
@@ -111,6 +112,19 @@ export default function Home({
             <div className="xl:block md:grid md:grid-cols-2 sm:block md:gap-8 gap-2">
               {businessPosts?.map((bizPost: any) => (
                 <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
+              ))}
+            </div>
+          </div>
+          <div className="order-1 xl:order-2 xl:col-span-5 md:col-span-7 mt-3">
+            <TTBNewsPreview {...heroPosts[0]} />
+          </div>
+          <div className="order-2 xl:order-3 xl:col-span-4 md:col-span-5">
+            <Link href="/news">
+              <SectionHeading sectionName="Breaking" />
+            </Link>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {highlightPosts?.map((highlightPost: any) => (
+                <TTBNewsPreview key={highlightPost?.slug} {...highlightPost} />
               ))}
             </div>
           </div>

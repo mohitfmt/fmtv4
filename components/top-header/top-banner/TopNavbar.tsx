@@ -29,21 +29,21 @@ const TopNavbar = ({ navigation }: Props) => {
   };
 
   return (
-    <nav className="border-b border-stone-400 py-2 lg:px-8 font-semibold block overflow-x-scroll lg:overflow-x-clip relative">
-      <ul className="flex justify-around gap-1 items-center min-w-full">
+    <nav className="border-b border-stone-400 py-2 font-semibold block overflow-x-scroll lg:overflow-x-clip relative">
+      <ul className="flex justify-start gap-1 items-center min-w-full text-lg ">
         {navigation.map((item) => (
           <li key={item.id} className="group relative">
             <div className="flex items-center">
               <Link
                 href={item.href}
-                className={`py-0.5 px-1.5 rounded-md text-md font-bold tracking-wide flex items-center ${
+                className={`py-1 px-2.5 rounded-md font-semibold flex items-center ${
                   isParentActive(item)
                     ? "bg-accent-blue text-white"
                     : "hover:bg-accent-blue hover:text-white"
                 }`}
               >
                 {item.title}
-                {item.items && (
+                {/* {item.items && (
                   <span className="ml-1 hidden xl:block hover:text-white">
                     {isParentActive(item) ? (
                       <CaretUp size={12} />
@@ -51,7 +51,7 @@ const TopNavbar = ({ navigation }: Props) => {
                       <CaretDown size={12} />
                     )}
                   </span>
-                )}
+                )} */}
               </Link>
             </div>
             {item.items && (
