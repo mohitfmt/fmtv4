@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import TopBarSeperator from "./TopBarSeperator";
+import TopBarSeparator from "./TopBarSeperator";
 
 const LastUpdatedDateTime = () => {
   return (
@@ -12,7 +12,7 @@ const LastUpdatedDateTime = () => {
           className="font-semibold"
         >{`${format(new Date(), "dd MMM, HH:mm")}`}</time>
       </div>
-      <TopBarSeperator />
+      <TopBarSeparator />
     </div>
   );
 };

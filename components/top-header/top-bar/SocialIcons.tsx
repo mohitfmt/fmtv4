@@ -8,17 +8,19 @@ interface SocialIconsProps {
   useColors?: boolean;
 }
 
+
 export const SocialIcons: React.FC<SocialIconsProps> = ({
   className = "",
-  iconClassName = "hover:text-accent-yellow",
+  iconClassName = "",
   useColors = false,
 }) => {
   const socialData = social.filter(
     (item) => item.name !== "Wikipedia" && item.name !== "Google News"
   );
+
   return (
     <nav
-      className={`lg:flex hidden flex-wrap flex-row items-center gap-y-2 md:gap-1 overflow-hidden ${className}`}
+      className={`flex flex-wrap items-center ${className}`}
     >
       {socialData.map(({ name, url, icon: Icon, color }) => (
         <Link
