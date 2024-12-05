@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function TopBanner() {
   return (
     <>
-      <header className="sticky lg:-top-20 top-14 z-20 bg-background br-b border-stone-400">
+      <header className="sticky lg:-top-20 top-10 z-20 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
             href="/"
@@ -33,7 +33,7 @@ export default function TopBanner() {
           </div>
         </div>
       </header>
-      <div className="lg:sticky top-[59.4px] bg-background z-30">
+      <div className="lg:sticky top-[55px] bg-background z-30">
         <TopNavbar navigation={navigation} />
       </div>
     </>
