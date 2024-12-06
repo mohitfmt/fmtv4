@@ -6,6 +6,7 @@ import SignInButton from "../top-bar/SignInButton";
 import { SocialIcons } from "../top-bar/SocialIcons";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface NavItem {
   id: number;
@@ -26,6 +27,7 @@ const MobileNavbar = ({ navigation }: Props) => {
     [key: number]: boolean;
   }>({});
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -43,15 +45,13 @@ const MobileNavbar = ({ navigation }: Props) => {
   }, [isOpen]);
 
   const isActive = (href: string) => {
-    // Special case for home route
     if (href === "/" && pathname === "/") return true;
-    // For all other routes
     return pathname + "/" === href || pathname === href;
   };
 
   const isParentActive = (item: NavItem) => {
     if (isActive(item.href)) return true;
-    return item.items?.some(subItem => isActive(subItem.href)) || false;
+    return item.items?.some((subItem) => isActive(subItem.href)) || false;
   };
 
   const toggleExpand = (id: number) =>
@@ -68,8 +68,9 @@ const MobileNavbar = ({ navigation }: Props) => {
       </button>
 
       <div
-        className={`z-30 w-[80%] lg:w-[40%] sm:w-[60%] pb-10 fixed top-10 right-0 h-screen bg-background text-foreground shadow-lg transform transition-transform duration-300 overflow-y-scroll ${isOpen ? "translate-x-0" : "translate-x-full"
-          }`}
+        className={`z-30 w-[80%] lg:w-[40%] sm:w-[60%] pb-10 fixed top-10 right-0 h-screen bg-background text-foreground shadow-lg transform transition-transform duration-300 overflow-y-scroll ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
       >
         <div className="flex justify-between px-4 items-center pt-5 pb-2 border-b border-stone-700">
           <div className="flex gap-2 capitalize items-center">
@@ -82,7 +83,9 @@ const MobileNavbar = ({ navigation }: Props) => {
 
             <div className="ml-3 flex gap-2 capitalize items-center">
               <SignInButton />
-              <span className="text-sm">SignIn</span>
+              <span className="text-sm">
+                {session ? "Sign Out" : "Sign In"}
+              </span>
             </div>
           </div>
 
@@ -102,10 +105,11 @@ const MobileNavbar = ({ navigation }: Props) => {
                 <div className="flex justify-between items-left">
                   <Link
                     href={item.href}
-                    className={`block p-1 text-xl font-semibold ${isParentActive(item)
-                      ? "bg-accent-blue text-white rounded"
-                      : "hover:bg-accent-blue hover:text-white rounded"
-                      }`}
+                    className={`block p-1 text-xl font-semibold ${
+                      isParentActive(item)
+                        ? "bg-accent-blue text-white rounded"
+                        : "hover:bg-accent-blue hover:text-white rounded"
+                    }`}
                     onClick={() => setIsOpen(false)}
                   >
                     {item.title}
@@ -130,10 +134,11 @@ const MobileNavbar = ({ navigation }: Props) => {
                       <li key={subItem.id}>
                         <Link
                           href={subItem.href}
-                          className={`block p-1 text-md md:text-base ${isActive(subItem.href)
-                            ? "bg-accent-blue text-white"
-                            : "hover:bg-accent-blue hover:text-white"
-                            }`}
+                          className={`block p-1 text-md md:text-base ${
+                            isActive(subItem.href)
+                              ? "bg-accent-blue text-white"
+                              : "hover:bg-accent-blue hover:text-white"
+                          }`}
                           onClick={() => setIsOpen(false)}
                         >
                           {subItem.title}
@@ -148,7 +153,10 @@ const MobileNavbar = ({ navigation }: Props) => {
           </ul>
 
           <div className="px-2 ml-1 border-t py-2 border-stone-700 mt-6">
-            <SocialIcons iconClassName="text-3xl hover:text-accent-yellow justify-left" className="flex gap-1" />
+            <SocialIcons
+              iconClassName="text-3xl hover:text-accent-yellow justify-left"
+              className="flex gap-1"
+            />
           </div>
         </div>
       </div>
