@@ -3,6 +3,7 @@ import type { AppProps } from "next/app";
 import { ThemeProvider } from "next-themes";
 import { Bitter, Red_Hat_Display } from "next/font/google";
 import Layout from "@/components/Layout";
+import { SessionProvider } from "next-auth/react";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -16,25 +17,30 @@ const rhd = Red_Hat_Display({
   variable: "--font-rhd",
 });
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({
+  Component,
+  pageProps: { session, ...pageProps },
+}: AppProps) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem={true}
-      value={{
-        light: "light",
-        dark: "dark",
-        system: "system",
-      }}
-    >
-      <div
-        className={`${bitter.variable} ${rhd.variable} min-h-screen bg-background text-foreground`}
+    <SessionProvider session={session}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem={true}
+        value={{
+          light: "light",
+          dark: "dark",
+          system: "system",
+        }}
       >
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
-      </div>
-    </ThemeProvider>
+        <div
+          className={`${bitter.variable} ${rhd.variable} min-h-screen bg-background text-foreground`}
+        >
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </div>
+      </ThemeProvider>
+    </SessionProvider>
   );
 }
