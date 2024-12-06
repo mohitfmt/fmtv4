@@ -28,11 +28,11 @@ const TTBNewsPreview = ({
       </figure>
 
       <Link href={uri} title={updatedExcerpt} className="my-2">
-        <h4 className="text-xs text-red-700 flex gap-2 items-center justify-between">
+        <h4 className="text-xs text-accent-red flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span
               key={preferredCategory?.node?.id}
-              className="tracking-wide font-robotoSlab"
+              className="tracking-wider"
             >
               {preferredCategory?.node?.name.toUpperCase()}
             </span>
@@ -41,7 +41,7 @@ const TTBNewsPreview = ({
             <PublishingDateTime dateString={date} size={16} />
           </span>
         </h4>
-        <h3 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-600">
+        <h3 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-600 dark:hover:text-green-300">
           {title}
         </h3>
       </Link>

@@ -65,7 +65,7 @@ h6 {
     --border: rgba(38, 36, 34, 1);
     --input: rgba(38, 36, 34, 1);
     --ring: rgba(208, 207, 204, 1);
-
+    --accent-red: #ff0000;
   }
   * {
     @apply border-border;

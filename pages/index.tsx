@@ -1,6 +1,8 @@
+import AdSlot from "@/components/common/AdSlot";
 import LTRNewsPreview from "@/components/common/LTRNewsPreview";
 import SectionHeading from "@/components/common/SectionHeading";
 import TTBNewsPreview from "@/components/common/TTBNewsPreview";
+import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
 import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
@@ -14,6 +16,27 @@ import Link from "next/link";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
+const dfpTargetingParams = {
+  pos: "listing",
+  section: ["homepage", "business", "opinion", "world", "lifestyle", "sports"],
+  key: [
+    "Free Malaysia Today",
+    "Malaysia News",
+    "Latest Malaysia News",
+    "Breaking News Malaysia",
+    "Malaysia Politics News",
+    "gambling",
+    "religion",
+    "alcohol",
+    "lgbt",
+    "sex",
+    "drug abuse",
+    "get rich",
+    "match-making",
+    "dating",
+    "lottery",
+  ],
+};
 
 export default function Home({
   heroPosts,
@@ -93,12 +116,12 @@ export default function Home({
           }}
           type="application/ld+json"
         />
-        <script src="https://apis.google.com/js/platform.js" async defer />
         <meta
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         ></meta>
       </Head>
+      <script src="https://apis.google.com/js/platform.js" async defer />
       <TrendingTags tags={trendingTags} />
       <main>
         <section
@@ -115,8 +138,8 @@ export default function Home({
               ))}
             </div>
           </div>
-          <div className="order-1 xl:order-2 xl:col-span-5 md:col-span-7 mt-3">
-            <TTBNewsPreview {...heroPosts[0]} />
+          <div className="order-1 xl:order-2 xl:col-span-5 md:col-span-7">
+            <SuperNewsPreview {...heroPosts[0]} />
           </div>
           <div className="order-2 xl:order-3 xl:col-span-4 md:col-span-5">
             <Link href="/news">
@@ -129,6 +152,29 @@ export default function Home({
             </div>
           </div>
         </section>
+        <div className="h-64 min-h-24 flex justify-center items-center bg-background">
+          <AdSlot
+            sizes={[
+              [970, 90],
+              [970, 250],
+              [728, 90],
+            ]}
+            id="div-gpt-ad-1661333181124-0"
+            name="ROS_Billboard"
+            visibleOnDevices="onlyDesktop"
+            targetingParams={dfpTargetingParams}
+          />
+          <AdSlot
+            sizes={[
+              [320, 50],
+              [320, 100],
+            ]}
+            id="div-gpt-ad-1661362470988-0"
+            name="ROS_Mobile_Leaderboard"
+            visibleOnDevices="onlyMobile"
+            targetingParams={dfpTargetingParams}
+          />
+        </div>
       </main>
     </>
   );
