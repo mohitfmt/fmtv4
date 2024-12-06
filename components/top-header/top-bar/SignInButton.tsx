@@ -2,20 +2,12 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SignIn } from "@phosphor-icons/react";
-import Tooltip from "@/components/common/Tooltip";
-// import SignInModal from "./SignInModal"; // Uncomment this line if the custom modal is needed in the future
+import PopText from "@/components/common/PopText";
 
 const SignInButton = () => {
   const { data: session } = useSession();
 
-  // Uncomment the state and handlers below if using the custom modal in the future
-  // const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // const handleOpenModal = () => setIsModalOpen(true);
-  // const handleCloseModal = () => setIsModalOpen(false);
-
   const handleSignIn = () => {
-    // Use Google sign-in directly
     signIn("google", { callbackUrl: "/" });
   };
 
@@ -24,7 +16,7 @@ const SignInButton = () => {
   return (
     <div>
       {session ? (
-        <Tooltip text="Sign Out" position="bottom">
+        <PopText content="Sign Out" position="bottom">
           <Button
             onClick={handleSignOut}
             variant="outline"
@@ -39,11 +31,11 @@ const SignInButton = () => {
               alt={`Profile picture of ${session?.user?.name || "unknown user"}`}
             />
           </Button>
-        </Tooltip>
+        </PopText>
       ) : (
-        <Tooltip text="Sign In" position="bottom">
+        <PopText content="Sign In" position="bottom">
           <Button
-            onClick={handleSignIn} // Trigger Google sign-in directly
+            onClick={handleSignIn}
             variant="outline"
             size="icon"
             className="lg:flex bg-transparent hover:bg-accent-yellow dark:text-white lg:text-white border-black dark:border-white lg:border-white br-border"
@@ -51,13 +43,8 @@ const SignInButton = () => {
           >
             <SignIn weight="bold" />
           </Button>
-        </Tooltip>
+        </PopText>
       )}
-
-      {/* 
-      Uncomment this section if you want to use the custom modal in the future:
-      <SignInModal isOpen={isModalOpen} onClose={handleCloseModal} />
-      */}
     </div>
   );
 };
