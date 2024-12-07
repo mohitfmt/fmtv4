@@ -19,8 +19,7 @@ export default async function handler(
 
   const { name, email, subject, message } = req.body;
 
-  // Log the incoming form data
-  console.log("Received form data:", { name, email, subject, message });
+  
 
   // Validate input fields
   if (!name || !email || !subject || !message) {

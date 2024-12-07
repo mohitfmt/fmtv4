@@ -101,7 +101,6 @@ const fetchPageData = async (pageId: string, idType: string) => {
   }
 
   const json = await response.json();
-  console.log("Fetched content:", json.data); // Debug log
   return json.data;
 };
 

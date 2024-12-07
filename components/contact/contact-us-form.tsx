@@ -35,8 +35,7 @@ const ContactUsForm = () => {
   });
 
   const handleSubmit = async (values: ContactFormValues) => {
-    console.log("Form data:", values); // Log the form data to the console
-
+  
     setLoading(true);
     try {
       const response = await fetch("/api/send-mail", {
