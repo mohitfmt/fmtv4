@@ -202,3 +202,31 @@ export const generateCollectionPageJsonLD = ({
     publisher: OrgJsonLD,
   };
 };
+
+export const calculateCacheDuration = () => {
+  const now = new Date();
+  const noon = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    12,
+    0,
+    0
+  );
+  const midnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0,
+    0,
+    0
+  );
+
+  const nextUpdate = now.getHours() < 12 ? noon : midnight;
+  const duration = Math.max(
+    1,
+    Math.floor((nextUpdate.getTime() - now.getTime()) / 1000)
+  );
+
+  return duration;
+};

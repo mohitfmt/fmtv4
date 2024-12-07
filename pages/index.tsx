@@ -1,5 +1,6 @@
 import AdSlot from "@/components/common/AdSlot";
 import LTRNewsPreview from "@/components/common/LTRNewsPreview";
+import MostViewed from "@/components/common/most-viewed/MostViewed";
 import SectionHeading from "@/components/common/SectionHeading";
 import TTBNewsPreview from "@/components/common/TTBNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
@@ -175,6 +176,40 @@ export default function Home({
             targetingParams={dfpTargetingParams}
           />
         </div>
+        <section id="TopNews-MostViewed" className="my-4">
+          <div className="grid grid-cols-12 gap-4">
+            <div className="md:col-span-8 col-span-12">
+              <Link href="/news">
+                <SectionHeading sectionName="Top News" />
+              </Link>
+              <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
+                {topNewsPosts
+                  ?.slice(0, 2)
+                  ?.map((post: any) => (
+                    <TTBNewsPreview {...post} key={post.slug} />
+                  ))}
+              </div>
+              <div className="mt-8 grid lg:grid-cols-2 gap-4">
+                {topNewsPosts
+                  ?.slice(2)
+                  ?.map((post: any) => (
+                    <LTRNewsPreview {...post} key={post?.slug} />
+                  ))}
+              </div>
+            </div>
+            <div className="flex flex-col mb-3 md:col-span-4 col-span-12">
+              <div className="flex justify-center items-center h-72 -mt-1">
+                <AdSlot
+                  sizes={[300, 250]}
+                  id="div-gpt-ad-1661333336129-0"
+                  name="ROS_Midrec"
+                  targetingParams={dfpTargetingParams}
+                />
+              </div>
+              <MostViewed />
+            </div>
+          </div>
+        </section>
       </main>
     </>
   );
@@ -233,7 +268,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     sportsPosts,
     superBmPosts, // Fetch superBmPosts before topBmPosts
   ] = await Promise.all([
-    getFilteredCategoryNews("top-news", 8),
+    getFilteredCategoryNews("top-news", 6),
     getFilteredCategoryNews("business", 3),
     getFilteredCategoryNews("opinion", 8),
     getFilteredCategoryNews("world", 5),

@@ -15,7 +15,9 @@
     "incremental": true,
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["google-publisher-tag", "googletag"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx","**/*.d.ts"],
   "exclude": ["node_modules"]

@@ -1,5 +1,3 @@
-// global.d.ts
-
 interface Window {
   google?: {
     accounts: {
@@ -20,8 +18,8 @@ interface Window {
     sections: string;
     authors: string;
   };
-  googletag: any; // Add proper type if available
-  pSUPERFLY: any; // Add proper type if available
+  googletag: any;
+  pSUPERFLY: any;
 }
 
 interface PromptMomentNotification {
@@ -31,4 +29,11 @@ interface PromptMomentNotification {
   isDismissedMoment: () => boolean;
   getDismissedReason: () => string;
   getMomentType: () => string;
+}
+
+interface MostViewedItem {
+  uri: string;
+  title: string;
+  date: string;
+  image?: string;
 }

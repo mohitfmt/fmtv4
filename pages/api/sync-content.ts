@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { revalidateTag, revalidatePath } from "next/cache";
-import prisma from "@/lib/prisma";
 
 interface ContentUpdate {
   id: string;
@@ -36,14 +35,7 @@ async function revalidateContent(updates: ContentUpdate[]) {
   const revalidatedPaths = new Set<string>();
 
   try {
-    await prisma.syncLog.create({
-      data: {
-        level: "INFO",
-        category: "SYNC",
-        message: `Processing ${updates.length} updates`,
-        metadata: { updateCount: updates.length },
-      },
-    });
+    console.info(`[Sync] Starting revalidation for ${updates.length} updates`);
 
     // 1. Revalidate individual article pages
     for (const update of updates) {
@@ -52,24 +44,11 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidateTag(`article-${update.id}`);
         await revalidatePath(articlePath);
         revalidatedPaths.add(articlePath);
-
-        await prisma.syncLog.create({
-          data: {
-            level: "INFO",
-            category: "REVALIDATE",
-            message: `Article: ${update.title}`,
-            metadata: { articleId: update.id, path: articlePath },
-          },
-        });
+        console.info(
+          `[Revalidate] Success: Article ${update.id} at ${articlePath}`
+        );
       } catch (error) {
-        await prisma.syncLog.create({
-          data: {
-            level: "ERROR",
-            category: "REVALIDATE",
-            message: `Failed to revalidate article ${update.link}`,
-            metadata: { error: String(error), articleId: update.id },
-          },
-        });
+        console.error(`[Revalidate] Failed: Article ${update.id}`, error);
       }
     }
 
@@ -84,24 +63,9 @@ async function revalidateContent(updates: ContentUpdate[]) {
         await revalidateTag(`page-${path}`);
         await revalidatePath(path);
         revalidatedPaths.add(path);
-
-        await prisma.syncLog.create({
-          data: {
-            level: "INFO",
-            category: "REVALIDATE",
-            message: `Collection: ${path}`,
-            metadata: { path },
-          },
-        });
+        console.info(`[Revalidate] Success: Collection page ${path}`);
       } catch (error) {
-        await prisma.syncLog.create({
-          data: {
-            level: "ERROR",
-            category: "REVALIDATE",
-            message: `Failed to revalidate collection ${path}`,
-            metadata: { error: String(error), path },
-          },
-        });
+        console.error(`[Revalidate] Failed: Collection page ${path}`, error);
       }
     }
 
@@ -109,43 +73,24 @@ async function revalidateContent(updates: ContentUpdate[]) {
     if (revalidatedPaths.size > 0) {
       try {
         await purgeCloudflareCache(Array.from(revalidatedPaths));
-        await prisma.syncLog.create({
-          data: {
-            level: "INFO",
-            category: "CACHE",
-            message: `Purged ${revalidatedPaths.size} URLs from Cloudflare`,
-            metadata: { paths: Array.from(revalidatedPaths) },
-          },
-        });
+        console.info(
+          `[Cache] Successfully purged ${revalidatedPaths.size} URLs from Cloudflare`
+        );
       } catch (error) {
-        await prisma.syncLog.create({
-          data: {
-            level: "ERROR",
-            category: "CACHE",
-            message: "Cloudflare cache purge failed",
-            metadata: { error: String(error) },
-          },
-        });
+        console.error("[Cache] Cloudflare purge failed:", error);
       }
     }
 
     return revalidatedPaths;
   } catch (error) {
-    await prisma.syncLog.create({
-      data: {
-        level: "ERROR",
-        category: "SYNC",
-        message: "Revalidation process failed",
-        metadata: { error: String(error) },
-      },
-    });
+    console.error("[Sync] Revalidation process failed:", error);
     throw error;
   }
 }
 
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-    console.warn("[WARN] Cloudflare credentials not configured");
+    console.warn("[Cache] Cloudflare credentials not configured");
     return;
   }
 
@@ -172,7 +117,7 @@ async function purgeCloudflareCache(paths: string[]) {
       );
     }
   } catch (error) {
-    console.error("[CACHE] Purge failed:", error);
+    console.error("[Cache] Purge request failed:", error);
     throw error;
   }
 }
@@ -185,24 +130,10 @@ export default async function handler(
     // Send immediate acknowledgment
     res.status(200).json({ received: true });
 
-    // Create initial log with try-catch
-    try {
-      // await mutate("api/top-news", undefined, { revalidate: true });
-      await prisma.syncLog.create({
-        data: {
-          level: "INFO",
-          category: "SYNC",
-          message: "Received sync request",
-          metadata: {
-            method: req.method,
-            body: req.body,
-            timestamp: new Date().toISOString(),
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Failed to create initial log:", error);
-    }
+    console.info("[Handler] Received sync request", {
+      method: req.method,
+      timestamp: new Date().toISOString(),
+    });
 
     // Process the update asynchronously
     if (req.method === "POST") {
@@ -210,19 +141,11 @@ export default async function handler(
         const payload = req.body as UpdatePayload;
         await revalidateContent(payload.updates);
       } catch (error) {
-        console.error("[ERROR] Update processing failed:", error);
-        await prisma.syncLog.create({
-          data: {
-            level: "ERROR",
-            category: "SYNC",
-            message: "Update processing failed",
-            metadata: { error: String(error) },
-          },
-        });
+        console.error("[Handler] Update processing failed:", error);
       }
     }
   } catch (error) {
-    console.error("Handler error:", error);
+    console.error("[Handler] Critical error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

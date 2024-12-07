@@ -1,7 +1,8 @@
 import Link from "next/link";
 import CoverImage from "./CoverImage";
 import { getPreferredCategory } from "@/lib/utils";
-import PublishingDateTime from "./PublishingDateTime";
+import PublishingDateTime from "./display-date-formats/PublishingDateTime";
+
 
 const LTRNewsPreview = ({
   title,
