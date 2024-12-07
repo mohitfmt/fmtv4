@@ -15,6 +15,11 @@ h6 {
   font-family: var(--font-bitter);
 }
 
+p,ul
+{
+  font-family: var(--font-roboto);
+}
+
 @layer base {
   :root {
     --background: rgba(255, 255, 255, 1);
@@ -57,13 +62,13 @@ h6 {
     --secondary: rgba(38, 36, 34, 1);
     --secondary-foreground: rgba(250, 249, 247, 1);
     --muted: rgba(38, 36, 34, 1);
-    --muted-foreground: rgba(80, 74, 74, 1);
+    --muted-foreground: rgb(165, 163, 163);
     --accent: rgba(38, 36, 34, 1);
     --accent-foreground: rgba(250, 249, 247, 1);
-    --destructive: rgba(96, 29, 29, 1);
+    --destructive: rgb(181, 58, 58);
     --destructive-foreground: rgba(250, 249, 247, 1);
     --border: rgba(38, 36, 34, 1);
-    --input: rgba(38, 36, 34, 1);
+    --input: rgb(179, 179, 178);
     --ring: rgba(208, 207, 204, 1);
     --accent-red: #ff0000;
   }

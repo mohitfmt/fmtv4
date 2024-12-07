@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { ThemeProvider } from "next-themes";
-import { Bitter, Red_Hat_Display } from "next/font/google";
+import { Bitter, Red_Hat_Display, Roboto_Slab } from "next/font/google";
 import Layout from "@/components/Layout";
 import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
 import { GPTProvider } from "@/contexts/GPTProvider";
@@ -17,6 +17,12 @@ const rhd = Red_Hat_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-rhd",
+});
+
+const roboto = Roboto_Slab({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-roboto",
 });
 
 export default function App({
@@ -44,7 +50,7 @@ export default function App({
             asPath="/"
           >
             <div
-              className={`${bitter.variable} ${rhd.variable} min-h-screen bg-background text-foreground`}
+              className={`${bitter.variable} ${rhd.variable} ${roboto.variable} min-h-screen bg-background text-foreground`}
             >
               <Layout>
                 <Component {...pageProps} />
