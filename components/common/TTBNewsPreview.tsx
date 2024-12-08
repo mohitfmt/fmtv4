@@ -1,7 +1,8 @@
 import { getPreferredCategory } from "@/lib/utils";
 import CoverImage from "./CoverImage";
 import Link from "next/link";
-import PublishingDateTime from "./PublishingDateTime";
+import PublishingDateTime from "./display-date-formats/PublishingDateTime";
+
 
 const TTBNewsPreview = ({
   title,

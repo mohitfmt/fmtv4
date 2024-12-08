@@ -1,4 +1,4 @@
-import { TrendUp } from "@phosphor-icons/react";
+import { FaArrowTrendUp } from "react-icons/fa6";
 import Link from "next/link";
 
 const TrendingTags = ({ tags }: any) => {
@@ -8,7 +8,7 @@ const TrendingTags = ({ tags }: any) => {
         <span className="font-bold uppercase tracking-wide text-sm px-1">
           trending
         </span>
-        <TrendUp size={24} />
+        <FaArrowTrendUp size={24} />
       </div>
       <ul className="flex items-center gap-1 md:gap-3 flex-wrap">
         {tags.map((tag: any) => (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { List, X, CaretDown, CaretUp } from "@phosphor-icons/react";
+// import { List, X, CaretDown, CaretUp } from "@phosphor-icons/react";
+import { FaAngleDown, FaAngleUp, FaBars } from "react-icons/fa6";
 import Link from "next/link";
 import { ThemeToggle } from "../top-bar/ThemeToggle";
 import SignInButton from "../top-bar/SignInButton";
@@ -7,6 +8,7 @@ import { SocialIcons } from "../top-bar/SocialIcons";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { FaTimes } from "react-icons/fa";
 
 interface NavItem {
   id: number;
@@ -64,7 +66,7 @@ const MobileNavbar = ({ navigation }: Props) => {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle menu"
       >
-        <List size={24} />
+        <FaBars size={24} />
       </button>
 
       <div
@@ -94,7 +96,7 @@ const MobileNavbar = ({ navigation }: Props) => {
             onClick={() => setIsOpen(false)}
             aria-label="Close menu"
           >
-            <X size={24} />
+            <FaTimes size={24} />
           </button>
         </div>
 
@@ -121,9 +123,9 @@ const MobileNavbar = ({ navigation }: Props) => {
                       aria-label="Expand or collapse submenu"
                     >
                       {expandedItems[item.id] ? (
-                        <CaretUp size={16} />
+                        <FaAngleUp size={16} />
                       ) : (
-                        <CaretDown size={16} />
+                        <FaAngleDown size={16} />
                       )}
                     </button>
                   )}

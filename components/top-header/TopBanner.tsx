@@ -4,6 +4,7 @@ import MobileNavbar from "./top-banner/MobileNavbar";
 import { LogoSVG } from "../ui/icons/LogoSVG";
 import SearchNews from "./top-bar/SearchNews";
 import Link from "next/link";
+import AdSlot from "../common/AdSlot";
 
 export default function TopBanner() {
   return (
@@ -24,7 +25,14 @@ export default function TopBanner() {
             <span className="sr-only">Home</span>
           </Link>
           <div className="hidden xl:flex items-center justify-center w-full h-24 rounded-md mx-5">
-            {/* Ad Slot */}
+            <AdSlot
+              name="ROS_Multisize_Leaderboard"
+              sizes={[
+                [970, 90],
+                [728, 90],
+              ]}
+              id="div-gpt-ad-1661417956793-0"
+            />
           </div>
 
           <div className="flex items-center lg:hidden">

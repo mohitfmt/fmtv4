@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { FaSearch, FaTimes } from "react-icons/fa";
+// import { MagnifyingGlass, X } from "@phosphor-icons/react";
 
 const SearchNews = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +31,7 @@ const SearchNews = () => {
         className="p-1 hover:bg-accent-yellow rounded-full transition-colors"
         aria-label={isOpen ? "Close search" : "Open search"}
       >
-        <MagnifyingGlass size={24} className="lg:text-white text-foreground" />
+        <FaSearch size={24} className="lg:text-white text-foreground" />
       </button>
 
       {/* Search Input Overlay */}
@@ -64,7 +65,7 @@ const SearchNews = () => {
                   className="absolute dark:text-white dark:hover:text-black right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-yellow-400 text-black rounded-full transition-colors"
                   aria-label="Submit search"
                 >
-                  <MagnifyingGlass size={24} />
+                  <FaSearch size={24} />
                 </button>
               </div>
 
@@ -75,7 +76,7 @@ const SearchNews = () => {
                 className="ml-2 p-2 hover:bg-stone-200 text-stone-700 dark:text-white rounded-full dark:hover:text-black transition-colors"
                 aria-label="Clear and close search"
               >
-                <X size={20} />
+                <FaTimes size={20} />
               </button>
             </form>
           </div>

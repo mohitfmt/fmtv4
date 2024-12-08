@@ -11,7 +11,7 @@ import {
   isToday,
   isValid,
 } from "date-fns";
-import PopText from "./PopText";
+import PopText from "../PopText";
 
 const PublishingDateTime = ({ dateString }: any) => {
   const [timeString, setTimeString] = useState("");

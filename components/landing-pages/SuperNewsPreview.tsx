@@ -1,8 +1,9 @@
 import { getPreferredCategory } from "@/lib/utils";
 import CoverImage from "../common/CoverImage";
-import PublishingDateTime from "../common/PublishingDateTime";
+
 import Link from "next/link";
 import NewsAuthor from "../common/NewsAuthor";
+import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
 
 const SuperNewsPreview = ({
   title,
