@@ -18,6 +18,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === "google") {
+        console.log("Google sign-in", profile);
         return true; // Allow all Google sign-ins
       }
       return true;
@@ -33,7 +34,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // debug: process.env.NODE_ENV === "development",
+  debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
 };
 

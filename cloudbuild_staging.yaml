@@ -24,6 +24,8 @@ steps:
       - "--build-arg"
       - "DATABASE_URL=${_DATABASE_URL}" 
       - "--build-arg"
+      - "NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}"
+      - "--build-arg"
       - "NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}"
       - "--build-arg"
       - "NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}"

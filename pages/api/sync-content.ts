@@ -48,7 +48,11 @@ async function revalidateContent(updates: ContentUpdate[]) {
           `[Revalidate] Success: Article ${update.id} at ${articlePath}`
         );
       } catch (error) {
-        console.error(`[Revalidate] Failed: Article ${update.id}`, error);
+        const articlePath = new URL(update.link).pathname;
+        console.error(
+          `[Revalidate] Failed: Article ${update.id} ${articlePath}`,
+          error
+        );
       }
     }
 
@@ -74,7 +78,8 @@ async function revalidateContent(updates: ContentUpdate[]) {
       try {
         await purgeCloudflareCache(Array.from(revalidatedPaths));
         console.info(
-          `[Cache] Successfully purged ${revalidatedPaths.size} URLs from Cloudflare`
+          `[Cache] Successfully purged ${revalidatedPaths.size} URLs from Cloudflare`,
+          revalidatedPaths
         );
       } catch (error) {
         console.error("[Cache] Cloudflare purge failed:", error);
