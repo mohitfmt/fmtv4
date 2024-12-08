@@ -15,7 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ preview, children }) => {
       <TopBar />
       <Container>
         <TopBanner />
-        <div className="min-h-screen">{children}</div>
+        <div className="min-h-screen py-2">{children}</div>
       </Container>
       <Footer />
     </>

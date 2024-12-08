@@ -13,6 +13,7 @@ export default {
       fontFamily: {
         rhd: ["var(--font-rhd)"],
         bitter: ["var(--font-bitter)"],
+        roboto:["var(--font-roboto)"]
       },
       colors: {
         background: "var(--background)",

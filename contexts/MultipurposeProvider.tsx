@@ -2,7 +2,7 @@
 import React, { createContext, useEffect, useState, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useMounted } from "@/hooks/useMounted";
-
+import { Toaster } from "@/components/ui/sonner";
 
 interface ProviderState {
   isGPTInitialized: boolean;
@@ -31,7 +31,7 @@ const loadScript = (
   script.src = src;
   script.async = true;
   script.onload = onLoad;
-//   script.onerror = onError;
+  //   script.onerror = onError;
   document.head.appendChild(script);
 };
 
@@ -211,6 +211,7 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <MultipurposeContext.Provider value={state}>
+      <Toaster />
       {children}
     </MultipurposeContext.Provider>
   );
