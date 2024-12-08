@@ -15,11 +15,11 @@ export const metadata: Metadata = {
     "Calling for start-up and SME: Check out how would Free Malaysia Today (FMT) accelerate and scale up your business to a whole new level.",
 };
 
-const dfpTargetingParams = {
-  key: ["Accelerator"],
-  section: ["Accelerator"],
-  pos: "accelerator",
-};
+// const dfpTargetingParams = {
+//   key: ["Accelerator"],
+//   section: ["Accelerator"],
+//   pos: "accelerator",
+// };
 
 const page = async () => {
 //   const { data } = await getClient().query(GET_POSTS, {
