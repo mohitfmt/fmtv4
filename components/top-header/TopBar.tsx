@@ -18,10 +18,7 @@ const TopBar = () => {
       <NewsletterButton />
       <TopBarSeparator />
       <div className="hidden lg:flex">
-        <SocialIcons
-          iconClassName="text-2xl hover:text-accent-yellow justify-center"
-          className="flex gap-1"
-        />
+        <SocialIcons iconClassName="hover:text-accent-yellow"  />
       </div>
       <TopBarSeparator />
       <div className="hidden lg:flex gap-3">

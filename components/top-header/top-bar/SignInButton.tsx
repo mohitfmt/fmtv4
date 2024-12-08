@@ -1,8 +1,9 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { SignIn } from "@phosphor-icons/react";
+// import { SignIn } from "@phosphor-icons/react";
 import PopText from "@/components/common/PopText";
+import { FaSignInAlt } from "react-icons/fa";
 
 const SignInButton = () => {
   const { data: session } = useSession();
@@ -41,7 +42,7 @@ const SignInButton = () => {
             className="lg:flex bg-transparent hover:bg-accent-yellow dark:text-white lg:text-white border-black dark:border-white lg:border-white br-border"
             aria-label="Sign In"
           >
-            <SignIn weight="bold" />
+            <FaSignInAlt />
           </Button>
         </PopText>
       )}

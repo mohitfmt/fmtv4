@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { X, CheckCircle } from "@phosphor-icons/react";
+import { FaCheckCircle, FaTimes } from "react-icons/fa";
+// import { X, CheckCircle } from "@phosphor-icons/react";
 
 interface NewsletterModalProps {
   isOpen: boolean;
@@ -59,10 +60,9 @@ const NewsletterModal: React.FC<NewsletterModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg max-w-md w-full relative">
-        <X
+        <FaTimes
           className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 text-2xl cursor-pointer"
           onClick={onClose}
-          weight="bold"
         />
         <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">
           Subscribe to Our Newsletter
@@ -84,10 +84,7 @@ const NewsletterModal: React.FC<NewsletterModalProps> = ({
               required
             />
             {isValidEmail && (
-              <CheckCircle
-                className="absolute right-2 top-3 text-green-500"
-                weight="bold"
-              />
+              <FaCheckCircle className="absolute right-2 top-3 text-green-500" />
             )}
           </div>
           {showValidation && !isValidEmail && (

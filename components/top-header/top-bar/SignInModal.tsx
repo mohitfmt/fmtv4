@@ -1,6 +1,8 @@
-import { GoogleLogo, FacebookLogo, AppleLogo, X } from "@phosphor-icons/react";
+// import { GoogleLogo, FacebookLogo, AppleLogo, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { FaApple, FaFacebookF, FaGoogle } from "react-icons/fa6";
+import { FaTimes } from "react-icons/fa";
 
 const SignInModal = ({
   isOpen,
@@ -14,17 +16,17 @@ const SignInModal = ({
   const loginOptions = [
     {
       name: "Google",
-      icon: <GoogleLogo className="text-red-500 mr-3" size={20} />,
+      icon: <FaGoogle className="text-red-500 mr-3" size={20} />,
       action: () => signIn("google"),
     },
     {
       name: "Facebook",
-      icon: <FacebookLogo className="text-blue-600 mr-3" size={20} />,
+      icon: <FaFacebookF className="text-blue-600 mr-3" size={20} />,
       action: () => signIn("facebook"),
     },
     {
       name: "Apple",
-      icon: <AppleLogo className="text-black dark:text-white mr-3" size={20} />,
+      icon: <FaApple className="text-black dark:text-white mr-3" size={20} />,
       action: () => signIn("apple"),
     },
     {
@@ -42,7 +44,7 @@ const SignInModal = ({
           className="absolute top-2 right-2 text-stone-500 hover:text-foreground focus:outline-none"
           onClick={onClose}
         >
-          <X size={24} />
+          <FaTimes size={24} />
         </button>
 
         {/* Header */}
@@ -69,7 +71,6 @@ const SignInModal = ({
 
         {/* Footer */}
         <div className="text-center mt-6">
-          
           <p className="text-xs mt-4 text-gray-600 dark:text-gray-400">
             By signing in, you agree to our{" "}
             <Link href="/terms" className="text-accent-blue hover:underline">
@@ -78,7 +79,8 @@ const SignInModal = ({
             and acknowledge our{" "}
             <Link href="/privacy" className="text-accent-blue hover:underline">
               Privacy Policy
-            </Link>.
+            </Link>
+            .
           </p>
         </div>
       </div>

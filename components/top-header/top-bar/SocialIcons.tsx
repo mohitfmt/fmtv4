@@ -6,35 +6,31 @@ interface SocialIconsProps {
   className?: string;
   iconClassName?: string;
   useColors?: boolean;
+  iconSize?: number;
 }
-
 
 export const SocialIcons: React.FC<SocialIconsProps> = ({
   className = "",
   iconClassName = "",
   useColors = false,
+  iconSize = 1,
 }) => {
-  const socialData = social.filter(
-    (item) => item.name !== "Wikipedia" && item.name !== "Google News"
-  );
-
   return (
     <nav
-      className={`flex flex-wrap items-center ${className}`}
+      className={`flex flex-row items-center gap-0 md:gap-1 overflow-hidden ${className}`}
     >
-      {socialData.map(({ name, url, icon: Icon, color }) => (
+      {social.map(({ name, url, icon: Icon, color, size }) => (
         <Link
           key={name}
           href={url}
           title={name}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center hover:opacity-80 transition-opacity"
+          className={`inline-flex items-center p-0.5 transition-transform hover:scale-125 focus:outline-none focus:ring-2 ${iconClassName}`}
         >
           <Icon
-            className={iconClassName}
-            style={useColors ? { color } : undefined}
-            weight="regular"
+            size={size * iconSize}
+            color={useColors ? color : "currentColor"}
           />
         </Link>
       ))}

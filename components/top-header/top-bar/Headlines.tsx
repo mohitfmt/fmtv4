@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { useState } from "react";
+import { FaArrowRightLong } from "react-icons/fa6";
 import useSWR from "swr";
-import { ArrowRight } from "@phosphor-icons/react";
+// import { ArrowRight } from "@phosphor-icons/react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -67,7 +68,10 @@ const Headlines = () => {
               <span className="uppercase py-0.5 px-2 bg-accent-yellow text-sm tracking-wide font-semibold mr-2 rounded-lg">
                 <span className="flex items-center text-black">
                   {makeDisplayName4Category(post.categoryName)}
-                  <ArrowRight size={15} className="inline ml-1 font-bolder" />
+                  <FaArrowRightLong
+                    size={15}
+                    className="inline ml-1 font-bolder"
+                  />
                 </span>
               </span>
               <span>{post?.title}</span>
