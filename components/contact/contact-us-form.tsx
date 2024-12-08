@@ -14,7 +14,8 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { Spinner } from "@phosphor-icons/react";
+import { FaSpinner } from "react-icons/fa6";
+// import { Spinner } from "@phosphor-icons/react";
 
 type ContactFormValues = {
   name: string;
@@ -35,7 +36,6 @@ const ContactUsForm = () => {
   });
 
   const handleSubmit = async (values: ContactFormValues) => {
-  
     setLoading(true);
     try {
       const response = await fetch("/api/send-mail", {
@@ -174,7 +174,7 @@ const ContactUsForm = () => {
           variant="outline"
         >
           {loading ? (
-            <Spinner className="h-4 w-4 animate-spin" />
+            <FaSpinner className="h-4 w-4 animate-spin" />
           ) : (
             <span>Send</span>
           )}
