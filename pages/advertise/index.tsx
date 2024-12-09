@@ -15,7 +15,7 @@ const Advertise = () => {
         canonical="advertise"
       />
 
-      <div className="text-center p-4">
+      <div className="text-center py-4">
         <div className="mb-4 hidden justify-center md:flex">
           <AdSlot
             sizes={[

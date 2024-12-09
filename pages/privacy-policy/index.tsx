@@ -14,7 +14,7 @@ const PrivacyPolicyPage = () => {
         description="FMT Media Sdn Bhd (FMT) respects the privacy of individuals with regard to personal data and are committed to protecting the privacy of our users, and strive to provide a safe, secure user experience. This privacy policy is formulated in accordance with the Personal Data Protection Act 2010 ('Act')."
         canonical="privacy-policy"
       />
-      <div className="p-4">
+      <div className="py-4">
         {/* AdSlot for Desktop */}
         <div className="mb-4 hidden justify-center md:flex">
           <AdSlot

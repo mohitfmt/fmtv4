@@ -16,9 +16,9 @@ const AcceleratorPage = () => {
         title="Accelerator | Free Malaysia Today (FMT)"
         description="Calling for start-up and SME: Check out how Free Malaysia Today (FMT) can accelerate and scale up your business to a whole new level."
         canonical="accelerator"
-     />
+      />
 
-      <div className="container p-4">
+      <div className="py-4">
         {/* AdSlot for Desktop */}
         <div className="mb-4 hidden justify-center md:flex">
           <AdSlot

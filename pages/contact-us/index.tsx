@@ -22,7 +22,7 @@ const ContactUsPage = () => (
                     Career: career@freemalaysiatoday.com or +603-7932 0608.`}
       canonical="contact-us"
     />
-    <div className="p-4">
+    <div className="py-4">
       {/* AdSlot for Desktop */}
       <div className="mb-4 hidden justify-center md:flex">
         <AdSlot

@@ -64,7 +64,7 @@ const JobListing = ({
   additionalInfo,
   postedDate,
   email,
-}: typeof jobListings[number] & { email: string }) => (
+}: (typeof jobListings)[number] & { email: string }) => (
   <div className="rounded-lg border border-gray-100 p-8">
     <h2 className="text-2xl font-extrabold">{title}</h2>
     <p className="py-2">{description}</p>
@@ -109,9 +109,9 @@ const CareerPage = () => {
       <Meta
         title="Career | Free Malaysia Today (FMT)"
         description="Explore exciting career opportunities at Free Malaysia Today (FMT)."
-       canonical="career"
+        canonical="career"
       />
-      <div className="p-4">
+      <div className="py-4">
         {/* Desktop AdSlot */}
         <div className="mb-4 hidden justify-center md:flex">
           <AdSlot

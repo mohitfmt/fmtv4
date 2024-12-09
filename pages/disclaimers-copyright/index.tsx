@@ -14,7 +14,7 @@ const DisclaimersPage = () => {
         description="Our site is also hooked up to other websites. However, we are not responsible for the content, accuracy, and opinions carried in these sites. If you access any of these websites, you do so at your own risk. Some or all of the material on our website are protected under copyright laws."
         canonical="disclaimers-copyright"
       />
-      <div className="text-left p-4">
+      <div className="text-left py-4">
         {/* AdSlot for Desktop */}
         <div className="mb-4 hidden justify-center md:flex">
           <AdSlot

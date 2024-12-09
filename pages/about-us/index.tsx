@@ -1,8 +1,7 @@
-import { GetStaticProps, NextPage } from 'next';
-import parse from 'html-react-parser';
-import AdSlot from "@/components/common/AdSlot";
+import { GetStaticProps, NextPage } from "next";
+import parse from "html-react-parser";
 import Meta from "@/components/common/Meta";
-import { getAboutPage } from '@/lib/gql-queries/get-about-page';
+import { getAboutPage } from "@/lib/gql-queries/get-about-page";
 
 interface PageData {
   dateGmt: string;
@@ -17,11 +16,6 @@ interface PageProps {
   pageData: PageData | null;
   error?: boolean;
 }
-
-const dfpTargetingParams = {
-  pos: "about",
-  section: ["about page"],
-};
 
 const PARSER_OPTIONS = {
   replace: (domNode: any) => {
@@ -68,15 +62,15 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
 
     return {
       props: { pageData },
-      revalidate: 30 * 24 * 60 * 60 // 30 days
+      revalidate: 30 * 24 * 60 * 60, // 30 days
     };
   } catch (error) {
-    console.error('Failed to fetch about page:', error);
-    return { 
-      props: { 
+    console.error("Failed to fetch about page:", error);
+    return {
+      props: {
         pageData: null,
-        error: true 
-      }
+        error: true,
+      },
     };
   }
 };
@@ -85,70 +79,46 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
   if (error || !pageData) {
     return (
       <>
-        <Meta 
+        <Meta
           title="Error | Free Malaysia Today (FMT)"
           description="Unable to load content"
         />
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center p-8">
-            <h1 className="text-2xl font-bold mb-4">
-              Unable to load content
-            </h1>
-            <p className="text-gray-600">
-              Please try again later
-            </p>
+            <h1 className="text-2xl font-bold mb-4">Unable to load content</h1>
+            <p className="text-gray-600">Please try again later</p>
           </div>
         </div>
       </>
     );
   }
 
-  const lastModified = new Date(pageData.dateGmt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const lastModified = new Date(pageData.dateGmt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 
   return (
     <>
-      <Meta 
+      <Meta
         title="About Us | Free Malaysia Today (FMT)"
         description="Learn more about Free Malaysia Today (FMT)"
-        canonical='about-us'
+        canonical="about-us"
       />
 
-      <div className="p-4">
-        <div className="mb-4 hidden justify-center md:flex">
-          <AdSlot
-            sizes={[[970, 90], [970, 250], [728, 90]]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661333181124-0"
-            name="ROS_Billboard"
-            visibleOnDevices="onlyDesktop"
-          />
-        </div>
-
-        <div className="mb-4 flex justify-center md:hidden">
-          <AdSlot
-            sizes={[[320, 50], [320, 100]]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661362470988-0"
-            name="ROS_Mobile_Leaderboard"
-            visibleOnDevices="onlyMobile"
-          />
-        </div>
-
-        <article className=" mx-auto">
+      <div className="py-4">
+        <article>
           <h1 className="mt-4 py-2 text-center text-4xl font-extrabold mb-8">
             About Us
           </h1>
-          
+
           <div className="prose prose-lg max-w-none">
             {parse(pageData.content, PARSER_OPTIONS)}
           </div>
 
           <div className="mt-8 text-sm text-gray-500 text-right">
-           Page Last updated: {lastModified}
+            Page Last updated: {lastModified}
           </div>
         </article>
       </div>
