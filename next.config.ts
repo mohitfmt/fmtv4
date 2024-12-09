@@ -5,6 +5,10 @@ const { protocol, hostname, port, pathname } = new URL(
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  env: {
+    NEXT_PUBLIC_DOMAIN:
+      process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com",
+  },
   images: {
     remotePatterns: [
       {
@@ -49,6 +53,14 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   compress: true,
+  async headers() {
+    return [
+      {
+        source: "/api/sync-content",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

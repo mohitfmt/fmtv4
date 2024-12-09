@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { revalidatePath } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 
 interface ContentUpdate {
   id: string;
@@ -31,23 +31,23 @@ const COLLECTION_PAGES = {
   ],
 };
 
-function getCanonicalPath(
-  url: string,
-  currentDomain: string = "dev-v4.freemalaysiatoday.com"
-): string {
+function getCanonicalPath(url: string): string {
   try {
+    const currentDomain =
+      process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+    const productionDomain = "www.freemalaysiatoday.com";
+
     const urlObj = new URL(url);
-    // Handle both www and dev-v4 domains
+    // Handle both production and development domains
     if (
-      urlObj.hostname === "www.freemalaysiatoday.com" ||
+      urlObj.hostname === productionDomain ||
       urlObj.hostname === currentDomain
     ) {
       return urlObj.pathname;
     }
-    // If it's a relative path or different domain, just return the pathname
     return urlObj.pathname;
   } catch (error) {
-    console.error(`Invalid URL: ${url}`, error);
+    console.error(`[URL] Invalid URL: ${url}`, error);
     return url;
   }
 }
@@ -58,7 +58,9 @@ async function purgeCloudflareCache(paths: string[]) {
     return;
   }
 
-  const urls = paths.map((path) => `https://www.freemalaysiatoday.com${path}`);
+  const currentDomain =
+    process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  const urls = paths.map((path) => `https://${currentDomain}${path}`);
 
   try {
     const response = await fetch(
@@ -74,84 +76,46 @@ async function purgeCloudflareCache(paths: string[]) {
     );
 
     const result = await response.json();
-
     if (!result.success) {
       throw new Error(
         `Cloudflare purge failed: ${result.errors?.[0]?.message}`
       );
     }
+    console.log(`[Cache] Purged ${urls.length} URLs from Cloudflare`);
   } catch (error) {
     console.error("[Cache] Purge request failed:", error);
-    throw error;
   }
 }
 
-async function revalidateContent(updates: ContentUpdate[]) {
+async function revalidateCollectionPages(sectionsToUpdate: string[] = []) {
   const revalidatedPaths = new Set<string>();
   const failedPaths = new Set<string>();
 
   try {
-    console.info(`[Sync] Starting revalidation for ${updates.length} updates`);
-
-    // 1. Revalidate collection pages first as they're most important
-    const collectionPaths = [
-      ...COLLECTION_PAGES.sections,
-      ...COLLECTION_PAGES.special,
-    ];
-
-    for (const path of collectionPaths) {
-      try {
-        await revalidatePath(path);
-        revalidatedPaths.add(path);
-        console.info(`[Revalidate] Success: Collection page ${path}`);
-      } catch (error) {
-        console.error(`[Revalidate] Failed: Collection page ${path}`, error);
-        failedPaths.add(path);
-      }
+    // Always revalidate homepage
+    try {
+      await revalidatePath("/");
+      await revalidateTag("home-page");
+      revalidatedPaths.add("/");
+      console.log("[Revalidate] Homepage successful");
+    } catch (error) {
+      console.error("[Revalidate] Homepage failed:", error);
+      failedPaths.add("/");
     }
 
-    // 2. Revalidate individual article paths
-    for (const update of updates) {
-      const canonicalPath = getCanonicalPath(update.link);
-
-      try {
-        await revalidatePath(canonicalPath);
-        revalidatedPaths.add(canonicalPath);
-        console.info(`[Revalidate] Success: Article at ${canonicalPath}`);
-      } catch (error) {
-        console.error(
-          `[Revalidate] Failed: Article at ${canonicalPath}`,
-          error
-        );
-        failedPaths.add(canonicalPath);
+    // Only revalidate affected section pages
+    for (const section of sectionsToUpdate) {
+      const sectionPath = `/category/${section}`;
+      if (COLLECTION_PAGES.sections.includes(sectionPath)) {
+        try {
+          await revalidatePath(sectionPath);
+          revalidatedPaths.add(sectionPath);
+          console.log(`[Revalidate] Section successful: ${sectionPath}`);
+        } catch (error) {
+          console.error(`[Revalidate] Section failed: ${sectionPath}`, error);
+          failedPaths.add(sectionPath);
+        }
       }
-    }
-
-    // 3. Handle Cloudflare cache with proper domain handling
-    if (revalidatedPaths.size > 0) {
-      try {
-        const currentDomain =
-          process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
-        const urls = Array.from(revalidatedPaths).map(
-          (path) => `https://${currentDomain}${path}`
-        );
-
-        await purgeCloudflareCache(urls);
-        console.info(
-          `[Cache] Successfully purged ${urls.length} URLs from Cloudflare`,
-          urls
-        );
-      } catch (error) {
-        console.error("[Cache] Cloudflare purge failed:", error);
-      }
-    }
-
-    // Log summary
-    console.info(
-      `[Sync] Revalidation complete. Success: ${revalidatedPaths.size}, Failed: ${failedPaths.size}`
-    );
-    if (failedPaths.size > 0) {
-      console.error("[Sync] Failed paths:", Array.from(failedPaths));
     }
 
     return {
@@ -159,8 +123,73 @@ async function revalidateContent(updates: ContentUpdate[]) {
       failed: Array.from(failedPaths),
     };
   } catch (error) {
+    console.error("[Revalidate] Collection pages failed:", error);
+    return {
+      success: Array.from(revalidatedPaths),
+      failed: Array.from(failedPaths),
+    };
+  }
+}
+
+async function revalidateContent(updates: ContentUpdate[]) {
+  console.log(`[Sync] Processing ${updates.length} updates`);
+  const revalidatedPaths = new Set<string>();
+  const failedPaths = new Set<string>();
+
+  try {
+    // Extract affected sections
+    const sectionsToUpdate = new Set(
+      updates
+        .map((update) => {
+          const match = update.link.match(/\/category\/([^/]+)\//);
+          return match ? match[1] : null;
+        })
+        .filter(Boolean)
+    );
+
+    // First revalidate collection pages
+    const collectionResults = await revalidateCollectionPages(
+      Array.from(sectionsToUpdate).filter(
+        (section): section is string => section !== null
+      )
+    );
+    collectionResults.success.forEach((path) => revalidatedPaths.add(path));
+    collectionResults.failed.forEach((path) => failedPaths.add(path));
+
+    // Then handle individual articles
+    for (const update of updates) {
+      // Skip ?p= URLs
+      if (update.link.includes("/?p=")) {
+        console.log(`[Skip] Ignoring ?p= URL: ${update.link}`);
+        continue;
+      }
+
+      const canonicalPath = getCanonicalPath(update.link);
+      try {
+        await revalidatePath(canonicalPath);
+        revalidatedPaths.add(canonicalPath);
+        console.log(`[Revalidate] Article successful: ${canonicalPath}`);
+      } catch (error) {
+        console.error(`[Revalidate] Article failed: ${canonicalPath}`, error);
+        failedPaths.add(canonicalPath);
+      }
+    }
+
+    // Purge Cloudflare cache for successful revalidations
+    if (revalidatedPaths.size > 0) {
+      await purgeCloudflareCache(Array.from(revalidatedPaths));
+    }
+
+    return {
+      revalidated: Array.from(revalidatedPaths),
+      failed: Array.from(failedPaths),
+    };
+  } catch (error) {
     console.error("[Sync] Revalidation process failed:", error);
-    throw error;
+    return {
+      revalidated: Array.from(revalidatedPaths),
+      failed: Array.from(failedPaths),
+    };
   }
 }
 
@@ -168,27 +197,28 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  try {
-    // Send immediate acknowledgment
-    res.status(200).json({ received: true });
+  // Send immediate acknowledgment
+  res.status(200).json({ received: true });
 
-    console.info("[Handler] Received sync request", {
-      method: req.method,
-      timestamp: new Date().toISOString(),
-    });
+  console.info("[Handler] Received sync request", {
+    method: req.method,
+    timestamp: new Date().toISOString(),
+  });
 
-    // Process the update asynchronously
-    if (req.method === "POST") {
-      try {
-        const payload = req.body as UpdatePayload;
-        await revalidateContent(payload.updates);
-      } catch (error) {
-        console.error("[Handler] Update processing failed:", error);
-      }
+  // Process the update asynchronously
+  if (req.method === "POST") {
+    try {
+      const payload = req.body as UpdatePayload;
+      const result = await revalidateContent(payload.updates);
+
+      console.info("[Sync] Complete", {
+        revalidated: result.revalidated.length,
+        failed: result.failed.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("[Sync] Failed:", error);
     }
-  } catch (error) {
-    console.error("[Handler] Critical error:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
 }
 
