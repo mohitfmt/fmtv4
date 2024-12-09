@@ -30,7 +30,7 @@ const ContactDetails: React.FC = () => (
     <p className="pb-3 pt-1">
       <a
         href={contactInfo.editorial.mailto}
-        className="text-blue-500 hover:underline"
+        className="text-accent-blue hover:underline"
       >
         {contactInfo.editorial.email}
       </a>
@@ -41,14 +41,14 @@ const ContactDetails: React.FC = () => (
     <p className="pb-3 pt-1">
       <a
         href={contactInfo.advertising.mailto}
-        className="text-blue-500 hover:underline block sm:inline"
+        className="text-accent-blue hover:underline block sm:inline"
       >
         {contactInfo.advertising.email}
       </a>
       <span className="mx-2 cursor-default block sm:inline">or</span>
       <a
         href={contactInfo.advertising.tel}
-        className="text-blue-500 hover:underline block sm:inline"
+        className="text-accent-blue hover:underline block sm:inline"
       >
         {contactInfo.advertising.phone}
       </a>
@@ -58,14 +58,14 @@ const ContactDetails: React.FC = () => (
     <p className="pb-3 pt-1">
       <a
         href={contactInfo.career.mailto}
-        className="text-blue-500 hover:underline block sm:inline"
+        className="text-accent-blue hover:underline block sm:inline"
       >
         {contactInfo.career.email}
       </a>
       <span className="mx-2 cursor-default block sm:inline">or</span>
       <a
         href={contactInfo.career.tel}
-        className="text-blue-500 hover:underline block sm:inline"
+        className="text-accent-blue hover:underline block sm:inline"
       >
         {contactInfo.career.phone}
       </a>
