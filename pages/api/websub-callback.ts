@@ -23,18 +23,14 @@ export default async function handler(
       console.log("[WebSub] Received content update notification");
 
       // Use fetch to call the revalidate endpoint
-      const revalidateRes = await fetch(
-        `${process.env.NEXT_PUBLIC_DOMAIN}/api/revalidate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // Add a secret key for security
-            "x-revalidate-key":
-              process.env.REVALIDATE_SECRET_KEY || "default-secret",
-          },
-        }
-      );
+      const revalidateRes = await fetch("/api/revalidate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-revalidate-key":
+            process.env.REVALIDATE_SECRET_KEY || "default-secret",
+        },
+      });
 
       if (!revalidateRes.ok) {
         throw new Error(`Revalidation failed: ${revalidateRes.statusText}`);
