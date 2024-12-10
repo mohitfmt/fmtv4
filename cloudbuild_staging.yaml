@@ -26,7 +26,7 @@ steps:
       - "--build-arg"
       - "NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}"
       - "--build-arg"
-      - "REVALIDATE_SECRET_KEY=${REVALIDATE_SECRET_KEY}"
+      - "REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}"
       - "--build-arg"
       - "NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}"
       - "--build-arg"
@@ -102,7 +102,7 @@ steps:
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
           --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
           --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
-          --set-env-vars="REVALIDATE_SECRET_KEY=${REVALIDATE_SECRET_KEY}" \
+          --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \
           --set-env-vars="NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}" \
           --quiet
 
