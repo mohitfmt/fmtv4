@@ -339,7 +339,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       videoPosts,
       columnists,
       trendingTags,
-      _tags: ["homepage-data", "home-page"],
     },
     revalidate: 1500, // 25 minutes
   };

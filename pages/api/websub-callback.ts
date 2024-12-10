@@ -1,5 +1,5 @@
+// pages/api/websub-callback.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { revalidateTag } from "next/cache";
 
 export default async function handler(
   req: NextApiRequest,
@@ -20,20 +20,34 @@ export default async function handler(
   // Handle content notifications
   if (req.method === "POST") {
     try {
-      console.log("[WebSub] Received content update notification", req);
+      console.log("[WebSub] Received content update notification");
 
-      // Revalidate homepage
-      await revalidateTag("homepage-data");
-      await revalidateTag("home-page");
+      // Use fetch to call the revalidate endpoint
+      const revalidateRes = await fetch(
+        `${process.env.NEXT_PUBLIC_DOMAIN}/api/revalidate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // Add a secret key for security
+            "x-revalidate-key":
+              process.env.REVALIDATE_SECRET_KEY || "default-secret",
+          },
+        }
+      );
 
-      console.log("[WebSub] Homepage revalidated");
+      if (!revalidateRes.ok) {
+        throw new Error(`Revalidation failed: ${revalidateRes.statusText}`);
+      }
+
+      console.log("[WebSub] Homepage revalidated successfully");
 
       return res.status(200).json({
         success: true,
         message: "Update processed and homepage revalidated",
       });
     } catch (error) {
-      console.error("[WebSub] Revalidation failed:", error);
+      console.error("[WebSub] Error:", error);
       return res.status(500).json({
         error: "Revalidation failed",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -46,9 +60,6 @@ export default async function handler(
 
 export const config = {
   api: {
-    bodyParser: {
-      // Allow raw XML from WordPress
-      bodyParser: false,
-    },
+    bodyParser: true, // Enable body parsing for form-urlencoded data
   },
 };
