@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 const { protocol, hostname, port, pathname } = new URL(
-  process.env.WORDPRESS_API_URl || "https://cms.freemalaysiatoday.com/graphql"
+  process.env.WORDPRESS_API_URl || "https://staging-cms.freemalaysiatoday.com/graphql"
 );
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -52,6 +52,7 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   poweredByHeader: false,
+  staticPageGenerationTimeout: 120,
   compress: true,
   async headers() {
     return [
