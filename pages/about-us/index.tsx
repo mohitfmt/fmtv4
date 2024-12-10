@@ -116,10 +116,7 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
           <div className="prose prose-lg max-w-none">
             {parse(pageData.content, PARSER_OPTIONS)}
           </div>
-
-          <div className="mt-8 text-sm text-gray-500 text-right">
-            Page Last updated: {lastModified}
-          </div>
+          
         </article>
       </div>
     </>
