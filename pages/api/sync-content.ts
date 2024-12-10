@@ -81,6 +81,8 @@ export default async function handler(
     timestamp: new Date().toISOString(),
   });
 
+  return res.status(200).json({ success: true, message: req.body }); // did this purposely to see the payload and should not do the revalidation
+
   try {
     const payload = req.body as UpdatePayload;
 

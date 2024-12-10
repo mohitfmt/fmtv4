@@ -10,7 +10,7 @@ export default async function handler(
     const { "hub.mode": mode, "hub.challenge": challenge } = req.query;
 
     if (mode === "subscribe" && challenge) {
-      console.log("[WebSub] Subscription verified");
+      console.log("[WebSub] Subscription verified with challenge");
       return res.status(200).send(challenge);
     }
 
@@ -22,8 +22,17 @@ export default async function handler(
     try {
       console.log("[WebSub] Received content update notification");
 
-      // Use fetch to call the revalidate endpoint
-      const revalidateRes = await fetch("/api/revalidate", {
+      // Construct absolute URL for internal API call
+      const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+      const host =
+        req.headers.host ||
+        process.env.NEXT_PUBLIC_DOMAIN ||
+        "dev-v4.freemalaysiatoday.com";
+      const revalidateUrl = `${protocol}://${host}/api/revalidate`;
+
+      console.log("[WebSub] Calling revalidate endpoint:", revalidateUrl);
+
+      const revalidateRes = await fetch(revalidateUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -32,11 +41,18 @@ export default async function handler(
         },
       });
 
-      if (!revalidateRes.ok) {
-        throw new Error(`Revalidation failed: ${revalidateRes.statusText}`);
-      }
+      const responseData = await revalidateRes.text();
+      console.log(
+        "[WebSub] Revalidate response:",
+        revalidateRes.status,
+        responseData
+      );
 
-      console.log("[WebSub] Homepage revalidated successfully");
+      if (!revalidateRes.ok) {
+        throw new Error(
+          `Revalidation failed (${revalidateRes.status}): ${responseData}`
+        );
+      }
 
       return res.status(200).json({
         success: true,
@@ -56,6 +72,6 @@ export default async function handler(
 
 export const config = {
   api: {
-    bodyParser: true, // Enable body parsing for form-urlencoded data
+    bodyParser: true,
   },
 };
