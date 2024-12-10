@@ -1,34 +1,42 @@
-import { Metadata } from "next";
+import { GetStaticProps, NextPage } from "next";
 import parse from "html-react-parser";
+import Meta from "@/components/common/Meta";
+import { getAboutPage } from "@/lib/gql-queries/get-about-page";
 
-export const metadata: Metadata = {
-  title: "About Us | Free Malaysia Today (FMT)",
-};
+interface PageData {
+  dateGmt: string;
+  databaseId: number;
+  id: string;
+  slug: string;
+  uri: string;
+  content: string;
+}
 
-export const revalidate = 45;
+interface PageProps {
+  pageData: PageData | null;
+  error?: boolean;
+}
 
-// Custom parser options to add classes to specific elements
-const parserOptions = {
+const PARSER_OPTIONS = {
   replace: (domNode: any) => {
     if (domNode.type === "tag") {
-      // Style headings
-      if (domNode.name === "h1") {
-        domNode.attribs.class = "text-3xl font-bold mb-6 mt-8";
-        return domNode;
-      }
+      const classMap: Record<string, string> = {
+        h1: "text-3xl font-bold mb-6 mt-8",
+        h2: "text-2xl font-semibold mb-4 mt-6",
+        h3: "text-xl font-medium mb-3 mt-4",
+        p: "text-lg py-1.5",
+        ul: "list-disc pl-6 mb-4 space-y-2",
+        ol: "list-decimal pl-6 mb-4 space-y-2",
+        li: "mb-1",
+        hr: "mt-4 bg-gray-200 border-1",
+        a: "text-blue-600 hover:underline dark:text-blue-400 disable",
+        section: "mb-8",
+        div: "mb-8",
+      };
 
-      if (domNode.name === "h2") {
-        domNode.attribs.class = "text-2xl font-semibold mb-4 mt-6";
-        return domNode;
-      }
-      if (domNode.name === "h3") {
-        domNode.attribs.class = "text-xl font-medium mb-3 mt-4";
-        return domNode;
-      }
-
-      // Style paragraphs
-      if (domNode.name === "p") {
-        domNode.attribs.class = "text-lg py-1.5";
+      if (domNode.name in classMap) {
+        domNode.attribs = domNode.attribs || {};
+        domNode.attribs.class = classMap[domNode.name];
         return domNode;
       }
 
@@ -36,100 +44,83 @@ const parserOptions = {
         (domNode.name === "strong" || domNode.name === "b") &&
         domNode.parent?.name === "p"
       ) {
+        domNode.attribs = domNode.attribs || {};
         domNode.attribs.class = "text-xl font-bold block mt-7 -mb-6";
-        return domNode;
-      }
-
-      // Style lists
-      if (domNode.name === "ul") {
-        domNode.attribs.class = "list-disc pl-6 mb-4 space-y-2";
-        return domNode;
-      }
-      if (domNode.name === "ol") {
-        domNode.attribs.class = "list-decimal pl-6 mb-4 space-y-2";
-        return domNode;
-      }
-      if (domNode.name === "li") {
-        domNode.attribs.class = "mb-1";
-        return domNode;
-      }
-
-      if (domNode.name === "hr") {
-        domNode.attribs.class = "mt-4 bg-gray-200 border-1";
-        return domNode;
-      }
-
-      // Style links
-      if (domNode.name === "a") {
-        domNode.attribs.class =
-          "text-blue-600 hover:underline dark:text-blue-400";
-        return domNode;
-      }
-
-      // Style sections or divs
-      if (domNode.name === "section" || domNode.name === "div") {
-        domNode.attribs.class = "mb-8";
         return domNode;
       }
     }
   },
 };
 
-const fetchPageData = async (pageId: string, idType: string) => {
-  const response = await fetch(process.env.WORDPRESS_API_URL as string, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `
-        query Query($pageId: ID!, $idType: PageIdType) {
-          page(id: $pageId, idType: $idType) {
-            content
-          }
-        }
-      `,
-      variables: {
-        pageId,
-        idType,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch data: ${response.statusText}`);
-  }
-
-  const json = await response.json();
-  return json.data;
-};
-
-export const getStaticProps = async () => {
+export const getStaticProps: GetStaticProps<PageProps> = async () => {
   try {
-    const data = await fetchPageData("about", "URI");
+    const pageData = await getAboutPage();
+
+    if (!pageData) {
+      return { notFound: true };
+    }
+
     return {
-      props: {
-        content: data.page?.content || "",
-      },
-      revalidate,
+      props: { pageData },
+      revalidate: 30 * 24 * 60 * 60, // 30 days
     };
   } catch (error) {
-    console.error("Error fetching page data:", error);
+    console.error("Failed to fetch about page:", error);
     return {
-      notFound: true,
+      props: {
+        pageData: null,
+        error: true,
+      },
     };
   }
 };
 
-const Page = ({ content }: { content: string }) => {
+const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
+  if (error || !pageData) {
+    return (
+      <>
+        <Meta
+          title="Error | Free Malaysia Today (FMT)"
+          description="Unable to load content"
+        />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center p-8">
+            <h1 className="text-2xl font-bold mb-4">Unable to load content</h1>
+            <p className="text-gray-600">Please try again later</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const lastModified = new Date(pageData.dateGmt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
-    <article className="p-4">
-      <h1 className="mt-4 py-2 text-center text-4xl font-extrabold mb-8">
-        About Us
-      </h1>
-      <div>{parse(content, parserOptions)}</div>
-    </article>
+    <>
+      <Meta
+        title="About Us | Free Malaysia Today (FMT)"
+        description="Learn more about Free Malaysia Today (FMT)"
+        canonical="about-us"
+      />
+
+      <div className="py-4">
+        <article>
+          <h1 className="mt-4 py-2 text-center text-4xl font-extrabold mb-8">
+            About Us
+          </h1>
+
+          <div className="prose prose-lg max-w-none">
+            {parse(pageData.content, PARSER_OPTIONS)}
+          </div>
+          
+        </article>
+      </div>
+    </>
   );
 };
 
-export default Page;
+export default AboutPage;
