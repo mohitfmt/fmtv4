@@ -30,6 +30,10 @@ steps:
       - "--build-arg"
       - "NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}"
       - "--build-arg"
+      - "CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}"
+      - "--build-arg"
+      - "CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}"
+      - "--build-arg"
       - "NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}"
       - "--build-arg"
       - "NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}"
@@ -104,6 +108,8 @@ steps:
           --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
           --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \
           --set-env-vars="NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}" \
+          --set-env-vars="CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}" \
+          --set-env-vars="CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}" \
           --quiet
 
         # Verify deployment
