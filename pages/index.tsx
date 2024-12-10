@@ -217,6 +217,9 @@ export default function Home({
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
   try {
+
+    //implement timestamping for last updated if not updated soon.
+
     // Fetch hero (super-highlight) posts first
     const heroPosts = await getCategoryNews("super-highlight", 1, preview);
 

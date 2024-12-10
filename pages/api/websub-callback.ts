@@ -58,7 +58,7 @@ export default async function handler(
       console.log("[WebSub] Received content update notification");
 
       // Step 1: Call revalidate endpoint
-      const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+      const protocol = "https"; // process.env.NODE_ENV === "production" ? "https" : "http";
       const host =
         req.headers.host ||
         process.env.NEXT_PUBLIC_DOMAIN ||
