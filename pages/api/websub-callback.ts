@@ -1,5 +1,40 @@
-// pages/api/websub-callback.ts
 import { NextApiRequest, NextApiResponse } from "next";
+
+async function purgeCloudflareCache(paths: string[]) {
+  if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
+    console.warn("[Cache] Cloudflare credentials not configured");
+    return;
+  }
+
+  const currentDomain =
+    process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  const urls = paths.map((path) => `https://${currentDomain}${path}`);
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ files: urls }),
+      }
+    );
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(
+        `Cloudflare purge failed: ${result.errors?.[0]?.message}`
+      );
+    }
+    console.log(`[Cache] Purged ${urls.length} URLs from Cloudflare`);
+  } catch (error) {
+    console.error("[Cache] Purge request failed:", error);
+    throw error;
+  }
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,7 +45,7 @@ export default async function handler(
     const { "hub.mode": mode, "hub.challenge": challenge } = req.query;
 
     if (mode === "subscribe" && challenge) {
-      console.log("[WebSub] Subscription verified with challenge");
+      console.log("[WebSub] Subscription verified");
       return res.status(200).send(challenge);
     }
 
@@ -22,46 +57,39 @@ export default async function handler(
     try {
       console.log("[WebSub] Received content update notification");
 
-      // Construct absolute URL for internal API call
+      // Step 1: Call revalidate endpoint
       const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
       const host =
         req.headers.host ||
         process.env.NEXT_PUBLIC_DOMAIN ||
         "dev-v4.freemalaysiatoday.com";
-      const revalidateUrl = `${protocol}://${host}/api/revalidate`;
-
-      console.log("[WebSub] Calling revalidate endpoint:", revalidateUrl);
-
-      const revalidateRes = await fetch(revalidateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-revalidate-key":
-            process.env.REVALIDATE_SECRET_KEY || "default-secret",
-        },
-      });
-
-      const responseData = await revalidateRes.text();
-      console.log(
-        "[WebSub] Revalidate response:",
-        revalidateRes.status,
-        responseData
+      const revalidateRes = await fetch(
+        `${protocol}://${host}/api/revalidate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-revalidate-key":
+              process.env.REVALIDATE_SECRET_KEY || "default-secret",
+          },
+        }
       );
 
       if (!revalidateRes.ok) {
-        throw new Error(
-          `Revalidation failed (${revalidateRes.status}): ${responseData}`
-        );
+        throw new Error(`Revalidation failed: ${revalidateRes.statusText}`);
       }
+
+      // Step 2: Purge Cloudflare cache
+      await purgeCloudflareCache(["/"]);
 
       return res.status(200).json({
         success: true,
-        message: "Update processed and homepage revalidated",
+        message: "Homepage revalidated and cache purged",
       });
     } catch (error) {
       console.error("[WebSub] Error:", error);
       return res.status(500).json({
-        error: "Revalidation failed",
+        error: "Process failed",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -69,9 +97,3 @@ export default async function handler(
 
   return res.status(405).json({ error: "Method not allowed" });
 }
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};

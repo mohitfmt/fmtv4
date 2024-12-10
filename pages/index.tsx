@@ -216,130 +216,138 @@ export default function Home({
 }
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
-  // Fetch hero (super-highlight) posts first
-  const heroPosts = await getCategoryNews("super-highlight", 1, preview);
-
-  // Collect slugs from super-highlight to exclude from highlight posts
-  const excludeSlugs = Array.isArray(heroPosts)
-    ? heroPosts.map((post) => post?.slug).filter(Boolean)
-    : [];
-
-  // Modify the getCategoryNews function to accept an excludeSlugs parameter
-  const getFilteredCategoryNews = async (
-    categoryName: string,
-    limit: number,
-    additionalExcludes: string[] = []
-  ) => {
-    const allPosts = await getCategoryNews(
-      categoryName,
-      limit + excludeSlugs?.length + additionalExcludes?.length,
-      preview
-    );
-    return allPosts
-      ?.filter(
-        (post: { slug: string }) =>
-          !excludeSlugs?.includes(post?.slug) &&
-          !additionalExcludes?.includes(post?.slug)
-      )
-      ?.slice(0, limit);
-  };
-
-  // Fetch highlight posts, excluding super-highlight posts
-  const highlightPosts = await getFilteredCategoryNews(
-    "highlight",
-    4,
-    excludeSlugs
-  );
-
-  // Update excludeSlugs to include highlight posts as well
-  if (Array.isArray(highlightPosts)) {
-    excludeSlugs.push(
-      ...highlightPosts.map((post) => post?.slug).filter(Boolean)
-    );
-  }
-
-  // Fetch other categories in parallel
-  const [
-    topNewsPosts,
-    businessPosts,
-    opinionPosts,
-    worldPosts,
-    leisurePosts,
-    sportsPosts,
-    superBmPosts, // Fetch superBmPosts before topBmPosts
-  ] = await Promise.all([
-    getFilteredCategoryNews("top-news", 6),
-    getFilteredCategoryNews("business", 3),
-    getFilteredCategoryNews("opinion", 8),
-    getFilteredCategoryNews("world", 5),
-    getFilteredCategoryNews("leisure", 5),
-    getFilteredCategoryNews("sports", 5),
-    getFilteredCategoryNews("super-bm", 1), // Fetch superBmPosts here
-  ]);
-
-  // Fetch topBmPosts after superBmPosts to exclude superBm slugs
-  const topBmPosts = await getFilteredCategoryNews(
-    "top-bm",
-    4,
-    superBmPosts?.map((post: { slug: string }) => post?.slug)
-  );
-
-  // Combine superBmPosts and topBmPosts for Berita section
-  const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
-
-  // Fetch video posts
-  const jsonUrl = `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`;
-  let videoPosts = [];
   try {
-    const res = await fetch(jsonUrl);
-    if (!res?.ok) {
-      throw new Error(`Failed to fetch data: ${res?.statusText}`);
+    // Fetch hero (super-highlight) posts first
+    const heroPosts = await getCategoryNews("super-highlight", 1, preview);
+
+    // Collect slugs from super-highlight to exclude from highlight posts
+    const excludeSlugs = Array.isArray(heroPosts)
+      ? heroPosts.map((post) => post?.slug).filter(Boolean)
+      : [];
+
+    // Modify the getCategoryNews function to accept an excludeSlugs parameter
+    const getFilteredCategoryNews = async (
+      categoryName: string,
+      limit: number,
+      additionalExcludes: string[] = []
+    ) => {
+      const allPosts = await getCategoryNews(
+        categoryName,
+        limit + excludeSlugs?.length + additionalExcludes?.length,
+        preview
+      );
+      return allPosts
+        ?.filter(
+          (post: { slug: string }) =>
+            !excludeSlugs?.includes(post?.slug) &&
+            !additionalExcludes?.includes(post?.slug)
+        )
+        ?.slice(0, limit);
+    };
+
+    // Fetch highlight posts, excluding super-highlight posts
+    const highlightPosts = await getFilteredCategoryNews(
+      "highlight",
+      4,
+      excludeSlugs
+    );
+
+    // Update excludeSlugs to include highlight posts as well
+    if (Array.isArray(highlightPosts)) {
+      excludeSlugs.push(
+        ...highlightPosts.map((post) => post?.slug).filter(Boolean)
+      );
     }
-    const data = await res?.json();
-    videoPosts = data ?? [];
-    videoPosts = videoPosts?.slice(0, 5);
-  } catch (error) {
-    console.error("Failed to fetch videos:", error);
-  }
 
-  const topNewsAllCategory = [
-    heroPosts[0] && { ...heroPosts[0], categoryName: "super-highlight" },
-    highlightPosts[0] && { ...highlightPosts[0], categoryName: "highlight" },
-    topNewsPosts[0] && { ...topNewsPosts[0], categoryName: "top-news" },
-    businessPosts[0] && { ...businessPosts[0], categoryName: "business" },
-    opinionPosts[0] && { ...opinionPosts[0], categoryName: "opinion" },
-    worldPosts[0] && { ...worldPosts[0], categoryName: "world" },
-    leisurePosts[0] && { ...leisurePosts[0], categoryName: "leisure" },
-    sportsPosts[0] && { ...sportsPosts[0], categoryName: "sports" },
-    beritaPosts[0] && { ...beritaPosts[0], categoryName: "top-bm" },
-    videoPosts[0] && { ...videoPosts[0].node, categoryName: "video" },
-  ].filter(Boolean);
-
-  const columnistsIds = await prisma.columnist.findMany({
-    select: { userId: true },
-  });
-  // console.log("columnistsIds", columnistsIds);
-  const columnistIds = columnistsIds?.map((id: any) => id?.userId);
-  const columnists = await getColumnists(columnistIds, preview);
-  const trendingTags = await prisma.trendingTag.findMany();
-
-  return {
-    props: {
-      heroPosts,
-      highlightPosts,
+    // Fetch other categories in parallel
+    const [
       topNewsPosts,
       businessPosts,
       opinionPosts,
       worldPosts,
       leisurePosts,
       sportsPosts,
-      beritaPosts,
-      topNewsAllCategory,
-      preview,
-      videoPosts,
-      columnists,
-      trendingTags,
-    },
-    revalidate: 1500, // 25 minutes
-  };
+      superBmPosts, // Fetch superBmPosts before topBmPosts
+    ] = await Promise.all([
+      getFilteredCategoryNews("top-news", 6),
+      getFilteredCategoryNews("business", 3),
+      getFilteredCategoryNews("opinion", 8),
+      getFilteredCategoryNews("world", 5),
+      getFilteredCategoryNews("leisure", 5),
+      getFilteredCategoryNews("sports", 5),
+      getFilteredCategoryNews("super-bm", 1), // Fetch superBmPosts here
+    ]);
+
+    // Fetch topBmPosts after superBmPosts to exclude superBm slugs
+    const topBmPosts = await getFilteredCategoryNews(
+      "top-bm",
+      4,
+      superBmPosts?.map((post: { slug: string }) => post?.slug)
+    );
+
+    // Combine superBmPosts and topBmPosts for Berita section
+    const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
+
+    // Fetch video posts
+    const jsonUrl = `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`;
+    let videoPosts = [];
+    try {
+      const res = await fetch(jsonUrl);
+      if (!res?.ok) {
+        throw new Error(`Failed to fetch data: ${res?.statusText}`);
+      }
+      const data = await res?.json();
+      videoPosts = data ?? [];
+      videoPosts = videoPosts?.slice(0, 5);
+    } catch (error) {
+      console.error("Failed to fetch videos:", error);
+    }
+
+    const topNewsAllCategory = [
+      heroPosts[0] && { ...heroPosts[0], categoryName: "super-highlight" },
+      highlightPosts[0] && { ...highlightPosts[0], categoryName: "highlight" },
+      topNewsPosts[0] && { ...topNewsPosts[0], categoryName: "top-news" },
+      businessPosts[0] && { ...businessPosts[0], categoryName: "business" },
+      opinionPosts[0] && { ...opinionPosts[0], categoryName: "opinion" },
+      worldPosts[0] && { ...worldPosts[0], categoryName: "world" },
+      leisurePosts[0] && { ...leisurePosts[0], categoryName: "leisure" },
+      sportsPosts[0] && { ...sportsPosts[0], categoryName: "sports" },
+      beritaPosts[0] && { ...beritaPosts[0], categoryName: "top-bm" },
+      videoPosts[0] && { ...videoPosts[0].node, categoryName: "video" },
+    ].filter(Boolean);
+
+    const columnistsIds = await prisma.columnist.findMany({
+      select: { userId: true },
+    });
+    // console.log("columnistsIds", columnistsIds);
+    const columnistIds = columnistsIds?.map((id: any) => id?.userId);
+    const columnists = await getColumnists(columnistIds, preview);
+    const trendingTags = await prisma.trendingTag.findMany();
+
+    return {
+      props: {
+        heroPosts,
+        highlightPosts,
+        topNewsPosts,
+        businessPosts,
+        opinionPosts,
+        worldPosts,
+        leisurePosts,
+        sportsPosts,
+        beritaPosts,
+        topNewsAllCategory,
+        preview,
+        videoPosts,
+        columnists,
+        trendingTags,
+      },
+      revalidate: 1500, // 25 minutes
+    };
+  } catch (error) {
+    console.error("[HomePage] Error fetching data:", error);
+    return {
+      notFound: true,
+      revalidate: 10, // Try again sooner if there was an error
+    };
+  }
 };
