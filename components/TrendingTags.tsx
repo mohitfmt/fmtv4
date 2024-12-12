@@ -5,7 +5,7 @@ const TrendingTags = ({ tags }: any) => {
   return (
     <div className="flex items-center gap-2 md:gap-3 my-5">
       <div className="inline-flex items-center py-0.5 bg-accent-yellow dark:bg-accent-blue pl-1 pr-2 rounded-lg border-[0.5px] border-yellow-400 dark:border-blue-100">
-        <span className="font-bold uppercase tracking-wide text-sm px-1">
+        <span className="hidden md:block font-bold uppercase tracking-wide text-sm px-1">
           trending
         </span>
         <FaArrowTrendUp size={24} />

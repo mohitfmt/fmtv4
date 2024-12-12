@@ -3,6 +3,9 @@ import LTRNewsPreview from "@/components/common/LTRNewsPreview";
 import MostViewed from "@/components/common/most-viewed/MostViewed";
 import SectionHeading from "@/components/common/SectionHeading";
 import TTBNewsPreview from "@/components/common/TTBNewsPreview";
+import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
+import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
+import SecondarySuperNewsPreview from "@/components/landing-pages/SecondarySuperNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
 import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
@@ -14,6 +17,7 @@ import { PrismaClient } from "@prisma/client";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import Script from "next/script";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -49,8 +53,6 @@ export default function Home({
   leisurePosts,
   sportsPosts,
   beritaPosts,
-  topNewsAllCategory,
-  preview,
   videoPosts,
   columnists,
   trendingTags,
@@ -122,7 +124,6 @@ export default function Home({
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         ></meta>
       </Head>
-      <script src="https://apis.google.com/js/platform.js" async defer />
       <TrendingTags tags={trendingTags} />
       <main>
         <section
@@ -210,14 +211,156 @@ export default function Home({
             </div>
           </div>
         </section>
+        <section id="Berita-Utama" className="my-20">
+          <Link href="/berita">
+            <SectionHeading sectionName="Berita Utama" />
+          </Link>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+              {beritaPosts
+                ?.slice(0, 1)
+                ?.map((post: any) => (
+                  <SecondarySuperNewsPreview {...post} key={post.slug} />
+                ))}
+            </div>
+            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+              {beritaPosts
+                ?.slice(1)
+                ?.map((post: any) => (
+                  <TTBNewsPreview {...post} key={post?.slug} />
+                ))}
+            </div>
+          </div>
+        </section>
+        <LatestVideosOnHomePage videos={videoPosts} />
+        <div className="flex justify-center">
+          <AdSlot
+            id="div-gpt-ad-1661355926077-0"
+            name="ROS_Halfpage"
+            sizes={[300, 600]}
+            visibleOnDevices="onlyMobile"
+            targetingParams={dfpTargetingParams}
+          />
+        </div>
+        <section id="Opinion-Columnist" className="my-4">
+          <div className="grid grid-cols-12 gap-8">
+            <div className="md:col-span-8 col-span-12">
+              <Link href="/opinion">
+                <SectionHeading sectionName="Opinion" />
+              </Link>
+              <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
+                {opinionPosts
+                  ?.slice(0, 2)
+                  ?.map((post: any) => (
+                    <TTBNewsPreview {...post} key={post.slug} />
+                  ))}
+              </div>
+              <div className="mt-8 grid lg:grid-cols-2 gap-4">
+                {opinionPosts
+                  ?.slice(2)
+                  ?.map((post: any) => (
+                    <LTRNewsPreview {...post} key={post?.slug} />
+                  ))}
+              </div>
+            </div>
+            <div className="flex flex-col md:col-span-4 md:h-auto col-span-12 h-screen">
+              <Link href="/authors">
+                <SectionHeading sectionName="Columnist" />
+              </Link>
+              <ColumnistCredits columnists={columnists} />
+            </div>
+          </div>
+        </section>
+        <section id="World-News" className="my-20">
+          <Link href="/world">
+            <SectionHeading sectionName="World News" />
+          </Link>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+              {worldPosts
+                ?.slice(0, 1)
+                ?.map((post: any) => (
+                  <SecondarySuperNewsPreview {...post} key={post.slug} />
+                ))}
+            </div>
+            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+              {worldPosts
+                ?.slice(1)
+                ?.map((post: any) => (
+                  <TTBNewsPreview {...post} key={post?.slug} />
+                ))}
+            </div>
+          </div>
+        </section>
+        <div className="hidden h-24 md:flex justify-center items-center">
+          <AdSlot
+            sizes={[
+              [728, 90],
+              [970, 90],
+            ]}
+            id="div-gpt-ad-1661418008040-0"
+            name="ROS_Multisize_Leaderboard_b"
+            visibleOnDevices="onlyDesktop"
+            targetingParams={dfpTargetingParams}
+          />
+        </div>
+        <section id="Lifestyle-News" className="my-4">
+          <Link href="/lifestyle">
+            <SectionHeading sectionName="Lifestyle" />
+          </Link>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+              {leisurePosts
+                ?.slice(0, 1)
+                ?.map((post: any) => (
+                  <SecondarySuperNewsPreview {...post} key={post.slug} />
+                ))}
+            </div>
+            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+              {leisurePosts
+                ?.slice(1)
+                ?.map((post: any) => (
+                  <TTBNewsPreview {...post} key={post?.slug} />
+                ))}
+            </div>
+          </div>
+        </section>
+        <section id="Sports-News" className="my-20 mb-32">
+          <Link href="/sports">
+            <SectionHeading sectionName="Sports News" />
+          </Link>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+              {sportsPosts
+                ?.slice(0, 1)
+                ?.map((post: any) => (
+                  <SecondarySuperNewsPreview {...post} key={post.slug} />
+                ))}
+            </div>
+            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+              {sportsPosts
+                ?.slice(1)
+                ?.map((post: any) => (
+                  <TTBNewsPreview {...post} key={post?.slug} />
+                ))}
+            </div>
+          </div>
+        </section>
       </main>
+      <Script
+        src="https://apis.google.com/js/platform.js"
+        strategy="lazyOnload"
+      />
+      <Script
+        src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"
+        strategy="lazyOnload"
+      />
     </>
   );
 }
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
   try {
-
     //implement timestamping for last updated if not updated soon.
 
     // Fetch hero (super-highlight) posts first
@@ -274,7 +417,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     ] = await Promise.all([
       getFilteredCategoryNews("top-news", 6),
       getFilteredCategoryNews("business", 3),
-      getFilteredCategoryNews("opinion", 8),
+      getFilteredCategoryNews("opinion", 6),
       getFilteredCategoryNews("world", 5),
       getFilteredCategoryNews("leisure", 5),
       getFilteredCategoryNews("sports", 5),
@@ -306,23 +449,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       console.error("Failed to fetch videos:", error);
     }
 
-    const topNewsAllCategory = [
-      heroPosts[0] && { ...heroPosts[0], categoryName: "super-highlight" },
-      highlightPosts[0] && { ...highlightPosts[0], categoryName: "highlight" },
-      topNewsPosts[0] && { ...topNewsPosts[0], categoryName: "top-news" },
-      businessPosts[0] && { ...businessPosts[0], categoryName: "business" },
-      opinionPosts[0] && { ...opinionPosts[0], categoryName: "opinion" },
-      worldPosts[0] && { ...worldPosts[0], categoryName: "world" },
-      leisurePosts[0] && { ...leisurePosts[0], categoryName: "leisure" },
-      sportsPosts[0] && { ...sportsPosts[0], categoryName: "sports" },
-      beritaPosts[0] && { ...beritaPosts[0], categoryName: "top-bm" },
-      videoPosts[0] && { ...videoPosts[0].node, categoryName: "video" },
-    ].filter(Boolean);
-
     const columnistsIds = await prisma.columnist.findMany({
       select: { userId: true },
     });
-    // console.log("columnistsIds", columnistsIds);
     const columnistIds = columnistsIds?.map((id: any) => id?.userId);
     const columnists = await getColumnists(columnistIds, preview);
     const trendingTags = await prisma.trendingTag.findMany();
@@ -338,8 +467,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         leisurePosts,
         sportsPosts,
         beritaPosts,
-        topNewsAllCategory,
-        preview,
         videoPosts,
         columnists,
         trendingTags,

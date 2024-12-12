@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 const { protocol, hostname, port, pathname } = new URL(
-  process.env.WORDPRESS_API_URl || "https://staging-cms.freemalaysiatoday.com/graphql"
+  process.env.WORDPRESS_API_URL ||
+    "https://staging-cms.freemalaysiatoday.com/graphql"
 );
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -57,8 +58,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/api/sync-content",
+        source: "/api/websub-callback",
         headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=60",
+          },
+        ],
       },
     ];
   },

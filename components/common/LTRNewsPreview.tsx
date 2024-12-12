@@ -3,7 +3,6 @@ import CoverImage from "./CoverImage";
 import { getPreferredCategory } from "@/lib/utils";
 import PublishingDateTime from "./display-date-formats/PublishingDateTime";
 
-
 const LTRNewsPreview = ({
   title,
   excerpt,
@@ -52,7 +51,7 @@ const LTRNewsPreview = ({
 
       <div className="flex justify-between items-center mt-1 mb-3">
         <footer
-          className="text-gray-600 dark:text-stone-200 transition-all duration-150 hover:text-gray-900 leading-tight"
+          className="text-gray-600 dark:text-stone-200 transition-all duration-150 hover:text-gray-900 leading-tight line-clamp-2"
           title={tooltipExcerpt}
           dangerouslySetInnerHTML={{ __html: excerpt }}
           style={{ flexShrink: 1 }}
