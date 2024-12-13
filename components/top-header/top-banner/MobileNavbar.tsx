@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
-// import { List, X, CaretDown, CaretUp } from "@phosphor-icons/react";
-import { FaAngleDown, FaAngleUp, FaBars } from "react-icons/fa6";
+import { FaAngleDown, FaAngleUp, FaBars, FaTimes } from "react-icons/fa";
 import Link from "next/link";
 import { ThemeToggle } from "../top-bar/ThemeToggle";
-import SignInButton from "../top-bar/SignInButton";
 import { SocialIcons } from "../top-bar/SocialIcons";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { FaTimes } from "react-icons/fa";
+import { useAuth } from "@/contexts/AuthContext";
+import UserAuthControl from "../top-bar/UserAuthControl";
 
 interface NavItem {
   id: number;
@@ -29,12 +27,13 @@ const MobileNavbar = ({ navigation }: Props) => {
     [key: number]: boolean;
   }>({});
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { isAuthenticated } = useAuth(); 
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Handle body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -46,6 +45,7 @@ const MobileNavbar = ({ navigation }: Props) => {
     };
   }, [isOpen]);
 
+  // Navigation helpers
   const isActive = (href: string) => {
     if (href === "/" && pathname === "/") return true;
     return pathname + "/" === href || pathname === href;
@@ -61,6 +61,7 @@ const MobileNavbar = ({ navigation }: Props) => {
 
   return (
     <div className="relative block lg:hidden">
+      {/* Menu Toggle Button */}
       <button
         className="text-2xl p-2 focus:outline-none"
         onClick={() => setIsOpen(!isOpen)}
@@ -69,13 +70,16 @@ const MobileNavbar = ({ navigation }: Props) => {
         <FaBars size={24} />
       </button>
 
+      {/* Mobile Menu Panel */}
       <div
         className={`z-30 w-[80%] lg:w-[40%] sm:w-[60%] pb-10 fixed top-10 right-0 h-screen bg-background text-foreground shadow-lg transform transition-transform duration-300 overflow-y-scroll ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
+        {/* Header Section */}
         <div className="flex justify-between px-4 items-center pt-5 pb-2 border-b border-stone-700">
           <div className="flex gap-2 capitalize items-center">
+            {/* Theme Toggle */}
             <ThemeToggle />
             {mounted && (
               <span className="text-sm">
@@ -83,14 +87,16 @@ const MobileNavbar = ({ navigation }: Props) => {
               </span>
             )}
 
+            {/* Authentication Section */}
             <div className="ml-3 flex gap-2 capitalize items-center">
-              <SignInButton />
+              <UserAuthControl />
               <span className="text-sm">
-                {session ? "Sign Out" : "Sign In"}
+                {isAuthenticated ? "Sign Out" : "Sign In"}
               </span>
             </div>
           </div>
 
+          {/* Close Button */}
           <button
             className="p-1 hover:bg-accent-yellow rounded-full transition-colors"
             onClick={() => setIsOpen(false)}
@@ -100,11 +106,13 @@ const MobileNavbar = ({ navigation }: Props) => {
           </button>
         </div>
 
-        <div className="flex flex-col justify-between">
+        {/* Navigation Content */}
+        <div className="flex flex-col justify-between h-[calc(100%-4rem)]">
+          {/* Navigation Links */}
           <ul className="flex flex-col px-4 space-y-2 mt-4">
             {navigation.map((item) => (
               <li key={item.id} className="relative group">
-                <div className="flex justify-between items-left">
+                <div className="flex justify-between items-center">
                   <Link
                     href={item.href}
                     className={`block p-1 text-xl font-semibold ${
@@ -130,6 +138,8 @@ const MobileNavbar = ({ navigation }: Props) => {
                     </button>
                   )}
                 </div>
+
+                {/* Submenu Items */}
                 {item.items && expandedItems[item.id] && (
                   <ul className="pl-4 space-y-2 mt-2">
                     {item.items.map((subItem) => (
@@ -138,8 +148,8 @@ const MobileNavbar = ({ navigation }: Props) => {
                           href={subItem.href}
                           className={`block p-1 text-md md:text-base ${
                             isActive(subItem.href)
-                              ? "bg-accent-blue text-white"
-                              : "hover:bg-accent-blue hover:text-white"
+                              ? "bg-accent-blue text-white rounded"
+                              : "hover:bg-accent-blue hover:text-white rounded"
                           }`}
                           onClick={() => setIsOpen(false)}
                         >
@@ -147,14 +157,15 @@ const MobileNavbar = ({ navigation }: Props) => {
                         </Link>
                       </li>
                     ))}
-                    <p className="border-t py-2 border-stone-500 opacity-35"></p>
+                    <div className="border-t border-stone-500 opacity-35 my-2" />
                   </ul>
                 )}
               </li>
             ))}
           </ul>
 
-          <div className="px-2 ml-1 border-t py-2 border-stone-700 mt-6">
+          {/* Social Icons Footer */}
+          <div className="px-2 ml-1 border-t border-stone-700 py-2 mt-auto">
             <SocialIcons
               iconClassName="text-3xl hover:text-accent-yellow justify-left"
               className="flex gap-1"
@@ -163,6 +174,7 @@ const MobileNavbar = ({ navigation }: Props) => {
         </div>
       </div>
 
+      {/* Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black opacity-70"

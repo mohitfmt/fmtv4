@@ -3,9 +3,9 @@ import Headlines from "./top-bar/Headlines";
 import LastUpdatedDateTime from "./top-bar/LastUpdatedDateTime";
 import NewsletterButton from "./top-bar/NewsletterButton";
 import SearchNews from "./top-bar/SearchNews";
-import SignInButton from "./top-bar/SignInButton";
 import { SocialIcons } from "./top-bar/SocialIcons";
 import TopBarSeparator from "./top-bar/TopBarSeperator";
+import UserAuthControl from "./top-bar/UserAuthControl";
 
 const TopBar = () => {
   return (
@@ -18,11 +18,11 @@ const TopBar = () => {
       <NewsletterButton />
       <TopBarSeparator />
       <div className="hidden lg:flex">
-        <SocialIcons iconClassName="hover:text-accent-yellow"  />
+        <SocialIcons iconClassName="hover:text-accent-yellow" />
       </div>
       <TopBarSeparator />
       <div className="hidden lg:flex gap-3">
-        <SignInButton />
+        <UserAuthControl />
         <ThemeToggle />
       </div>
     </section>
