@@ -20,6 +20,11 @@ interface Window {
   };
   googletag: any;
   pSUPERFLY: any;
+
+  COMSCORE: any[];
+  _sf_async_config: any;
+
+  gtag: (...args: any[]) => void;
 }
 
 interface PromptMomentNotification {
