@@ -24,7 +24,7 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -36,18 +36,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Sync user with database when auth state changes
   useEffect(() => {
-    // Check for stored user data on mount
+    async function syncUser() {
+      if (user && isAuthenticated) {
+        try {
+          const response = await fetch('/api/auth/sync-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(user),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to sync user data');
+          }
+        } catch (error) {
+          console.error('Error syncing user:', error);
+        }
+      }
+    }
+
+    syncUser();
+  }, [user, isAuthenticated]);
+
+  // Check local storage for existing session
+  useEffect(() => {
     const storedAuth = localStorage.getItem("authData");
     if (storedAuth) {
       const authData: StoredAuthData = JSON.parse(storedAuth);
-
-      // Check if the stored data is expired
+      
       if (!isExpired(authData.expiry)) {
         setUser(authData.user);
         setIsAuthenticated(true);
       } else {
-        // Clear expired data
         localStorage.removeItem("authData");
         setUser(null);
         setIsAuthenticated(false);
@@ -55,13 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = (userData: GoogleUser, credential?: string) => {
+  const login = async (userData: GoogleUser, credential?: string) => {
     const authData: StoredAuthData = {
       user: userData,
       expiry: Date.now() + TWO_DAYS_MS,
       credential,
     };
-
+    
     localStorage.setItem("authData", JSON.stringify(authData));
     setUser(userData);
     setIsAuthenticated(true);
