@@ -21,7 +21,10 @@ interface Window {
   googletag: any;
   pSUPERFLY: any;
 
-  COMSCORE: any[];
+  _comscore: Array<{ c1: string; c2: string }>;
+  COMSCORE: {
+    beacon: (params: { c1: string; c2: string }) => void;
+  };
   _sf_async_config: any;
 
   gtag: (...args: any[]) => void;

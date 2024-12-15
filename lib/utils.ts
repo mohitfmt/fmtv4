@@ -230,3 +230,9 @@ export const calculateCacheDuration = () => {
 
   return duration;
 };
+
+export async function fetchLastUpdateTime() {
+  const response = await fetch("/api/last-update");
+  if (!response.ok) throw new Error("Failed to fetch last update time");
+  return response.json();
+}

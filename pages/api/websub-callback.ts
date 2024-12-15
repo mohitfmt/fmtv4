@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import { mutate } from "swr";
 
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
@@ -58,26 +59,33 @@ export default async function handler(
       console.log("[WebSub] Received content update notification");
 
       // Step 1: Call revalidate endpoint
-      const protocol = "https"; // process.env.NODE_ENV === "production" ? "https" : "http";
+      const protocol = "https"; // or use your env condition
       const host =
         req.headers.host ||
         process.env.NEXT_PUBLIC_DOMAIN ||
         "dev-v4.freemalaysiatoday.com";
-      const revalidateRes = await fetch(
-        `${protocol}://${host}/api/revalidate`,
-        {
+      const baseUrl = `${protocol}://${host}`;
+
+      // Run all operations in parallel since they're independent
+      await Promise.all([
+        // Revalidate pages
+        fetch(`${baseUrl}/api/revalidate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-revalidate-key":
               process.env.REVALIDATE_SECRET_KEY || "default-secret",
           },
-        }
-      );
+        }),
 
-      if (!revalidateRes.ok) {
-        throw new Error(`Revalidation failed: ${revalidateRes.statusText}`);
-      }
+        // Update last update time
+        fetch(`${baseUrl}/api/last-update`, {
+          method: "POST",
+        }),
+
+        // Trigger SWR revalidation for all clients
+        mutate("/api/last-update"),
+      ]);
 
       // Step 2: Purge Cloudflare cache
       await purgeCloudflareCache(["/"]);

@@ -123,25 +123,27 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
 
   // Comscore Initialization
   useEffect(() => {
-    if (!mounted || !process.env.NEXT_PUBLIC_COMSCORE_ID) {
+    const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
+
+    if (!comscoreId) {
       handleMissingEnvVariable("NEXT_PUBLIC_COMSCORE_ID");
       return;
     }
 
-    const initializeComscore = () => {
-      if (!window.COMSCORE) {
-        window.COMSCORE = [];
-      }
-      window.COMSCORE.push({
+    // Define COMSCORE tracking function
+    const trackComscore = () => {
+      window._comscore = window._comscore || [];
+      window._comscore.push({
         c1: "2",
-        c2: process.env.NEXT_PUBLIC_COMSCORE_ID,
+        c2: comscoreId, // Now we know this is defined
       });
     };
 
-    initializeComscore(); // Initial page load
+    // Initial tracking call
+    trackComscore();
 
     loadScript(
-      `https://sb.scorecardresearch.com/cs/${process.env.NEXT_PUBLIC_COMSCORE_ID}/beacon.js`,
+      `https://sb.scorecardresearch.com/cs/${comscoreId}/beacon.js`,
       () => {
         setState((prevState) => ({
           ...prevState,
@@ -152,19 +154,31 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [mounted]);
 
-  // Track Comscore page views
+  // Track Comscore page views on route changes
   useEffect(() => {
-    if (!mounted || !state.isComscoreInitialized || !window.COMSCORE) return;
+    const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
 
-    window.COMSCORE.push({
+    if (!state.isComscoreInitialized || !comscoreId) return;
+
+    // Rerun tracking on page change
+    window._comscore = window._comscore || [];
+    window._comscore.push({
       c1: "2",
-      c2: process.env.NEXT_PUBLIC_COMSCORE_ID,
+      c2: comscoreId,
     });
+
+    // Force beacon send
+    if (window.COMSCORE) {
+      window.COMSCORE.beacon({
+        c1: "2",
+        c2: comscoreId,
+      });
+    }
   }, [pathname, mounted, state.isComscoreInitialized]);
 
   // Chartbeat Initialization
   useEffect(() => {
-    if (!mounted || !process.env.NEXT_PUBLIC_CB_UID) {
+    if (!process.env.NEXT_PUBLIC_CB_UID) {
       handleMissingEnvVariable("NEXT_PUBLIC_CB_UID");
       return;
     }
@@ -199,7 +213,7 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
 
   // Lotame Initialization
   useEffect(() => {
-    if (!mounted || !process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID) {
+    if (!process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID) {
       handleMissingEnvVariable("NEXT_PUBLIC_LOTAME_CLIENT_ID");
       return;
     }

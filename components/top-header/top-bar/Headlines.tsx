@@ -1,52 +1,73 @@
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { useState } from "react";
-import { FaArrowRightLong } from "react-icons/fa6";
+import { ArrowRightIcon } from "lucide-react";
 import useSWR from "swr";
-// import { ArrowRight } from "@phosphor-icons/react";
+import HeadlineSkeleton from "@/components/skeletons/HeadlineSkeleton";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+type Post = {
+  id: string;
+  uri: string;
+  title: string;
+  categoryName: string;
+};
+
+// Separate fetcher function with error handling
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Failed to fetch headlines");
+  }
+  return res.json();
+};
+
+// Category mapping in a constant
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  "super-highlight": "breaking news",
+  "top-news": "just in",
+  "top-bm": "berita",
+  leisure: "Lifestyle",
+};
 
 const Headlines = () => {
-  // in Sync-Content API wrote await mutate("api/top-news"); in handler
-  const { data: posts, error } = useSWR("/api/top-news", fetcher, {
+  const [isHovering, setIsHovering] = useState(false);
+
+  const {
+    data: posts,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<Post[]>("/api/top-news", fetcher, {
     fallbackData: [],
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
     revalidateIfStale: true,
-    refreshInterval: 60000, // 60 seconds
+    refreshInterval: 60000,
+    dedupingInterval: 30000, // Prevent duplicate requests
   });
-  const [isHovering, setIsHovering] = useState(false);
 
-  const customStyle = {
-    animation: `marquee 60s linear infinite ${
-      isHovering ? "paused" : "running"
-    }`,
-  };
-  let categoryDisplayName = "Breaking News";
-  const makeDisplayName4Category = (catName: string) => {
-    switch (catName) {
-      case "super-highlight":
-        categoryDisplayName = "breaking news";
-        break;
-      case "top-news":
-        categoryDisplayName = "just in";
-        break;
-      case "top-bm":
-        categoryDisplayName = "berita";
-        break;
-      case "leisure":
-        categoryDisplayName = "Lifestyle";
-        break;
-      default:
-        categoryDisplayName = catName;
-        break;
-    }
-    return categoryDisplayName;
-  };
+  // Memoized category name function
+  const getCategoryDisplayName = useCallback((catName: string): string => {
+    return CATEGORY_DISPLAY_NAMES[catName.toLowerCase()] || catName;
+  }, []);
+
+  // Error handling with retry
+  if (error) {
+    return (
+      <div className="flex items-center gap-2">
+        <HeadlineSkeleton />
+        <button
+          onClick={() => mutate()}
+          className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 items-center gap-2 overflow-hidden">
-      <h3 className="uppercase font-rhd flex flex-col items-end leading-none">
+      <h3 className="uppercase font-rhd flex flex-col items-end leading-none shrink-0">
         <span className="tracking-widest">Latest</span>
         <span className="font-semibold">Headlines</span>
       </h3>
@@ -54,29 +75,34 @@ const Headlines = () => {
       <div className="relative flex items-center overflow-x-hidden">
         <div
           className="animate-marquee whitespace-nowrap"
-          style={customStyle}
+          style={{
+            animation: `marquee 60s linear infinite ${isHovering ? "paused" : "running"}`,
+          }}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          {posts?.map((post: any, index: number) => (
-            <Link
-              key={`${post?.id}${index}`}
-              className="mx-1 inline-flex items-center"
-              href={post?.uri}
-              prefetch={false}
-            >
-              <span className="uppercase py-0.5 px-2 bg-accent-yellow text-sm tracking-wide font-semibold mr-2 rounded-lg">
-                <span className="flex items-center text-black">
-                  {makeDisplayName4Category(post.categoryName)}
-                  <FaArrowRightLong
-                    size={15}
-                    className="inline ml-1 font-bolder"
-                  />
+          {isLoading ? (
+            <HeadlineSkeleton />
+          ) : (
+            posts?.map((post, index) => (
+              <Link
+                key={`${post.id}-${index}`}
+                className="mx-1 inline-flex items-center group"
+                href={post.uri}
+                prefetch={false}
+              >
+                <span className="uppercase py-0.5 px-2 bg-accent-yellow text-sm tracking-wide font-semibold mr-2 rounded-lg">
+                  <span className="flex items-center text-black">
+                    {getCategoryDisplayName(post.categoryName)}
+                    <ArrowRightIcon className="ml-1 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </span>
                 </span>
-              </span>
-              <span>{post?.title}</span>
-            </Link>
-          ))}
+                <span className="group-hover:text-blue-600 transition-colors">
+                  {post.title}
+                </span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>
