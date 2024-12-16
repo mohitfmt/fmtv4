@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface CoverImageData {
   node: {
@@ -16,10 +16,9 @@ interface CoverImageProps {
   url: string;
   isPriority?: boolean;
   className?: string;
-  index?: number; // Add index to track image position
+  index?: number;
 }
 
-// SVG blur placeholder
 const BLUR_DATA_URL =
   "data:image/svg+xml;base64," +
   btoa(`
@@ -31,45 +30,52 @@ const BLUR_DATA_URL =
   </svg>
   `);
 
-const useIsAboveTheFold = (
-  ref: React.RefObject<HTMLElement>,
-  index: number = 0
-) => {
-  const [isAboveTheFold, setIsAboveTheFold] = useState(false);
-
-  useEffect(() => {
-    const calculatePosition = () => {
-      if (!ref.current) return;
-
-      const viewportHeight = window.innerHeight;
-      const isMobile = window.innerWidth <= 768;
-
-      // On mobile, only the first image is above the fold
-      if (isMobile) {
-        setIsAboveTheFold(index === 0);
-        return;
-      }
-
-      // On desktop, first 8 images are considered above the fold
-      setIsAboveTheFold(index < 8);
-    };
-
-    calculatePosition();
-
-    // Recalculate on resize
-    window.addEventListener("resize", calculatePosition);
-    return () => window.removeEventListener("resize", calculatePosition);
-  }, [ref, index]);
-
-  return isAboveTheFold;
+const getOptimizedSizes = (index: number = 0) => {
+  if (index === 0) {
+    return "(max-width: 640px) 100vw, (max-width: 750px) 75vw, 940px";
+  }
+  return "(max-width: 640px) 150px, (max-width: 750px) 200px, 300px";
 };
 
-const getImageSizes = (index: number = 0) => {
-  // Optimize sizes based on image position and viewport
-  if (index === 0) {
-    return "(max-width: 768px) 100vw, 940px";
-  }
-  return "(max-width: 768px) 200px, (max-width: 1200px) 300px, 940px";
+const getImageQuality = (isPriority: boolean, viewport: string) => {
+  if (isPriority) return 85;
+  if (viewport === "mobile") return 65;
+  return 75;
+};
+
+const useImageErrorHandling = () => {
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const maxRetries = 3;
+  const retryDelay = 2000;
+
+  const handleRetry = useCallback(() => {
+    if (retryCount < maxRetries) {
+      setTimeout(
+        () => {
+          setLoadError(false);
+          setRetryCount((prev) => prev + 1);
+          setLoading(true);
+        },
+        retryDelay * (retryCount + 1)
+      );
+    }
+  }, [retryCount]);
+
+  useEffect(() => {
+    if (loadError) {
+      handleRetry();
+    }
+  }, [loadError, handleRetry]);
+
+  return {
+    loadError,
+    setLoadError,
+    loading,
+    setLoading,
+    retryCount,
+  };
 };
 
 export default function CoverImage({
@@ -82,29 +88,68 @@ export default function CoverImage({
   index = 0,
 }: CoverImageProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isAboveTheFold = useIsAboveTheFold(ref, index);
+  const [viewport, setViewport] = useState("desktop");
 
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width <= 640) setViewport("mobile");
+      else if (width <= 1024) setViewport("tablet");
+      else setViewport("desktop");
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isAboveTheFold = index < (viewport === "mobile" ? 1 : 4);
+  const shouldPrioritize = isPriority || isAboveTheFold;
   const imageSource =
     coverImage?.node?.sourceUrl || coverImage?.node?.mediaItemUrl;
+
+  const { loadError, setLoadError, loading, setLoading, retryCount } =
+    useImageErrorHandling();
+
   if (!imageSource) return null;
 
-  const shouldPrioritize = isPriority || isAboveTheFold;
+  const handleImageError = () => {
+    setLoadError(true);
+    setLoading(false);
+  };
 
   const image = (
     <div ref={ref} className={`relative aspect-[16/10] ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" />
+      )}
+
       <Image
         src={imageSource}
         alt={`Cover Image for ${title}`}
         fill={true}
-        style={{ objectFit: "cover" }}
+        style={{
+          objectFit: "cover",
+          opacity: loading ? 0 : 1,
+        }}
         className="rounded-lg transition-opacity duration-300"
-        sizes={getImageSizes(index)}
-        quality={shouldPrioritize ? 85 : 75}
+        sizes={getOptimizedSizes(index)}
+        quality={getImageQuality(shouldPrioritize, viewport)}
         placeholder="blur"
         blurDataURL={BLUR_DATA_URL}
         priority={shouldPrioritize}
         loading={shouldPrioritize ? "eager" : "lazy"}
+        onError={handleImageError}
+        onLoad={() => setLoading(false)}
       />
+
+      {loadError && retryCount >= 3 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+          <div className="text-sm text-gray-500">
+            Image unavailable {slug && `for ${slug}`}
+          </div>
+        </div>
+      )}
     </div>
   );
 

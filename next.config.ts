@@ -1,65 +1,85 @@
 import type { NextConfig } from "next";
+import { RemotePattern } from "next/dist/shared/lib/image-config";
+
 const { protocol, hostname, port, pathname } = new URL(
   process.env.WORDPRESS_API_URL ||
     "https://staging-cms.freemalaysiatoday.com/graphql"
 );
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+
+  // Environment variables
   env: {
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com",
   },
+
+  // Image optimization
   images: {
     remotePatterns: [
       {
         protocol: protocol.slice(0, -1) as "https" | "http",
         hostname,
-        port,
+        port: port || undefined,
         pathname: `${pathname}/**`,
       },
       {
         protocol: "https",
         hostname: "media.freemalaysiatoday.com",
+        pathname: "/wp-content/uploads/**",
       },
-      {
-        protocol: "https",
-        hostname: "www.freemalaysiatoday.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i.ytimg.com",
-      },
-      {
-        protocol: "https",
-        hostname: "stg-origin-s3media.freemalaysiatoday.com",
-      },
-      {
-        protocol: "https",
-        hostname: "yt3.ggpht.com",
-      },
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "googleusercontent.com",
-      },
+      // Fix: Explicitly type the protocol as "https"
+      ...[
+        "www.freemalaysiatoday.com",
+        "stg-origin-s3media.freemalaysiatoday.com",
+      ].map(
+        (hostname): RemotePattern => ({
+          protocol: "https",
+          hostname,
+          pathname: "/**",
+        })
+      ),
+      // Fix: Same for Google-related patterns
+      ...[
+        "i.ytimg.com",
+        "yt3.ggpht.com",
+        "lh3.googleusercontent.com",
+        "googleusercontent.com",
+      ].map(
+        (hostname): RemotePattern => ({
+          protocol: "https",
+          hostname,
+        })
+      ),
     ],
-    minimumCacheTTL: 60,
-    formats: ["image/webp", "image/avif"],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 64, 96, 128, 256],
+    minimumCacheTTL: 3600,
+    formats: ["image/webp"],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Add timeout configuration
+    loader: "default",
   },
+
+  // Performance optimizations
   poweredByHeader: false,
   staticPageGenerationTimeout: 120,
   compress: true,
+
+  // Headers configuration
   async headers() {
     return [
       {
         source: "/api/websub-callback",
-        headers: [{ key: "Cache-Control", value: "no-store" }],
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
       },
       {
         source: "/",
@@ -67,6 +87,33 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, s-maxage=300, stale-while-revalidate=60",
+          },
+          // Add security headers
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+      // Add cache headers for static assets
+      {
+        source: "/:path*.(jpg|jpeg|png|gif|webp|svg|ico)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },
