@@ -15,8 +15,8 @@ h6 {
   font-family: var(--font-bitter);
 }
 
-p,ul
-{
+p,
+ul {
   font-family: var(--font-roboto);
 }
 
@@ -46,7 +46,7 @@ p,ul
     /* FMT-v3:yellow- #F1A838 */
     --accent-blue: #1d5aaa;
     --accent-red: #a92c23;
-
+    --accent-category: #a92c23;
     --radius: 0.5rem;
   }
 
@@ -71,6 +71,7 @@ p,ul
     --input: rgb(179, 179, 178);
     --ring: rgba(208, 207, 204, 1);
     --accent-red: #ff0000;
+    --accent-category: #aaff00;
   }
   * {
     @apply border-border;

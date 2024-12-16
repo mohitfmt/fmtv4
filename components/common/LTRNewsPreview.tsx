@@ -28,7 +28,7 @@ const LTRNewsPreview = ({
           )}
         </figure>
         <div className="flex-1">
-          <h4 className="text-xs text-accent-red flex gap-2 items-center justify-between">
+          <h4 className="text-xs text-accent-category flex gap-2 items-center justify-between">
             {preferredCategory && (
               <span
                 key={preferredCategory?.node?.id}
@@ -42,7 +42,7 @@ const LTRNewsPreview = ({
             </span>
           </h4>
           <Link href={uri} title={title}>
-            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-400">
+            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
               {title}
             </h3>
           </Link>

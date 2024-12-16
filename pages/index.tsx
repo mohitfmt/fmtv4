@@ -105,15 +105,17 @@ export default function Home({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(
               generateCollectionPageJsonLD({
-                // topNewsPosts,
+                heroPosts,
+                highlightPosts,
+                topNewsPosts,
                 businessPosts,
-                // opinionPosts,
-                // worldPosts,
-                // leisurePosts,
-                // sportsPosts,
-                // beritaPosts,
-                // videoPosts,
-                // columnists,
+                opinionPosts,
+                worldPosts,
+                leisurePosts,
+                sportsPosts,
+                beritaPosts,
+                videoPosts,
+                columnists,
               })
             ),
           }}
@@ -154,7 +156,7 @@ export default function Home({
             </div>
           </div>
         </section>
-        <div className="h-64 min-h-24 flex justify-center items-center bg-background">
+        <div className="h-28 lg:h-64 min-h-24 flex justify-center items-center bg-background">
           <AdSlot
             sizes={[
               [970, 90],
@@ -361,8 +363,6 @@ export default function Home({
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
   try {
-    //implement timestamping for last updated if not updated soon.
-
     // Fetch hero (super-highlight) posts first
     const heroPosts = await getCategoryNews("super-highlight", 1, preview);
 
@@ -470,8 +470,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         videoPosts,
         columnists,
         trendingTags,
+        _lastUpdate: Date.now(),
       },
-      revalidate: 1500, // 25 minutes
+      revalidate: 1500, // Re-generate every 5 minutes
     };
   } catch (error) {
     console.error("[HomePage] Error fetching data:", error);

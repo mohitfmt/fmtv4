@@ -22,7 +22,7 @@ const MostViewedItem = memo(({ item, index }: MostViewedItemProps) => (
         {index + 1}
       </div>
       <div className="flex-1">
-        <h4 className="text-xs text-accent-red flex gap-2 items-center justify-between">
+        <h4 className="text-xs text-accent-category flex gap-2 items-center justify-between">
           {findCategory(item.uri)}
           <span className="text-stone-700 dark:text-stone-300">
             <FullDateDisplay dateString={item.date} />

@@ -52,6 +52,8 @@ export const getPreferredCategory = (
 };
 
 export const generateCollectionPageJsonLD = ({
+  heroPosts,
+  highlightPosts,
   topNewsPosts,
   businessPosts,
   opinionPosts,
@@ -62,21 +64,27 @@ export const generateCollectionPageJsonLD = ({
   videoPosts,
   columnists,
 }: any) => {
+  const protocol = "https"; // or use your env condition
+  const host = process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  const baseUrl = `${protocol}://${host}`;
+
   const createArticleLD = (posts: any[], categoryName: string) => {
     return posts?.map((post) => ({
       "@type": "NewsArticle",
       headline: post?.title || "Article Headline",
-      url: `https://fmtnews.com/${categoryName}/${post?.slug}`,
+      section: categoryName,
+      url: `${baseUrl}${post?.uri}`,
       datePublished: post?.date
         ? new Date(post?.date).toISOString()
         : new Date().toISOString(),
       author: {
         "@type": "Person",
-        name: post?.author?.node?.name || "Unknown Author",
+        name: post?.author?.node?.name || "FMT Reporter",
         url: post?.author?.node
-          ? `https://fmtnews.com/authors/${post?.author?.node?.slug}`
-          : "https://fmtnews.com/authors/unknown",
+          ? `${baseUrl}/category/authors/${post?.author?.node?.slug}`
+          : `${baseUrl}/category/authors/fmt-reporters`,
       },
+      image: post?.featuredImage?.node?.sourceUrl,
       imageObject: {
         "@context": "https://schema.org",
         "@type": "ImageObject",
@@ -84,12 +92,12 @@ export const generateCollectionPageJsonLD = ({
         creditText: post?.featuredImage?.node?.altText || "Image Credit",
         width: 1600,
         height: 1000,
-        copyrightNotice: "© FMT News, since 2009",
-        acquireLicensePage: "https://fmtnews.com/license",
+        copyrightNotice: "© Free Malaysia Today, since 2009",
+        acquireLicensePage: `${baseUrl}/license`,
         creator: {
           "@type": "Organization",
-          name: "FMT News",
-          url: "https://fmtnews.com/",
+          name: "Free Malaysia Today",
+          url: baseUrl,
         },
         license: "https://creativecommons.org/licenses/by/4.0/",
       },
@@ -97,7 +105,7 @@ export const generateCollectionPageJsonLD = ({
         post?.categories?.nodes?.map((catName: any) => catName.name) || [],
       mainEntityOfPage: {
         "@type": "WebPage",
-        "@id": `https://fmtnews.com/${categoryName}/${post?.slug}`,
+        "@id": `${baseUrl}${post?.uri}`,
       },
     }));
   };
@@ -105,17 +113,29 @@ export const generateCollectionPageJsonLD = ({
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "FMT News | Free and Independent News",
-    url: "https://fmtnews.com/",
+    name: "Free Malaysia Today | Free and Independent News",
+    url: baseUrl,
     description:
       "Explore 24/7 news on politics, economy, and more with Free Malaysia Today. Your source for unbiased Malaysian news in English & Malay since 2009.",
     mainEntityOfPage: {
       "@type": "CollectionPage",
-      headline: "FMT News Homepage",
+      headline: "Free Malaysia Today | Homepage",
       description:
         "The homepage of FMT News featuring current articles on multiple categories such as Top News, Business, Sports, and more.",
-      url: "https://fmtnews.com/",
+      url: baseUrl,
       hasPart: [
+        {
+          "@type": "CollectionPage",
+          headline: "Breaking News",
+          about: "The latest breaking news in Malaysia.",
+          hasPart: createArticleLD(heroPosts, "top-news"),
+        },
+        {
+          "@type": "CollectionPage",
+          headline: "Top highlights",
+          about: "The latest highlights in Malaysia.",
+          hasPart: createArticleLD(highlightPosts, "top-news"),
+        },
         {
           "@type": "CollectionPage",
           headline: "Top News",
@@ -164,24 +184,24 @@ export const generateCollectionPageJsonLD = ({
           about: "Latest videos on FMT News.",
           hasPart: videoPosts?.map((video: any) => ({
             "@type": "VideoObject",
-            headline: video?.title || "Video Title",
-            name: video?.title || "Video Title", // Ensures the "name" field is set
-            url: video?.slug
-              ? `https://fmtnews.com/videos/${video?.slug}`
-              : "https://fmtnews.com/",
+            headline: video.node?.title || "Video Title",
+            name: video.node?.title || "Video Title", // Ensures the "name" field is set
+            url: video.node?.slug
+              ? `${baseUrl}/videos/${video.node?.slug}`
+              : baseUrl,
             contentUrl:
-              video?.contentUrl || "https://fmtnews.com/default-video.mp4", // Replace with actual video URL if available
+              video.node?.contentUrl || `${baseUrl}/default-video.mp4`, // Replace with actual video URL if available
             thumbnailUrl:
-              video?.thumbnailUrl ||
+              video.node?.featuredImage.node.mediaItemUrl ||
               "https://via.placeholder.com/1600x1000?text=Video+Thumbnail+is+missing",
-            uploadDate: video?.date || new Date().toISOString(),
-            description: video?.description || "Video description",
-            duration: video?.duration || "PT0H0M0S",
+            uploadDate: video.node?.dateGmt || new Date().toISOString(),
+            description: video.node?.excerpt || "Video description",
+            duration: video.node?.duration || "PT0H0M0S",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": video?.slug
-                ? `https://fmtnews.com/videos/${video?.slug}`
-                : "https://fmtnews.com/",
+              "@id": video.node?.slug
+                ? `${baseUrl}/videos/${video.node?.slug}`
+                : baseUrl,
             },
           })),
         },
@@ -192,7 +212,7 @@ export const generateCollectionPageJsonLD = ({
           hasPart: columnists?.map((columnist: any) => ({
             "@type": "Person",
             name: columnist?.name || "Columnist Name",
-            url: `https://fmtnews.com/authors/${columnist?.slug}`,
+            url: `${baseUrl}/category/authors/{columnist?.slug}`,
             jobTitle: "Columnist",
             description: columnist?.description || "Columnist description",
           })),

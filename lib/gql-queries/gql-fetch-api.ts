@@ -8,7 +8,9 @@ export async function gqlFetchAPI(
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
   };
+
 
   // if (process.env.WORDPRESS_AUTH_REFRESH_TOKEN) {
   //   headers["Authorization"] =
