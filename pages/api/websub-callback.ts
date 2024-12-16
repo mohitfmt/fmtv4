@@ -20,7 +20,7 @@ async function purgeCloudflareCache(paths: string[]) {
           Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ files: urls, purge_everything: true }),
+        body: JSON.stringify({ files: urls }),
       }
     );
 
