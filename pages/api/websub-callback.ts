@@ -78,11 +78,16 @@ export default async function handler(
           },
         }),
 
+        fetch(`${baseUrl}/api/top-news`, {
+          method: "POST",
+        }),
+
         // Update last update time
         fetch(`${baseUrl}/api/last-update`, {
           method: "POST",
         }),
 
+        mutate("/api/top-news"),
         // Trigger SWR revalidation for all clients
         mutate("/api/last-update"),
       ]);

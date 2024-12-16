@@ -26,8 +26,6 @@ export default async function handler(
     );
 
     const filteredPosts = topNewsPosts.filter(Boolean);
-
-    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
     res.status(200).json(filteredPosts);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch top news" });
