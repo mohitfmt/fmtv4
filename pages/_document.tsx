@@ -5,7 +5,9 @@ export default function Document() {
   const bodyClasses = cn("antialiased");
   return (
     <Html lang="en">
-      <Head />
+      <Head>
+        <link rel="preconnect" href="https://media.freemalaysiatoday.com" />
+      </Head>
       <body className={bodyClasses}>
         <Main />
         <NextScript />

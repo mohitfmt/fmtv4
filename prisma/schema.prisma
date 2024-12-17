@@ -36,15 +36,6 @@ model TrendingTag {
   uri   String
 }
 
-model SyncLog {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  level     String
-  category  String
-  message   String
-  metadata  Json?
-  timestamp DateTime @default(now())
-}
-
 model LoggedUser {
   id             String    @id @default(auto()) @map("_id") @db.ObjectId
   email          String    @unique

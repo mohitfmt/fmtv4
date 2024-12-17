@@ -30,25 +30,42 @@ const BLUR_DATA_URL =
   </svg>
   `);
 
+const getCloudflareOptimizedUrl = (
+  url: string,
+  width: number,
+  quality: number
+) => {
+  try {
+    const baseUrl = new URL(url);
+    // Add Cloudflare Image Resizing parameters
+    baseUrl.searchParams.set("width", width.toString());
+    baseUrl.searchParams.set("quality", quality.toString());
+    baseUrl.searchParams.set("format", "auto"); // Let Cloudflare choose best format
+    return baseUrl.toString();
+  } catch (e) {
+    return url;
+  }
+};
+
 const getOptimizedSizes = (index: number = 0) => {
   if (index === 0) {
     return "(max-width: 640px) 100vw, (max-width: 750px) 75vw, 940px";
   }
-  return "(max-width: 640px) 150px, (max-width: 750px) 200px, 300px";
+  return "(max-width: 640px) 120px, (max-width: 750px) 150px, 300px"; // Reduced sizes
 };
 
 const getImageQuality = (isPriority: boolean, viewport: string) => {
-  if (isPriority) return 85;
-  if (viewport === "mobile") return 65;
-  return 75;
+  if (isPriority) return 80; // Slightly reduced from 85
+  if (viewport === "mobile") return 60; // Slightly reduced from 65
+  return 70; // Slightly reduced from 75
 };
 
 const useImageErrorHandling = () => {
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const maxRetries = 3;
-  const retryDelay = 2000;
+  const maxRetries = 2; // Reduced from 3
+  const retryDelay = 1500; // Reduced from 2000
 
   const handleRetry = useCallback(() => {
     if (retryCount < maxRetries) {
@@ -103,7 +120,7 @@ export default function CoverImage({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isAboveTheFold = index < (viewport === "mobile" ? 1 : 4);
+  const isAboveTheFold = index < (viewport === "mobile" ? 1 : 2); // Reduced from 4 to 2
   const shouldPrioritize = isPriority || isAboveTheFold;
   const imageSource =
     coverImage?.node?.sourceUrl || coverImage?.node?.mediaItemUrl;
@@ -118,14 +135,26 @@ export default function CoverImage({
     setLoading(false);
   };
 
+  // Get optimized URL based on viewport and priority
+  const getOptimizedImageUrl = () => {
+    const width = viewport === "mobile" ? 640 : 1200;
+    const quality = getImageQuality(shouldPrioritize, viewport);
+    return getCloudflareOptimizedUrl(imageSource, width, quality);
+  };
+
   const image = (
-    <div ref={ref} className={`relative aspect-[16/10] ${className}`}>
+    <div
+      ref={ref}
+      className={`relative aspect-[16/10] ${className}`}
+      // Add fetchpriority hint for important images
+      {...(shouldPrioritize ? { "data-fetchpriority": "high" } : {})}
+    >
       {loading && (
         <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" />
       )}
 
       <Image
-        src={imageSource}
+        src={getOptimizedImageUrl()}
         alt={`Cover Image for ${title}`}
         fill={true}
         style={{
@@ -141,9 +170,11 @@ export default function CoverImage({
         loading={shouldPrioritize ? "eager" : "lazy"}
         onError={handleImageError}
         onLoad={() => setLoading(false)}
+        // Add fetchpriority attribute
+        fetchPriority={shouldPrioritize ? "high" : "low"}
       />
 
-      {loadError && retryCount >= 3 && (
+      {loadError && retryCount >= 2 && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
           <div className="text-sm text-gray-500">
             Image unavailable {slug && `for ${slug}`}

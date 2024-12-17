@@ -16,9 +16,13 @@ import PopText from "../PopText";
 
 interface FullDateDisplayProps {
   dateString: string;
+  tooltipPosition?: "top" | "bottom" | "left" | "right";
 }
 
-const FullDateDisplay: React.FC<FullDateDisplayProps> = ({ dateString }) => {
+const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
+  dateString,
+  tooltipPosition = "left",
+}) => {
   const [timeString, setTimeString] = useState("");
 
   useEffect(() => {
@@ -80,9 +84,12 @@ const FullDateDisplay: React.FC<FullDateDisplayProps> = ({ dateString }) => {
   }
 
   return (
-    <PopText content={format(date, "dd MMM yyyy, HH:mm")} position="left">
+    <PopText
+      content={format(date, "dd MMM yyyy, HH:mm")}
+      position={tooltipPosition}
+    >
       <time
-        className="font-bitter text-xs rounded"
+        className="font-bitter rounded"
         dateTime={date.toISOString()}
         title={format(date, "dd MMM yyyy, HH:mm")}
       >

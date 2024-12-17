@@ -1,5 +1,6 @@
 interface SiteConfig {
   siteName: string;
+  siteShortName: string;
   baseUrl: string;
   nonCanonicalBaseUrl?: string;
   tagline: string;
@@ -9,6 +10,7 @@ interface SiteConfig {
 
 const siteConfig: SiteConfig = {
   siteName: "Free Malaysia Today",
+  siteShortName: "FMT",
   baseUrl:
     process.env.NEXT_PUBLIC_BASE_URL || "https://www.freemalaysiatoday.com",
   nonCanonicalBaseUrl: "https://freemalaysiatoday.com",

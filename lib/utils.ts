@@ -256,3 +256,6 @@ export async function fetchLastUpdateTime() {
   if (!response.ok) throw new Error("Failed to fetch last update time");
   return response.json();
 }
+
+export const stripHTML = (htmlString: string) =>
+  htmlString?.replace(/<\/?[^>]+(>|$)|\n/g, "").trim();
