@@ -7,6 +7,11 @@ export default function Document() {
     <Html lang="en">
       <Head>
         <link rel="preconnect" href="https://media.freemalaysiatoday.com" />
+        <link rel="dns-prefetch" href="https://media.freemalaysiatoday.com" />
+
+        {/* For Cloudflare */}
+        <link rel="preconnect" href="https://imagedelivery.net" />
+        <link rel="dns-prefetch" href="https://imagedelivery.net" />
       </Head>
       <body className={bodyClasses}>
         <Main />

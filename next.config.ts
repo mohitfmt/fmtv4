@@ -9,14 +9,10 @@ const { protocol, hostname, port, pathname } = new URL(
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
-
-  // Environment variables
   env: {
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com",
   },
-
-  // Image optimization
   images: {
     remotePatterns: [
       {
@@ -28,9 +24,8 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "media.freemalaysiatoday.com",
-        pathname: "/wp-content/uploads/**",
+        pathname: "/wp-content/**",
       },
-      // Fix: Explicitly type the protocol as "https"
       ...[
         "www.freemalaysiatoday.com",
         "stg-origin-s3media.freemalaysiatoday.com",
@@ -38,10 +33,9 @@ const nextConfig: NextConfig = {
         (hostname): RemotePattern => ({
           protocol: "https",
           hostname,
-          pathname: "/**",
+          pathname: "/wp-content/**",
         })
       ),
-      // Fix: Same for Google-related patterns
       ...[
         "i.ytimg.com",
         "yt3.ggpht.com",
@@ -51,6 +45,7 @@ const nextConfig: NextConfig = {
         (hostname): RemotePattern => ({
           protocol: "https",
           hostname,
+          pathname: "/**",
         })
       ),
     ],
@@ -60,8 +55,6 @@ const nextConfig: NextConfig = {
     formats: ["image/webp"],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Add timeout configuration
-    loader: "default",
   },
 
   // Performance optimizations

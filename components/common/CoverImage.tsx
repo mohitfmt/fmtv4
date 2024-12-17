@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CoverImageData {
   node: {
@@ -19,100 +19,53 @@ interface CoverImageProps {
   index?: number;
 }
 
-const BLUR_DATA_URL =
-  "data:image/svg+xml;base64," +
-  btoa(`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1218 512">
-    <circle cx="256" cy="256" r="240" fill="#a92c23"/>
-    <circle cx="962" cy="256" r="240" fill="#1d5aaa"/>
-    <circle cx="609" cy="256" r="240" fill="#f2a838"/>
-    <path d="M182 354V158h148v44H234v40h86v44H234v68zm316 0V158h44l67 110 67-110h44V354H668V258l-47 74h-24l-47-74v96zm378-196h172v44H988v152H936V202H876z" fill="#fff"/>
-  </svg>
-  `);
+interface Dimensions {
+  width: number;
+  height: number;
+  containerClass: string;
+}
 
-const getCloudflareOptimizedUrl = (
-  url: string,
-  width: number,
-  quality: number
-) => {
-  try {
-    const baseUrl = new URL(url);
-    // Add Cloudflare Image Resizing parameters
-    baseUrl.searchParams.set("width", width.toString());
-    baseUrl.searchParams.set("quality", quality.toString());
-    baseUrl.searchParams.set("format", "auto"); // Let Cloudflare choose best format
-    return baseUrl.toString();
-  } catch (e) {
-    return url;
-  }
-};
-
-const getOptimizedSizes = (index: number = 0) => {
+const getDimensions = (index: number, isMobile: boolean): Dimensions => {
+  // Hero image (index 0)
   if (index === 0) {
-    return "(max-width: 640px) 100vw, (max-width: 750px) 75vw, 940px";
+    return {
+      width: isMobile ? 640 : 940,
+      height: isMobile ? 400 : 588,
+      containerClass: "w-full",
+    };
   }
-  return "(max-width: 640px) 120px, (max-width: 750px) 150px, 300px"; // Reduced sizes
-};
 
-const getImageQuality = (isPriority: boolean, viewport: string) => {
-  if (isPriority) return 80; // Slightly reduced from 85
-  if (viewport === "mobile") return 60; // Slightly reduced from 65
-  return 70; // Slightly reduced from 75
-};
-
-const useImageErrorHandling = () => {
-  const [loadError, setLoadError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const maxRetries = 2; // Reduced from 3
-  const retryDelay = 1500; // Reduced from 2000
-
-  const handleRetry = useCallback(() => {
-    if (retryCount < maxRetries) {
-      setTimeout(
-        () => {
-          setLoadError(false);
-          setRetryCount((prev) => prev + 1);
-          setLoading(true);
-        },
-        retryDelay * (retryCount + 1)
-      );
-    }
-  }, [retryCount]);
-
-  useEffect(() => {
-    if (loadError) {
-      handleRetry();
-    }
-  }, [loadError, handleRetry]);
+  // Secondary images
+  if (isMobile) {
+    return {
+      width: 150,
+      height: 94,
+      containerClass: "w-[150px]",
+    };
+  }
 
   return {
-    loadError,
-    setLoadError,
-    loading,
-    setLoading,
-    retryCount,
+    width: 300,
+    height: 188,
+    containerClass: "w-[300px]",
   };
 };
 
 export default function CoverImage({
   title,
   coverImage,
-  slug,
+  // slug,
   url,
   isPriority = false,
   className = "",
   index = 0,
 }: CoverImageProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState("desktop");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      if (width <= 640) setViewport("mobile");
-      else if (width <= 1024) setViewport("tablet");
-      else setViewport("desktop");
+      setIsMobile(window.innerWidth <= 640);
     };
 
     handleResize();
@@ -120,77 +73,43 @@ export default function CoverImage({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isAboveTheFold = index < (viewport === "mobile" ? 1 : 2); // Reduced from 4 to 2
-  const shouldPrioritize = isPriority || isAboveTheFold;
   const imageSource =
     coverImage?.node?.sourceUrl || coverImage?.node?.mediaItemUrl;
-
-  const { loadError, setLoadError, loading, setLoading, retryCount } =
-    useImageErrorHandling();
-
   if (!imageSource) return null;
 
-  const handleImageError = () => {
-    setLoadError(true);
-    setLoading(false);
-  };
-
-  // Get optimized URL based on viewport and priority
-  const getOptimizedImageUrl = () => {
-    const width = viewport === "mobile" ? 640 : 1200;
-    const quality = getImageQuality(shouldPrioritize, viewport);
-    return getCloudflareOptimizedUrl(imageSource, width, quality);
-  };
+  const isHero = index === 0;
+  const shouldPrioritize = isPriority || isHero;
+  const dimensions = getDimensions(index, isMobile);
 
   const image = (
     <div
       ref={ref}
-      className={`relative aspect-[16/10] ${className}`}
-      // Add fetchpriority hint for important images
-      {...(shouldPrioritize ? { "data-fetchpriority": "high" } : {})}
+      className={`relative ${dimensions.containerClass} ${className}`}
+      style={{
+        aspectRatio: `${dimensions.width}/${dimensions.height}`,
+      }}
     >
-      {loading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" />
-      )}
-
       <Image
-        src={getOptimizedImageUrl()}
+        src={imageSource}
         alt={`Cover Image for ${title}`}
-        fill={true}
-        style={{
-          objectFit: "cover",
-          opacity: loading ? 0 : 1,
-        }}
-        className="rounded-lg transition-opacity duration-300"
-        sizes={getOptimizedSizes(index)}
-        quality={getImageQuality(shouldPrioritize, viewport)}
-        placeholder="blur"
-        blurDataURL={BLUR_DATA_URL}
+        fill
+        sizes={
+          isHero
+            ? "(max-width: 640px) 100vw, 940px"
+            : "(max-width: 640px) 150px, 300px"
+        }
+        className="rounded-lg object-cover"
         priority={shouldPrioritize}
-        loading={shouldPrioritize ? "eager" : "lazy"}
-        onError={handleImageError}
-        onLoad={() => setLoading(false)}
-        // Add fetchpriority attribute
-        fetchPriority={shouldPrioritize ? "high" : "low"}
+        quality={isHero ? 85 : 75}
       />
-
-      {loadError && retryCount >= 2 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-          <div className="text-sm text-gray-500">
-            Image unavailable {slug && `for ${slug}`}
-          </div>
-        </div>
-      )}
     </div>
   );
 
   if (!url) return image;
 
   return (
-    <div className="sm:mx-0">
-      <Link href={url} aria-label={title}>
-        {image}
-      </Link>
-    </div>
+    <Link href={url} aria-label={title} className="block">
+      {image}
+    </Link>
   );
 }
