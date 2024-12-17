@@ -68,6 +68,22 @@ export default function Home({
           name="keywords"
           content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
         />
+        {heroPosts[0] && (
+          <>
+            <link
+              rel="preconnect"
+              href="https://media.freemalaysiatoday.com"
+              crossOrigin="anonymous"
+            />
+            <link
+              rel="preload"
+              href={heroPosts[0]?.coverImage?.node?.sourceUrl}
+              as="image"
+              imageSrcSet={`${heroPosts[0]?.coverImage?.node?.sourceUrl}?w=640 640w, ${heroPosts[0]?.coverImage?.node?.sourceUrl}?w=940 940w`}
+              imageSizes="(max-width: 640px) 100vw, 940px"
+            />
+          </>
+        )}
 
         <link rel="canonical" href={siteConfig.baseUrl} />
 

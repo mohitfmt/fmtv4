@@ -16,7 +16,6 @@ interface CoverImageProps {
   url: string;
   isPriority?: boolean;
   className?: string;
-  index?: number;
 }
 
 interface Dimensions {
@@ -40,14 +39,14 @@ const getDimensions = (index: number, isMobile: boolean): Dimensions => {
     return {
       width: 150,
       height: 94,
-      containerClass: "w-[150px]",
+      containerClass: "w-full",
     };
   }
 
   return {
     width: 300,
     height: 188,
-    containerClass: "w-[300px]",
+    containerClass: "w-full",
   };
 };
 
@@ -58,7 +57,6 @@ export default function CoverImage({
   url,
   isPriority = false,
   className = "",
-  index = 0,
 }: CoverImageProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -77,9 +75,7 @@ export default function CoverImage({
     coverImage?.node?.sourceUrl || coverImage?.node?.mediaItemUrl;
   if (!imageSource) return null;
 
-  const isHero = index === 0;
-  const shouldPrioritize = isPriority || isHero;
-  const dimensions = getDimensions(index, isMobile);
+  const dimensions = getDimensions(isPriority ? 0 : 1, isMobile);
 
   const image = (
     <div
@@ -94,13 +90,15 @@ export default function CoverImage({
         alt={`Cover Image for ${title}`}
         fill
         sizes={
-          isHero
+          isPriority
             ? "(max-width: 640px) 100vw, 940px"
             : "(max-width: 640px) 150px, 300px"
         }
         className="rounded-lg object-cover"
-        priority={shouldPrioritize}
-        quality={isHero ? 85 : 75}
+        priority={isPriority}
+        quality={isPriority ? 85 : 75}
+        loading={isPriority ? "eager" : "lazy"}
+        fetchPriority={isPriority ? "high" : "auto"}
       />
     </div>
   );
