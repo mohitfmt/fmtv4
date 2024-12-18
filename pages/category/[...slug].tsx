@@ -4,8 +4,8 @@ import { useRouter } from "next/router";
 import Script from "next/script";
 import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
-import MostViewed from "@/components/common/most-viewed/MostViewed";
-import AdSlot from "@/components/common/AdSlot";
+// import MostViewed from "@/components/common/most-viewed/MostViewed";
+// import AdSlot from "@/components/common/AdSlot";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import NewsAuthor from "@/components/common/NewsAuthor";
 // import PublishingDateTime from "@/components/common/display-date-formats/PublishingDateTime";
@@ -15,6 +15,21 @@ import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
+import dynamic from "next/dynamic";
+import { MostViewedSkeleton } from "@/components/skeletons/MostViewedSkeleton";
+import { useEffect, useState } from "react";
+
+const MostViewed = dynamic(
+  () => import("@/components/common/most-viewed/MostViewed"),
+  {
+    loading: () => <MostViewedSkeleton />,
+    ssr: true,
+  }
+);
+
+const AdSlot = dynamic(() => import("@/components/common/AdSlot"), {
+  ssr: false,
+});
 
 // Default tags for articles without tags
 const DEFAULT_TAGS = [
@@ -26,6 +41,15 @@ const DEFAULT_TAGS = [
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
+
+const AD_REFRESH_INTERVAL = 30000; // 30 seconds
+const REVALIDATION_INTERVAL = 300; // 5 minutes
+
+interface ArticleProps {
+  post: any;
+  posts: any[];
+  preview?: boolean;
+}
 
 // Helper function to safely get tags
 const getSafeTags = (post: any) => {
@@ -49,7 +73,7 @@ const getSafeCategories = (post: any) => {
   return categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 };
 
-export const removeFeaturedImage = (content: string): string => {
+const removeFeaturedImage = (content: string): string => {
   if (!content) return "";
   let isFirstFigure = true;
   return content
@@ -63,25 +87,64 @@ export const removeFeaturedImage = (content: string): string => {
     .trim();
 };
 
-const NewsArticlePost = ({ preview = false, post, morePosts }: any) => {
+const getAdTargeting = (post: any) => {
+  const safeTags = getSafeTags(post);
+  const safeCategories = getSafeCategories(post);
+
+  return {
+    pos: "article",
+    section: safeCategories,
+    key: safeTags,
+    articleId: post.id || "",
+    premium: post.isPremium ? "yes" : "no",
+    sponsored: post.isSponsored ? "yes" : "no",
+  };
+};
+
+const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
   const router = useRouter();
+  const [adRefreshKey, setAdRefreshKey] = useState(0);
+
+  // Refresh ads periodically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setAdRefreshKey((prev) => prev + 1);
+    }, AD_REFRESH_INTERVAL);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  if (preview) {
+    return <div>Loading the preview...</div>;
+  }
 
   if (router.isFallback) {
     return <div>Loading...</div>;
   }
 
   if (!post) {
-    return <div>Post not found</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl">Article not found</h1>
+        <p>The article you are looking for might have been moved or deleted.</p>
+      </div>
+    );
   }
+
+  // this is to show the related articles at the bottom of the page
+  if (posts.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl">No related articles found</h1>
+        <p>There are no related articles to display at the moment.</p>
+      </div>
+    );
+  }
+
+  const dfpTargetingParams = getAdTargeting(post);
 
   const safeTags = getSafeTags(post);
   const safeCategories = getSafeCategories(post);
-
-  const dfpTargetingParams = {
-    pos: "article",
-    section: safeCategories,
-    key: safeTags,
-  };
 
   const cleanedContent = removeFeaturedImage(post.content || "");
 
@@ -91,6 +154,19 @@ const NewsArticlePost = ({ preview = false, post, morePosts }: any) => {
   const safeFeaturedImage =
     post.featuredImage?.node?.sourceUrl ||
     `${siteConfig.baseUrl}/default-og-image.jpg`;
+
+  //use safeCategories somewhere or remove it
+  if (safeCategories.includes("Premium")) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl">Premium Article</h1>
+        <p>
+          This article is only available to premium subscribers. Please sign in
+          to view this article.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -146,6 +222,7 @@ const NewsArticlePost = ({ preview = false, post, morePosts }: any) => {
       />
       <div className="h-24 md:h-64 min-h-24 flex justify-center items-center">
         <AdSlot
+          key={`ads-${adRefreshKey}`}
           sizes={[
             [970, 90],
             [970, 250],
@@ -157,6 +234,7 @@ const NewsArticlePost = ({ preview = false, post, morePosts }: any) => {
           targetingParams={dfpTargetingParams}
         />
         <AdSlot
+          key={`ads-${adRefreshKey}`}
           sizes={[
             [320, 50],
             [320, 100],
@@ -214,6 +292,7 @@ const NewsArticlePost = ({ preview = false, post, morePosts }: any) => {
           <aside className="col-span-1 md:mt-32">
             <div className="my-4 md:min-h-64 flex justify-center items-center">
               <AdSlot
+                key={`ads-${adRefreshKey}`}
                 sizes={[300, 250]}
                 id="div-gpt-ad-1661333336129-0"
                 name="ROS_Midrec"
@@ -284,7 +363,7 @@ export const getStaticProps: GetStaticProps = async ({
           data?.posts?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
           [],
       },
-      revalidate: 60,
+      revalidate: REVALIDATION_INTERVAL,
     };
   } catch (error) {
     console.error("Error in getStaticProps:", error);

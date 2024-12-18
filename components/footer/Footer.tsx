@@ -6,6 +6,7 @@ import NavigationColumn from "./NavigationColumn";
 import FooterSocialIcons from "./FooterSocialIcons";
 import CopyrightSection from "./CopyrightSection";
 import FooterOtherLinks from "./FooterOtherLinks";
+import { nanoid } from "nanoid";
 
 const Footer: React.FC = () => {
   const filteredNavigation = navigation.filter((item) => item.id !== 1);
@@ -23,9 +24,12 @@ const Footer: React.FC = () => {
       <div className="container mx-auto md:px-6 px-2">
         {/* Logo Section */}
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
-          <div className="flex justify-center items-center lg:justify-start md:mb-4">
+          <Link
+            href={`/?${nanoid()}`}
+            className="flex justify-center items-center lg:justify-start md:mb-4"
+          >
             <LogoSVG className="w-[200px] h-auto" />
-          </div>
+          </Link>
 
           {/* Navigation Grid */}
           <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-x-12 gap-y-8 w-full lg:w-3/4 text-center sm:text-center md:text-left lg:text-left">

@@ -3,7 +3,7 @@ import { gqlFetchAPI } from "./gql-fetch-api";
 export async function getAllPostsWithSlug() {
   const data = await gqlFetchAPI(`
       {
-        posts(first: 10000) {
+        posts(first: 50) {
           edges {
             node {
               slug
