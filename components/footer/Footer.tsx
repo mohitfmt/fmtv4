@@ -22,7 +22,6 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-stone-800 text-stone-100 pt-8 pb-2 z-8">
       <div className="container mx-auto md:px-6 px-2">
-        {/* Logo Section */}
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <Link
             href={`/?${nanoid()}`}
@@ -31,7 +30,6 @@ const Footer: React.FC = () => {
             <LogoSVG className="w-[200px] h-auto" />
           </Link>
 
-          {/* Navigation Grid */}
           <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-x-12 gap-y-8 w-full lg:w-3/4 text-center sm:text-center md:text-left lg:text-left">
             {columnData.map((column, index) => (
               <NavigationColumn key={index} items={column} />
