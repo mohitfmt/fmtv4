@@ -25,7 +25,7 @@ export default function TopBanner() {
 
             <span className="sr-only">Home</span>
           </Link>
-          <div className="hidden xl:flex items-center justify-center w-full h-24 rounded-md mx-5">
+          <div className="hidden md:flex items-center justify-center w-full h-24 rounded-md mx-5">
             <AdSlot
               name="ROS_Multisize_Leaderboard"
               sizes={[

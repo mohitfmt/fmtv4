@@ -161,10 +161,10 @@ const AdSlot: React.FC<AdSlotProps> = ({
     <div
       className={`${
         visibleOnDevices === "onlyMobile"
-          ? "block md:hidden"
+          ? "flex md:hidden"
           : visibleOnDevices === "both"
-            ? "block"
-            : "hidden md:block"
+            ? "flex"
+            : "hidden md:flex"
       } my-4 flex h-full flex-col items-center justify-center overflow-hidden rounded-sm`}
     >
       <div

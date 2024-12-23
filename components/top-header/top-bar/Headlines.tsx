@@ -97,7 +97,7 @@ const Headlines = () => {
                     <ArrowRightIcon className="ml-1 w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </span>
                 </span>
-                <span className="group-hover:text-blue-600 transition-colors">
+                <span className="group-hover:text-cyan-300 transition-colors">
                   {post.title}
                 </span>
               </Link>

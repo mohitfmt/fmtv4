@@ -11,10 +11,10 @@ const FooterSocialIcons: React.FC = () => (
         title={item.name}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex text-xl items-center p-2.5 bg-black hover:bg-yellow-400 hover:text-black rounded-full transition-colors duration-300"
+        className="flex text-xl items-center p-2 bg-black hover:bg-yellow-400 hover:text-black rounded-full transition-colors duration-300"
       >
         {/* Directly render the icon with color and size */}
-        <item.icon color={item.color} size={32} />
+        <item.icon color={item.color} size={16} />
       </Link>
     ))}
   </nav>

@@ -1,36 +1,50 @@
-const API_URL =
-  process.env.WORDPRESS_API_URL ||
-  "https://staging-cms.freemalaysiatoday.com/graphql";
+// lib/gql-queries/gql-fetch-api.ts
+
+const API_URL = "https://staging-cms.freemalaysiatoday.com/graphql";
 
 export async function gqlFetchAPI(
   query = "",
   { variables }: Record<string, any> = {}
 ) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-  };
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    };
 
+    const res = await fetch(API_URL, {
+      headers,
+      method: "POST",
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
 
-  // if (process.env.WORDPRESS_AUTH_REFRESH_TOKEN) {
-  //   headers["Authorization"] =
-  //     `Bearer ${process.env.WORDPRESS_AUTH_REFRESH_TOKEN}`;
-  // }
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Network response error:', {
+        status: res.status,
+        statusText: res.statusText,
+        body: errorText
+      });
+      throw new Error(`Network response was not ok: ${res.status}`);
+    }
 
-  // WPGraphQL Plugin must be enabled
-  const res = await fetch(API_URL, {
-    headers,
-    method: "POST",
-    body: JSON.stringify({
+    const json = await res.json();
+    
+    if (json.errors) {
+      console.error('GraphQL Errors:', json.errors);
+      throw new Error(json.errors[0]?.message || "Failed to fetch API");
+    }
+
+    return json.data;
+  } catch (error) {
+    console.error('API Call Error:', {
+      error,
       query,
-      variables,
-    }),
-  });
-
-  const json = await res.json();
-  if (json.errors) {
-    console.error(json.errors);
-    throw new Error("Failed to fetch API");
+      variables
+    });
+    throw error;
   }
-  return json.data;
 }

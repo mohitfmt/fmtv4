@@ -5,6 +5,7 @@ import SectionHeading from "@/components/common/SectionHeading";
 import TTBNewsPreview from "@/components/common/TTBNewsPreview";
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
+// import PreviousNextButton from "@/components/landing-pages/PreviousNextButton";
 import SecondarySuperNewsPreview from "@/components/landing-pages/SecondarySuperNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
 import TrendingTags from "@/components/TrendingTags";
@@ -17,7 +18,6 @@ import { PrismaClient } from "@prisma/client";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import Script from "next/script";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -215,6 +215,7 @@ export default function Home({
                     <LTRNewsPreview {...post} key={post?.slug} />
                   ))}
               </div>
+              {/* Previous Next Button Place */}
             </div>
             <div className="flex flex-col mb-3 md:col-span-4 col-span-12">
               <div className="flex justify-center items-center h-72 -mt-1">
@@ -247,6 +248,9 @@ export default function Home({
                 ?.map((post: any) => (
                   <TTBNewsPreview {...post} key={post?.slug} />
                 ))}
+              <div className="col-span-2">
+                {/* Previous Next Button Place */}
+              </div>
             </div>
           </div>
         </section>
@@ -365,13 +369,10 @@ export default function Home({
           </div>
         </section>
       </main>
-      <Script
-        src="https://apis.google.com/js/platform.js"
-        strategy="lazyOnload"
-      />
-      <Script
+      <script src="https://apis.google.com/js/platform.js" defer />
+      <script
         src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"
-        strategy="lazyOnload"
+        defer
       />
     </>
   );

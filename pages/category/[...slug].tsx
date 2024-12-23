@@ -1,7 +1,6 @@
 import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import Script from "next/script";
 import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 // import MostViewed from "@/components/common/most-viewed/MostViewed";
@@ -17,7 +16,6 @@ import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import dynamic from "next/dynamic";
 import { MostViewedSkeleton } from "@/components/skeletons/MostViewedSkeleton";
-import { useEffect, useState } from "react";
 
 const MostViewed = dynamic(
   () => import("@/components/common/most-viewed/MostViewed"),
@@ -41,8 +39,6 @@ const DEFAULT_TAGS = [
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
-
-const AD_REFRESH_INTERVAL = 30000; // 30 seconds
 const REVALIDATION_INTERVAL = 300; // 5 minutes
 
 interface ArticleProps {
@@ -103,16 +99,6 @@ const getAdTargeting = (post: any) => {
 
 const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
   const router = useRouter();
-  const [adRefreshKey, setAdRefreshKey] = useState(0);
-
-  // Refresh ads periodically
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAdRefreshKey((prev) => prev + 1);
-    }, AD_REFRESH_INTERVAL);
-
-    return () => clearInterval(timer);
-  }, []);
 
   if (preview) {
     return <div>Loading the preview...</div>;
@@ -168,6 +154,34 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
     );
   }
 
+  // Helper function to extract caption from content using regex
+  const extractCaptionFromContent = (content: string): string | null => {
+    if (!content) return null;
+
+    // Match the first figcaption content
+    const figcaptionMatch = content.match(
+      /<figcaption[^>]*>(.*?)<\/figcaption>/
+    );
+    return figcaptionMatch ? figcaptionMatch[1].trim() : null;
+  };
+
+  // Helper function to get the most appropriate caption
+  const getImageCaption = (post: any): string => {
+    // First try to get from featured image
+    if (post?.featuredImage?.node?.caption) {
+      return post.featuredImage.node.caption;
+    }
+
+    // Then try to extract from content
+    const contentCaption = extractCaptionFromContent(post?.content);
+    if (contentCaption) {
+      return contentCaption;
+    }
+
+    // Default fallback
+    return "Free Malaysia Today";
+  };
+
   return (
     <>
       <Head>
@@ -216,13 +230,8 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
         />
         <ArticleJsonLD data={post} />
       </Head>
-      <Script
-        src="https://apis.google.com/js/platform.js"
-        strategy="lazyOnload"
-      />
       <div className="h-24 md:h-64 min-h-24 flex justify-center items-center">
         <AdSlot
-          key={`ads-${adRefreshKey}`}
           sizes={[
             [970, 90],
             [970, 250],
@@ -234,7 +243,6 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
           targetingParams={dfpTargetingParams}
         />
         <AdSlot
-          key={`ads-${adRefreshKey}`}
           sizes={[
             [320, 50],
             [320, 100],
@@ -246,7 +254,7 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
         />
       </div>
       <main className="px-2 md:px-0">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           <article className="col-span-2">
             <header>
               <h1
@@ -254,33 +262,43 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
               />
               <div className="flex justify-between items-center my-1">
-                {post.date && (
-                  <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
-                    <FullDateDisplay
-                      dateString={post.date}
-                      tooltipPosition="right"
-                    />
-                  </span>
-                )}
-                {post.author && <NewsAuthor author={post.author} />}
-                <ShareButtons
-                  url={safeUri}
-                  title={safeTitle}
-                  mediaUrl={safeFeaturedImage}
-                  hashs={safeTags}
-                />
+                <div>
+                  {post.date && (
+                    <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+                      <FullDateDisplay
+                        dateString={post.date}
+                        tooltipPosition="right"
+                      />
+                    </span>
+                  )}
+                  {post.author && <NewsAuthor author={post.author} />}
+                </div>
+                <div>
+                  <ShareButtons
+                    url={safeUri}
+                    title={safeTitle}
+                    mediaUrl={safeFeaturedImage}
+                    hashs={safeTags}
+                  />
+                </div>
               </div>
 
               <h2
                 className="excerpt text-xl my-3"
                 dangerouslySetInnerHTML={{ __html: safeExcerpt }}
               />
-              <CoverImage
-                title={safeTitle}
-                coverImage={post.featuredImage}
-                url={safeUri}
-                isPriority
-              />
+              <figure className="my-4">
+                <CoverImage
+                  title={safeTitle}
+                  coverImage={post.featuredImage}
+                  url={safeUri}
+                  isPriority
+                />
+                <figcaption
+                  className="text-center text-stone-500 dark:text-stone-400 -mt-1 px-4 border-b border-x rounded-sm py-1.5 border-stone-300 dark:border-stone-700"
+                  dangerouslySetInnerHTML={{ __html: getImageCaption(post) }}
+                />
+              </figure>
             </header>
 
             <PostBody
@@ -289,10 +307,9 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
               additionalFields={post}
             />
           </article>
-          <aside className="col-span-1 md:mt-32">
-            <div className="my-4 md:min-h-64 flex justify-center items-center">
+          <aside className="col-span-2 lg:col-span-1 lg:mt-32">
+            <div className="my-4 lg:min-h-64 flex justify-center items-center">
               <AdSlot
-                key={`ads-${adRefreshKey}`}
                 sizes={[300, 250]}
                 id="div-gpt-ad-1661333336129-0"
                 name="ROS_Midrec"

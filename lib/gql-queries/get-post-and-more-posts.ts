@@ -33,6 +33,9 @@ export async function getPostAndMorePosts(
         featuredImage {
           node {
             sourceUrl
+            altText
+            caption
+            title
           }
         }
         author {
