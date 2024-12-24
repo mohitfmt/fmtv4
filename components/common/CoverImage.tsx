@@ -29,8 +29,8 @@ const getDimensions = (index: number, isMobile: boolean): Dimensions => {
   // Hero image (index 0)
   if (index === 0) {
     return {
-      width: isMobile ? 640 : 940,
-      height: isMobile ? 400 : 588,
+      width: isMobile ? 400 : 560,
+      height: isMobile ? 250 : 350,
       containerClass: "w-full",
     };
   }
@@ -45,8 +45,8 @@ const getDimensions = (index: number, isMobile: boolean): Dimensions => {
   }
 
   return {
-    width: 300,
-    height: 188,
+    width: 209,
+    height: 130,
     containerClass: "w-full",
   };
 };
@@ -84,7 +84,7 @@ export default function CoverImage({
       ref={ref}
       className={`relative ${dimensions.containerClass} ${className}`}
       style={{
-        aspectRatio: `${dimensions.width}/${dimensions.height}`,
+        aspectRatio: 8 / 5,
       }}
     >
       <Image
@@ -93,8 +93,8 @@ export default function CoverImage({
         fill
         sizes={
           isPriority || isBig
-            ? "(max-width: 640px) 100vw, 940px"
-            : "(max-width: 640px) 150px, 300px"
+            ? "(max-width: 640px) 560px, 350px"
+            : "(max-width: 640px) 209px, 130px"
         }
         className="rounded-lg object-cover"
         priority={isPriority}
