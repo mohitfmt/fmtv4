@@ -46,6 +46,7 @@ export default async function handler(
         if (!body.path) {
           return res.status(400).json({ message: "Category path is required" });
         }
+        console.log(`[Revalidate-API] Revalidating category ${body.path}`);
         await res.revalidate(body.path);
         break;
 
