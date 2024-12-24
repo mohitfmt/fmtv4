@@ -54,18 +54,17 @@ const AdSlot: React.FC<AdSlotProps> = ({
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
+
     refreshTimeoutRef.current = setTimeout(() => {
       window.googletag.cmd.push(() => {
-        const slot = window.googletag
-          .pubads()
-          .getSlots()
-          .find((slot: any) => slot.getSlotElementId() === id);
-
-        if (slot) {
-          window.googletag.pubads().refresh([slot]);
-        }
+        window.googletag.pubads().refresh([
+          window.googletag
+            .pubads()
+            .getSlots()
+            .find((slot: any) => slot.getSlotElementId() === id),
+        ]);
       });
-    }, 45000); // Refresh every 45 seconds
+    }, 45000); // 45 seconds delay to prevent rapid successive refreshes
   };
 
   useEffect(() => {
@@ -173,14 +172,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
         ref={adRef}
         className="flex justify-center items-center overflow-hidden"
         style={{
-          width:
-            Array.isArray(sizes) && Array.isArray(sizes[0])
-              ? sizes[0][0]
-              : "auto",
-          minHeight:
-            Array.isArray(sizes) && Array.isArray(sizes[0])
-              ? sizes[0][1]
-              : "auto",
+          width: Array.isArray(sizes) && Array.isArray(sizes[0]) ? sizes[0][0] : 'auto',
+          minHeight: Array.isArray(sizes) && Array.isArray(sizes[0]) ? sizes[0][1] : 'auto'
         }}
       />
     </div>
