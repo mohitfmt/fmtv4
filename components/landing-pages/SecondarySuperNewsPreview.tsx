@@ -22,6 +22,7 @@ const SecondarySuperNewsPreview = ({
             coverImage={featuredImage}
             slug={slug}
             url={uri}
+            isBig={true}
           />
         )}
         <div className="absolute w-full bottom-0 bg-gradient-to-b from-transparent via-40% via-black/60 to-black/95 text-white px-2 lg:px-8 flex flex-col items-end rounded-lg">

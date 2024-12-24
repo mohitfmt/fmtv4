@@ -5,7 +5,6 @@ import SectionHeading from "@/components/common/SectionHeading";
 import TTBNewsPreview from "@/components/common/TTBNewsPreview";
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
-// import PreviousNextButton from "@/components/landing-pages/PreviousNextButton";
 import SecondarySuperNewsPreview from "@/components/landing-pages/SecondarySuperNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
 import TrendingTags from "@/components/TrendingTags";
