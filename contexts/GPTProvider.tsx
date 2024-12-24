@@ -101,12 +101,11 @@ export const GPTProvider: React.FC<{
           .getSlots()
           .find((slot: any) => slot.getSlotElementId() === params.id);
 
-        if (existingSlot) {
-          cb && cb({ id: params.id, slot: existingSlot });
+        if (existingSlot && cb) {
+          cb({ id: params.id, slot: existingSlot });
           return;
         }
 
-        let slot;
         const {
           name,
           id,
@@ -116,7 +115,7 @@ export const GPTProvider: React.FC<{
         } = params;
         const slotName = `/${networkId}/${prefix}_${name}`;
 
-        slot = window.googletag
+        const slot = window.googletag
           ?.defineSlot(slotName, sizes, id)
           ?.addService(window.googletag.pubads());
 
@@ -125,11 +124,21 @@ export const GPTProvider: React.FC<{
             ...dfpTargetingParams,
             ...customDfpTargetingParams,
           }).forEach(([key, value]) => {
-            slot.setTargeting(key, value);
+            // Type guard to ensure value is string or string[]
+            if (typeof value === "string" || Array.isArray(value)) {
+              slot.setTargeting(key, value);
+            } else if (value !== null && value !== undefined) {
+              // Convert other types to string
+              slot.setTargeting(key, String(value));
+            }
           });
-          displayNow && window.googletag.display(id);
+          if (displayNow) {
+            window.googletag.display(id);
+          }
         }
-        cb && cb({ id, slot });
+        if (cb) {
+          cb({ id, slot });
+        }
       });
     },
     [dfpTargetingParams, networkId, prefix]
