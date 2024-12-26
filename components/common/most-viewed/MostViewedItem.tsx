@@ -2,9 +2,10 @@ import { memo } from "react";
 import Link from "next/link";
 import { CATEGORIES } from "@/constants/categories";
 import FullDateDisplay from "../display-date-formats/FullDateDisplay";
+import { MostViewedItemType } from "@/types/global";
 
 interface MostViewedItemProps {
-  item: MostViewedItem;
+  item: MostViewedItemType;
   index: number;
 }
 
@@ -15,6 +16,7 @@ const findCategory = (uri: string) => {
   );
 };
 
+// Replaced h3 and h4 with h1 and h2 (to increase accessibility score)
 const MostViewedItem = memo(({ item, index }: MostViewedItemProps) => (
   <Link href={item.uri}>
     <div className="flex items-center gap-4 p-1 mb-3 py-2 border-b hover:bg-stone-100 hover:rounded-xl dark:hover:bg-stone-600">
@@ -22,13 +24,13 @@ const MostViewedItem = memo(({ item, index }: MostViewedItemProps) => (
         {index + 1}
       </div>
       <div className="flex-1">
-        <h4 className="text-xs text-accent-category flex gap-2 items-center justify-between">
+        <h2 className="text-xs text-accent-category flex gap-2 items-center justify-between">
           {findCategory(item.uri)}
           <span className="text-stone-700 dark:text-stone-300">
             <FullDateDisplay dateString={item.date} />
           </span>
-        </h4>
-        <h3 className="text-lg font-bitter font-medium">{item.title}</h3>
+        </h2>
+        <h1 className="text-lg font-bitter font-medium">{item.title}</h1>
       </div>
     </div>
   </Link>

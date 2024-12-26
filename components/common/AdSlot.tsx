@@ -61,12 +61,14 @@ const AdSlot: React.FC<AdSlotProps> = ({
 
     refreshTimeoutRef.current = setTimeout(() => {
       window.googletag.cmd.push(() => {
-        window.googletag.pubads().refresh([
-          window.googletag
-            .pubads()
-            .getSlots()
-            .find((slot: any) => slot.getSlotElementId() === id),
-        ]);
+        const foundSlot = window.googletag
+          .pubads()
+          .getSlots()
+          .find((slot:any) => slot.getSlotElementId() === id);
+
+        if (foundSlot) {
+          window.googletag.pubads().refresh([foundSlot]);
+        }
       });
       setIsFirstRefresh(false);
     }, delay);

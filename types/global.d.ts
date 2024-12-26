@@ -39,9 +39,52 @@ interface PromptMomentNotification {
   getMomentType: () => string;
 }
 
-interface MostViewedItem {
+interface MostViewedItemType {
   uri: string;
   title: string;
   date: string;
   image?: string;
+}
+
+interface CategoryNode {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface CategoryEdge {
+  node: CategoryNode;
+}
+
+interface Categories {
+  edges: CategoryEdge[];
+}
+
+export interface PostCardProps {
+  id: string;
+  title: string;
+  slug: string;
+  uri: string;
+  date: string;
+  excerpt?: string;
+  categories?: {
+    // Changed from any[] to proper typing
+    edges: Array<>;
+  };
+  author?: {
+    node?: {
+      uri?: string;
+      slug?: string;
+      name?: string;
+    };
+  };
+  tags?: {
+    edges?: Array<{ node: Tag }>;
+  };
+  featuredImage: {
+    node: {
+      sourceUrl: string;
+      mediaItemUrl: string;
+    };
+  };
 }

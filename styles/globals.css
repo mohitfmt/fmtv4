@@ -72,6 +72,7 @@ ul {
     --ring: rgba(208, 207, 204, 1);
     --accent-red: #ff0000;
     --accent-category: #aaff00;
+    --fd: rgb(209 213 219);
   }
   * {
     @apply border-border;
@@ -99,4 +100,39 @@ ul {
   to {
     transform: translateX(-100%);
   }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-25%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(25%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.horizontal-load-more-animation {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-out;
+}
+
+.slide-in-right {
+  animation-name: slideInRight;
+}
+
+.slide-in-left {
+  animation-name: slideInLeft;
 }
