@@ -6,13 +6,13 @@ import NavigationColumn from "./NavigationColumn";
 import FooterSocialIcons from "./FooterSocialIcons";
 import CopyrightSection from "./CopyrightSection";
 import FooterOtherLinks from "./FooterOtherLinks";
-import { nanoid } from "nanoid";
+import { useStableId } from "@/hooks/useStableId";
 
 const Footer: React.FC = () => {
   const filteredNavigation = navigation.filter((item) => item.id !== 1);
   const singleNavItems = filteredNavigation.filter((item) => !item.items);
   const groupedNavItems = filteredNavigation.filter((item) => item.items);
-
+  const refreshId = useStableId();
   const columnData = [
     groupedNavItems.slice(0, 3),
     groupedNavItems.slice(4, 6),
@@ -24,7 +24,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto md:px-6 px-2">
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <Link
-            href={`/?${nanoid()}`}
+            href={refreshId ? `/?${refreshId}` : "/"}
             className="flex justify-center items-center lg:justify-start md:mb-4"
           >
             <LogoSVG className="w-[200px] h-auto" />

@@ -1,10 +1,8 @@
-import { nanoid } from "nanoid";
-
 export const navigation = [
   {
     id: 1,
     title: `Home`,
-    href: `/?${nanoid()}`,
+    href: "/",
   },
   {
     id: 2,

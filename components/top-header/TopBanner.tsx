@@ -5,15 +5,16 @@ import { LogoSVG } from "../ui/icons/LogoSVG";
 import SearchNews from "./top-bar/SearchNews";
 import Link from "next/link";
 import AdSlot from "../common/AdSlot";
-import { nanoid } from "nanoid";
+import { useStableId } from "@/hooks/useStableId";
 
 export default function TopBanner() {
+  const refreshId = useStableId();
   return (
     <>
       <header className="sticky lg:-top-20 top-10 z-20 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
-            href={`/?${nanoid()}`}
+            href={refreshId ? `/?${refreshId}` : "/"}
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex flex-col items-center"
           >

@@ -25,6 +25,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
     useContext(GPTContext);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isFirstRefresh, setIsFirstRefresh] = useState(true);
+
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -55,6 +57,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
       clearTimeout(refreshTimeoutRef.current);
     }
 
+    const delay = isFirstRefresh ? 1000 : 45000;
+
     refreshTimeoutRef.current = setTimeout(() => {
       window.googletag.cmd.push(() => {
         window.googletag.pubads().refresh([
@@ -64,7 +68,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
             .find((slot: any) => slot.getSlotElementId() === id),
         ]);
       });
-    }, 45000); // 45 seconds delay to prevent rapid successive refreshes
+      setIsFirstRefresh(false);
+    }, delay);
   };
 
   useEffect(() => {
@@ -172,8 +177,14 @@ const AdSlot: React.FC<AdSlotProps> = ({
         ref={adRef}
         className="flex justify-center items-center overflow-hidden"
         style={{
-          width: Array.isArray(sizes) && Array.isArray(sizes[0]) ? sizes[0][0] : 'auto',
-          minHeight: Array.isArray(sizes) && Array.isArray(sizes[0]) ? sizes[0][1] : 'auto'
+          width:
+            Array.isArray(sizes) && Array.isArray(sizes[0])
+              ? sizes[0][0]
+              : "auto",
+          minHeight:
+            Array.isArray(sizes) && Array.isArray(sizes[0])
+              ? sizes[0][1]
+              : "auto",
         }}
       />
     </div>

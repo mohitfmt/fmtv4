@@ -368,10 +368,11 @@ export default function Home({
           </div>
         </section>
       </main>
-      <script src="https://apis.google.com/js/platform.js" defer />
+
       <script
         src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"
         defer
+        async
       />
     </>
   );
