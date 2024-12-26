@@ -1,7 +1,7 @@
 import { getPreferredCategory } from "@/lib/utils";
-import CoverImage from "./CoverImage";
+import CoverImage from "../CoverImage";
 import Link from "next/link";
-import PublishingDateTime from "./display-date-formats/PublishingDateTime";
+import PublishingDateTime from "../display-date-formats/PublishingDateTime";
 
 const TTBNewsPreview = ({
   title,
@@ -11,6 +11,7 @@ const TTBNewsPreview = ({
   excerpt,
   categories,
   uri,
+  isBig,
 }: any) => {
   const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories?.edges);
@@ -23,12 +24,13 @@ const TTBNewsPreview = ({
             coverImage={featuredImage}
             slug={slug}
             url={uri}
+            isBig={isBig}
           />
         )}
       </figure>
 
       <Link href={uri} title={updatedExcerpt} className="my-2">
-        <h4 className="text-xs text-accent-category flex gap-2 items-center justify-between">
+        <h2 className="text-xs text-accent-category flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span key={preferredCategory?.node?.id} className="tracking-wider">
               {preferredCategory?.node?.name.toUpperCase()}
@@ -37,10 +39,10 @@ const TTBNewsPreview = ({
           <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
             <PublishingDateTime dateString={date} size={16} />
           </span>
-        </h4>
-        <h3 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+        </h2>
+        <h1 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
           {title}
-        </h3>
+        </h1>
       </Link>
     </article>
   );

@@ -6,11 +6,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+interface CategoryNode {
+  name: string;
+  id: string;
+  slug?: string;
+}
+
+interface CategoryEdge {
+  node: CategoryNode;
+}
+
 export const getPreferredCategory = (
-  categories: { node: { name: string; id: string; slug?: string } }[]
-) => {
+  categories?: CategoryEdge[]
+): CategoryEdge => {
+  // Default category
+  const defaultCategory = {
+    node: {
+      name: "GENERAL", // or any default category name you prefer
+      id: "default-category",
+      slug: "general",
+    },
+  };
+
+  // Return default if categories is undefined or empty
   if (!categories || categories.length === 0) {
-    return { node: { name: "VIDEOS", id: "video-default" } };
+    return defaultCategory;
   }
 
   const filteredCategories = categories.filter((category) => {
@@ -24,7 +44,7 @@ export const getPreferredCategory = (
   });
 
   if (filteredCategories.length === 0) {
-    return { node: { name: "VIDEOS", id: "video-default" } };
+    return defaultCategory;
   }
 
   const sportCategory = filteredCategories.find(
@@ -37,18 +57,15 @@ export const getPreferredCategory = (
     return sportCategory;
   }
 
-  return filteredCategories.reduce(
-    (shortest, current) => {
-      if (
-        !shortest ||
-        current?.node?.name?.length < shortest?.node?.name?.length
-      ) {
-        return current;
-      }
-      return shortest;
-    },
-    { node: { name: "", id: "", slug: "" } }
-  );
+  return filteredCategories.reduce((shortest, current) => {
+    if (
+      !shortest ||
+      current?.node?.name?.length < shortest?.node?.name?.length
+    ) {
+      return current;
+    }
+    return shortest;
+  }, defaultCategory);
 };
 
 export const generateCollectionPageJsonLD = ({

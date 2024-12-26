@@ -1,13 +1,13 @@
 import AdSlot from "@/components/common/AdSlot";
-import LTRNewsPreview from "@/components/common/LTRNewsPreview";
+import LTRNewsPreview from "@/components/common/news-preview-cards/LTRNewsPreview";
 import MostViewed from "@/components/common/most-viewed/MostViewed";
 import SectionHeading from "@/components/common/SectionHeading";
-import TTBNewsPreview from "@/components/common/TTBNewsPreview";
+import TrendingNSubCategoriesList from "@/components/common/TrendingNSubCategoriesList";
+import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPreview";
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
 import SecondarySuperNewsPreview from "@/components/landing-pages/SecondarySuperNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
-import TrendingTags from "@/components/TrendingTags";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
@@ -141,7 +141,7 @@ export default function Home({
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         ></meta>
       </Head>
-      <TrendingTags tags={trendingTags} />
+      <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
       <main>
         <section
           id="TopSection"

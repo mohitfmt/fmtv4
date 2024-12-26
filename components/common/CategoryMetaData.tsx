@@ -1,0 +1,120 @@
+// components/meta/CategoryMetadata.tsx
+import Head from "next/head";
+import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
+import { WebPageJsonLD } from "@/constants/jsonlds/org";
+
+interface MetadataConfig {
+  title: string;
+  description: string;
+  keywords: string[];
+  category: string;
+  alternateLocale?: string[];
+  pathName: string;
+  author?: string;
+  ogImage?: string;
+}
+
+interface CategoryMetadataProps {
+  config: MetadataConfig;
+}
+
+export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
+  const {
+    title,
+    description,
+    keywords,
+    category,
+    alternateLocale = [],
+    pathName,
+    author = "Free Malaysia Today (FMT)",
+    ogImage = "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
+  } = config;
+
+  return (
+    <Head>
+      {/* Basic Meta Tags */}
+      <title>{title}</title>
+      <meta name="description" content={description} />
+      <meta name="keywords" content={keywords.join(", ")} />
+      <meta name="author" content={author} />
+      <meta name="category" content={category} />
+
+      {/* Open Graph Tags */}
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:type" content="article" />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:image:secure_url" content={ogImage} />
+      <meta property="og:site_name" content={title} />
+      <meta property="og:locale" content="en_MY" />
+      {alternateLocale.map((locale) => (
+        <meta key={locale} property="og:locale:alternate" content={locale} />
+      ))}
+      <meta
+        property="og:url"
+        content={`${process.env.NEXT_PUBLIC_APP_URL}${pathName}`}
+      />
+
+      {/* Twitter Tags */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:site" content="@fmtoday" />
+
+      {/* Alternate Links */}
+      <link
+        rel="canonical"
+        href={`https://www.freemalaysiatoday.com${pathName}`}
+      />
+      <link
+        rel="alternate"
+        type="application/atom+xml"
+        href={`feeds/atom/${pathName.replace("/", "")}/`}
+      />
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        href={`feeds/rss/${pathName.replace("/", "")}/`}
+      />
+      <link
+        rel="alternate"
+        type="application/feed+json"
+        href={`feeds/json/${pathName.replace("/", "")}/`}
+      />
+    </Head>
+  );
+};
+
+// components/meta/CategoryJsonLD.tsx
+interface JsonLDProps {
+  posts: any;
+  pathName: string;
+  title: string;
+}
+
+export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
+  const jsonLD = generatedJsonLd(
+    posts?.edges || [],
+    `${process.env.NEXT_PUBLIC_APP_URL}${pathName}`,
+    title
+  );
+
+  return (
+    <section>
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+        type="application/ld+json"
+        defer
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLD),
+        }}
+        type="application/ld+json"
+        defer
+      />
+    </section>
+  );
+};
+
+// constants/categoryMetadata.ts

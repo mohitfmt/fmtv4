@@ -1,7 +1,7 @@
 import Link from "next/link";
-import CoverImage from "./CoverImage";
+import CoverImage from "../CoverImage";
 import { getPreferredCategory } from "@/lib/utils";
-import PublishingDateTime from "./display-date-formats/PublishingDateTime";
+import PublishingDateTime from "../display-date-formats/PublishingDateTime";
 
 const LTRNewsPreview = ({
   title,
@@ -28,7 +28,7 @@ const LTRNewsPreview = ({
           )}
         </figure>
         <div className="flex-1">
-          <h4 className="text-xs text-accent-category flex gap-2 items-center justify-between">
+          <h2 className="text-xs text-accent-category flex gap-2 items-center justify-between">
             {preferredCategory && (
               <span
                 key={preferredCategory?.node?.id}
@@ -40,11 +40,11 @@ const LTRNewsPreview = ({
             <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
               <PublishingDateTime dateString={date} size={16} />
             </span>
-          </h4>
+          </h2>
           <Link href={uri} title={title}>
-            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+            <h1 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
               {title}
-            </h3>
+            </h1>
           </Link>
         </div>
       </div>

@@ -2,6 +2,7 @@ import useSWR from "swr";
 import SectionHeading from "../SectionHeading";
 import MostViewedItem from "./MostViewedItem";
 import { MostViewedSkeleton } from "@/components/skeletons/MostViewedSkeleton";
+import { MostViewedItemType } from "@/types/global"; 
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -19,7 +20,7 @@ const MostViewed = () => {
     data: posts,
     error,
     isLoading,
-  } = useSWR<MostViewedItem[]>("/api/most-viewed", fetcher, {
+  } = useSWR<MostViewedItemType[]>("/api/most-viewed", fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 60000,
     errorRetryCount: 3,
