@@ -23,7 +23,7 @@ const CategoryHeroPost = ({
   return (
     <div
       className={cn(
-        "flex flex-col md:flex-row items-center gap-2 md:gap-8",
+        "flex flex-col md:flex-row items-stretch md:gap-8",
         className
       )}
     >
@@ -41,8 +41,9 @@ const CategoryHeroPost = ({
       </figure>
 
       {/* Right side - Content */}
-      <div className="flex-1 py-2">
-        <div className="text-xs font-bitter mb-2 text-accent-red flex gap-2 items-center justify-between">
+      <div className="flex-1 py-0.5 flex flex-col">
+        {/* Top - Category and Date */}
+        <div className="text-xs text-accent-category font-bitter flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span key={preferredCategory?.node?.id} className="tracking-wider">
               {preferredCategory?.node?.name.toUpperCase()}
@@ -52,13 +53,16 @@ const CategoryHeroPost = ({
             <PublishingDateTime dateString={post?.date} size={16} />
           </span>
         </div>
-        <Link href={post?.uri} prefetch={false}>
-          <h1 className="text-3xl font-heading font-extrabold leading-tight hover:text-blue-600">
+
+        {/* Middle - Title */}
+        <Link href={post?.uri} prefetch={false} className="my-auto">
+          <h1 className="text-4xl font-bitter font-black leading-tight hover:text-blue-700 dark:hover:text-cyan-300">
             {post?.title}
           </h1>
         </Link>
 
-        <summary className="list-none font-bitter mt-2 font-heading text-foreground">
+        {/* Bottom - Excerpt */}
+        <summary className="list-none font-bitter text-foreground mt-auto">
           {parsedExcerpt}
         </summary>
       </div>

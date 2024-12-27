@@ -7,14 +7,35 @@ import TrendingNSubCategoriesList from "../common/TrendingNSubCategoriesList";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  adsTargetingParams?: AdsTargetingParams;
 }
 
-const dfpTargetingParams = {
-  pos: "listing",
-  section: ["category-landing-pages"],
-};
+interface AdsTargetingParams {
+  pos: string;
+  section: string[];
+  key: string[];
+}
 
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout({
+  children,
+  adsTargetingParams,
+}: MainLayoutProps) {
+  const dfpTargetingParams = adsTargetingParams || {
+    pos: "listing",
+    section: ["category-landing-page", "landing-page"],
+    key: [
+      "gambling",
+      "religion",
+      "alcohol",
+      "lgbt",
+      "sex",
+      "drug abuse",
+      "get rich",
+      "match-making",
+      "dating",
+      "lottery",
+    ],
+  };
   const router = useRouter();
   const mainPath = router.pathname.split("/")[1];
 
@@ -32,7 +53,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div>
       {/* Top Desktop Ad */}
-      <div className="mb-4 hidden justify-center md:flex">
+      <div className="h-24 md:h-64 min-h-24 flex justify-center items-center">
         <AdSlot
           sizes={[
             [970, 90],
@@ -73,7 +94,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Main Content Layout */}
-      <div className="flex flex-col gap-10 lg:flex-row">
+      <div className="flex flex-col my-5 gap-10 lg:flex-row">
         <main className="lg:w-2/3">{children}</main>
         <aside className="lg:w-1/3">
           <CategorySidebar />

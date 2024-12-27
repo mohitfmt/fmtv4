@@ -28,6 +28,7 @@ interface CategoryPostsLayoutProps {
   AdsTargetingParams: {
     pos: string;
     section: string[];
+    key: string[];
   };
   subCategoryPosts: SubCategoryPost[];
 }
@@ -50,7 +51,7 @@ export const CategoryPostsLayout = ({
   };
 
   return (
-    <MainLayout>
+    <MainLayout adsTargetingParams={AdsTargetingParams}>
       <SectionHeading sectionName={title} />
 
       {/* Featured Posts Section */}

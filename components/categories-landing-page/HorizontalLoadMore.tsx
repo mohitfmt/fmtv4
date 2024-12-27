@@ -44,13 +44,13 @@ const HorizontalLoadMore = ({ posts }: HorizontalLoadMoreProps) => {
         {/* Previous Button */}
         <button
           className={`
-            group absolute left-11 bg-background top-[29%] z-10 -translate-x-full -translate-y-1/2 transform 
-            rounded-l-xl border border-gray-200 p-2 
+            group absolute left-7 bg-foreground top-[29%] z-10 -translate-x-full -translate-y-1/2 transform 
+            rounded-l-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
             ${
               currentPage === 0
-                ? "cursor-not-allowed opacity-50"
-                : "hover:border-accent-yellow hover:bg-accent-yellow/10"
+                ? "cursor-not-allowed opacity-50 border-gray-200"
+                : "hover:border-accent-yellow"
             }
           `}
           disabled={currentPage === 0}
@@ -63,7 +63,7 @@ const HorizontalLoadMore = ({ posts }: HorizontalLoadMoreProps) => {
               ${
                 currentPage === 0
                   ? "text-gray-400"
-                  : "text-accent-yellow group-hover:bg-accent-yellow"
+                  : "text-background group-hover:text-accent-yellow"
               }
             `}
           />
@@ -88,12 +88,12 @@ const HorizontalLoadMore = ({ posts }: HorizontalLoadMoreProps) => {
         {/* Next Button */}
         <button
           className={`
-            group absolute  right-11 bg-background top-[29%] z-10 translate-x-full -translate-y-1/2 transform 
-            rounded-r-xl border border-yellow-200 p-2 
+            group absolute right-7 bg-foreground top-[29%] z-10 translate-x-full -translate-y-1/2 transform 
+            rounded-r-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
             ${
               currentPage === totalPages - 1
-                ? "cursor-not-allowed opacity-50"
+                ? "cursor-not-allowed opacity-50 border-gray-200"
                 : "hover:border-accent-yellow hover:bg-accent-yellow/10"
             }
           `}
@@ -107,7 +107,7 @@ const HorizontalLoadMore = ({ posts }: HorizontalLoadMoreProps) => {
               ${
                 currentPage === totalPages - 1
                   ? "text-gray-400"
-                  : "text-accent-yellow group-hover:text-accent-yellow"
+                  : "text-background group-hover:text-accent-yellow"
               }
             `}
           />

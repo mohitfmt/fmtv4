@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
 import { PostCardProps } from "@/types/global";
 import TTBNewsPreview from "../common/news-preview-cards/TTBNewsPreview";
 import LTRNewsPreview from "../common/news-preview-cards/LTRNewsPreview";
 import SectionHeading from "../common/SectionHeading";
 import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
+import { Button } from "../ui/button";
+import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";
 
 interface SubCategoriesWithLoadMoreProps {
   slug: string;
@@ -93,25 +94,39 @@ const SubCategoriesWithLoadMore = ({
       </section>
 
       {totalPages > 1 && (
-        <div className="flex font-bitter items-center justify-between mt-4">
-          <button
-            className="group text-lg flex disabled:opacity-30 disabled:cursor-not-allowed items-center rounded border border-gray-500 px-3 py-1 hover:border-yellow-600 hover:bg-yellow-600 hover:text-white"
+        <div
+          className="flex items-center gap-5"
+          role="navigation"
+          aria-label={`${title} pagination`}
+        >
+          <Button
+            variant="outline"
+            className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
             disabled={currentPage === 0}
             title="Previous"
             onClick={handlePrevious}
+            aria-label={`Previous page of ${title}`}
+            aria-disabled={currentPage <= 1 || false}
           >
-            <HiOutlineChevronLeft className="text-foreground text-xl mr-1 group-hover:text-white" />
-            Previous
-          </button>
-          <button
-            className="group text-lg flex items-center rounded border border-gray-500 px-3 py-1 hover:border-yellow-600 hover:bg-yellow-600 hover:text-white"
+            <span className="flex items-center justify-center">
+              <FaArrowLeftLong className="mr-2" aria-hidden="true" />
+              Previous
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
             disabled={currentPage === totalPages - 1}
             title="Next"
             onClick={handleNext}
+            aria-label={`Next page of ${title}`}
+            aria-disabled={currentPage === totalPages - 1 || false}
           >
-            Next
-            <HiOutlineChevronRight className="h-6 w-6 text-xl ml-1 text-foreground group-hover:text-white" />
-          </button>
+            <span className="flex items-center justify-center">
+              Next
+              <FaArrowRightLong className="ml-2" aria-hidden="true" />
+            </span>
+          </Button>
         </div>
       )}
     </div>

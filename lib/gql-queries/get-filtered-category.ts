@@ -90,47 +90,22 @@ export const GET_FILTERED_CATEGORY = `
     ) {
       edges {
         node {
-          id
           title
           excerpt
           uri
           date
           slug
-          databaseId
-          author {
-            node {
-              name
-              firstName
-              lastName
-              slug
-              uri
-              avatar {
-                url
-              }
-            }
-          }
           categories {
             edges {
               node {
                 slug
                 name
-                id
-              }
-            }
-          }
-          tags {
-            edges {
-              node {
-                id
-                name
-                slug
               }
             }
           }
           featuredImage {
             node {
               sourceUrl
-              mediaItemUrl
             }
           }
         }
