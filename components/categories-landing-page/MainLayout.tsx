@@ -1,19 +1,14 @@
 // components/layouts/MainLayout.tsx
 import { useRouter } from "next/router";
-import CategorySidebar from "./CategorySidebar";
+import CategorySidebar from "../common/CategorySidebar";
 import AdSlot from "@/components/common/AdSlot";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import TrendingNSubCategoriesList from "../common/TrendingNSubCategoriesList";
+import { AdsTargetingParams } from "@/types/global";
 
 interface MainLayoutProps {
   children: React.ReactNode;
   adsTargetingParams?: AdsTargetingParams;
-}
-
-interface AdsTargetingParams {
-  pos: string;
-  section: string[];
-  key: string[];
 }
 
 export default function MainLayout({
@@ -39,12 +34,8 @@ export default function MainLayout({
   const router = useRouter();
   const mainPath = router.pathname.split("/")[1];
 
-  // Convert URL path to categoriesNavigation path format
-  const categoryPath = `home-${mainPath}`;
-
-  // Find the current category page directly
-  const currentPage = categoriesNavigation.find(
-    (page) => page.path === categoryPath
+  const currentPage = categoriesNavigation.find((page) =>
+    page.path.includes(mainPath)
   );
 
   const subcategories = currentPage?.subCategories || [];
@@ -53,7 +44,7 @@ export default function MainLayout({
   return (
     <div>
       {/* Top Desktop Ad */}
-      <div className="h-24 md:h-64 min-h-24 flex justify-center items-center">
+      <div className="md:h-[260px] flex justify-center items-center">
         <AdSlot
           sizes={[
             [970, 90],
@@ -68,7 +59,7 @@ export default function MainLayout({
       </div>
 
       {/* Top Mobile Ad */}
-      <div className="mb-4 flex justify-center md:hidden">
+      <div className="mb-4 h-[120px] items-center flex justify-center md:hidden">
         <AdSlot
           sizes={[
             [320, 50],
@@ -97,12 +88,15 @@ export default function MainLayout({
       <div className="flex flex-col my-5 gap-10 lg:flex-row">
         <main className="lg:w-2/3">{children}</main>
         <aside className="lg:w-1/3">
-          <CategorySidebar />
+          <CategorySidebar
+            pageName="categoryHome"
+            adsTargetingParams={dfpTargetingParams}
+          />
         </aside>
       </div>
 
       {/* Bottom Desktop Ad */}
-      <div className="mb-4 hidden justify-center md:flex">
+      <div className="mb-4 h-[100px] hidden justify-center items-center md:flex">
         <AdSlot
           sizes={[
             [728, 90],

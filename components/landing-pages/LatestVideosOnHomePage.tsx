@@ -84,7 +84,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, isFeature = false }) => {
 
   if (isFeature) {
     return (
-      <div className="relative group overflow-hidden rounded-lg h-[450px]">
+      <div className="relative group overflow-hidden rounded-lg bg-red-400 h-[400px] xl:h-[450px] ">
         {/* Thumbnail with better aspect ratio handling */}
         <div className="relative h-full">
           <Image

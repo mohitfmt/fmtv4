@@ -31,6 +31,7 @@ interface CategoryPostsLayoutProps {
     key: string[];
   };
   subCategoryPosts: SubCategoryPost[];
+  categoryName: string;
 }
 
 export const CategoryPostsLayout = ({
@@ -39,6 +40,7 @@ export const CategoryPostsLayout = ({
   currentPage,
   AdsTargetingParams,
   subCategoryPosts,
+  categoryName,
 }: CategoryPostsLayoutProps) => {
   if (!posts || !currentPage) return null;
 
@@ -65,7 +67,7 @@ export const CategoryPostsLayout = ({
         )}
 
         {/* Mobile Ad */}
-        <div className="mt-4 flex justify-center md:hidden">
+        <div className="my-4 min-h-[30vh] flex justify-center md:hidden">
           <AdSlot
             id="div-gpt-ad-1661333336129-0"
             name="ROS_Midrec"
@@ -78,7 +80,7 @@ export const CategoryPostsLayout = ({
 
       {/* Horizontal Load More Section */}
 
-      <HorizontalLoadMore posts={remainingPosts} />
+      <HorizontalLoadMore posts={remainingPosts} categoryName={categoryName} />
 
       {/* Category Sections */}
       {currentPage?.subCategories?.map((category, index) => {
@@ -93,7 +95,7 @@ export const CategoryPostsLayout = ({
           <div key={category?.title ?? "CategoryTitle" + index}>
             {/* Mobile Ads */}
             {index === 0 && (
-              <div className="mt-8 flex justify-center md:hidden">
+              <div className="mt-8 min-h-[30vh] flex justify-center md:hidden">
                 <AdSlot
                   id="div-gpt-ad-1661355704641-0"
                   name="ROS_Midrec_b"
@@ -104,7 +106,7 @@ export const CategoryPostsLayout = ({
               </div>
             )}
             {index === 1 && (
-              <div className="mt-8 flex justify-center md:hidden">
+              <div className="mt-8 min-h-[65vh] flex justify-center md:hidden">
                 <AdSlot
                   id="div-gpt-ad-1661355926077-0"
                   name="ROS_Halfpage"

@@ -1,6 +1,6 @@
 export const categoriesNavigation = [
   {
-    path: "home-news",
+    path: "news",
     subCategories: [
       {
         title: "Malaysia",
@@ -25,7 +25,7 @@ export const categoriesNavigation = [
     ],
   },
   {
-    path: "home-berita",
+    path: "berita",
     subCategories: [
       {
         title: "Tempatan",
@@ -45,7 +45,7 @@ export const categoriesNavigation = [
     ],
   },
   {
-    path: "home-business",
+    path: "business",
     subCategories: [
       {
         title: "World Business",
@@ -60,7 +60,7 @@ export const categoriesNavigation = [
     ],
   },
   {
-    path: "home-lifestyle",
+    path: "lifestyle",
     subCategories: [
       {
         title: "Simple Stories",
@@ -105,7 +105,7 @@ export const categoriesNavigation = [
     ],
   },
   {
-    path: "home-opinion",
+    path: "opinion",
     subCategories: [
       {
         title: "Editorial",

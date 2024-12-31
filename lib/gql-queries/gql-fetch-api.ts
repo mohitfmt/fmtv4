@@ -1,6 +1,6 @@
 // lib/gql-queries/gql-fetch-api.ts
 
-const API_URL = "https://staging-cms.freemalaysiatoday.com/graphql";
+const API_URL = "https://cms.freemalaysiatoday.com/graphql";
 
 export async function gqlFetchAPI(
   query = "",

@@ -7,11 +7,35 @@ import Link from "next/link";
 import AdSlot from "../common/AdSlot";
 import { useStableId } from "@/hooks/useStableId";
 
+
+
+const dfpTargetingParams = {
+  pos: "listing",
+  section: ["homepage", "business", "opinion", "world", "lifestyle", "sports"],
+  key: [
+    "Free Malaysia Today",
+    "Malaysia News",
+    "Latest Malaysia News",
+    "Breaking News Malaysia",
+    "Malaysia Politics News",
+    "gambling",
+    "religion",
+    "alcohol",
+    "lgbt",
+    "sex",
+    "drug abuse",
+    "get rich",
+    "match-making",
+    "dating",
+    "lottery",
+  ],
+};
+
 export default function TopBanner() {
   const refreshId = useStableId();
   return (
     <>
-      <header className="sticky lg:-top-20 top-10 z-20 bg-background br-b border-stone-400">
+      <header className="sticky overflow-hidden lg:-top-20 top-10 z-20 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
             href={refreshId ? `/?${refreshId}` : "/"}
@@ -26,7 +50,7 @@ export default function TopBanner() {
 
             <span className="sr-only">Home</span>
           </Link>
-          <div className="hidden lg:flex items-center justify-center w-full h-24 rounded-md mx-5">
+          <div className="hidden lg:flex items-center justify-center w-full h-[100px] rounded-md mx-5">
             <AdSlot
               name="ROS_Multisize_Leaderboard"
               sizes={[
@@ -35,6 +59,7 @@ export default function TopBanner() {
               ]}
               id="div-gpt-ad-1661417956793-0"
               visibleOnDevices="onlyDesktop"
+              targetingParams={dfpTargetingParams}
             />
           </div>
 

@@ -1,3 +1,21 @@
+export const CustomHomeNewsExcludeVariables = [
+  {
+    first: 5,
+    status: "PUBLISH",
+    taxQuery: {
+      taxArray: [
+        {
+          field: "SLUG",
+          operator: "AND",
+          taxonomy: "CATEGORY",
+          terms: ["top-news"],
+        },
+      ],
+      relation: "AND",
+    },
+  },
+];
+
 export const CustomHomeBusinessVariables = {
   where: {
     taxQuery: {
@@ -34,7 +52,6 @@ export const CustomHomeBusinessExcludeVariables = [
   },
 ];
 
-
 export const CustomHomeSportsVariables = {
   first: 100,
   after: null,
@@ -70,5 +87,4 @@ export const CustomHomeSportsExcludeVariables = [
     },
   },
 ];
-
 

@@ -276,3 +276,5 @@ export async function fetchLastUpdateTime() {
 
 export const stripHTML = (htmlString: string) =>
   htmlString?.replace(/<\/?[^>]+(>|$)|\n/g, "").trim();
+
+
