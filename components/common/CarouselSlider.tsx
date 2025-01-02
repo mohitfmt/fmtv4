@@ -36,8 +36,8 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
   }
 
   return (
-    <Carousel opts={{ loop: true }} plugins={[Autoplay()]}>
-      <CarouselContent>
+    <Carousel opts={{ loop: true }} plugins={[Autoplay()]} className=" px-3">
+      <CarouselContent className="">
         {posts.map((node: Post) => (
           <CarouselItem
             key={node.id}
@@ -78,8 +78,20 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselNext />
-      <CarouselPrevious />
+      <CarouselNext
+        className="h-6 w-6 bg-foreground 
+        rounded-r-xl rounded-l-none border-gray-200 py-10 
+        text-background hover:text-accent-yellow hover:bg-foreground 
+        hover:border-accent-yellow    
+        transition-all duration-300 ease-in-out"
+      />
+      <CarouselPrevious
+        className="h-6 w-6 bg-foreground
+        rounded-l-xl rounded-r-none border-gray-200 py-10 
+        text-background hover:text-accent-yellow hover:bg-foreground 
+        hover:border-accent-yellow    
+        transition-all duration-300 ease-in-out"
+      />
     </Carousel>
   );
 };

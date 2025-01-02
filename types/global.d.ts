@@ -88,3 +88,14 @@ export interface PostCardProps {
     };
   };
 }
+
+
+interface AdsTargetingParams {
+  pos: string;
+  section: string[];
+  key?: string[]; 
+  articleId?: string; 
+  premium?: string; 
+  sponsored?: string; 
+}
+

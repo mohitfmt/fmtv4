@@ -1,4 +1,4 @@
-import { FaShareAlt } from "react-icons/fa";
+import { useState, useEffect } from 'react';
 import {
   FacebookShareButton,
   TwitterShareButton,
@@ -19,6 +19,7 @@ import {
   EmailShareButton,
   EmailIcon,
 } from "react-share";
+import { FaShareAlt } from "react-icons/fa";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-interface ShareButtonProps {
+interface ShareComponentsProps {
   url: string;
   title: string;
   mediaUrl: string;
@@ -38,7 +39,7 @@ type ShareOptionType = {
   name: string;
   Button: React.ComponentType<any>;
   Icon: React.ComponentType<any>;
-  getProps: (args: ShareButtonProps) => Record<string, any>;
+  getProps: (args: ShareComponentsProps) => Record<string, any>;
 };
 
 const createXHashtag = (phrase: string | undefined | null): string => {
@@ -60,20 +61,35 @@ const createXHashtag = (phrase: string | undefined | null): string => {
   }
 };
 
-const ShareButton: React.FC<ShareButtonProps> = ({
+const ShareComponents: React.FC<ShareComponentsProps> = ({
   url,
   title,
   mediaUrl,
-  hashs = [], // Provide default empty array
+  hashs = [],
 }) => {
-  // Filter out non-string values and create hashtags
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    // Ensure ads are refreshed after share buttons mount
+    window.googletag?.cmd.push(() => {
+      window.googletag.pubads().refresh();
+    });
+  }, []);
+
+  // Return loading state or null for SSR
+  if (!isClient) {
+    return (
+      <Button variant="outline" className="w-full sm:w-auto border-[0.5px]">
+        <FaShareAlt className="mr-2 h-4 w-4" /> Share
+      </Button>
+    );
+  }
+
   const xHashTags = hashs
     .filter((hash): hash is string => typeof hash === "string")
     .map(createXHashtag)
-    .filter(Boolean); // Remove any empty strings
-
-  const getShareText = (platform: string) =>
-    `Share this article "${title}" on ${platform}`;
+    .filter(Boolean);
 
   const shareOptions: ShareOptionType[] = [
     {
@@ -132,6 +148,9 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     },
   ];
 
+  const getShareText = (platform: string) =>
+    `Share this article "${title}" on ${platform}`;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -149,7 +168,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
               className="flex items-center cursor-pointer hover:bg-accent/50 transition-colors gap-3"
               aria-label={getShareText(name)}
             >
-              <Icon size={32} round  />
+              <Icon size={32} round />
               <span>{name}</span>
             </Button>
           </DropdownMenuItem>
@@ -159,4 +178,4 @@ const ShareButton: React.FC<ShareButtonProps> = ({
   );
 };
 
-export default ShareButton;
+export default ShareComponents;

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { PostCardProps } from "@/types/global";
 import TTBNewsPreview from "../common/news-preview-cards/TTBNewsPreview";
@@ -8,17 +8,20 @@ import SectionHeading from "../common/SectionHeading";
 import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
 import { Button } from "../ui/button";
 import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";
+import SubCategoriesLoadingSkeleton from "../skeletons/SubCategoriesLoadingSkeleton";
 
-interface SubCategoriesWithLoadMoreProps {
+interface Posts {
+  edges: Array<{
+    node: PostCardProps;
+  }>;
+}
+
+export interface SubCategoriesWithLoadMoreProps {
   slug: string;
   title: string;
   href: string;
   path?: string;
-  posts: {
-    edges: Array<{
-      node: PostCardProps;
-    }>;
-  };
+  posts: Posts;
   bigImage: boolean;
 }
 
@@ -27,31 +30,145 @@ const SubCategoriesWithLoadMore = ({
   href,
   posts,
   bigImage,
+  slug,
 }: SubCategoriesWithLoadMoreProps) => {
   const [currentPage, setCurrentPage] = useState(0);
+  const [allPosts, setAllPosts] = useState(posts.edges);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
     "next"
   );
+
+  const pageCache = useRef<Record<number, Array<{ node: PostCardProps }>>>({});
+  const prefetchingPages = useRef<Set<number>>(new Set());
+
   const postsPerPage = 6;
 
-  const allPosts = posts?.edges || [];
-  const totalPages = Math.ceil(allPosts.length / postsPerPage);
+  // Prefetch function
+  const prefetchNextPage = useCallback(
+    async (pageNumber: number) => {
+      if (
+        pageCache.current[pageNumber] ||
+        prefetchingPages.current.has(pageNumber)
+      ) {
+        return;
+      }
 
-  // Get current page posts
-  const currentPosts = allPosts.slice(
-    currentPage * postsPerPage,
-    (currentPage + 1) * postsPerPage
+      prefetchingPages.current.add(pageNumber);
+      try {
+        const response = await fetch(
+          `/api/subcategory-posts?page=${pageNumber}&slug=${slug}`
+        );
+        const data = await response.json();
+
+        if (data.posts?.length > 0) {
+          pageCache.current[pageNumber] = data.posts;
+        }
+      } catch (error) {
+        console.error("Error prefetching:", error);
+      } finally {
+        prefetchingPages.current.delete(pageNumber);
+      }
+    },
+    [slug]
   );
 
-  const handleNext = () => {
-    setAnimationDirection("next");
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  // Load more posts function
+  const loadMorePosts = async () => {
+    if (isLoading || !hasMore) return false;
+
+    const nextPage = Math.floor(allPosts.length / postsPerPage);
+
+    try {
+      if (pageCache.current[nextPage]) {
+        setAllPosts((prev) => [...prev, ...pageCache.current[nextPage]]);
+        setHasMore(pageCache.current[nextPage].length === postsPerPage);
+        return true;
+      }
+
+      const response = await fetch(
+        `/api/subcategory-posts?page=${nextPage}&slug=${slug}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts");
+      }
+
+      const data = await response.json();
+
+      if (data.posts?.length > 0) {
+        setAllPosts((prev) => [...prev, ...data.posts]);
+        setHasMore(data.posts.length === postsPerPage);
+        return true;
+      }
+
+      setHasMore(false);
+      return false;
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+      return false;
+    }
   };
 
-  const handlePrevious = () => {
-    setAnimationDirection("prev");
-    setCurrentPage((prev) => Math.max(prev - 1, 0));
+  // Handle next page
+  const handleNext = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    const nextPage = currentPage + 1;
+    const needsMorePosts = nextPage * postsPerPage >= allPosts.length;
+
+    if (needsMorePosts && hasMore) {
+      const loaded = await loadMorePosts();
+      if (!loaded) {
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setAnimationDirection("next");
+    setCurrentPage(nextPage);
+
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+
+    const nextPageToFetch = Math.floor(allPosts.length / postsPerPage) + 1;
+    prefetchNextPage(nextPageToFetch);
   };
+
+  // Handle previous page
+  const handlePrevious = useCallback(() => {
+    if (currentPage > 0 && !isLoading) {
+      setIsLoading(true);
+      setAnimationDirection("prev");
+      setCurrentPage((prev) => prev - 1);
+
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+    }
+  }, [currentPage, isLoading]);
+
+  // Get current posts for display
+  const getCurrentPosts = useCallback(() => {
+    const startIndex = currentPage * postsPerPage;
+    return allPosts.slice(startIndex, startIndex + postsPerPage);
+  }, [allPosts, currentPage]);
+
+  // Prefetch next page on mount and when approaching end
+  useEffect(() => {
+    const nextPage = Math.floor(allPosts.length / postsPerPage);
+    if (hasMore && currentPage >= nextPage - 1) {
+      prefetchNextPage(nextPage);
+    }
+  }, [currentPage, allPosts.length, hasMore, prefetchNextPage]);
+
+  const currentPosts = getCurrentPosts();
+  const canGoNext =
+    hasMore || currentPage < Math.ceil(allPosts.length / postsPerPage) - 1;
+  const canGoPrevious = currentPage > 0;
 
   const homeCategoryJsonLD = generatedJsonLd(
     allPosts,
@@ -59,12 +176,15 @@ const SubCategoriesWithLoadMore = ({
     title
   );
 
-  if (!allPosts.length) {
-    return null;
+  // Render loading state
+  if (isLoading && currentPosts.length === 0) {
+    return <SubCategoriesLoadingSkeleton />;
   }
 
+  if (!allPosts.length) return null;
+
   return (
-    <div className="py-5 overflow-hidden">
+    <div className="py-5 overflow-hidden min-h-[400px] my-1">
       <Link href={href}>
         <SectionHeading sectionName={title} />
       </Link>
@@ -83,52 +203,46 @@ const SubCategoriesWithLoadMore = ({
           ${animationDirection === "next" ? "slide-in-right" : "slide-in-left"}
         `}
       >
-        {currentPosts
-          ?.slice(0, 2)
-          ?.map(({ node }) => (
-            <TTBNewsPreview {...node} key={node?.id} isBig={bigImage} />
-          ))}
-        {currentPosts
-          ?.slice(2, 6)
-          ?.map(({ node }) => <LTRNewsPreview {...node} key={node?.id} />)}
+        {currentPosts.slice(0, 2).map(({ node }) => (
+          <TTBNewsPreview {...node} key={node?.id} isBig={bigImage} />
+        ))}
+        {currentPosts.slice(2, 6).map(({ node }) => (
+          <LTRNewsPreview {...node} key={node?.id} />
+        ))}
       </section>
 
-      {totalPages > 1 && (
-        <div
-          className="flex items-center gap-5"
-          role="navigation"
-          aria-label={`${title} pagination`}
+      <div
+        className="flex items-center gap-5 mt-4"
+        role="navigation"
+        aria-label={`${title} pagination`}
+      >
+        <Button
+          variant="outline"
+          className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          disabled={!canGoPrevious || isLoading}
+          onClick={handlePrevious}
+          aria-label={`Previous page of ${title}`}
+          aria-disabled={!canGoPrevious || isLoading}
         >
-          <Button
-            variant="outline"
-            className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
-            disabled={currentPage === 0}
-            title="Previous"
-            onClick={handlePrevious}
-            aria-label={`Previous page of ${title}`}
-            aria-disabled={currentPage <= 1 || false}
-          >
-            <span className="flex items-center justify-center">
-              <FaArrowLeftLong className="mr-2" aria-hidden="true" />
-              Previous
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
-            disabled={currentPage === totalPages - 1}
-            title="Next"
-            onClick={handleNext}
-            aria-label={`Next page of ${title}`}
-            aria-disabled={currentPage === totalPages - 1 || false}
-          >
-            <span className="flex items-center justify-center">
-              Next
-              <FaArrowRightLong className="ml-2" aria-hidden="true" />
-            </span>
-          </Button>
-        </div>
-      )}
+          <span className="flex items-center justify-center">
+            <FaArrowLeftLong className="mr-2" aria-hidden="true" />
+            Previous
+          </span>
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full transition-colors  dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          disabled={!canGoNext || isLoading}
+          onClick={handleNext}
+          aria-label={`Next page of ${title}`}
+          aria-disabled={!canGoNext || isLoading}
+        >
+          <span className="flex items-center justify-center">
+            Next
+            <FaArrowRightLong className="ml-2" aria-hidden="true" />
+          </span>
+        </Button>
+      </div>
     </div>
   );
 };

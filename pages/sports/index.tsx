@@ -98,6 +98,7 @@ const HomeSports = ({
         currentPage={currentPage}
         AdsTargetingParams={dfpTargetingParams}
         subCategoryPosts={subCategoryPosts}
+        categoryName={pathName}
       />
     </>
   );
@@ -105,81 +106,62 @@ const HomeSports = ({
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    // Main category: Initial 5 posts, then chunks of 5 up to 100
-    const mainChunkSize = 5;
-    const totalPosts = 20;
-    const mainChunks = [];
-
-    for (let offset = 0; offset < totalPosts; offset += mainChunkSize) {
-      const chunk = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-        variables: {
-          first: mainChunkSize,
-          where: {
-            offsetPagination: { offset, size: mainChunkSize },
-            taxQuery: {
-              relation: "AND",
-              taxArray: [
-                {
-                  field: "SLUG",
-                  operator: "AND",
-                  taxonomy: "CATEGORY",
-                  terms: [`${terms}`],
-                },
-              ],
-            },
+    // Initial fetch for main category
+    const initialPosts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
+      variables: {
+        first: 5,
+        where: {
+          offsetPagination: { offset: 0, size: 9 },
+          taxQuery: {
+            relation: "AND",
+            taxArray: [
+              {
+                field: "SLUG",
+                operator: "AND",
+                taxonomy: "CATEGORY",
+                terms: [`${terms}`],
+              },
+            ],
           },
         },
-      });
+      },
+    });
 
-      // If we got fewer posts than requested, we've reached the end
-      if (chunk.posts.edges.length === 0) break;
-      mainChunks.push(...chunk.posts.edges);
-    }
-
-    // Find current page config to get subcategories
+    // Find current page config
     const currentPage = categoriesNavigation.find(
       (p) => p.path === pathName.replaceAll("/", "")
     );
 
-    // Fetch subcategory posts in parallel
-    const subCategoryPosts = await Promise.all(
+    // Fetch initial posts for each subcategory
+    const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const subChunkSize = 6;
-        const totalSubPosts = 18;
-        const subChunks = [];
-
-        for (let offset = 0; offset < totalSubPosts; offset += subChunkSize) {
-          const chunk = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-            variables: {
-              first: subChunkSize,
-              where: {
-                offsetPagination: { offset, size: subChunkSize },
-                taxQuery: {
-                  relation: "AND",
-                  taxArray: [
-                    {
-                      field: "SLUG",
-                      operator: "AND",
-                      taxonomy: "CATEGORY",
-                      terms: [category.slug],
-                    },
-                  ],
-                },
-                excludeQuery: excludeVariables,
+        const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
+          variables: {
+            first: 6,
+            where: {
+              offsetPagination: { offset: 0, size: 6 },
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: [category.slug],
+                  },
+                ],
               },
+              excludeQuery: excludeVariables,
             },
-          });
-
-          // If we got fewer posts than requested, we've reached the end
-          if (chunk.posts.edges.length === 0) break;
-          subChunks.push(...chunk.posts.edges);
-        }
+          },
+        });
 
         return {
           slug: category.slug,
           posts: {
-            edges: subChunks,
+            edges: posts.posts.edges,
           },
+          bigImage: true,
         };
       })
     );
@@ -187,11 +169,10 @@ export const getStaticProps: GetStaticProps = async () => {
     return {
       props: {
         posts: {
-          edges: mainChunks,
+          edges: initialPosts.posts.edges,
         },
         currentPage: currentPage || null,
-        subCategoryPosts,
-        AdsTargetingParams: dfpTargetingParams,
+        subCategoryPosts: initialSubCategoryPosts,
       },
       revalidate: 300,
     };
@@ -202,12 +183,11 @@ export const getStaticProps: GetStaticProps = async () => {
         posts: { edges: [] },
         currentPage: null,
         subCategoryPosts: [],
-        AdsTargetingParams: dfpTargetingParams,
+
         error: "Failed to load content",
       },
       revalidate: 10,
     };
   }
 };
-
 export default HomeSports;

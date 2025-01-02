@@ -1,6 +1,5 @@
 import AdSlot from "@/components/common/AdSlot";
 import LTRNewsPreview from "@/components/common/news-preview-cards/LTRNewsPreview";
-import MostViewed from "@/components/common/most-viewed/MostViewed";
 import SectionHeading from "@/components/common/SectionHeading";
 import TrendingNSubCategoriesList from "@/components/common/TrendingNSubCategoriesList";
 import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPreview";
@@ -17,6 +16,7 @@ import { PrismaClient } from "@prisma/client";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import CategorySidebar from "@/components/common/CategorySidebar";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -217,15 +217,10 @@ export default function Home({
               {/* Previous Next Button Place */}
             </div>
             <div className="flex flex-col mb-3 md:col-span-4 col-span-12">
-              <div className="flex justify-center items-center h-72 -mt-1">
-                <AdSlot
-                  sizes={[300, 250]}
-                  id="div-gpt-ad-1661333336129-0"
-                  name="ROS_Midrec"
-                  targetingParams={dfpTargetingParams}
-                />
-              </div>
-              <MostViewed />
+              <CategorySidebar
+                pageName="home"
+                adsTargetingParams={dfpTargetingParams}
+              />
             </div>
           </div>
         </section>
@@ -254,7 +249,7 @@ export default function Home({
           </div>
         </section>
         <LatestVideosOnHomePage videos={videoPosts} />
-        <div className="flex justify-center">
+        <div className="flex md:hidden justify-center items-center h-[68vh]">
           <AdSlot
             id="div-gpt-ad-1661355926077-0"
             name="ROS_Halfpage"

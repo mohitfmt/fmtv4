@@ -3,8 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
-// import MostViewed from "@/components/common/most-viewed/MostViewed";
-// import AdSlot from "@/components/common/AdSlot";
+import AdSlot from "@/components/common/AdSlot";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import NewsAuthor from "@/components/common/NewsAuthor";
 // import PublishingDateTime from "@/components/common/display-date-formats/PublishingDateTime";
@@ -16,18 +15,19 @@ import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import dynamic from "next/dynamic";
 import { MostViewedSkeleton } from "@/components/skeletons/MostViewedSkeleton";
+// import CategorySidebar from "@/components/common/CategorySidebar";
 
-const MostViewed = dynamic(
-  () => import("@/components/common/most-viewed/MostViewed"),
+const CategorySidebar = dynamic(
+  () => import("@/components/common/CategorySidebar"),
   {
     loading: () => <MostViewedSkeleton />,
     ssr: true,
   }
 );
 
-const AdSlot = dynamic(() => import("@/components/common/AdSlot"), {
-  ssr: false,
-});
+// const AdSlot = dynamic(() => import("@/components/common/AdSlot"), {
+//   ssr: false,
+// });
 
 // Default tags for articles without tags
 const DEFAULT_TAGS = [
@@ -180,7 +180,10 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
 
     // Default fallback
     return "Free Malaysia Today";
-  };
+  }; 
+
+  // console.log("post", post);
+  
 
   return (
     <>
@@ -308,16 +311,10 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
             />
           </article>
           <aside className="col-span-2 lg:col-span-1 lg:mt-32">
-            <div className="my-4 lg:min-h-64 flex justify-center items-center">
-              <AdSlot
-                sizes={[300, 250]}
-                id="div-gpt-ad-1661333336129-0"
-                name="ROS_Midrec"
-                visibleOnDevices="onlyDesktop"
-                targetingParams={dfpTargetingParams}
-              />
-            </div>
-            <MostViewed />
+            <CategorySidebar
+              pageName="article"
+              adsTargetingParams={dfpTargetingParams}
+            />
           </aside>
         </div>
       </main>
@@ -333,6 +330,8 @@ export const getStaticPaths: GetStaticPaths = async () => {
       console.warn("No posts found in getStaticPaths");
       return { paths: [], fallback: "blocking" };
     }
+
+    // console.log("allPosts.edges", allPosts.edges);
 
     const paths = allPosts.edges
       .filter((edge: any) => edge?.node?.uri)
@@ -367,7 +366,8 @@ export const getStaticProps: GetStaticProps = async ({
     }
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
-
+    
+    // console.log("data", data);
     if (!data?.post) {
       return { notFound: true };
     }

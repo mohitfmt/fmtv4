@@ -1,5 +1,5 @@
 import { formattedJsonDate } from '@/components/common/display-date-formats/DateFormates'
-import { stripHTML } from './html-utils'
+import { stripHTML } from '@/lib/utils'
 import { PostCardProps } from '@/types/global'
 
 const findSection = (uri: string) => {

@@ -2,10 +2,10 @@ import * as React from "react";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -206,7 +206,7 @@ const CarouselPrevious = React.forwardRef<
       className={cn(
         "absolute  h-8 w-8 rounded-lg bg-background",
         orientation === "horizontal"
-          ? "left-1 top-[40%] -translate-y-1/2"
+          ? "left-0 top-[38%] -translate-y-1/2"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
@@ -214,7 +214,7 @@ const CarouselPrevious = React.forwardRef<
       onClick={scrollPrev}
       {...props}
     >
-      <ArrowLeft className="h-4 w-4" />
+      <HiOutlineChevronLeft className="h-4 w-4" />
       <span className="sr-only">Previous slide</span>
     </Button>
   );
@@ -233,9 +233,9 @@ const CarouselNext = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-lg bg-background",
+        "absolute",
         orientation === "horizontal"
-          ? "right-1 top-[40%] -translate-y-1/2"
+          ? "right-0 top-[38%] -translate-y-1/2"
           : "bottom-12 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
@@ -243,7 +243,7 @@ const CarouselNext = React.forwardRef<
       onClick={scrollNext}
       {...props}
     >
-      <ArrowRight className="h-4 w-4" />
+      <HiOutlineChevronRight className="h-4 w-4" />
       <span className="sr-only">Next slide</span>
     </Button>
   );

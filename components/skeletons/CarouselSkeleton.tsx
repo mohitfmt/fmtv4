@@ -8,7 +8,7 @@ const CarouselSkeleton: React.FC<CarouselSkeletonProps> = ({
   imageHeight = 250,
 }) => {
   return (
-    <div className="animate-pulse">
+    <div className="animate-pulse min-h-[50vh]">
       <div
         className="w-full rounded-lg mb-2 bg-stone-100"
         style={{
