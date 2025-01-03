@@ -180,10 +180,9 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
 
     // Default fallback
     return "Free Malaysia Today";
-  }; 
+  };
 
   // console.log("post", post);
-  
 
   return (
     <>
@@ -258,10 +257,10 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
       </div>
       <main className="px-2 md:px-0">
         <div className="grid lg:grid-cols-3 gap-8">
-          <article className="col-span-2">
+          <article className="col-span-2 w-[90vw]">
             <header>
               <h1
-                className="headline text-4xl md:text-6xl font-bold my-3 md:w-[80vw]"
+                className="headline text-4xl md:text-6xl font-bold my-3 w-full md:w-[80vw]"
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
               />
               <div className="flex justify-between items-center my-1">
@@ -310,7 +309,7 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
               additionalFields={post}
             />
           </article>
-          <aside className="col-span-2 lg:col-span-1 lg:mt-32">
+          <aside className="col-span-2 lg:col-span-1 lg:mt-32 w-[90vw]">
             <CategorySidebar
               pageName="article"
               adsTargetingParams={dfpTargetingParams}
@@ -366,7 +365,7 @@ export const getStaticProps: GetStaticProps = async ({
     }
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
-    
+
     // console.log("data", data);
     if (!data?.post) {
       return { notFound: true };
