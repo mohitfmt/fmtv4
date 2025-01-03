@@ -257,7 +257,7 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
       </div>
       <main className="px-2 md:px-0">
         <div className="grid lg:grid-cols-3 gap-8">
-          <article className="col-span-2 w-[90vw]">
+          <article className="col-span-2">
             <header>
               <h1
                 className="headline text-4xl md:text-6xl font-bold my-3 w-full md:w-[80vw]"
@@ -309,7 +309,7 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
               additionalFields={post}
             />
           </article>
-          <aside className="col-span-2 lg:col-span-1 lg:mt-32 w-[90vw]">
+          <aside className="col-span-2 lg:col-span-1 lg:mt-32 overflow-hidden">
             <CategorySidebar
               pageName="article"
               adsTargetingParams={dfpTargetingParams}
