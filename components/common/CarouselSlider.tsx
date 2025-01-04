@@ -36,7 +36,7 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
   }
 
   return (
-    <Carousel opts={{ loop: true }} plugins={[Autoplay()]} className=" px-3">
+    <Carousel opts={{ loop: true }} plugins={[Autoplay()]}>
       <CarouselContent className="">
         {posts.map((node: Post) => (
           <CarouselItem
