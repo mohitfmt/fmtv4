@@ -40,12 +40,7 @@ const GPTProvider: React.FC<{
 }) => {
   const pageAdSlotsRef = useRef<Record<string, any>>({});
   const [isGPTInitialized, setIsGPTInitialized] = useState(false);
-  useEffect(() => {
-    if (!isGPTInitialized) {
-      // Initialize GPT here
-      setIsGPTInitialized(true);
-    }
-  }, []);
+  const initializationTimer = useRef<number>();
 
   const addPageAdSlot = useCallback(
     (id: string, params = {}) => {
@@ -124,11 +119,9 @@ const GPTProvider: React.FC<{
             ...dfpTargetingParams,
             ...customDfpTargetingParams,
           }).forEach(([key, value]) => {
-            // Type guard to ensure value is string or string[]
             if (typeof value === "string" || Array.isArray(value)) {
               slot.setTargeting(key, value);
             } else if (value !== null && value !== undefined) {
-              // Convert other types to string
               slot.setTargeting(key, String(value));
             }
           });
@@ -152,22 +145,35 @@ const GPTProvider: React.FC<{
       window.googletag.cmd.push(() => {
         const pubAdsService = window.googletag.pubads();
         pubAdsService.enableSingleRequest();
+        // Enable lazy loading for below-fold ads
+        pubAdsService.enableLazyLoad({
+          fetchMarginPercent: 100, // Fetch ads within 1 viewport away
+          renderMarginPercent: 50, // Render ads within 0.5 viewports away
+          mobileScaling: 2.0, // Double the fetch margin on mobile
+        });
         setIsGPTInitialized(true);
       });
     };
 
-    if (!window.googletag) {
-      const script = document.createElement("script");
-      script.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
-      script.async = true;
-      script.onload = initGPT;
-      document.head.appendChild(script);
-    } else {
-      initGPT();
-    }
+    // Initialize after first paint
+    initializationTimer.current = window.requestAnimationFrame(() => {
+      if (!window.googletag) {
+        const script = document.createElement("script");
+        script.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+        script.async = true;
+        script.onload = initGPT;
+        document.head.appendChild(script);
+      } else {
+        initGPT();
+      }
+    });
 
-    // Remove the manual refresh logic
-  }, [isGPTInitialized]);
+    return () => {
+      if (initializationTimer.current) {
+        window.cancelAnimationFrame(initializationTimer.current);
+      }
+    };
+  }, []);
 
   return (
     <GPTContext.Provider

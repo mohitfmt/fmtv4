@@ -317,12 +317,6 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
           </aside>
         </div>
       </main>
-
-      <script
-        src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"
-        defer
-        async
-      />
     </>
   );
 };

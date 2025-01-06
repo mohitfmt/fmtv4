@@ -9,13 +9,21 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+
+const preloadGPTScript = () => {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "script";
+  link.href = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+  document.head.appendChild(link);
+};
 
 const GPTProvider = dynamic(
   () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
   {
     ssr: false,
-    loading: () => <div>Loading Ads...</div>,
+    loading: () => null,
   }
 );
 
@@ -50,14 +58,14 @@ export default function App({
   Component,
   pageProps: { ...pageProps },
 }: AppProps) {
-  const [isAdProviderLoaded, setIsAdProviderLoaded] = useState(false);
+  const isAdInitialized = useRef(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAdProviderLoaded(true);
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    if (!isAdInitialized.current) {
+      // Preload GPT script early but initialize later
+      preloadGPTScript();
+      isAdInitialized.current = true;
+    }
   }, []);
 
   const content = (
@@ -96,19 +104,15 @@ export default function App({
           }}
         >
           <MultipurposeProvider>
-            {isAdProviderLoaded ? (
-              <GPTProvider
-                prefix="FMT"
-                networkId="1009103"
-                bodyAdSlots={{}}
-                dfpTargetingParams={{}}
-                asPath="/"
-              >
-                {content}
-              </GPTProvider>
-            ) : (
-              content
-            )}
+            <GPTProvider
+              prefix="FMT"
+              networkId="1009103"
+              bodyAdSlots={{}}
+              dfpTargetingParams={{}}
+              asPath="/"
+            >
+              {content}
+            </GPTProvider>
           </MultipurposeProvider>
         </ThemeProvider>
       </AuthProvider>
