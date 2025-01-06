@@ -67,10 +67,14 @@ export interface PostCardProps {
   uri: string;
   date: string;
   excerpt?: string;
+
+  // Changed from any[] to proper typing
   categories?: {
-    // Changed from any[] to proper typing
-    edges: Array<>;
+    edges: Array<{
+      node: Category;
+    }>;
   };
+
   author?: {
     node?: {
       uri?: string;
@@ -89,13 +93,62 @@ export interface PostCardProps {
   };
 }
 
-
 interface AdsTargetingParams {
   pos: string;
   section: string[];
-  key?: string[]; 
-  articleId?: string; 
-  premium?: string; 
-  sponsored?: string; 
+  key?: string[];
+  articleId?: string;
+  premium?: string;
+  sponsored?: string;
 }
 
+//Category Landing Pages Interfaces
+
+interface SubCategoryPost {
+  slug: string;
+  posts: {
+    edges: PostsResponse["posts"]["edges"];
+  };
+  bigImage: boolean;
+}
+
+interface CategoryLandingProps {
+  posts: {
+    edges: PostsResponse["posts"]["edges"];
+  };
+  currentPage: (typeof categoriesNavigation)[0] | undefined;
+  error?: string;
+  subCategoryPosts: SubCategoryPost[];
+  AdsTargetingParams: {
+    pos: string;
+    section: string[];
+  };
+}
+
+interface Author {
+  uri: string;
+  slug: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  avatar: {
+    url: string;
+  };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface FeaturedImage {
+  sourceUrl: string;
+  mediaItemUrl: string;
+}

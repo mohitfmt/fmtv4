@@ -35,7 +35,7 @@ const MostViewed = () => {
   }
 
   return (
-    <div className="flex flex-col mb-8 md:pl-5 pl-2 justify-center">
+    <div className="flex flex-col mb-8 justify-center">
       <SectionHeading sectionName="most viewed last 2 days" />
       {isLoading ? (
         <MostViewedSkeleton />

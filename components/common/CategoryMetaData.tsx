@@ -18,13 +18,28 @@ interface CategoryMetadataProps {
   config: MetadataConfig;
 }
 
+const defaultAlternateLocale = [
+  "en_US",
+  "en_GB",
+  "en_AU",
+  "en_CA",
+  "en_NZ",
+  "en_IE",
+  "en_IN",
+  "en_SG",
+  "en_ZA",
+  "en_PH",
+  "en_HK",
+  "en_PK",
+];
+
 export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
   const {
     title,
     description,
     keywords,
     category,
-    alternateLocale = [],
+    alternateLocale = defaultAlternateLocale,
     pathName,
     author = "Free Malaysia Today (FMT)",
     ogImage = "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
@@ -93,6 +108,7 @@ interface JsonLDProps {
 }
 
 export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
+
   const jsonLD = generatedJsonLd(
     posts?.edges || [],
     `${process.env.NEXT_PUBLIC_APP_URL}${pathName}`,

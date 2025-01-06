@@ -21,10 +21,17 @@ const TopNavbar = ({ navigation }: Props) => {
     // For all other routes
     return pathname + "/" === href || pathname === href;
   };
-
   const isParentActive = (item: NavItem) => {
+    // Don't highlight Lifestyle when on automotive page
+    if (
+      item.title === "Lifestyle" &&
+      pathname.includes("/category/category/leisure/automotive")
+    ) {
+      return false;
+    }
+
     if (isActive(item.href)) return true;
-    return item.items?.some(subItem => isActive(subItem.href)) || false;
+    return item.items?.some((subItem) => isActive(subItem.href)) || false;
   };
 
   return (
@@ -54,7 +61,7 @@ const TopNavbar = ({ navigation }: Props) => {
               </Link>
             </div>
             {item.items && (
-              <ul className="absolute hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg">
+              <ul className="absolute space-y-1 hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg">
                 {item.items.map((subItem) => (
                   <li key={subItem.id}>
                     <Link

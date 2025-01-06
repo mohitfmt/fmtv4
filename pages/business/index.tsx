@@ -1,6 +1,6 @@
 import { GetStaticProps } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { CustomHomeSportsExcludeVariables } from "@/constants/categories-custom-variables";
+import { CustomHomeBusinessExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
   CategoryJsonLD,
@@ -10,32 +10,32 @@ import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
-import { sportsLandingTargetingParams } from "@/constants/ads-targeting-params/sports";
+import { businessLandingTargetingParams } from "@/constants/ads-targeting-params/business";
 
-const categoryTitle = "Sports";
-const excludeVariables = CustomHomeSportsExcludeVariables;
-const pathName = "/sports";
-const terms = "sports";
+const categoryTitle = "Local & World Business News";
+const excludeVariables = CustomHomeBusinessExcludeVariables;
+const pathName = "/business";
+const terms = "top-business";
 
-const HomeSports = ({
+const HomeBusiness = ({
   posts,
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
   return (
     <>
-      <CategoryMetadata config={categoriesMetadataConfigs.sports} />
+      <CategoryMetadata config={categoriesMetadataConfigs.business} />
       <CategoryJsonLD
         posts={posts}
-        pathName="/sports"
-        title={categoriesMetadataConfigs.sports.title}
+        pathName="/business"
+        title={categoriesMetadataConfigs.business.title}
       />
 
       <CategoryPostsLayout
         title={categoryTitle}
         posts={posts}
         currentPage={currentPage}
-        AdsTargetingParams={sportsLandingTargetingParams}
+        AdsTargetingParams={businessLandingTargetingParams}
         subCategoryPosts={subCategoryPosts}
         categoryName={terms}
       />
@@ -129,4 +129,4 @@ export const getStaticProps: GetStaticProps = async () => {
     };
   }
 };
-export default HomeSports;
+export default HomeBusiness;

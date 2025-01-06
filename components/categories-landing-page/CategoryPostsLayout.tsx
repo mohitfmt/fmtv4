@@ -53,7 +53,7 @@ export const CategoryPostsLayout = ({
   };
 
   return (
-    <MainLayout adsTargetingParams={AdsTargetingParams}>
+    <MainLayout adsTargetingParams={AdsTargetingParams} isCategoryPage={true}>
       <SectionHeading sectionName={title} />
 
       {/* Featured Posts Section */}
@@ -67,7 +67,7 @@ export const CategoryPostsLayout = ({
         )}
 
         {/* Mobile Ad */}
-        <div className="my-4 min-h-[30vh] flex justify-center md:hidden">
+        <div className="ads-medium-mobile">
           <AdSlot
             id="div-gpt-ad-1661333336129-0"
             name="ROS_Midrec"
@@ -95,7 +95,7 @@ export const CategoryPostsLayout = ({
           <div key={category?.title ?? "CategoryTitle" + index}>
             {/* Mobile Ads */}
             {index === 0 && (
-              <div className="mt-8 min-h-[30vh] flex justify-center md:hidden">
+              <div className="ads-medium-mobile">
                 <AdSlot
                   id="div-gpt-ad-1661355704641-0"
                   name="ROS_Midrec_b"
@@ -106,7 +106,7 @@ export const CategoryPostsLayout = ({
               </div>
             )}
             {index === 1 && (
-              <div className="mt-8 min-h-[65vh] flex justify-center md:hidden">
+              <div className="ads-tall-mobile">
                 <AdSlot
                   id="div-gpt-ad-1661355926077-0"
                   name="ROS_Halfpage"
