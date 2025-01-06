@@ -6,6 +6,10 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
+    res.setHeader(
+      "Cache-Control",
+      `s-maxage=3600, stale-while-revalidate=360`
+    );
     const [specialFeaturesPosts, galleryPosts] = await Promise.all([
       getCategoryNews("sponsored-content", 5, false),
       getCategoryNews("photos", 5, false),

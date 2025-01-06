@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export async function fetchMostViewed() {
   try {
     const mostViewedData = await prisma.mostViewed.findMany();
-    return mostViewedData.map((item) => ({
+    return mostViewedData.map((item: any) => ({
       ...item,
       date: item.date.toISOString(),
     }));

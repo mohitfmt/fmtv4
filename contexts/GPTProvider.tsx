@@ -23,7 +23,7 @@ const defaultContext: GPTContextType = {
 
 export const GPTContext = createContext<GPTContextType>(defaultContext);
 
-export const GPTProvider: React.FC<{
+const GPTProvider: React.FC<{
   children: React.ReactNode;
   prefix: string;
   networkId: string;
@@ -182,3 +182,6 @@ export const GPTProvider: React.FC<{
     </GPTContext.Provider>
   );
 };
+
+export { GPTProvider };
+export default GPTProvider;

@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com",
   },
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
   images: {
     remotePatterns: [
       {
