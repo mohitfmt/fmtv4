@@ -76,9 +76,9 @@ export default function Home({
             />
             <link
               rel="preload"
-              href={heroPosts[0]?.coverImage?.node?.sourceUrl}
+              href={heroPosts[0]?.featuredImage?.node?.sourceUrl}
               as="image"
-              imageSrcSet={`${heroPosts[0]?.coverImage?.node?.sourceUrl}?w=640 640w, ${heroPosts[0]?.coverImage?.node?.sourceUrl}?w=940 940w`}
+              imageSrcSet={`${heroPosts[0]?.featuredImage?.node?.sourceUrl}?w=640 640w, ${heroPosts[0]?.featuredImage?.node?.sourceUrl}?w=940 940w`}
               imageSizes="(max-width: 640px) 100vw, 940px"
             />
           </>
