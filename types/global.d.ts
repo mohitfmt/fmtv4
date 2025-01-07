@@ -38,7 +38,6 @@ interface PromptMomentNotification {
   getDismissedReason: () => string;
   getMomentType: () => string;
 }
-
 interface MostViewedItemType {
   uri: string;
   title: string;
@@ -58,71 +57,6 @@ interface CategoryEdge {
 
 interface Categories {
   edges: CategoryEdge[];
-}
-
-export interface PostCardProps {
-  id: string;
-  title: string;
-  slug: string;
-  uri: string;
-  date: string;
-  excerpt?: string;
-
-  // Changed from any[] to proper typing
-  categories?: {
-    edges: Array<{
-      node: Category;
-    }>;
-  };
-
-  author?: {
-    node?: {
-      uri?: string;
-      slug?: string;
-      name?: string;
-    };
-  };
-  tags?: {
-    edges?: Array<{ node: Tag }>;
-  };
-  featuredImage: {
-    node: {
-      sourceUrl: string;
-      mediaItemUrl: string;
-    };
-  };
-}
-
-interface AdsTargetingParams {
-  pos: string;
-  section: string[];
-  key?: string[];
-  articleId?: string;
-  premium?: string;
-  sponsored?: string;
-}
-
-//Category Landing Pages Interfaces
-
-interface SubCategoryPost {
-  slug: string;
-  posts: {
-    edges: PostsResponse["posts"]["edges"];
-  };
-  bigImage: boolean;
-}
-
-interface CategoryLandingProps {
-  posts: {
-    edges: PostsResponse["posts"]["edges"];
-  };
-  currentPage: (typeof categoriesNavigation)[0] | undefined;
-  error?: string;
-  subCategoryPosts: SubCategoryPost[];
-  AdsTargetingParams: {
-    pos: string;
-    section: string[];
-  };
 }
 
 interface Author {
@@ -151,4 +85,90 @@ interface Tag {
 interface FeaturedImage {
   sourceUrl: string;
   mediaItemUrl: string;
+}
+
+export interface PostCardProps {
+  id: string;
+  title: string;
+  slug: string;
+  uri: string;
+  date: string;
+  excerpt?: string;
+  categories?: {
+    edges: Array<{
+      node: Category;
+    }>;
+  };
+  author?: {
+    node?: {
+      uri?: string;
+      slug?: string;
+      name?: string;
+    };
+  };
+  tags?: {
+    edges?: Array<{ node: Tag }>;
+  };
+  featuredImage: {
+    node: {
+      sourceUrl: string;
+      mediaItemUrl: string;
+    };
+  };
+}
+
+interface PostsResponse {
+  posts: {
+    edges: Array<{
+      node: PostCardProps;
+    }>;
+  };
+}
+
+interface AdsTargetingParams {
+  pos: string;
+  section: string[];
+  key?: string[];
+  articleId?: string;
+  premium?: string;
+  sponsored?: string;
+}
+
+interface SubCategoryPost {
+  slug: string;
+  posts: {
+    edges: PostsResponse["posts"]["edges"];
+  };
+  bigImage: boolean;
+}
+
+interface CategoryLandingProps {
+  posts: {
+    edges: PostsResponse["posts"]["edges"];
+  };
+  currentPage: (typeof categoriesNavigation)[0] | undefined;
+  error?: string;
+  subCategoryPosts: SubCategoryPost[];
+  AdsTargetingParams: {
+    pos: string;
+    section: string[];
+  };
+}
+
+interface TaxQuery {
+  taxArray: Array<{
+    terms: string[];
+    taxonomy: string;
+    field: string;
+    operator?: string;
+  }>;
+  relation: string;
+}
+
+interface PostsVariables {
+  first: number;
+  where?: {
+    taxQuery?: TaxQuery;
+    status?: string;
+  };
 }

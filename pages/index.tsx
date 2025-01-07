@@ -171,27 +171,29 @@ export default function Home({
             </div>
           </div>
         </section>
-        <div className="h-28 lg:h-64 min-h-24 flex justify-center items-center bg-background">
+        <div className="ads-dynamic-desktop">
           <AdSlot
             sizes={[
               [970, 90],
               [970, 250],
               [728, 90],
             ]}
+            targetingParams={dfpTargetingParams}
             id="div-gpt-ad-1661333181124-0"
             name="ROS_Billboard"
             visibleOnDevices="onlyDesktop"
-            targetingParams={dfpTargetingParams}
           />
+        </div>
+        <div className="ads-small-mobile">
           <AdSlot
             sizes={[
               [320, 50],
               [320, 100],
             ]}
+            targetingParams={dfpTargetingParams}
             id="div-gpt-ad-1661362470988-0"
             name="ROS_Mobile_Leaderboard"
             visibleOnDevices="onlyMobile"
-            targetingParams={dfpTargetingParams}
           />
         </div>
         <section id="TopNews-MostViewed" className="my-4">
@@ -249,7 +251,7 @@ export default function Home({
           </div>
         </section>
         <LatestVideosOnHomePage videos={videoPosts} />
-        <div className="flex md:hidden justify-center items-center h-[68vh]">
+        <div className="ads-tall-mobile">
           <AdSlot
             id="div-gpt-ad-1661355926077-0"
             name="ROS_Halfpage"
@@ -308,7 +310,7 @@ export default function Home({
             </div>
           </div>
         </section>
-        <div className="hidden h-24 md:flex justify-center items-center">
+        <div className="ads-small-desktop">
           <AdSlot
             sizes={[
               [728, 90],
