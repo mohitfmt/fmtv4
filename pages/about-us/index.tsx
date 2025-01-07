@@ -93,12 +93,6 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
     );
   }
 
-  const lastModified = new Date(pageData.dateGmt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <>
       <Meta
@@ -116,7 +110,6 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
           <div className="prose prose-lg max-w-none">
             {parse(pageData.content, PARSER_OPTIONS)}
           </div>
-          
         </article>
       </div>
     </>

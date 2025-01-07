@@ -22,36 +22,37 @@ const ContactUsPage = () => (
                     Career: career@freemalaysiatoday.com or +603-7932 0608.`}
       canonical="contact-us"
     />
-    <div className="py-4">
-      {/* AdSlot for Desktop */}
-      <div className="mb-4 hidden justify-center md:flex">
-        <AdSlot
-          sizes={[
-            [970, 90],
-            [970, 250],
-            [728, 90],
-          ]}
-          targetingParams={dfpTargetingParams}
-          id="div-gpt-ad-1661333181124-0"
-          name="ROS_Billboard"
-          visibleOnDevices="onlyDesktop"
-        />
-      </div>
 
-      {/* AdSlot for Mobile */}
-      <div className="mb-4 flex justify-center md:hidden">
-        <AdSlot
-          sizes={[
-            [320, 50],
-            [320, 100],
-          ]}
-          targetingParams={dfpTargetingParams}
-          id="div-gpt-ad-1661362470988-0"
-          name="ROS_Mobile_Leaderboard"
-          visibleOnDevices="onlyMobile"
-        />
-      </div>
+    {/* AdSlot for Desktop */}
+    <div className="ads-dynamic-desktop">
+      <AdSlot
+        sizes={[
+          [970, 90],
+          [970, 250],
+          [728, 90],
+        ]}
+        targetingParams={dfpTargetingParams}
+        id="div-gpt-ad-1661333181124-0"
+        name="ROS_Billboard"
+        visibleOnDevices="onlyDesktop"
+      />
+    </div>
 
+    {/* AdSlot for Mobile */}
+    <div className="ads-small-mobile">
+      <AdSlot
+        sizes={[
+          [320, 50],
+          [320, 100],
+        ]}
+        targetingParams={dfpTargetingParams}
+        id="div-gpt-ad-1661362470988-0"
+        name="ROS_Mobile_Leaderboard"
+        visibleOnDevices="onlyMobile"
+      />
+    </div>
+    
+    <div className="my-4">
       {/* Page Title */}
       <h1 className="my-10 text-center text-2xl font-extrabold md:text-3xl lg:text-4xl">
         Get In Touch With Us

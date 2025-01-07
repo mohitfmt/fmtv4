@@ -14,36 +14,33 @@ const DisclaimersPage = () => {
         description="Our site is also hooked up to other websites. However, we are not responsible for the content, accuracy, and opinions carried in these sites. If you access any of these websites, you do so at your own risk. Some or all of the material on our website are protected under copyright laws."
         canonical="disclaimers-copyright"
       />
+
+      <div className="ads-dynamic-desktop">
+        <AdSlot
+          sizes={[
+            [970, 90],
+            [970, 250],
+            [728, 90],
+          ]}
+          targetingParams={dfpTargetingParams}
+          id="div-gpt-ad-1661333181124-0"
+          name="ROS_Billboard"
+          visibleOnDevices="onlyDesktop"
+        />
+      </div>
+      <div className="ads-small-mobile">
+        <AdSlot
+          sizes={[
+            [320, 50],
+            [320, 100],
+          ]}
+          targetingParams={dfpTargetingParams}
+          id="div-gpt-ad-1661362470988-0"
+          name="ROS_Mobile_Leaderboard"
+          visibleOnDevices="onlyMobile"
+        />
+      </div>
       <div className="text-left py-4">
-        {/* AdSlot for Desktop */}
-        <div className="mb-4 hidden justify-center md:flex">
-          <AdSlot
-            sizes={[
-              [970, 90],
-              [970, 250],
-              [728, 90],
-            ]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661333181124-0"
-            name="ROS_Billboard"
-            visibleOnDevices="onlyDesktop"
-          />
-        </div>
-
-        {/* AdSlot for Mobile */}
-        <div className="mb-4 flex justify-center md:hidden">
-          <AdSlot
-            sizes={[
-              [320, 50],
-              [320, 100],
-            ]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661362470988-0"
-            name="ROS_Mobile_Leaderboard"
-            visibleOnDevices="onlyMobile"
-          />
-        </div>
-
         {/* Page Content */}
         <h1 className="mt-4 py-2 text-center text-4xl font-extrabold">
           Disclaimers / Copyright
