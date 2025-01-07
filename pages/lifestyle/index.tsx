@@ -1,6 +1,6 @@
 import { GetStaticProps } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { CustomHomeSportsExcludeVariables } from "@/constants/categories-custom-variables";
+import { CustomHomeLifestyleExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
   CategoryJsonLD,
@@ -10,32 +10,32 @@ import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
-import { sportsLandingTargetingParams } from "@/constants/ads-targeting-params/sports";
+import { lifestyleLandingTargetingParams } from "@/constants/ads-targeting-params/lifestyle";
 
-const categoryTitle = "Sports";
-const excludeVariables = CustomHomeSportsExcludeVariables;
-const pathName = "/sports";
-const terms = "sports";
+const categoryTitle = "Lifestyle";
+const excludeVariables = CustomHomeLifestyleExcludeVariables;
+const pathName = "/lifestyle";
+const terms = "leisure";
 
-const HomeSports = ({
+const HomeLifestyle = ({
   posts,
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
   return (
     <>
-      <CategoryMetadata config={categoriesMetadataConfigs.sports} />
+      <CategoryMetadata config={categoriesMetadataConfigs.lifestyle} />
       <CategoryJsonLD
         posts={posts}
-        pathName="/sports"
-        title={categoriesMetadataConfigs.sports.title}
+        pathName="/lifestyle"
+        title={categoriesMetadataConfigs.lifestyle.title}
       />
 
       <CategoryPostsLayout
         title={categoryTitle}
         posts={posts}
         currentPage={currentPage}
-        AdsTargetingParams={sportsLandingTargetingParams}
+        AdsTargetingParams={lifestyleLandingTargetingParams}
         subCategoryPosts={subCategoryPosts}
         categoryName={terms}
       />
@@ -45,12 +45,31 @@ const HomeSports = ({
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    // Initial fetch for main category
-    const initialPosts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
+    // Get top-lifestyle post
+    const topResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
       variables: {
-        first: 5,
+        first: 1,
         where: {
-          offsetPagination: { offset: 0, size: 5 },
+          taxQuery: {
+            relation: "AND",
+            taxArray: [
+              {
+                field: "SLUG",
+                operator: "AND",
+                taxonomy: "CATEGORY",
+                terms: ["top-lifestyle"],
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    // Get leisure posts excluding top-lifestyle
+    const leisureResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
+      variables: {
+        first: 4,
+        where: {
           taxQuery: {
             relation: "AND",
             taxArray: [
@@ -62,16 +81,35 @@ export const getStaticProps: GetStaticProps = async () => {
               },
             ],
           },
+          excludeQuery: [
+            {
+              first: 1,
+              status: "PUBLISH",
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: ["top-lifestyle"],
+                  },
+                ],
+              },
+            },
+          ],
         },
       },
     });
 
-    // Find current page config
+    const combinedPosts = {
+      edges: [...topResponse.posts.edges, ...leisureResponse.posts.edges],
+    };
+
     const currentPage = categoriesNavigation.find(
       (p) => p.path === pathName.replaceAll("/", "")
     );
 
-    // Fetch initial posts for each subcategory
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
         const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
@@ -97,9 +135,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
         return {
           slug: category.slug,
-          posts: {
-            edges: posts.posts.edges,
-          },
+          posts: { edges: posts.posts.edges },
           bigImage: true,
         };
       })
@@ -107,9 +143,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
     return {
       props: {
-        posts: {
-          edges: initialPosts.posts.edges,
-        },
+        posts: combinedPosts,
         currentPage: currentPage || null,
         subCategoryPosts: initialSubCategoryPosts,
       },
@@ -122,11 +156,10 @@ export const getStaticProps: GetStaticProps = async () => {
         posts: { edges: [] },
         currentPage: null,
         subCategoryPosts: [],
-
         error: "Failed to load content",
       },
       revalidate: 10,
     };
   }
 };
-export default HomeSports;
+export default HomeLifestyle;

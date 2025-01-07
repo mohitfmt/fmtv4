@@ -136,3 +136,181 @@ ul {
 .slide-in-left {
   animation-name: slideInLeft;
 }
+
+/* HTML Parsing */
+
+.htmr-img {
+  @apply rounded-xl;
+}
+
+.youtube-container {
+  @apply my-4 py-1.5;
+}
+
+figure.alignleft,
+figure.alignright {
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+figure.alignleft {
+  float: left;
+  margin-right: 12px;
+  margin-left: 0;
+}
+
+figure.alignright {
+  float: right;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+img.alignleft,
+img.alignright {
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+.addTopMargin {
+  margin-top: 12px !important;
+}
+
+img.alignleft {
+  float: left;
+  margin-right: 12px;
+  margin-left: 0;
+}
+
+img.alignright {
+  float: right;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.htmr-img-wrapper {
+  /* display: block;
+  width: auto;
+  max-width: 100%; */
+  @apply flex w-auto max-w-full items-center justify-center;
+}
+
+.htmr-figcaption {
+  display: block;
+  text-align: center;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: #6b7280;
+  padding-top: 8px;
+  word-wrap: break-word;
+  width: auto;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  figure.alignleft,
+  figure.alignright,
+  img.alignleft,
+  img.alignright {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    display: block;
+    max-width: 70%;
+    text-align: center;
+  }
+
+  .htmr-img-wrapper {
+    display: block;
+    margin: 0 auto;
+  }
+
+  .htmr-figcaption {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
+}
+
+.rbs-img-content {
+  @apply font-roboto;
+}
+
+.article-list {
+  @apply mx-5 my-4 list-disc space-y-2 text-lg;
+}
+
+.article-list-ol {
+  @apply mx-5 my-4 list-decimal space-y-2 text-lg;
+}
+
+.article-list-li {
+  @apply text-lg;
+}
+
+.mobile-ads {
+  display: flex;
+}
+
+.desktop-ads {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-ads {
+    display: none;
+  }
+
+  .desktop-ads {
+    display: flex;
+  }
+}
+
+.quote-block {
+  display: inline;
+}
+
+.location-block {
+  font-weight: bold;
+  font-style: normal;
+  color: #333;
+  display: inline;
+}
+
+abbr {
+  text-decoration: none;
+}
+
+/* Ads layout styles */
+
+.ads-small-mobile {
+  @apply mb-4 h-[120px] items-center flex justify-center md:hidden;
+}
+.ads-medium-mobile {
+  @apply my-8 h-[270px] flex items-center justify-center md:hidden;
+}
+.ads-tall-mobile {
+  @apply my-8  h-[630px] flex items-center justify-center md:hidden;
+}
+
+.ad-top-banner-desktop {
+  @apply hidden lg:flex items-center justify-center w-full h-[100px] rounded-md mx-5;
+}
+.ads-dynamic-desktop {
+  @apply md:h-[280px]  flex justify-center items-center;
+}
+
+.ads-medium-desktop {
+  @apply my-8 h-[260px]  hidden justify-center items-center md:flex;
+}
+
+.ads-small-desktop {
+  @apply my-8 h-[100px] hidden justify-center items-center md:flex;
+}
+
+.ads-tall-desktop {
+  @apply hidden md:flex justify-center items-center md:h-[610px];
+}

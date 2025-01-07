@@ -149,4 +149,19 @@ export const categoriesNavigation = [
       },
     ],
   },
+  {
+    path: "world",
+    subCategories: [
+      {
+        title: "World",
+        slug: "world",
+        href: "/category/category/world/",
+      },
+      {
+        title: "South East Asia",
+        slug: "south-east-asia",
+        href: "/category/category/south-east-asia/",
+      },
+    ],
+  },
 ];

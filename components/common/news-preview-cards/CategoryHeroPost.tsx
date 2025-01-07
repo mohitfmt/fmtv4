@@ -3,6 +3,7 @@ import { cn, getPreferredCategory } from "@/lib/utils";
 import { PostCardProps } from "@/types/global";
 import CoverImage from "../CoverImage";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
+import parse from "html-react-parser";
 
 type CategoryHeroPostProps = {
   post: PostCardProps;
@@ -17,7 +18,8 @@ const CategoryHeroPost = ({
   className,
   eagerLoadImage,
 }: CategoryHeroPostProps) => {
-  const parsedExcerpt = post?.excerpt?.replace(/<[^>]*>?/gm, "");
+  const parsedExcerpt = parse(post?.excerpt || "");
+
   const preferredCategory = getPreferredCategory(post?.categories?.edges);
 
   return (

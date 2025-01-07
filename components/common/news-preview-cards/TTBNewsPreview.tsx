@@ -16,7 +16,7 @@ const TTBNewsPreview = ({
   const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories?.edges);
   return (
-    <article className="flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 px-2 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
+    <article className="flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       <figure className="relative">
         {featuredImage && (
           <CoverImage

@@ -1,6 +1,6 @@
 import { GetStaticProps } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { CustomHomeSportsExcludeVariables } from "@/constants/categories-custom-variables";
+import { CustomHomeWorldExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
   CategoryJsonLD,
@@ -10,32 +10,32 @@ import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
-import { sportsLandingTargetingParams } from "@/constants/ads-targeting-params/sports";
+import { newsLandingTargetingParams } from "@/constants/ads-targeting-params/news";
 
-const categoryTitle = "Sports";
-const excludeVariables = CustomHomeSportsExcludeVariables;
-const pathName = "/sports";
-const terms = "sports";
+const categoryTitle = "News: World & South East Asia";
+const excludeVariables = CustomHomeWorldExcludeVariables;
+const pathName = "/world";
+const terms = "world";
 
-const HomeSports = ({
+const HomeWorld = ({
   posts,
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
   return (
     <>
-      <CategoryMetadata config={categoriesMetadataConfigs.sports} />
+      <CategoryMetadata config={categoriesMetadataConfigs.news} />
       <CategoryJsonLD
         posts={posts}
-        pathName="/sports"
-        title={categoriesMetadataConfigs.sports.title}
+        pathName="/news"
+        title={categoriesMetadataConfigs.news.title}
       />
 
       <CategoryPostsLayout
         title={categoryTitle}
         posts={posts}
         currentPage={currentPage}
-        AdsTargetingParams={sportsLandingTargetingParams}
+        AdsTargetingParams={newsLandingTargetingParams}
         subCategoryPosts={subCategoryPosts}
         categoryName={terms}
       />
@@ -44,6 +44,11 @@ const HomeSports = ({
 };
 
 export const getStaticProps: GetStaticProps = async () => {
+  // Find current page config
+  const currentPage = categoriesNavigation.find(
+    (p) => p.path === pathName.replaceAll("/", "")
+  );
+
   try {
     // Initial fetch for main category
     const initialPosts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
@@ -65,11 +70,6 @@ export const getStaticProps: GetStaticProps = async () => {
         },
       },
     });
-
-    // Find current page config
-    const currentPage = categoriesNavigation.find(
-      (p) => p.path === pathName.replaceAll("/", "")
-    );
 
     // Fetch initial posts for each subcategory
     const initialSubCategoryPosts = await Promise.all(
@@ -129,4 +129,4 @@ export const getStaticProps: GetStaticProps = async () => {
     };
   }
 };
-export default HomeSports;
+export default HomeWorld;

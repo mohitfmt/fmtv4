@@ -5,46 +5,42 @@ import AdSlot from "@/components/common/AdSlot";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import TrendingNSubCategoriesList from "../common/TrendingNSubCategoriesList";
 import { AdsTargetingParams } from "@/types/global";
+import { GeneralTargetingParams } from "@/constants/ads-targeting-params/general";
 
 interface MainLayoutProps {
   children: React.ReactNode;
   adsTargetingParams?: AdsTargetingParams;
+  isCategoryPage?: boolean;
 }
 
 export default function MainLayout({
   children,
   adsTargetingParams,
+  isCategoryPage = false,
 }: MainLayoutProps) {
-  const dfpTargetingParams = adsTargetingParams || {
-    pos: "listing",
-    section: ["category-landing-page", "landing-page"],
-    key: [
-      "gambling",
-      "religion",
-      "alcohol",
-      "lgbt",
-      "sex",
-      "drug abuse",
-      "get rich",
-      "match-making",
-      "dating",
-      "lottery",
-    ],
-  };
   const router = useRouter();
-  const mainPath = router.pathname.split("/")[1];
 
-  const currentPage = categoriesNavigation.find((page) =>
-    page.path.includes(mainPath)
-  );
+  const dfpTargetingParams =
+    adsTargetingParams ||
+    GeneralTargetingParams({
+      section: [
+        isCategoryPage ? "category-landing-page" : "subcategory-landing-page",
+        "landing-page",
+      ],
+    });
 
+  // Only compute these if it's a category page
+  const mainPath = isCategoryPage ? router.pathname.split("/")[1] : "";
+  const currentPage = isCategoryPage
+    ? categoriesNavigation.find((page) => page.path.includes(mainPath))
+    : null;
   const subcategories = currentPage?.subCategories || [];
   const hasSubcategories = subcategories.length > 0;
 
   return (
     <div>
       {/* Top Desktop Ad */}
-      <div className="md:h-[260px] flex justify-center items-center">
+      <div className="ads-dynamic-desktop">
         <AdSlot
           sizes={[
             [970, 90],
@@ -59,7 +55,7 @@ export default function MainLayout({
       </div>
 
       {/* Top Mobile Ad */}
-      <div className="mb-4 h-[120px] items-center flex justify-center md:hidden">
+      <div className="ads-small-mobile">
         <AdSlot
           sizes={[
             [320, 50],
@@ -72,8 +68,8 @@ export default function MainLayout({
         />
       </div>
 
-      {/* SubCategories */}
-      {hasSubcategories && (
+      {/* SubCategories - Only show if it's a category page and has subcategories */}
+      {isCategoryPage && hasSubcategories && (
         <TrendingNSubCategoriesList
           items={subcategories.map((cat) => ({
             id: cat.slug,
@@ -96,7 +92,7 @@ export default function MainLayout({
       </div>
 
       {/* Bottom Desktop Ad */}
-      <div className="mb-4 h-[100px] hidden justify-center items-center md:flex">
+      <div className="ads-small-desktop">
         <AdSlot
           sizes={[
             [728, 90],

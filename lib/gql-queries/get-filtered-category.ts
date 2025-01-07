@@ -95,6 +95,7 @@ export const GET_FILTERED_CATEGORY = `
           uri
           date
           slug
+          databaseId
           categories {
             edges {
               node {

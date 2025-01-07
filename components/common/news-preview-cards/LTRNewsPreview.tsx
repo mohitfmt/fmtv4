@@ -2,6 +2,7 @@ import Link from "next/link";
 import CoverImage from "../CoverImage";
 import { getPreferredCategory } from "@/lib/utils";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
+import parse from "html-react-parser";
 
 const LTRNewsPreview = ({
   title,
@@ -12,7 +13,8 @@ const LTRNewsPreview = ({
   categories,
   uri,
 }: any) => {
-  const tooltipExcerpt = excerpt.replace(/<[^>]*>?/gm, "");
+  const parsedExcerpt = parse(excerpt || "").toString();
+
   const preferredCategory = getPreferredCategory(categories.edges);
   return (
     <article className="mb-4 px-1 rounded border-b border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md transition-shadow">
@@ -52,7 +54,7 @@ const LTRNewsPreview = ({
       <div className="flex justify-between items-center mt-1 mb-3">
         <footer
           className="text-gray-600 dark:text-stone-200 transition-all duration-150 hover:text-gray-900 leading-tight line-clamp-2"
-          title={tooltipExcerpt}
+          title={parsedExcerpt}
           dangerouslySetInnerHTML={{ __html: excerpt }}
           style={{ flexShrink: 1 }}
         />

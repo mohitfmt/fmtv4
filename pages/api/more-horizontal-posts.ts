@@ -3,7 +3,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 
-// pages/api/more-posts.ts
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

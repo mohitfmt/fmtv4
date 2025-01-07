@@ -27,10 +27,8 @@ export default function UserAuthControl() {
   const [showSignInOptions, setShowSignInOptions] = useState(false);
 
   const handleLoginSuccess = (credRes: CredentialResponse) => {
-    // console.log("credRes:", credRes);
     if (credRes.credential) {
       const decodedToken = jwtDecode<GoogleUser>(credRes.credential);
-      // console.log("dec;", decodedToken);
       const userInfo: GoogleUser = {
         email: decodedToken.email,
         name: decodedToken.name,

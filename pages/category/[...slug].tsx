@@ -182,8 +182,6 @@ const NewsArticlePost = ({ preview = false, post, posts }: ArticleProps) => {
     return "Free Malaysia Today";
   };
 
-  // console.log("post", post);
-
   return (
     <>
       <Head>
@@ -330,8 +328,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
       return { paths: [], fallback: "blocking" };
     }
 
-    // console.log("allPosts.edges", allPosts.edges);
-
     const paths = allPosts.edges
       .filter((edge: any) => edge?.node?.uri)
       .map(({ node }: any) => ({
@@ -366,7 +362,6 @@ export const getStaticProps: GetStaticProps = async ({
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
 
-    // console.log("data", data);
     if (!data?.post) {
       return { notFound: true };
     }

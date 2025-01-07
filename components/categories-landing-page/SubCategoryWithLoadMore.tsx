@@ -40,6 +40,11 @@ const SubCategoriesWithLoadMore = ({
     "next"
   );
 
+  const getParentCategory = useCallback(() => {
+    if (typeof window === "undefined") return "";
+    return window.location.pathname.split("/")[1];
+  }, []);
+
   const pageCache = useRef<Record<number, Array<{ node: PostCardProps }>>>({});
   const prefetchingPages = useRef<Set<number>>(new Set());
 
@@ -48,6 +53,8 @@ const SubCategoriesWithLoadMore = ({
   // Prefetch function
   const prefetchNextPage = useCallback(
     async (pageNumber: number) => {
+      const parentCategory = getParentCategory();
+
       if (
         pageCache.current[pageNumber] ||
         prefetchingPages.current.has(pageNumber)
@@ -58,7 +65,7 @@ const SubCategoriesWithLoadMore = ({
       prefetchingPages.current.add(pageNumber);
       try {
         const response = await fetch(
-          `/api/subcategory-posts?page=${pageNumber}&slug=${slug}`
+          `/api/more-subcategory-posts?page=${pageNumber}&slug=${slug}&parentCategory=${parentCategory}`
         );
         const data = await response.json();
 
@@ -77,7 +84,7 @@ const SubCategoriesWithLoadMore = ({
   // Load more posts function
   const loadMorePosts = async () => {
     if (isLoading || !hasMore) return false;
-
+    const parentCategory = getParentCategory();
     const nextPage = Math.floor(allPosts.length / postsPerPage);
 
     try {
@@ -88,7 +95,7 @@ const SubCategoriesWithLoadMore = ({
       }
 
       const response = await fetch(
-        `/api/subcategory-posts?page=${nextPage}&slug=${slug}`
+        `/api/more-subcategory-posts?page=${nextPage}&slug=${slug}&parentCategory=${parentCategory}`
       );
 
       if (!response.ok) {
@@ -198,17 +205,21 @@ const SubCategoriesWithLoadMore = ({
       <section
         key={currentPage}
         className={`
-          grid grid-cols-1 gap-4 md:grid-cols-2
+           gap-4 
           horizontal-load-more-animation
           ${animationDirection === "next" ? "slide-in-right" : "slide-in-left"}
         `}
       >
-        {currentPosts.slice(0, 2).map(({ node }) => (
-          <TTBNewsPreview {...node} key={node?.id} isBig={bigImage} />
-        ))}
-        {currentPosts.slice(2, 6).map(({ node }) => (
-          <LTRNewsPreview {...node} key={node?.id} />
-        ))}
+        <div className="grid grid-cols-2 gap-4 mb-2">
+          {currentPosts.slice(0, 2).map(({ node }) => (
+            <TTBNewsPreview {...node} key={node?.id} isBig={bigImage} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {currentPosts.slice(2, 6).map(({ node }) => (
+            <LTRNewsPreview {...node} key={node?.id} />
+          ))}
+        </div>
       </section>
 
       <div

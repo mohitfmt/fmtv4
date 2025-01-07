@@ -6,7 +6,7 @@ interface SharedData {
   galleryPosts: Post[];
 }
 
-export const useSharedData = () => {
+export const useSideBarCarouselData = () => {
   const [sharedData, setSharedData] = useState<SharedData>({
     specialFeaturesPosts: [],
     galleryPosts: [],
@@ -17,7 +17,7 @@ export const useSharedData = () => {
   useEffect(() => {
     const fetchSharedData = async () => {
       try {
-        const res = await fetch("/api/shared-data");
+        const res = await fetch("/api/gallery-features-content");
         if (!res.ok) throw new Error("Failed to fetch shared data");
 
         const data = await res.json();

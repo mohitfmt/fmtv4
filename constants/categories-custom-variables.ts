@@ -16,23 +16,38 @@ export const CustomHomeNewsExcludeVariables = [
   },
 ];
 
-export const CustomHomeBusinessVariables = {
-  where: {
+export const CustomHomeBeritaExcludeVariables = [
+  {
+    first: 1,
+    status: "PUBLISH",
     taxQuery: {
       taxArray: [
         {
-          terms: ["business"],
+          field: "SLUG",
           operator: "AND",
           taxonomy: "CATEGORY",
-          field: "SLUG",
+          terms: ["super-bm"],
         },
       ],
       relation: "AND",
     },
   },
-  first: 5,
-  after: null,
-};
+  {
+    first: 4,
+    status: "PUBLISH",
+    taxQuery: {
+      taxArray: [
+        {
+          field: "SLUG",
+          operator: "AND",
+          taxonomy: "CATEGORY",
+          terms: ["top-bm"],
+        },
+      ],
+      relation: "AND",
+    },
+  },
+];
 
 export const CustomHomeBusinessExcludeVariables = [
   {
@@ -52,24 +67,57 @@ export const CustomHomeBusinessExcludeVariables = [
   },
 ];
 
-export const CustomHomeSportsVariables = {
-  first: 100,
-  after: null,
-  where: {
+export const CustomHomeLifestyleExcludeVariables = [
+  {
+    first: 1,
+    status: "PUBLISH",
     taxQuery: {
       taxArray: [
         {
-          terms: ["sports"],
+          field: "SLUG",
           operator: "AND",
           taxonomy: "CATEGORY",
-          field: "SLUG",
+          terms: ["top-lifestyle"],
         },
       ],
       relation: "AND",
     },
-    // status: 'PUBLISH', // Add status if needed
   },
-};
+  {
+    first: 4,
+    status: "PUBLISH",
+    taxQuery: {
+      taxArray: [
+        {
+          field: "SLUG",
+          operator: "AND",
+          taxonomy: "CATEGORY",
+          terms: ["leisure"],
+        },
+      ],
+      relation: "AND",
+    },
+  },
+];
+
+export const CustomHomeOpinionExcludeVariables = [
+  {
+    first: 5,
+    status: "PUBLISH",
+    taxQuery: {
+      taxArray: [
+        {
+          field: "SLUG",
+          operator: "AND",
+          taxonomy: "CATEGORY",
+          terms: ["opinion"],
+        },
+      ],
+      relation: "AND",
+    },
+  },
+];
+
 export const CustomHomeSportsExcludeVariables = [
   {
     first: 5,
@@ -88,3 +136,20 @@ export const CustomHomeSportsExcludeVariables = [
   },
 ];
 
+export const CustomHomeWorldExcludeVariables = [
+  {
+    first: 5,
+    status: "PUBLISH",
+    taxQuery: {
+      taxArray: [
+        {
+          field: "SLUG",
+          operator: "AND",
+          taxonomy: "CATEGORY",
+          terms: ["world"],
+        },
+      ],
+      relation: "AND",
+    },
+  },
+];

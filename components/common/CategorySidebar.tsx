@@ -1,9 +1,9 @@
 import { Suspense, lazy } from "react";
 import SectionHeading from "./SectionHeading";
 import { formattedDisplayDate } from "./display-date-formats/DateFormates";
-import { useSharedData } from "@/hooks/useSharedData";
 import AdSlot from "./AdSlot";
 import { AdsTargetingParams } from "@/types/global";
+import { useSideBarCarouselData } from "@/hooks/useSideBarCarouselData";
 
 // Lazy load components
 const MostViewedLast2Days = lazy(
@@ -33,7 +33,7 @@ const CategorySidebar = ({
   pageName,
   adsTargetingParams,
 }: CategorySidebarProps) => {
-  const { specialFeaturesPosts, galleryPosts, isLoading } = useSharedData();
+  const { specialFeaturesPosts, galleryPosts, isLoading } = useSideBarCarouselData();
 
   const shouldShowAds = pageName === "home" || pageName === "article";
   const shouldShowSliders =
@@ -44,7 +44,7 @@ const CategorySidebar = ({
     <section className="space-y-6">
       {/* First Ad Slot */}
       {shouldShowAds && (
-        <div className="flex justify-center items-center h-72">
+        <div className="ads-medium-desktop">
           <AdSlot
             targetingParams={adsTargetingParams}
             id="div-gpt-ad-1661333336129-0"
@@ -80,7 +80,7 @@ const CategorySidebar = ({
 
       {/* Halfpage Ad - Only on Article */}
       {isArticlePage && (
-        <div className="hidden md:flex justify-center items-center md:h-[85vh]">
+        <div className="ads-tall-desktop">
           <AdSlot
             targetingParams={adsTargetingParams}
             id="div-gpt-ad-1661355926077-0"
@@ -112,7 +112,7 @@ const CategorySidebar = ({
 
       {/* Final Ad Slot - Only on Article */}
       {isArticlePage && (
-        <div className="flex justify-center items-center h-72">
+        <div className="ads-medium-desktop">
           <AdSlot
             targetingParams={adsTargetingParams}
             id="div-gpt-ad-1661355704641-0"
