@@ -11,7 +11,7 @@ const TTBNewsPreview = ({
   excerpt,
   categories,
   uri,
-  isBig,
+  isBig = false,
 }: any) => {
   const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories?.edges);

@@ -26,14 +26,15 @@ const CarouselSkeleton = () => (
 
 interface CategorySidebarProps {
   pageName: string;
-  adsTargetingParams: AdsTargetingParams;
+  adsTargetingParams?: AdsTargetingParams;
 }
 
 const CategorySidebar = ({
   pageName,
   adsTargetingParams,
 }: CategorySidebarProps) => {
-  const { specialFeaturesPosts, galleryPosts, isLoading } = useSideBarCarouselData();
+  const { specialFeaturesPosts, galleryPosts, isLoading } =
+    useSideBarCarouselData();
 
   const shouldShowAds = pageName === "home" || pageName === "article";
   const shouldShowSliders =

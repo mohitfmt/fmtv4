@@ -35,7 +35,7 @@ export default function TopBanner() {
   const refreshId = useStableId();
   return (
     <>
-      <header className="sticky overflow-hidden lg:-top-20 top-10 z-20 bg-background br-b border-stone-400">
+      <header className="sticky overflow-hidden lg:-top-20 top-10 z-40 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
             href={refreshId ? `/?${refreshId}` : "/"}

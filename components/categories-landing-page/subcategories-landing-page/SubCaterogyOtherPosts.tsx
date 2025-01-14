@@ -1,11 +1,9 @@
-// components/SubCategoryOtherPosts.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { PostCardProps } from "@/types/global";
 import TTBNewsPreview from "../../common/news-preview-cards/TTBNewsPreview";
-import { LuLoader } from "react-icons/lu";
-import { Button } from "../../ui/button";
+import LoadMoreButton from "@/components/common/LoadMoreButton";
 
 interface Posts {
   edges: Array<{
@@ -62,7 +60,6 @@ const SubCategoryOtherPosts = ({
       }
 
       const data = await response.json();
-
       if (data.posts?.edges?.length > 0) {
         setPosts((prevPosts) => [...prevPosts, ...data.posts.edges]);
         setCurrentOffset((prev) => prev + data.posts.edges.length);
@@ -94,20 +91,11 @@ const SubCategoryOtherPosts = ({
 
       {hasMore && (
         <div className="flex justify-center mt-8">
-          <Button
+          <LoadMoreButton
+            text="View More"
+            isLoading={isLoading}
             onClick={loadMorePosts}
-            disabled={isLoading}
-            className="px-6 py-2 bg-yellow-400 text-black text-lg font-bold hover:bg-yellow-600 "
-          >
-            {isLoading ? (
-              <div className="flex text-lg items-center">
-                <LuLoader className="w-6 h-6 mr-2 animate-spin" />
-                Loading...
-              </div>
-            ) : (
-              "Load More"
-            )}
-          </Button>
+          />
         </div>
       )}
     </div>

@@ -1,5 +1,3 @@
-// lib/gql-queries/gql-fetch-api.ts
-
 const API_URL = "https://staging-cms.freemalaysiatoday.com/graphql";
 
 export async function gqlFetchAPI(
@@ -23,27 +21,27 @@ export async function gqlFetchAPI(
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('Network response error:', {
+      console.error("Network response error:", {
         status: res.status,
         statusText: res.statusText,
-        body: errorText
+        body: errorText,
       });
       throw new Error(`Network response was not ok: ${res.status}`);
     }
 
     const json = await res.json();
-    
+
     if (json.errors) {
-      console.error('GraphQL Errors:', json.errors);
+      console.error("GraphQL Errors:", json.errors);
       throw new Error(json.errors[0]?.message || "Failed to fetch API");
     }
 
     return json.data;
   } catch (error) {
-    console.error('API Call Error:', {
+    console.error("API Call Error:", {
       error,
       query,
-      variables
+      variables,
     });
     throw error;
   }

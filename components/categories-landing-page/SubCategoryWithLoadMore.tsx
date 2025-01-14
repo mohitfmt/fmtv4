@@ -212,12 +212,16 @@ const SubCategoriesWithLoadMore = ({
       >
         <div className="grid grid-cols-2 gap-4 mb-2">
           {currentPosts.slice(0, 2).map(({ node }) => (
-            <TTBNewsPreview {...node} key={node?.id} isBig={bigImage} />
+            <TTBNewsPreview
+              {...node}
+              key={`ttb-${node.id || node.slug}`}
+              isBig={bigImage}
+            />
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2">
           {currentPosts.slice(2, 6).map(({ node }) => (
-            <LTRNewsPreview {...node} key={node?.id} />
+            <LTRNewsPreview {...node} key={`ltr-${node.id || node.slug}`} />
           ))}
         </div>
       </section>

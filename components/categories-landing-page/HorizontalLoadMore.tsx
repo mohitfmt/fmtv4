@@ -50,18 +50,7 @@ const HorizontalLoadMore = ({
 
     try {
       const response = await fetch(
-        `/api/more-horizontal-posts?page=${pageNumber}&category=${categoryName}`,
-        {
-          headers: {
-            Accept: "application/json",
-            "Cache-Control": "public, max-age=3600",
-            "CDN-Cache-Control": "max-age=3600",
-            "stale-while-revalidate": "86400",
-          },
-          next: {
-            revalidate: 3600, // 1 hour
-          },
-        }
+        `/api/more-horizontal-posts?page=${pageNumber}&category=${categoryName}`
       );
 
       if (!response.ok) {
@@ -237,7 +226,7 @@ const HorizontalLoadMore = ({
           `}
         >
           {currentPosts.map(({ node }) => (
-            <TTBNewsPreview {...node} key={node.id} />
+            <TTBNewsPreview {...node} key={`ttb-${node.id || node.slug}`} />
           ))}
         </div>
 

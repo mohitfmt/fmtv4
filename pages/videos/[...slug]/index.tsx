@@ -1,0 +1,339 @@
+import { GetServerSideProps, NextPage } from "next";
+import Head from "next/head";
+import { YouTubeEmbed } from "@next/third-parties/google";
+import Linkify from "linkify-react";
+import { getPlaylist } from "@/lib/get-playlist";
+
+import React, { Suspense } from "react";
+import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
+import { parseISO8601DurationToSeconds } from "@/lib/utils";
+import ShareComponents from "@/components/news-article/ShareButtons";
+import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
+import { VideoDetailPageProps } from "@/types/global";
+import AdSlot from "@/components/common/AdSlot";
+import dynamic from "next/dynamic";
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+
+const LatestVideosSidebar = dynamic(
+  () =>
+    import("@/components/videos/LatestVideosSideBar").then(
+      (mod) => mod.LatestVideosSidebar
+    ),
+  {
+    loading: () => <VideoSidebarSkeleton />,
+    ssr: false,
+  }
+);
+// Main page component
+const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
+  video,
+  videos,
+  videoId,
+  playlistId,
+  metaData,
+  videoArticles,
+}) => {
+  const shareUrl = metaData.openGraph.url;
+  const shareTitle = video?.node?.title;
+  const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl;
+  const tags = video?.node?.tags || [];
+
+  const dfpTargetingParams = {
+    pos: "listing",
+    section: ["videos page"],
+    key: tags,
+  };
+
+  return (
+    <>
+      {/* Head with Metadata and JSON-LD scripts */}
+      <Head>
+        <title>{metaData.title}</title>
+        <meta name="description" content={metaData.description} />
+        <meta name="keywords" content={metaData.keywords} />
+
+        {/* Open Graph Meta Tags */}
+        <meta property="og:title" content={metaData.openGraph.title} />
+        <meta
+          property="og:description"
+          content={metaData.openGraph.description}
+        />
+        <meta property="og:url" content={metaData.openGraph.url} />
+        <meta property="og:type" content={metaData.openGraph.type} />
+        {metaData.openGraph.images?.map((image: any, index: any) => (
+          <React.Fragment key={index}>
+            <meta property="og:image" content={image.url} />
+            <meta property="og:image:width" content={image.width.toString()} />
+            <meta
+              property="og:image:height"
+              content={image.height.toString()}
+            />
+            <meta property="og:image:alt" content={image.alt} />
+          </React.Fragment>
+        ))}
+
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content={metaData.twitter.card} />
+        <meta name="twitter:site" content={metaData.twitter.site} />
+        <meta name="twitter:title" content={metaData.twitter.title} />
+        <meta
+          name="twitter:description"
+          content={metaData.twitter.description}
+        />
+
+        {/* JSON-LD scripts */}
+
+        <section>
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
+            type="application/ld+json"
+            defer
+          />
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+            type="application/ld+json"
+            defer
+          />
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
+            type="application/ld+json"
+            defer
+          />
+        </section>
+      </Head>
+
+      {/* Top Desktop Ad */}
+      <div className="ads-dynamic-desktop">
+        <AdSlot
+          sizes={[
+            [970, 90],
+            [970, 250],
+            [728, 90],
+          ]}
+          id="div-gpt-ad-1661333181124-0"
+          name="ROS_Billboard"
+          visibleOnDevices="onlyDesktop"
+          targetingParams={dfpTargetingParams}
+        />
+      </div>
+
+      {/* Top Mobile Ad */}
+      <div className="ads-small-mobile">
+        <AdSlot
+          sizes={[
+            [320, 50],
+            [320, 100],
+          ]}
+          id="div-gpt-ad-1661362470988-0"
+          name="ROS_Mobile_Leaderboard"
+          visibleOnDevices="onlyMobile"
+          targetingParams={dfpTargetingParams}
+        />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col gap-4 lg:flex-row my-3">
+        {/* Video Main Content */}
+        <main className="lg:w-2/3">
+          <YouTubeEmbed
+            params="controls=1&showinfo=1"
+            style="max-width: 100vw; rounded: 50px"
+            videoid={videoId}
+          />
+
+          <div className="py-4">
+            <h1 className="mt-1 text-4xl font-extrabold">
+              {video?.node?.title}
+            </h1>
+
+            <div className="mt-4 flex justify-between items-center align-middle">
+              {video?.node?.dateGmt && (
+                <FullDateDisplay
+                  dateString={video.node?.dateGmt}
+                  tooltipPosition="right"
+                />
+              )}
+              <div>
+                <ShareComponents
+                  url={shareUrl}
+                  title={shareTitle}
+                  mediaUrl={shareThumbnail}
+                  hashs={tags}
+                />
+              </div>
+            </div>
+
+            <div className="overflow-hidden text-wrap py-8 font-roboto">
+              <Linkify
+                options={{ nl2br: true, rel: "nofollow", target: "_blank" }}
+              >
+                {video?.node?.excerpt}
+              </Linkify>
+            </div>
+          </div>
+        </main>
+
+        {/* Related Videos Sidebar */}
+        <Suspense fallback={<VideoSidebarSkeleton />}>
+          <LatestVideosSidebar videos={videos} playlistId={playlistId} />
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+// Server-side props fetching
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  // Extract slug and playlistId from context
+  const { slug } = context.params || {};
+  const { playlistId } = context.query;
+
+  // Ensure slug and playlistId are strings
+  const videoId = slug && Array.isArray(slug) ? slug[0] : slug || "";
+  const playlistIdStr = Array.isArray(playlistId)
+    ? playlistId[0]
+    : playlistId || "";
+
+  // Fetch video and playlist data
+  if (!videoId || !playlistIdStr) {
+    return {
+      notFound: true,
+    };
+  }
+
+  try {
+    // const video = await getVideo(playlistIdStr, videoId);
+
+    const videos = await getPlaylist(playlistIdStr);
+    const video = videos.find((p: any) => p?.node?.videoId === videoId);
+
+    // If video not found, redirect to YouTube
+    if (!video) {
+      return {
+        redirect: {
+          destination: `https://www.youtube.com/watch?v=${videoId}`,
+          permanent: false,
+        },
+      };
+    }
+
+    // Determine the slug suffix for URL (use first alternate slug if exists)
+    const slugSuffix =
+      Array.isArray(slug) && slug.length > 1
+        ? slug[1]
+        : video?.node?.title.toLowerCase().replace(/\s+/g, "-");
+
+    // Generate metadata similar to App Router approach
+    const videoURL = `https://www.freemalaysiatoday.com/videos/${video?.node?.videoId}/${slugSuffix}/?playlistId=${playlistIdStr}`;
+    const thumbnailURL = video?.node?.featuredImage?.node?.mediaItemUrl || "";
+    const publicationDate = video?.node?.dateGmt || "";
+    const tags = video?.node?.tags ? video?.node?.tags?.join(", ") : "FMT";
+    const durationInSeconds = parseISO8601DurationToSeconds(
+      video?.node?.duration || "PT0S"
+    );
+
+    const metaData = {
+      title: `${video?.node?.title} | FMT Videos`,
+      description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+      openGraph: {
+        title: video?.node?.title,
+        description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+        url: videoURL,
+        type: "video.movie",
+        duration: durationInSeconds,
+        releaseDate: publicationDate,
+        tags: tags,
+        images: [
+          {
+            url: thumbnailURL,
+            width: 1200,
+            height: 630,
+            alt: `${video?.node?.title} thumbnail`,
+          },
+        ],
+        videos: [
+          {
+            url: `https://www.youtube.com/embed/${video?.node?.videoId}`,
+            width: 1280,
+            height: 720,
+            secureUrl: `https://www.youtube.com/embed/${video?.node?.videoId}`,
+            type: "text/html",
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        site: "@fmtoday",
+        title: video?.node?.title,
+        description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+      },
+      keywords: tags,
+      category: video?.node?.categories?.nodes?.map(
+        (category: { name: string }) => category?.name
+      ),
+    };
+
+    // Prepare JSON-LD data for SEO
+    const videoArticles = {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "@id": `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
+      name: video?.node?.title,
+      description: video?.node?.excerpt?.split("Subscribe to our channel")[0],
+      thumbnailUrl: video?.node?.featuredImage?.node?.mediaItemUrl,
+      uploadDate: video?.node?.dateGmt,
+      contentUrl: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
+      embedUrl: "https://www.youtube.com/embed/" + video?.node?.videoId,
+      duration: video?.node?.duration,
+      author: {
+        "@type": "NewsMediaOrganization",
+        name: "Free Malaysia Today",
+        url: "https://www.freemalaysiatoday.com/",
+      },
+      interactionStatistic: {
+        "@type": "InteractionCounter",
+        interactionType: "http://schema.org/WatchAction",
+        userInteractionCount: video?.node?.statistics?.viewCount ?? 1,
+      },
+      url: `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
+      publisher: {
+        "@type": "NewsMediaOrganization",
+        name: "Free Malaysia Today",
+        logo: {
+          "@context": "https://schema.org",
+          "@type": "ImageObject",
+          url: "https://www.freemalaysiatoday.com/icon-512x512.png",
+          contentUrl: "https://www.freemalaysiatoday.com/icon-512x512.png",
+          width: 512,
+          height: 512,
+          creditText: "Free Malaysia Today",
+        },
+      },
+      isFamilyFriendly: true,
+      keywords: video?.node?.tags.join(", "),
+      caption: video?.node?.title,
+      genre: video?.node?.categories?.nodes
+        .map((category: { name: string }) => category?.name)
+        .join(", "),
+    };
+
+    // Pass data to the page via props
+    return {
+      props: {
+        video,
+        videos,
+        videoId,
+        playlistId: playlistIdStr,
+        metaData,
+        videoArticles,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching video details:", error);
+    return {
+      notFound: true,
+    };
+  }
+};
+
+export default VideoDetailPage;

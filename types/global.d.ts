@@ -80,6 +80,7 @@ interface Tag {
   id: string;
   name: string;
   slug: string;
+  databaseId: number;
 }
 
 interface FeaturedImage {
@@ -171,4 +172,59 @@ interface PostsVariables {
     taxQuery?: TaxQuery;
     status?: string;
   };
+}
+
+interface VideoDetailPageProps {
+  video: any;
+  videos: any[];
+  videoId: string;
+  playlistId: string;
+  metaData: {
+    title: string;
+    description: string;
+    openGraph: any;
+    twitter: any;
+    keywords: string;
+    category: string[];
+  };
+  videoArticles: any;
+}
+
+export interface VideoItem {
+  id: string;
+  snippet: {
+    title: string;
+    thumbnails: {
+      high: {
+        url: string;
+      };
+    };
+    resourceId: {
+      videoId: string;
+    };
+  };
+}
+
+export interface PlaylistVideos {
+  playlistId: string;
+  videos: VideoItem[];
+  nextPageToken?: string;
+}
+
+export interface YouTubeChannelInfo {
+  snippet?: {
+    title?: string;
+    description?: string;
+    thumbnails?: {
+      default?: {
+        url?: string;
+        width?: number;
+        height?: number;
+      };
+    };
+  };
+  statistics?: {
+    subscriberCount?: number;
+  };
+  id?: string;
 }
