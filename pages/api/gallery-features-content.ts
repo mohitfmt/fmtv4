@@ -8,7 +8,7 @@ export default async function handler(
   try {
     res.setHeader(
       "Cache-Control",
-      `s-maxage=3600, stale-while-revalidate=360`
+      `s-maxage=3600, stale-while-revalidate=60`
     );
     const [specialFeaturesPosts, galleryPosts] = await Promise.all([
       getCategoryNews("sponsored-content", 5, false),

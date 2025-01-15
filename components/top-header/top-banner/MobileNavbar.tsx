@@ -27,7 +27,7 @@ const MobileNavbar = ({ navigation }: Props) => {
     [key: number]: boolean;
   }>({});
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth(); 
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -107,9 +107,9 @@ const MobileNavbar = ({ navigation }: Props) => {
         </div>
 
         {/* Navigation Content */}
-        <div className="flex flex-col justify-between h-[calc(100%-4rem)]">
+        <div className="flex flex-col justify-between ">
           {/* Navigation Links */}
-          <ul className="flex flex-col px-4 space-y-2 mt-4">
+          <ul className="flex flex-col px-4 py-2 space-y-2 my-2 border-b border-stone-700 ">
             {navigation.map((item) => (
               <li key={item.id} className="relative group">
                 <div className="flex justify-between items-center">
@@ -165,7 +165,7 @@ const MobileNavbar = ({ navigation }: Props) => {
           </ul>
 
           {/* Social Icons Footer */}
-          <div className="px-2 ml-1 border-t border-stone-700 py-2 mt-auto">
+          <div className="px-2  ml-1 pb-[80px] ">
             <SocialIcons
               iconClassName="text-3xl hover:text-accent-yellow justify-left"
               className="flex gap-1"

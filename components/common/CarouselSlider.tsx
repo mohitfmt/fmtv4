@@ -31,52 +31,57 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
     return <CarouselSkeleton imageHeight={250} />;
   }
 
-  if (posts.length === 0) {
+  if (!Array.isArray(posts) || posts.length === 0) {
     return <div className="text-gray-500 text-center p-4">{emptyMessage}</div>;
   }
 
   return (
-    <Carousel opts={{ loop: true }} plugins={[Autoplay()]} className=" ">
-      <CarouselContent className="">
-        {posts.map((node: Post) => (
-          <CarouselItem
-            key={node.id}
-            className="relative flex flex-col items-center"
-          >
-            <Link
-              className="absolute inset-0"
-              href={node.uri}
-              prefetch={false}
-              title={node.title}
-            />
-            {node.featuredImage?.node?.sourceUrl && (
-              <Image
-                alt={node.title}
-                className="h-auto w-full rounded-lg"
-                height={250}
-                loading="lazy"
-                src={node.featuredImage.node.sourceUrl}
-                width={400}
+    <Carousel opts={{ loop: true }} plugins={[Autoplay()]} className="">
+      <CarouselContent>
+        {posts.map((post: Post, index: number) => {
+          // Ensure we have a unique key by combining id and index as fallback
+          const uniqueKey = post?.id ? post.id : `post-${index}`;
+          
+          return (
+            <CarouselItem
+              key={uniqueKey}
+              className="relative flex flex-col items-center"
+            >
+              <Link
+                className="absolute inset-0"
+                href={post.uri || "#"}
+                prefetch={false}
+                title={post.title || "Untitled"}
               />
-            )}
+              {post?.featuredImage?.node?.sourceUrl && (
+                <Image
+                  alt={post.title || "Article image"}
+                  className="h-auto w-full rounded-lg"
+                  height={250}
+                  loading="lazy"
+                  src={post.featuredImage.node.sourceUrl}
+                  width={400}
+                />
+              )}
 
-            {renderAdditionalContent && (
-              <div className="mt-2 text-sm font-semibold">
-                {renderAdditionalContent(node)}
-              </div>
-            )}
+              {renderAdditionalContent && (
+                <div className="mt-2 text-sm font-semibold">
+                  {renderAdditionalContent(post)}
+                </div>
+              )}
 
-            <h3 className="mt-1 text-center text-lg font-semibold">
-              {node.title}
-            </h3>
+              <h3 className="mt-1 text-center text-lg font-semibold">
+                {post.title || "Untitled"}
+              </h3>
 
-            {renderDescription && (
-              <div className="mt-2 text-center text-sm font-bitter font-medium italic line-clamp-3">
-                {renderDescription(node)}
-              </div>
-            )}
-          </CarouselItem>
-        ))}
+              {renderDescription && (
+                <div className="mt-2 text-center text-sm font-bitter font-medium italic line-clamp-3">
+                  {renderDescription(post)}
+                </div>
+              )}
+            </CarouselItem>
+          );
+        })}
       </CarouselContent>
       <CarouselNext
         className="h-6 w-6 bg-foreground 

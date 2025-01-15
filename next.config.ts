@@ -30,6 +30,16 @@ const nextConfig: NextConfig = {
         hostname: "media.freemalaysiatoday.com",
         pathname: "/wp-content/**",
       },
+       {
+        protocol: "http",
+        hostname: "s3media.freemalaysiatoday.com",
+        pathname: "/wp-content/**",
+      },
+      {
+        protocol: "https",
+        hostname: "s3media.freemalaysiatoday.com",
+        pathname: "/wp-content/**",
+      },
       ...[
         "www.freemalaysiatoday.com",
         "stg-origin-s3media.freemalaysiatoday.com",

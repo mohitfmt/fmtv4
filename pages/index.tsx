@@ -17,6 +17,7 @@ import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
+import { getPlaylist } from "@/lib/get-playlist";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -443,14 +444,13 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
 
     // Fetch video posts
-    const jsonUrl = `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`;
+
     let videoPosts = [];
     try {
-      const res = await fetch(jsonUrl);
-      if (!res?.ok) {
-        throw new Error(`Failed to fetch data: ${res?.statusText}`);
+      const data = await getPlaylist(playlistId);
+      if (!data) {
+        throw new Error(`Failed to fetch data: ${data?.statusText}`);
       }
-      const data = await res?.json();
       videoPosts = data ?? [];
       videoPosts = videoPosts?.slice(0, 5);
     } catch (error) {

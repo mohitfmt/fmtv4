@@ -17,11 +17,15 @@ import PopText from "../PopText";
 interface FullDateDisplayProps {
   dateString: string;
   tooltipPosition?: "top" | "bottom" | "left" | "right";
+  textSize?: "small" | "capital";
+  additionalClass?: string;
 }
 
 const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
   dateString,
   tooltipPosition = "left",
+  textSize = "capital",
+  additionalClass,
 }) => {
   const [timeString, setTimeString] = useState("");
 
@@ -89,11 +93,11 @@ const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
       position={tooltipPosition}
     >
       <time
-        className="font-bitter rounded"
+        className={`font-bitter rounded ${textSize === "small" ? "text-xs" : "uppercase"} + ${additionalClass} `}
         dateTime={date.toISOString()}
         title={format(date, "dd MMM yyyy, HH:mm")}
       >
-        {timeString.toUpperCase() || format(date, "dd-MMM-yyyy, HH:mm")}
+        {timeString || format(date, "dd-MMM-yyyy, HH:mm")}
       </time>
     </PopText>
   );
