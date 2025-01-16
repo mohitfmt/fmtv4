@@ -7,15 +7,87 @@ import Playlist from "@/components/videos/Playlist";
 import { youTubePlaylists } from "@/constants/youtube-playlists";
 import SubscribeButton from "@/components/videos/SubscribeButton";
 import AdSlot from "@/components/common/AdSlot";
+import { LogoSVG } from "@/components/ui/icons/LogoSVG";
 
 interface VideosProps {
   info: any;
 }
 
+const DEFAULT_CHANNEL_INFO = {
+  snippet: {
+    title: "Free Malaysia Today",
+    description:
+      "FMT brings you the latest news, from the halls of power to the city streets!\nSubscribe to our YouTube channel to watch the latest videos.\nFMT Media Sdn Bhd (1235453-U)",
+
+    thumbnails: {
+      default: {
+        url: null,
+      },
+    },
+  },
+};
+
 const dfpTargetingParams = {
   pos: "listing",
   section: ["news videos"],
   key: [],
+};
+
+const ChannelInfoSection = ({ info }: { info: any }) => {
+  const isLive = !!info; // Check if we have live data
+  const channelInfo = info || DEFAULT_CHANNEL_INFO;
+  const hasValidThumbnail = channelInfo?.snippet?.thumbnails?.default?.url;
+
+  return (
+    <Link
+      href="https://www.youtube.com/channel/UC2CzLwbhTiI8pTKNVyrOnJQ"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative mt-6 md:mt-8 flex flex-col items-center gap-3 md:gap-4 rounded-lg bg-muted p-4 md:p-8"
+      aria-label="Visit our YouTube Channel"
+    >
+      <div className="relative w-20 h-20 md:w-24 md:h-24">
+        {hasValidThumbnail ? (
+          <Image
+            alt={channelInfo.snippet.title}
+            className="rounded-full border border-yellow-600"
+            src={channelInfo.snippet.thumbnails.default.url}
+            fill
+            sizes="(max-width: 768px) 80px, 96px"
+            quality={75}
+            priority
+          />
+        ) : (
+          <div className="w-full h-full rounded-full border border-yellow-600 bg-white p-2 flex items-center justify-center">
+            <LogoSVG className="w-full h-full" />
+          </div>
+        )}
+      </div>
+
+      <h2 className="text-lg md:text-2xl font-bold text-center">
+        {channelInfo.snippet.title}
+      </h2>
+
+      {/* Only show subscriber count if we have live data */}
+      {isLive && info.statistics && (
+        <p className="text-xs md:text-sm font-medium">
+          {Math.floor(parseInt(info.statistics.subscriberCount) / 1000)}K
+          Subscribers
+        </p>
+      )}
+
+      <p className="mx-auto max-w-2xl text-center text-xs md:text-sm font-medium line-clamp-3">
+        {channelInfo.snippet.description}
+      </p>
+
+      {/* Only show subscribe button if we have live data */}
+      {isLive && (
+        <div className="relative">
+          <SubscribeButton channelId={info.id} />
+        </div>
+      )}
+    </Link>
+  );
 };
 
 const Videos = ({ info }: VideosProps) => {
@@ -48,45 +120,7 @@ const Videos = ({ info }: VideosProps) => {
           Videos
         </h1>
 
-        {/* Channel Info Section */}
-
-        <Link
-          href="https://www.youtube.com/channel/UC2CzLwbhTiI8pTKNVyrOnJQ"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative mt-6 md:mt-8 flex flex-col items-center gap-3 md:gap-4 rounded-lg bg-muted  p-4 md:p-8"
-          aria-label="Visit our YouTube Channel"
-        >
-          {info?.snippet?.thumbnails && (
-            <div className="relative w-20 h-20 md:w-24 md:h-24">
-              <Image
-                alt={info?.snippet?.title}
-                className="rounded-full border border-yellow-600"
-                src={info?.snippet?.thumbnails?.default?.url}
-                fill
-                sizes="(max-width: 768px) 80px, 96px"
-                quality={75}
-                priority
-              />
-            </div>
-          )}
-
-          <h2 className="text-lg md:text-2xl font-bold text-center">
-            {info?.snippet?.title}
-          </h2>
-
-          <p className="text-xs md:text-sm font-medium">
-            {Math.floor(info?.statistics?.subscriberCount / 1000)}K Subscribers
-          </p>
-  
-          <p className="mx-auto max-w-2xl text-center text-xs md:text-sm font-medium line-clamp-3">
-            {info?.snippet?.description}
-          </p>
-
-          <div className="relative">
-            <SubscribeButton channelId={info?.id} />
-          </div>
-        </Link>
+        <ChannelInfoSection info={info} />
 
         {/* Playlist Tabs */}
         <main className="pt-1">
@@ -132,6 +166,7 @@ const Videos = ({ info }: VideosProps) => {
 
 export default Videos;
 
+// getStaticProps remains the same but with improved error logging
 export const getStaticProps: GetStaticProps<VideosProps> = async () => {
   try {
     const params = new URLSearchParams({
@@ -145,12 +180,26 @@ export const getStaticProps: GetStaticProps<VideosProps> = async () => {
     );
 
     if (!res.ok) {
-      throw new Error("Failed to fetch channel info");
+      const errorData = await res.text();
+      console.error("YouTube API Error:", {
+        status: res.status,
+        statusText: res.statusText,
+        error: errorData,
+      });
+      throw new Error(`Failed to fetch channel info: ${res.status}`);
     }
 
     const data = await res.json();
-    const channel = data?.items[0];
+    if (!data?.items?.length) {
+      console.error("No channel data found:", data);
+      return {
+        props: { info: null },
+        revalidate: 45,
+      };
+    }
 
+    const channel = data?.items[0];
+    
     return {
       props: {
         info: channel || null,
@@ -158,7 +207,7 @@ export const getStaticProps: GetStaticProps<VideosProps> = async () => {
       revalidate: 45,
     };
   } catch (e) {
-    console.error("Error while fetching youtube details", e);
+    console.error("Error while fetching youtube details:", e);
     return {
       props: {
         info: null,

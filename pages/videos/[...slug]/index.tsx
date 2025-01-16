@@ -2,7 +2,6 @@ import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import { YouTubeEmbed } from "@next/third-parties/google";
 import Linkify from "linkify-react";
-import { getPlaylist } from "@/lib/get-playlist";
 
 import React, { Suspense } from "react";
 import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
@@ -13,6 +12,7 @@ import { VideoDetailPageProps } from "@/types/global";
 import AdSlot from "@/components/common/AdSlot";
 import dynamic from "next/dynamic";
 import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+import { getPlaylist } from "@/lib/api";
 
 const LatestVideosSidebar = dynamic(
   () =>

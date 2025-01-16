@@ -17,7 +17,7 @@ import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
-import { getPlaylist } from "@/lib/get-playlist";
+import { getPlaylist } from "@/lib/api";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -251,7 +251,9 @@ export default function Home({
             </div>
           </div>
         </section>
+
         <LatestVideosOnHomePage videos={videoPosts} />
+
         <div className="ads-tall-mobile">
           <AdSlot
             id="div-gpt-ad-1661355926077-0"

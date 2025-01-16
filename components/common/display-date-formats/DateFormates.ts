@@ -39,7 +39,7 @@ export const formattedJsonDate = (
 
 export const formattedDisplayDate = (
   dateString: string,
-  addHoursFlag: boolean = true,
+  addHoursFlag: boolean = false,
 ): string => {
   return formatUTCDate(dateString, 'dd MMM yyyy, hh:mm aa', addHoursFlag)
 }

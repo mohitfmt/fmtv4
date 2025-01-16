@@ -2,6 +2,7 @@ import { getPreferredCategory } from "@/lib/utils";
 import CoverImage from "../CoverImage";
 import Link from "next/link";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
+import { LogoSVG } from "@/components/ui/icons/LogoSVG";
 
 const TTBNewsPreview = ({
   title,
@@ -15,10 +16,11 @@ const TTBNewsPreview = ({
 }: any) => {
   const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories?.edges);
+
   return (
     <article className="flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       <figure className="relative">
-        {featuredImage && (
+        {featuredImage ? (
           <CoverImage
             title={title}
             coverImage={featuredImage}
@@ -26,6 +28,13 @@ const TTBNewsPreview = ({
             url={uri}
             isBig={isBig}
           />
+        ) : (
+          <Link href={uri}>
+            <div className="relative aspect-video w-full bg-white flex items-center justify-center p-8">
+              <LogoSVG className="w-full h-full object-contain max-h-full" />
+              <div className="absolute inset-0 bg-black/5" />
+            </div>
+          </Link>
         )}
       </figure>
 
@@ -37,7 +46,7 @@ const TTBNewsPreview = ({
             </span>
           )}
           <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
-            <PublishingDateTime dateString={date} size={16} />
+            <PublishingDateTime dateString={date} />
           </span>
         </h2>
         <h1 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">

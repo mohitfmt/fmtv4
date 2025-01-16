@@ -13,7 +13,17 @@ import {
 } from "date-fns";
 import PopText from "../PopText";
 
-const PublishingDateTime = ({ dateString }: any) => {
+interface PublishingDateTimeProps {
+  dateString: string;
+  size?: number;
+  isTextPop?: boolean;
+}
+
+const PublishingDateTime = ({
+  dateString,
+  size,
+  isTextPop = true,
+}: PublishingDateTimeProps) => {
   const [timeString, setTimeString] = useState("");
   const [tooltipString, setTooltipString] = useState("");
 
@@ -58,20 +68,28 @@ const PublishingDateTime = ({ dateString }: any) => {
     const fullDateTime = format(date, "dd-MMM-yyyy, HH:mm");
 
     setTimeString(formattedTime);
-    setTooltipString(`${relativeTime}</br>${fullDateTime}`);
+    setTooltipString(`${relativeTime}<br>${fullDateTime}`);
   }, [dateString]);
 
   if (!dateString) {
     return null;
   }
 
-  return (
-    <PopText content={tooltipString} position="left" isHtml={true}>
+  const content = (
+    <>
       <div className={`max-w-20 text-center`}>{timeString}</div>
       <time className="hidden" dateTime={parseISO(dateString).toISOString()}>
         {timeString}
       </time>
+    </>
+  );
+
+  return isTextPop ? (
+    <PopText content={tooltipString} position="left" isHtml={true}>
+      {content}
     </PopText>
+  ) : (
+    content
   );
 };
 

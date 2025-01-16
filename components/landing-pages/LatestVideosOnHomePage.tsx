@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Clock, Eye, ThumbsUp, MessageSquare, Play } from "lucide-react";
 import SectionHeading from "../common/SectionHeading";
 import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
+import Link from "next/link";
 
 // TypeScript Interfaces
 interface Statistics {
@@ -27,9 +28,10 @@ interface VideoNode {
   duration: string;
   statistics: Statistics;
   dateGmt: string;
+  uri: string;
 }
 
-interface VideoCardProps {
+interface HomeVideoCardProps {
   video: VideoNode;
   isFeature?: boolean;
 }
@@ -78,7 +80,10 @@ const formatDuration = (duration: string): string => {
   return duration;
 };
 
-const VideoCard: React.FC<VideoCardProps> = ({ video, isFeature = false }) => {
+const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
+  video,
+  isFeature = false,
+}) => {
   const { title, excerpt, featuredImage, duration, statistics, dateGmt } =
     video;
 
@@ -143,7 +148,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, isFeature = false }) => {
               )}
             </div>
             <span className="flex items-center gap-1.5 bg-black text-white">
-              <PublishingDateTime dateString={dateGmt} />
+              <PublishingDateTime dateString={dateGmt} isTextPop={false} />
             </span>
           </div>
         </div>
@@ -187,7 +192,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, isFeature = false }) => {
               </span>
             </div>
             <div className="bg-black/80 px-1.5 rounded">
-              <PublishingDateTime dateString={dateGmt} />
+              <PublishingDateTime dateString={dateGmt} isTextPop={false} />
             </div>
           </div>
         </div>
@@ -206,7 +211,9 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
 
   return (
     <section className="my-8">
-      <SectionHeading sectionName="Latest Videos" />
+      <Link href="/videos">
+        <SectionHeading sectionName="Latest Videos" />
+      </Link>
       {/* <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Latest Videos</h2>
         <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
@@ -216,16 +223,24 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
 
       <div className="grid grid-cols-12 gap-4">
         {/* Feature Video */}
-        <div className="col-span-12 lg:col-span-7 h-[400px]">
-          <VideoCard video={videos[0].node} isFeature={true} />
-        </div>
+
+        <Link
+          href={videos[0].node.uri}
+          className="col-span-12 lg:col-span-7 h-[400px]"
+        >
+          <HomeVideoCard video={videos[0].node} isFeature={true} />
+        </Link>
 
         {/* Secondary Videos Grid */}
         <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4">
           {videos.slice(1, 5).map((video) => (
-            <div key={video.node.id} className="col-span-1">
-              <VideoCard video={video.node} />
-            </div>
+            <Link
+              href={video.node.uri}
+              key={video.node.id}
+              className="col-span-1"
+            >
+              <HomeVideoCard video={video.node} />
+            </Link>
           ))}
         </div>
       </div>
