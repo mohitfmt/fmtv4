@@ -80,6 +80,8 @@ interface Tag {
   id: string;
   name: string;
   slug: string;
+  count: number;
+  description: string;
   databaseId: number;
 }
 
@@ -94,6 +96,7 @@ export interface PostCardProps {
   slug: string;
   uri: string;
   date: string;
+  dateGmt: string;
   excerpt?: string;
   categories?: {
     edges: Array<{

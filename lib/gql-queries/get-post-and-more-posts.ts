@@ -29,6 +29,10 @@ export async function getPostAndMorePosts(
         excerpt
         slug
         date
+        keywords{
+         keywords
+        }
+        databaseId
         uri
         featuredImage {
           node {
@@ -54,6 +58,7 @@ export async function getPostAndMorePosts(
           edges {
             node {
               name
+              slug
             }
           }
         }

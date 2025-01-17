@@ -104,6 +104,17 @@ export const GET_FILTERED_CATEGORY = `
               }
             }
           }
+           tags {
+            edges {
+              node {
+                id
+                name
+                slug
+                count
+                description
+              }
+            }
+          }
           featuredImage {
             node {
               sourceUrl

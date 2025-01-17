@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import FullDateDisplay from "../common/display-date-formats/FullDateDisplay";
+import { formattedDisplayDate } from "../common/display-date-formats/DateFormates";
 
 interface VideoCardProps {
   node: {
@@ -69,11 +69,12 @@ const VideoCard = ({ node }: VideoCardProps) => {
             <span>{formatStats(statistics.commentCount)} Comments</span>
           </div>
           <div>
-            <FullDateDisplay
+            {formattedDisplayDate(node?.dateGmt)}
+            {/* <FullDateDisplay
               dateString={node?.dateGmt}
               tooltipPosition="right"
               textSize="small"
-            />
+            /> */}
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ interface ArticleData {
   content?: string;
   excerpt?: string;
   title?: string;
+  keywords: { keywords: string };
   dateGmt?: string;
   modifiedGmt?: string;
   featuredImage?: {
@@ -42,9 +43,9 @@ const ArticleJsonLD = ({ data }: { data: ArticleData }) => {
     const match = content?.match(regex);
     return match ? match[1] : null;
   };
-  const keywords = data?.tags?.edges
-    ?.map(({ node }: any) => node?.name)
-    .join(", ");
+  const keywords =
+    data?.keywords.keywords ||
+    data?.tags?.edges?.map(({ node }: any) => node?.name).join(", ");
 
   const fullUrl = `${siteConfig.baseUrl}${data?.uri}`;
 

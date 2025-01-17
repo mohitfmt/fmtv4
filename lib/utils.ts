@@ -1,3 +1,4 @@
+import { DEFAULT_TAGS } from "@/constants/default-tags";
 import { OrgJsonLD } from "@/constants/jsonlds/org";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -293,6 +294,51 @@ export const parseISO8601DurationToSeconds = (duration: string) => {
     return hours * 3600 + minutes * 60 + seconds;
   } catch (error) {
     console.error(`Error parsing ISO 8601 duration: ${error}`);
-    return 0; 
+    return 0; // Default to 0 seconds if parsing fails
   }
+};
+
+// Helper function to safely get tags
+export const getSafeTags = (post: any) => {
+  if (!post?.tags || !post?.tags?.edges || !Array.isArray(post.tags.edges)) {
+    return DEFAULT_TAGS;
+  }
+  // Remove duplicates based on slug and get valid tags
+  const uniqueTags = post.tags.edges
+    .filter((edge: any) => edge?.node?.name && edge?.node?.slug)
+    .reduce((unique: any[], edge: any) => {
+      const exists = unique.some((item) => item.node.slug === edge.node.slug);
+      if (!exists) {
+        unique.push(edge);
+      }
+      return unique;
+    }, [])
+    .map((edge: any) => ({
+      name: edge.node.name,
+      href: `/category/tag/${edge.node.slug}`,
+    }));
+
+  return uniqueTags.length > 0 ? uniqueTags : DEFAULT_TAGS;
+};
+
+export const removeFeaturedImage = (content: string): string => {
+  if (!content) return "";
+  let isFirstFigure = true;
+  return content
+    .replace(/<figure[^>]*>.*?<\/figure>/g, (match) => {
+      if (isFirstFigure) {
+        isFirstFigure = false;
+        return "";
+      }
+      return match;
+    })
+    .trim();
+};
+
+export const getYouTubeVideoId = (url: string) => {
+  const regex =
+    /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regex);
+
+  return match ? match[1] : "";
 };

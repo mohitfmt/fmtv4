@@ -10,6 +10,7 @@ import sanitizeHtml from "sanitize-html";
 import { YouTubeEmbed } from "@next/third-parties/google";
 import AdSlot from "../common/AdSlot";
 import Link from "next/link";
+import { getYouTubeVideoId } from "@/lib/utils";
 
 interface PostBodyProps {
   content: string;
@@ -226,16 +227,17 @@ const PostBody: React.FC<PostBodyProps> = ({
           case "iframe": {
             const src = domNode.attribs.src || "";
             if (src.includes("youtube")) {
-              const videoId = src.split("/").pop() || "";
               return (
                 <div className="aspect-video w-full overflow-hidden rounded-lg">
                   <YouTubeEmbed
-                    videoid={videoId}
                     params="controls=1&showinfo=1"
+                    style="max-width: 100%;"
+                    videoid={getYouTubeVideoId(src as string)}
                   />
                 </div>
               );
             }
+
             return null;
           }
 
@@ -292,7 +294,7 @@ const PostBody: React.FC<PostBodyProps> = ({
 
   const adConfigurations = [
     {
-      paragraphIndex: 1,
+      paragraphIndex: 2,
       component: (
         <AdSlot
           key="in-article-midrec"
