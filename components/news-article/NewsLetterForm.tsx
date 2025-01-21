@@ -41,7 +41,7 @@ const NewsletterForm = () => {
   }
 
   return (
-    <div className="flex flex-col justify-center gap-2 lg:flex-row lg:gap-8 my-8">
+    <div className="flex flex-col justify-center gap-2 lg:flex-row lg:gap-8 my-16">
       <LogoSVG className="h-20 md:h-24" />
       <div>
         <h3 className="text-center font-roboto text-lg lg:text-left">

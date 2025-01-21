@@ -29,9 +29,7 @@ export async function getPostAndMorePosts(
         excerpt
         slug
         date
-        keywords{
-         keywords
-        }
+       
         databaseId
         uri
         featuredImage {

@@ -46,7 +46,7 @@ ul {
     /* FMT-v3:yellow- #F1A838 */
     --accent-blue: #1d5aaa;
     --accent-red: #a92c23;
-    --accent-category: #a92c23;
+    --accent-category: #eb1717;
     --radius: 0.5rem;
   }
 
@@ -91,6 +91,32 @@ ul {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* <span class="ob-widget-text" style="flex: 1 1 auto;">You May Like </span> */
+
+.ob-widget-text {
+  @apply text-foreground font-bitter font-bold;
+}
+
+.ob-rec-text
+{
+  background-color: red;
+}
+.OUTBRAIN.ob-rec-text
+{
+  /* background-color: red; */
+  color:red
+}
+
+.ob-sub-units
+{
+ @apply bg-green-400
+}
+
+.ob-dynamic-rec-container .ob-recIdx-3 .ob-p .ob-dynamic-rec-link .ob-sub-units .ob-unit .ob-rec-text
+{
+  background-color: red;
 }
 
 @keyframes marquee {

@@ -14,8 +14,7 @@ import { getYouTubeVideoId } from "@/lib/utils";
 
 interface PostBodyProps {
   content: string;
-  fullArticleUrl: string;
-  additionalFields: {
+  additionalFields?: {
     categories: { edges: Array<{ node: { name: string } }> };
     tags: { edges: Array<{ node: { name: string } }> };
   };
@@ -46,7 +45,6 @@ const isPlainText = (children: any): boolean =>
 
 const PostBody: React.FC<PostBodyProps> = ({
   content,
-  fullArticleUrl,
   additionalFields,
 }) => {
   if (!content) return null;
@@ -94,7 +92,7 @@ const PostBody: React.FC<PostBodyProps> = ({
             ...(isExternal
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {}),
-            class: "text-red-600 hover:underline",
+            class: "text-accent-category hover:underline",
           },
         };
       },
@@ -248,14 +246,14 @@ const PostBody: React.FC<PostBodyProps> = ({
                 href.replace(/https:\/\/(www\.)?freemalaysiatoday\.com/g, "") ||
                 "/";
               return (
-                <Link className="text-red-600" href={cleanHref}>
+                <Link className="text-accent-category" href={cleanHref}>
                   {domToReact(domNode.children as DOMNode[], options)}
                 </Link>
               );
             }
             return (
               <a
-                className="text-red-600"
+                className="text-accent-category"
                 href={href}
                 target={domNode.attribs.target}
                 rel={domNode.attribs.rel}
@@ -304,10 +302,10 @@ const PostBody: React.FC<PostBodyProps> = ({
           visibleOnDevices="both"
           targetingParams={{
             pos: "article",
-            section: additionalFields.categories.edges.map(
+            section: additionalFields?.categories.edges.map(
               (category) => category.node.name
             ),
-            key: additionalFields.tags.edges.map((tag) => tag.node.name),
+            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
           }}
         />
       ),
@@ -323,10 +321,10 @@ const PostBody: React.FC<PostBodyProps> = ({
           visibleOnDevices="both"
           targetingParams={{
             pos: "article",
-            section: additionalFields.categories.edges.map(
+            section: additionalFields?.categories.edges.map(
               (category) => category.node.name
             ),
-            key: additionalFields.tags.edges.map((tag) => tag.node.name),
+            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
           }}
         />
       ),
@@ -342,10 +340,10 @@ const PostBody: React.FC<PostBodyProps> = ({
           visibleOnDevices="onlyMobile"
           targetingParams={{
             pos: "article",
-            section: additionalFields.categories.edges.map(
+            section: additionalFields?.categories.edges.map(
               (category) => category.node.name
             ),
-            key: additionalFields.tags.edges.map((tag) => tag.node.name),
+            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
           }}
         />
       ),
@@ -361,10 +359,10 @@ const PostBody: React.FC<PostBodyProps> = ({
           visibleOnDevices="onlyMobile"
           targetingParams={{
             pos: "article",
-            section: additionalFields.categories.edges.map(
+            section: additionalFields?.categories.edges.map(
               (category) => category.node.name
             ),
-            key: additionalFields.tags.edges.map((tag) => tag.node.name),
+            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
           }}
         />
       ),

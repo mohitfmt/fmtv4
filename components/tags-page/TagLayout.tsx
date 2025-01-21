@@ -27,7 +27,7 @@ export default function TagLayout({ title, posts, tagId }: TagLayoutProps) {
   };
 
   return (
-    <div className="container p-4">
+    <div className="py-2">
       <div className="flex flex-col my-5 gap-10 lg:flex-row">
         <main className="lg:w-2/3">
           <SectionHeading sectionName={title} />

@@ -3,7 +3,7 @@ import { gqlFetchAPI } from "./gql-fetch-api";
 export async function getPostWithSlugAndDate(slug: string, date: string) {
   const query = `
     query PostBySlugAndDate($slug: String!, $date: String!) {
-      post: postBySlugAndDate(slug: $slug, date: $date) {
+     post: postBySlugAndDate(slug: $slug, date: $date) {
         id
         databaseId
         title
@@ -88,7 +88,7 @@ export async function getPostWithSlugAndDate(slug: string, date: string) {
 
     return data;
   } catch (error) {
-    console.error('Error fetching post:', error);
+    console.error("Error fetching post:", error);
     return { post: null, posts: { edges: [] } };
   }
 }
