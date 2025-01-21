@@ -5,11 +5,11 @@ import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
-import ArticleLayout from "@/components/news-article/ArticleLayout";
-import PostBody from "@/components/news-article/PostBody";
-import { getSafeTags, removeFeaturedImage } from "@/lib/utils";
+import { getSafeTags} from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
+import PhotoDetail from "@/components/gallery/PhotoDetials";
 import { getPostWithSlugAndDate } from "@/lib/gql-queries/get-post-slug-date";
+import GalleryLayout from "@/components/gallery/GalleryLayout";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -90,8 +90,6 @@ const NewsArticlePost = ({
 
   const safeCategories = getSafeCategories(post);
 
-  const cleanedContent = removeFeaturedImage(post.content || "");
-
   const safeTitle = post.title || "Untitled Article";
   const safeExcerpt = post.excerpt || "No excerpt available";
   const safeUri = post.uri || "/";
@@ -163,19 +161,25 @@ const NewsArticlePost = ({
         <ArticleJsonLD data={post} />
       </Head>
 
-      <ArticleLayout
+      <GalleryLayout
         post={post}
         safeTitle={safeTitle}
         safeExcerpt={safeExcerpt}
         safeUri={safeUri}
-        safeFeaturedImage={safeFeaturedImage}
         tagWithSlug={tagsWithSlug}
         relatedPosts={relatedPosts}
         moreStories={moreStories}
         dfpTargetingParams={dfpTargetingParams}
       >
-        <PostBody content={cleanedContent} additionalFields={post} />
-      </ArticleLayout>
+        <PhotoDetail
+          content={post?.content}
+          // Pass additional fields for ads targeting
+          additionalFields={{
+            categories: post?.categories,
+            tags: post?.tags,
+          }}
+        />
+      </GalleryLayout>
     </>
   );
 };
@@ -206,7 +210,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
     return { paths: [], fallback: "blocking" };
   }
 };
-
 export const getStaticProps: GetStaticProps = async ({
   params,
   preview = false,
@@ -254,4 +257,5 @@ export const getStaticProps: GetStaticProps = async ({
     return { notFound: true };
   }
 };
+
 export default NewsArticlePost;
