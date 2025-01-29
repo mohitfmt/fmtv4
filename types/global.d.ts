@@ -43,6 +43,7 @@ interface MostViewedItemType {
   title: string;
   date: string;
   image?: string;
+  slug: string;
 }
 
 interface CategoryNode {
@@ -230,4 +231,29 @@ export interface YouTubeChannelInfo {
     subscriberCount?: number;
   };
   id?: string;
+}
+
+interface TaxQuery {
+  relation: "AND" | "OR";
+  taxArray: {
+    field: string;
+    operator: string;
+    taxonomy: string;
+    terms: string[];
+  }[];
+}
+
+interface OffsetPagination {
+  offset: number;
+  size: number;
+}
+
+interface SearchWhereClause {
+  search: string | undefined;
+  offsetPagination: OffsetPagination;
+  taxQuery?: TaxQuery;
+}
+
+interface SearchVariables {
+  where: SearchWhereClause;
 }

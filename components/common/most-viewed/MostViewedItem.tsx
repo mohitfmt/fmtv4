@@ -9,14 +9,13 @@ interface MostViewedItemProps {
   index: number;
 }
 
-const findCategory = (uri: string) => {
+export const findCategory = (uri: string) => {
   const category = uri.split("/category/")[1]?.split("/")[0].toUpperCase();
   return (
     CATEGORIES[category as keyof typeof CATEGORIES] ?? category ?? "MALAYSIA"
   );
 };
 
-// Replaced h3 and h4 with h1 and h2 (to increase accessibility score)
 const MostViewedItem = memo(({ item, index }: MostViewedItemProps) => (
   <Link href={item.uri}>
     <div className="flex items-center gap-4 p-1 mb-3 py-2 border-b hover:bg-stone-100 hover:rounded-xl dark:hover:bg-stone-600">

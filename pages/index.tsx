@@ -18,6 +18,12 @@ import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import { getPlaylist } from "@/lib/api";
+import HomeFooter from "@/components/landing-pages/HomeFooter";
+import { useSectionData } from "@/hooks/useSectionData";
+import {
+  BusinessSectionSkeleton,
+  CommonSectionSkeleton,
+} from "@/components/skeletons/HomePageSkeletons";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -57,6 +63,29 @@ export default function Home({
   columnists,
   trendingTags,
 }: any) {
+  console.log("Top News Posts:", topNewsPosts);
+  console.log("Business Posts:", businessPosts);
+  console.log("Opinion Posts:", opinionPosts);
+  console.log("World Posts:", worldPosts);
+  console.log("Leisure Posts:", leisurePosts);
+  console.log("Sports Posts:", sportsPosts);
+  console.log("Berita Posts:", beritaPosts);
+
+  const { posts: currentBusinessPosts, loading: businessLoading } =
+    useSectionData(businessPosts, "business", 3);
+
+  const { posts: currentWorldPosts, loading: worldLoading } = useSectionData(
+    worldPosts,
+    "world",
+    5
+  );
+
+  const { posts: currentSportsPosts, loading: sportsLoading } = useSectionData(
+    sportsPosts,
+    "sports",
+    5
+  );
+
   return (
     <>
       <Head>
@@ -152,11 +181,15 @@ export default function Home({
             <Link href="/business">
               <SectionHeading sectionName="Business" />
             </Link>
-            <div className="xl:block md:grid md:grid-cols-2 sm:block md:gap-8 gap-2">
-              {businessPosts?.map((bizPost: any) => (
-                <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
-              ))}
-            </div>
+            {businessLoading ? (
+              <BusinessSectionSkeleton />
+            ) : (
+              <div className="xl:block md:grid md:grid-cols-2 sm:block md:gap-8 gap-2">
+                {currentBusinessPosts?.map((bizPost: any) => (
+                  <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
+                ))}
+              </div>
+            )}
           </div>
           <div className="order-1 xl:order-2 xl:col-span-5 md:col-span-7">
             <SuperNewsPreview {...heroPosts[0]} />
@@ -198,7 +231,7 @@ export default function Home({
           />
         </div>
         <section id="TopNews-MostViewed" className="my-4">
-          <div className="grid grid-cols-12 gap-4">
+          <div className="grid grid-cols-12 gap-4 gap-x-6">
             <div className="md:col-span-8 col-span-12">
               <Link href="/news">
                 <SectionHeading sectionName="Top News" />
@@ -285,9 +318,7 @@ export default function Home({
               </div>
             </div>
             <div className="flex flex-col md:col-span-4 md:h-auto col-span-12 h-screen">
-              <Link href="/authors">
-                <SectionHeading sectionName="Columnist" />
-              </Link>
+              <SectionHeading sectionName="Columnist" />
               <ColumnistCredits columnists={columnists} />
             </div>
           </div>
@@ -297,20 +328,26 @@ export default function Home({
             <SectionHeading sectionName="World News" />
           </Link>
           <div className="grid grid-cols-12 gap-4">
-            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-              {worldPosts
-                ?.slice(0, 1)
-                ?.map((post: any) => (
-                  <SecondarySuperNewsPreview {...post} key={post.slug} />
-                ))}
-            </div>
-            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-              {worldPosts
-                ?.slice(1)
-                ?.map((post: any) => (
-                  <TTBNewsPreview {...post} key={post?.slug} />
-                ))}
-            </div>
+            {worldLoading ? (
+              <CommonSectionSkeleton />
+            ) : (
+              <>
+                <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+                  {currentWorldPosts
+                    ?.slice(0, 1)
+                    ?.map((post: any) => (
+                      <SecondarySuperNewsPreview {...post} key={post.slug} />
+                    ))}
+                </div>
+                <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+                  {currentWorldPosts
+                    ?.slice(1)
+                    ?.map((post: any) => (
+                      <TTBNewsPreview {...post} key={post?.slug} />
+                    ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
         <div className="ads-small-desktop">
@@ -351,23 +388,32 @@ export default function Home({
             <SectionHeading sectionName="Sports News" />
           </Link>
           <div className="grid grid-cols-12 gap-4">
-            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-              {sportsPosts
-                ?.slice(0, 1)
-                ?.map((post: any) => (
-                  <SecondarySuperNewsPreview {...post} key={post.slug} />
-                ))}
-            </div>
-            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-              {sportsPosts
-                ?.slice(1)
-                ?.map((post: any) => (
-                  <TTBNewsPreview {...post} key={post?.slug} />
-                ))}
-            </div>
+            {sportsLoading ? (
+              <CommonSectionSkeleton />
+            ) : (
+              <>
+                <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
+                  {currentSportsPosts
+                    ?.slice(0, 1)
+                    ?.map((post: any) => (
+                      <SecondarySuperNewsPreview {...post} key={post.slug} />
+                    ))}
+                </div>
+                <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
+                  {currentSportsPosts
+                    ?.slice(1)
+                    ?.map((post: any) => (
+                      <TTBNewsPreview {...post} key={post?.slug} />
+                    ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
       </main>
+      <footer>
+        <HomeFooter currentHighlightPosts={highlightPosts} />
+      </footer>
     </>
   );
 }
@@ -388,18 +434,30 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       limit: number,
       additionalExcludes: string[] = []
     ) => {
-      const allPosts = await getCategoryNews(
-        categoryName,
-        limit + excludeSlugs?.length + additionalExcludes?.length,
-        preview
-      );
-      return allPosts
-        ?.filter(
-          (post: { slug: string }) =>
-            !excludeSlugs?.includes(post?.slug) &&
-            !additionalExcludes?.includes(post?.slug)
-        )
-        ?.slice(0, limit);
+      try {
+        const allPosts = await getCategoryNews(
+          categoryName,
+          limit + excludeSlugs?.length + additionalExcludes?.length,
+          preview
+        );
+
+        // if(categoryName ==  'world' || categoryName == "business")
+        // {
+        //   console.log(`${categoryName} is null`)
+        //    return[];
+        // }
+
+        return allPosts
+          .filter(
+            (post: { slug: string }) =>
+              !excludeSlugs?.includes(post?.slug) &&
+              !additionalExcludes?.includes(post?.slug)
+          )
+          .slice(0, limit);
+      } catch (error) {
+        console.error(`Error fetching ${categoryName} posts:`, error);
+        return []; // Return empty array on error
+      }
     };
 
     // Fetch highlight posts, excluding super-highlight posts
@@ -426,13 +484,13 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       sportsPosts,
       superBmPosts, // Fetch superBmPosts before topBmPosts
     ] = await Promise.all([
-      getFilteredCategoryNews("top-news", 6),
-      getFilteredCategoryNews("business", 3),
-      getFilteredCategoryNews("opinion", 6),
-      getFilteredCategoryNews("world", 5),
-      getFilteredCategoryNews("leisure", 5),
-      getFilteredCategoryNews("sports", 5),
-      getFilteredCategoryNews("super-bm", 1), // Fetch superBmPosts here
+      getFilteredCategoryNews("top-news", 6).catch(() => []),
+      getFilteredCategoryNews("business", 3).catch(() => []),
+      getFilteredCategoryNews("opinion", 6).catch(() => []),
+      getFilteredCategoryNews("world", 5).catch(() => []),
+      getFilteredCategoryNews("leisure", 5).catch(() => []),
+      getFilteredCategoryNews("sports", 5).catch(() => []),
+      getFilteredCategoryNews("super-bm", 1).catch(() => []),
     ]);
 
     // Fetch topBmPosts after superBmPosts to exclude superBm slugs
@@ -441,6 +499,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       4,
       superBmPosts?.map((post: { slug: string }) => post?.slug)
     );
+
 
     // Combine superBmPosts and topBmPosts for Berita section
     const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
