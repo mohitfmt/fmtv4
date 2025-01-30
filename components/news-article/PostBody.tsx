@@ -22,26 +22,33 @@ interface PostBodyProps {
 
 const processParagraph = (text: string): string => {
   const locationPattern = /^([A-Z\s]+:)\s+/;
-  const locationMatch = text.match(locationPattern);
-  if (locationMatch) {
+  const quotePattern = /["""](.*?)["""]/g;
+
+  // Process location if exists
+  if (locationPattern.test(text)) {
     text = text.replace(
       locationPattern,
-      `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
-        <span itemProp='name'>${locationMatch[1].trim().slice(0, -1)}</span>:
+      (_, location) => `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
+        <span itemProp='name'>${location.trim().slice(0, -1)}</span>:
       </address>`
     );
   }
 
-  const quotePattern = /["""](.*?)["""]/g;
-  return text.replace(
+  // Process quotes if exist
+  text = text.replace(
     quotePattern,
     (_, quote) => `<blockquote class="quote-block"><q>${quote}</q></blockquote>`
   );
+
+  return text;
 };
 
-const isPlainText = (children: any): boolean =>
-  typeof children === "string" ||
-  children.every((child: any) => typeof child === "string");
+// Simplified pattern detection
+const hasSpecialPattern = (text: string): boolean => {
+  const locationPattern = /^([A-Z\s]+:)\s+/;
+  const quotePattern = /["""](.*?)["""]/g;
+  return locationPattern.test(text) || quotePattern.test(text);
+};
 
 const PostBody: React.FC<PostBodyProps> = ({
   content,
@@ -50,10 +57,26 @@ const PostBody: React.FC<PostBodyProps> = ({
   if (!content) return null;
 
   const preprocessContent = (htmlContent: string): string => {
-    return htmlContent
-      .replace(/<a[^>]*>(\s*<a[^>]*>.*?<\/a>\s*)<\/a>/g, "$1")
-      .replace(/https?:\/\/www\.freemalaysiatoday\.com/g, "")
-      .replace(/https?:\/\/www\./g, "https://media.");
+    // First handle nested anchors
+    let processedContent = htmlContent.replace(
+      /<a[^>]*>(\s*<a[^>]*>.*?<\/a>\s*)<\/a>/g,
+      "$1"
+    );
+
+    // Handle image URLs in src attributes and href attributes separately
+    processedContent = processedContent.replace(
+      /(src|href)="(https?:\/\/)?(www\.)?freemalaysiatoday\.com/g,
+      (match, attr) => {
+        // For src attributes, use media domain
+        if (attr === 'src') {
+          return `src="https://media.freemalaysiatoday.com`;
+        }
+        // For href attributes, keep as is or transform as needed
+        return `${attr}="https://www.freemalaysiatoday.com`;
+      }
+    );
+
+    return processedContent;
   };
 
   const sanitizedContent = sanitizeHtml(preprocessContent(content), {
@@ -66,7 +89,8 @@ const PostBody: React.FC<PostBodyProps> = ({
       "var",
       "address",
       "blockquote",
-      "q",
+      "p",
+      "strong"
     ],
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
@@ -107,9 +131,15 @@ const PostBody: React.FC<PostBodyProps> = ({
         switch (domNode.name) {
           case "p": {
             const children = domNode.children || [];
-            if (isPlainText(children)) {
-              const textContent = domToReact(children as DOMNode[]);
-              const processedText = processParagraph(String(textContent));
+
+            // Get text content from children
+            const textContent = children
+              .map((child: any) => (typeof child === 'string' ? child : child.data || ''))
+              .join('');
+
+            if (hasSpecialPattern(textContent)) {
+              // Process paragraphs with special patterns
+              const processedText = processParagraph(textContent);
 
               return (
                 <p
@@ -119,9 +149,11 @@ const PostBody: React.FC<PostBodyProps> = ({
               );
             }
 
+            // Handle regular paragraphs normally
             const containsImage = children.some(
               (child: any) => child.name === "img" || child.attribs?.src
             );
+
             return containsImage ? (
               <div>{domToReact(children as DOMNode[], options)}</div>
             ) : (
@@ -130,8 +162,8 @@ const PostBody: React.FC<PostBodyProps> = ({
               </p>
             );
           }
-
           case "img": {
+
             const maxWidth = 912;
             const aspectRatio =
               Number(domNode.attribs.width) / Number(domNode.attribs.height);
@@ -147,11 +179,10 @@ const PostBody: React.FC<PostBodyProps> = ({
                   alt={domNode.attribs.alt || ""}
                   width={Number(domNode.attribs.width) || 200}
                   height={Number(domNode.attribs.height) || 200}
-                  className={`${isFloatingLeft ? "alignleft" : "alignright"} ${
-                    Number(domNode.attribs.height) < 199 && isFloatingLeft
-                      ? "mt-4"
-                      : ""
-                  }`}
+                  className={`${isFloatingLeft ? "alignleft" : "alignright"} ${Number(domNode.attribs.height) < 199 && isFloatingLeft
+                    ? "mt-4"
+                    : ""
+                    }`}
                   loading="lazy"
                 />
               );
@@ -162,7 +193,7 @@ const PostBody: React.FC<PostBodyProps> = ({
 
             return (
               <div
-                className="htmr-img-wrapper"
+                className="html-img-wrapper"
                 itemProp="image"
                 itemType="https://schema.org/ImageObject"
                 itemScope
@@ -175,7 +206,7 @@ const PostBody: React.FC<PostBodyProps> = ({
                   alt={domNode.attribs.alt || ""}
                   width={maxWidth}
                   height={calculatedHeight}
-                  className="htmr-img h-auto"
+                  className="html-img h-auto"
                   loading={currentImageProcessed ? "lazy" : "eager"}
                   priority={!currentImageProcessed}
                   sizes="(max-width: 440px) 200px, (max-width: 640px) 400px, (max-width: 768px) 800px, 912px"
@@ -195,6 +226,7 @@ const PostBody: React.FC<PostBodyProps> = ({
               domNode.attribs.class?.includes("alignright");
 
             if (isFloatingLeft || isFloatingRight) {
+
               return (
                 <figure
                   style={{
@@ -209,6 +241,7 @@ const PostBody: React.FC<PostBodyProps> = ({
                 </figure>
               );
             }
+
             return (
               <figure className="mb-6">
                 {domToReact(domNode.children as DOMNode[], options)}
@@ -217,13 +250,15 @@ const PostBody: React.FC<PostBodyProps> = ({
 
           case "figcaption":
             return (
-              <figcaption className="mt-2 text-center text-sm text-gray-600">
+              <figcaption className="mt-2 text-center text-sm md:text-md text-gray-600 dark:text-gray-100">
                 {domToReact(domNode.children as DOMNode[], options)}
               </figcaption>
             );
 
           case "iframe": {
+
             const src = domNode.attribs.src || "";
+
             if (src.includes("youtube")) {
               return (
                 <div className="aspect-video w-full overflow-hidden rounded-lg">

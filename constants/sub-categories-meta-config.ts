@@ -77,6 +77,21 @@ export const seoSubCategories = {
       "music stories",
     ],
   },
+  "fmt-worldviews": {
+    h1Title: "FMT Worldviews",
+    metaTitle: "FMT Worldviews",
+    description: "Explore in-depth analysis, expert commentary, and diverse perspectives on global affairs, international relations, and world events from distinguished writers and thought leaders on Free Malaysia Today (FMT).",
+    keywords: [
+      "global analysis",
+      "expert commentary",
+      "world affairs",
+      "international perspectives",
+      "geopolitical insights",
+      "global issues",
+      "political analysis",
+      "world events"
+    ]
+  },
   food: {
     h1Title: "Delicious Food News & Reviews",
     metaTitle: "Top Food News & Restaurant Reviews",

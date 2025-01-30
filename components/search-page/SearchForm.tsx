@@ -62,7 +62,7 @@ const SearchForm = () => {
       <div className="col-span-5">
         <Select
           value={currentCategory}
-          onValueChange={(value) => setValue("category", value)}
+          onValueChange={(value:any) => setValue("category", value)}
         >
           <SelectTrigger>
             <SelectValue />

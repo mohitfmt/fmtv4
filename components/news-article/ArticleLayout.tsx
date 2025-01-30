@@ -1,7 +1,5 @@
-// components/news-article/ArticleLayout.tsx
 import AdSlot from "@/components/common/AdSlot";
 import NewsAuthor from "@/components/common/NewsAuthor";
-import CoverImage from "@/components/common/CoverImage";
 import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
@@ -138,22 +136,6 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                 dangerouslySetInnerHTML={{ __html: safeExcerpt }}
               />
 
-              {safeFeaturedImage && (
-                <figure className="my-4">
-                  <CoverImage
-                    title={safeTitle}
-                    coverImage={post.featuredImage}
-                    url={safeUri}
-                    isPriority
-                  />
-                  <figcaption
-                    className="text-center text-stone-500 dark:text-stone-400 -mt-1 px-4 border-b border-x rounded-sm py-1.5 border-stone-300 dark:border-stone-700"
-                    dangerouslySetInnerHTML={{
-                      __html: getImageCaption(post),
-                    }}
-                  />
-                </figure>
-              )}
             </header>
 
             <div itemProp="articleBody">{children}</div>
