@@ -43,15 +43,15 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   const pathName = `/category/category/${categorySlug}`;
 
   const metadataConfig = {
-    title: `${seoData.metaTitle} | Free Malaysia Today (FMT)`,
-    description: seoData.description,
-    keywords: seoData.keywords,
+    title: `${seoData?.metaTitle} | Free Malaysia Today (FMT)` || `FMT`,
+    description: seoData?.description,
+    keywords: seoData?.keywords,
     category: categorySlug,
     pathName,
   };
 
   // Find current page from categoriesNavigation
-  
+
   return (
     <>
       <CategoryMetadata config={metadataConfig} />
@@ -61,7 +61,7 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
         title={categorySlug}
       />
       <SubCategoryPostLayout
-        title={seoData.h1Title || categorySlug}
+        title={seoData?.h1Title || categorySlug}
         posts={posts}
         categorySlug={categorySlug}
         AdsTargetingParams={AdsTargetingParams}

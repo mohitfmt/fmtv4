@@ -7,9 +7,11 @@ import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
-import { getSafeTags, removeFeaturedImage } from "@/lib/utils";
+import { getSafeTags} from "@/lib/utils";
+// import { removeFeaturedImage } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostWithSlugAndDate } from "@/lib/gql-queries/get-post-slug-date";
+// import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -90,7 +92,7 @@ const NewsArticlePost = ({
 
   const safeCategories = getSafeCategories(post);
 
-  const cleanedContent = removeFeaturedImage(post.content || "");
+  // const cleanedContent = removeFeaturedImage(post.content || "");
 
   const safeTitle = post.title || "Untitled Article";
   const safeExcerpt = post.excerpt || "No excerpt available";
@@ -100,7 +102,7 @@ const NewsArticlePost = ({
     `${siteConfig.baseUrl}/default-og-image.jpg`;
 
   const keywords = post?.keywords?.keywords;
-
+   
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
     return (
@@ -174,7 +176,7 @@ const NewsArticlePost = ({
         moreStories={moreStories}
         dfpTargetingParams={dfpTargetingParams}
       >
-        <PostBody content={cleanedContent} additionalFields={post} />
+        <PostBody content={post.content} additionalFields={post} />
       </ArticleLayout>
     </>
   );
@@ -254,4 +256,5 @@ export const getStaticProps: GetStaticProps = async ({
     return { notFound: true };
   }
 };
+
 export default NewsArticlePost;

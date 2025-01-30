@@ -6,6 +6,7 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+
 h1,
 h2,
 h3,
@@ -74,9 +75,11 @@ ul {
     --accent-category: #aaff00;
     --fd: rgb(209 213 219);
   }
+
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -93,36 +96,17 @@ ul {
   }
 }
 
-/* <span class="ob-widget-text" style="flex: 1 1 auto;">You May Like </span> */
 
 .ob-widget-text {
   @apply text-foreground font-bitter font-bold;
 }
 
-.ob-rec-text
-{
-  background-color: red;
-}
-.OUTBRAIN.ob-rec-text
-{
-  /* background-color: red; */
-  color:red
-}
-
-.ob-sub-units
-{
- @apply bg-green-400
-}
-
-.ob-dynamic-rec-container .ob-recIdx-3 .ob-p .ob-dynamic-rec-link .ob-sub-units .ob-unit .ob-rec-text
-{
-  background-color: red;
-}
 
 @keyframes marquee {
   from {
     transform: translateX(0%);
   }
+
   to {
     transform: translateX(-100%);
   }
@@ -133,6 +117,7 @@ ul {
     opacity: 0;
     transform: translateX(-25%);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -144,6 +129,7 @@ ul {
     opacity: 0;
     transform: translateX(25%);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -165,7 +151,7 @@ ul {
 
 /* HTML Parsing */
 
-.htmr-img {
+.html-img {
   @apply rounded-xl;
 }
 
@@ -213,27 +199,28 @@ img.alignright {
   margin-right: 0;
 }
 
-.htmr-img-wrapper {
-  /* display: block;
-  width: auto;
-  max-width: 100%; */
-  @apply flex w-auto max-w-full items-center justify-center;
-}
-
-.htmr-figcaption {
+.html-img-wrapper {
   display: block;
-  text-align: center;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.875rem;
-  font-style: italic;
-  color: #6b7280;
-  padding-top: 8px;
-  word-wrap: break-word;
   width: auto;
   max-width: 100%;
+  /* @apply flex w-auto max-w-full items-center justify-center; */
 }
 
+.quote-block {
+  display: inline;
+}
+
+.location-block {
+  font-weight: bold;
+  font-style: normal;
+  display: inline;
+  color: var(--foreground)
+}
+
+
+
 @media (max-width: 768px) {
+
   figure.alignleft,
   figure.alignright,
   img.alignleft,
@@ -248,12 +235,12 @@ img.alignright {
     text-align: center;
   }
 
-  .htmr-img-wrapper {
+  .html-img-wrapper {
     display: block;
     margin: 0 auto;
   }
 
-  .htmr-figcaption {
+  .html-figcaption {
     text-align: center;
     margin-left: auto;
     margin-right: auto;
@@ -295,17 +282,6 @@ img.alignright {
   }
 }
 
-.quote-block {
-  display: inline;
-}
-
-.location-block {
-  font-weight: bold;
-  font-style: normal;
-  color: #333;
-  display: inline;
-}
-
 abbr {
   text-decoration: none;
 }
@@ -315,22 +291,25 @@ abbr {
 .ads-small-mobile {
   @apply mb-4 h-[120px] items-center flex justify-center md:hidden;
 }
+
 .ads-medium-mobile {
   @apply my-8 h-[270px] flex items-center justify-center md:hidden;
 }
+
 .ads-tall-mobile {
-  @apply my-8  h-[630px] flex items-center justify-center md:hidden;
+  @apply my-8 h-[630px] flex items-center justify-center md:hidden;
 }
 
 .ad-top-banner-desktop {
   @apply hidden lg:flex items-center justify-center w-full h-[100px] rounded-md mx-5;
 }
+
 .ads-dynamic-desktop {
-  @apply md:h-[280px]  flex justify-center items-center;
+  @apply md:h-[280px] flex justify-center items-center;
 }
 
 .ads-medium-desktop {
-  @apply my-8 h-[260px]  hidden justify-center items-center md:flex;
+  @apply my-8 h-[260px] hidden justify-center items-center md:flex;
 }
 
 .ads-small-desktop {

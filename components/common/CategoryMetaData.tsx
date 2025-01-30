@@ -50,7 +50,7 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       {/* Basic Meta Tags */}
       <title>{title}</title>
       <meta name="description" content={description} />
-      <meta name="keywords" content={keywords.join(", ")} />
+      <meta name="keywords" content={keywords?.join(", ")} />
       <meta name="author" content={author} />
       <meta name="category" content={category} />
 
