@@ -7,11 +7,9 @@ import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
-import { getSafeTags} from "@/lib/utils";
-// import { removeFeaturedImage } from "@/lib/utils";
+import { getSafeTags } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostWithSlugAndDate } from "@/lib/gql-queries/get-post-slug-date";
-// import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -74,7 +72,7 @@ const NewsArticlePost = ({
         <p>The article you are looking for might have been moved or deleted.</p>
       </div>
     );
-  }
+  } 
 
   // this is to show the related articles at the bottom of the page
   if (posts.length === 0) {
@@ -102,7 +100,7 @@ const NewsArticlePost = ({
     `${siteConfig.baseUrl}/default-og-image.jpg`;
 
   const keywords = post?.keywords?.keywords;
-   
+
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
     return (
@@ -164,7 +162,6 @@ const NewsArticlePost = ({
         />
         <ArticleJsonLD data={post} />
       </Head>
-
       <ArticleLayout
         post={post}
         safeTitle={safeTitle}
@@ -208,10 +205,10 @@ export const getStaticPaths: GetStaticPaths = async () => {
     return { paths: [], fallback: "blocking" };
   }
 };
-
 export const getStaticProps: GetStaticProps = async ({
   params,
   preview = false,
+  previewData,
 }) => {
   try {
     // Extract date and slug from params
@@ -256,5 +253,4 @@ export const getStaticProps: GetStaticProps = async ({
     return { notFound: true };
   }
 };
-
 export default NewsArticlePost;

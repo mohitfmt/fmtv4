@@ -5,6 +5,8 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  overflow-x: hidden;
+  font-family: var(--font-roboto);
 }
 
 h1,
@@ -81,7 +83,7 @@ ul {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground ;
   }
 }
 
@@ -97,9 +99,6 @@ ul {
 }
 
 
-.ob-widget-text {
-  @apply text-foreground font-bitter font-bold;
-}
 
 
 @keyframes marquee {
@@ -318,4 +317,14 @@ abbr {
 
 .ads-tall-desktop {
   @apply hidden md:flex justify-center items-center md:h-[610px];
+}
+
+
+/* OutBrain  */
+.ob-widget-text {
+  @apply text-foreground font-bitter font-bold;
+}
+
+.ob_what_is_text {
+  @apply text-foreground mr-1
 }

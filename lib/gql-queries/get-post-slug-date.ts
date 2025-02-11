@@ -13,9 +13,6 @@ export async function getPostWithSlugAndDate(slug: string, date: string) {
         uri
         date
         dateGmt
-        keywords {
-          keywords
-        }
         author {
           node {
             name

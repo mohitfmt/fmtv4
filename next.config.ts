@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
         hostname: "media.freemalaysiatoday.com",
         pathname: "/wp-content/**",
       },
-       {
+      {
         protocol: "http",
         hostname: "s3media.freemalaysiatoday.com",
         pathname: "/wp-content/**",
@@ -43,12 +43,19 @@ const nextConfig: NextConfig = {
       ...[
         "www.freemalaysiatoday.com",
         "stg-origin-s3media.freemalaysiatoday.com",
-      ].map(
-        (hostname): RemotePattern => ({
-          protocol: "https",
-          hostname,
-          pathname: "/wp-content/**",
-        })
+      ].flatMap(
+        (hostname): RemotePattern[] => [
+          {
+            protocol: "https",
+            hostname,
+            pathname: "/wp-content/**",
+          },
+          {
+            protocol: "http",
+            hostname,
+            pathname: "/wp-content/**",
+          },
+        ]
       ),
       ...[
         "i.ytimg.com",
