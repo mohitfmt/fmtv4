@@ -28,7 +28,10 @@ const processParagraph = (text: string): string => {
   if (locationPattern.test(text)) {
     text = text.replace(
       locationPattern,
-      (_, location) => `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
+      (
+        _,
+        location
+      ) => `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
         <span itemProp='name'>${location.trim().slice(0, -1)}</span>:
       </address>`
     );
@@ -50,10 +53,7 @@ const hasSpecialPattern = (text: string): boolean => {
   return locationPattern.test(text) || quotePattern.test(text);
 };
 
-const PostBody: React.FC<PostBodyProps> = ({
-  content,
-  additionalFields,
-}) => {
+const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
   if (!content) return null;
 
   const preprocessContent = (htmlContent: string): string => {
@@ -68,7 +68,7 @@ const PostBody: React.FC<PostBodyProps> = ({
       /(src|href)="(https?:\/\/)?(www\.)?freemalaysiatoday\.com/g,
       (match, attr) => {
         // For src attributes, use media domain
-        if (attr === 'src') {
+        if (attr === "src") {
           return `src="https://media.freemalaysiatoday.com`;
         }
         // For href attributes, keep as is or transform as needed
@@ -90,7 +90,7 @@ const PostBody: React.FC<PostBodyProps> = ({
       "address",
       "blockquote",
       "p",
-      "strong"
+      "strong",
     ],
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
@@ -134,8 +134,10 @@ const PostBody: React.FC<PostBodyProps> = ({
 
             // Get text content from children
             const textContent = children
-              .map((child: any) => (typeof child === 'string' ? child : child.data || ''))
-              .join('');
+              .map((child: any) =>
+                typeof child === "string" ? child : child.data || ""
+              )
+              .join("");
 
             if (hasSpecialPattern(textContent)) {
               // Process paragraphs with special patterns
@@ -163,26 +165,33 @@ const PostBody: React.FC<PostBodyProps> = ({
             );
           }
           case "img": {
+            const desktopWidth = 912;
+            const tabletWidth = 800;
+            const mobileWidth = 512;
 
-            const maxWidth = 912;
             const aspectRatio =
               Number(domNode.attribs.width) / Number(domNode.attribs.height);
-            const calculatedHeight = Math.round(maxWidth / aspectRatio);
             const isFloatingLeft = domNode.attribs.class?.includes("alignleft");
             const isFloatingRight =
               domNode.attribs.class?.includes("alignright");
 
             if (isFloatingLeft || isFloatingRight) {
+              const floatingImageWidth = 200;
+              const floatingImageHeight = Math.round(
+                floatingImageWidth / aspectRatio
+              );
+
               return (
                 <Image
                   src={domNode.attribs.src}
                   alt={domNode.attribs.alt || ""}
-                  width={Number(domNode.attribs.width) || 200}
-                  height={Number(domNode.attribs.height) || 200}
-                  className={`${isFloatingLeft ? "alignleft" : "alignright"} ${Number(domNode.attribs.height) < 199 && isFloatingLeft
-                    ? "mt-4"
-                    : ""
-                    }`}
+                  width={floatingImageWidth}
+                  height={floatingImageHeight}
+                  className={`${isFloatingLeft ? "alignleft" : "alignright"} ${
+                    Number(domNode.attribs.height) < 199 && isFloatingLeft
+                      ? "mt-4"
+                      : ""
+                  }`}
                   loading="lazy"
                 />
               );
@@ -190,6 +199,9 @@ const PostBody: React.FC<PostBodyProps> = ({
 
             const currentImageProcessed = firstImageProcessed;
             firstImageProcessed = true;
+
+            // Calculate height based on mobile width for better initial loading
+            const mobileHeight = Math.round(mobileWidth / aspectRatio);
 
             return (
               <div
@@ -199,22 +211,19 @@ const PostBody: React.FC<PostBodyProps> = ({
                 itemScope
               >
                 <meta content={domNode.attribs.src} itemProp="url" />
-                <meta content={domNode.attribs.width} itemProp="width" />
-                <meta content={domNode.attribs.height} itemProp="height" />
                 <Image
                   src={domNode.attribs.src}
                   alt={domNode.attribs.alt || ""}
-                  width={maxWidth}
-                  height={calculatedHeight}
-                  className="html-img h-auto"
+                  width={mobileWidth}
+                  height={mobileHeight}
+                  className="html-img h-auto w-full"
                   loading={currentImageProcessed ? "lazy" : "eager"}
                   priority={!currentImageProcessed}
-                  sizes="(max-width: 440px) 200px, (max-width: 640px) 400px, (max-width: 768px) 800px, 912px"
+                  sizes={`(max-width: 640px) ${mobileWidth}px, (max-width: 768px) ${tabletWidth}px, ${desktopWidth}px`}
                 />
               </div>
             );
           }
-
           case "figure":
             const imageChild = domNode.children.find(
               (child): child is Element =>
@@ -226,7 +235,6 @@ const PostBody: React.FC<PostBodyProps> = ({
               domNode.attribs.class?.includes("alignright");
 
             if (isFloatingLeft || isFloatingRight) {
-
               return (
                 <figure
                   style={{
@@ -256,7 +264,6 @@ const PostBody: React.FC<PostBodyProps> = ({
             );
 
           case "iframe": {
-
             const src = domNode.attribs.src || "";
 
             if (src.includes("youtube")) {
@@ -424,7 +431,7 @@ const PostBody: React.FC<PostBodyProps> = ({
           acc.push(
             <div
               key={`ad-${paragraphCount}`}
-              className="my-4 flex justify-center"
+              className="my-2 flex justify-center"
             >
               {adToInsert.component}
             </div>

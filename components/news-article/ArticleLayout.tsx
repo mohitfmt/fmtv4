@@ -4,6 +4,13 @@ import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import React, { lazy, ReactNode, Suspense } from "react";
+import {
+  FollowPlatformsSkeleton,
+  NewsletterSkeleton,
+  OutbrainWidgetSkeleton,
+  RelatedNewsSkeleton,
+  TagsSkeleton,
+} from "../skeletons/ArticleBodySkeleton";
 
 const TrendingNSubCategoriesList = lazy(
   () => import("@/components/common/TrendingNSubCategoriesList")
@@ -29,27 +36,6 @@ interface ArticleLayoutProps {
   moreStories: any[];
 }
 
-const getImageCaption = (post: any): string => {
-  if (post?.featuredImage?.node?.caption) {
-    return post.featuredImage.node.caption;
-  }
-
-  const extractCaptionFromContent = (content: string): string | null => {
-    if (!content) return null;
-    const figcaptionMatch = content.match(
-      /<figcaption[^>]*>(.*?)<\/figcaption>/
-    );
-    return figcaptionMatch ? figcaptionMatch[1].trim() : null;
-  };
-
-  const contentCaption = extractCaptionFromContent(post?.content);
-  if (contentCaption) {
-    return contentCaption;
-  }
-
-  return "Free Malaysia Today";
-};
-
 const ArticleLayout: React.FC<ArticleLayoutProps> = ({
   post,
   safeTitle,
@@ -67,6 +53,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
   return (
     <>
       {/* Top Desktop Ad */}
+      {/* <section> */}
       <div className="ads-dynamic-desktop">
         <AdSlot
           sizes={[
@@ -94,17 +81,14 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
           targetingParams={dfpTargetingParams}
         />
       </div>
+      {/* </section> */}
 
-      <main className="overflow-x-hidden">
-        <div className="flex flex-col my-5 gap-10 lg:flex-row">
-          <article
-            className="lg:w-2/3"
-            itemScope
-            itemType="https://schema.org/NewsArticle"
-          >
+      <article itemScope itemType="https://schema.org/NewsArticle">
+        <div className="overflow-x-hidden flex flex-col my-5 gap-10 lg:flex-row">
+          <main className="lg:w-2/3">
             <header>
               <h1
-                className="headline mb-4 w-[95vw] max-w-[1368px] font-heading text-3xl font-extrabold leading-tight md:w-[80vw] md:text-4xl lg:text-5xl"
+                className="headline mb-4 flex font-heading text-3xl font-extrabold leading-tight md:min-w-[80vw] md:text-4xl lg:text-5xl"
                 itemProp="headline"
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
               />
@@ -135,23 +119,22 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                 itemProp="description"
                 dangerouslySetInnerHTML={{ __html: safeExcerpt }}
               />
-
             </header>
 
-            <div itemProp="articleBody">{children}</div>
+            <section itemProp="articleBody">{children}</section>
 
-            <Suspense fallback={<div>Follow Us Loading...</div>}>
-              <div className="mt-6 mb-16 ">
+            <Suspense fallback={<FollowPlatformsSkeleton />}>
+              <section className="mt-6 mb-16">
                 <FollowPlatforms />
-              </div>
+              </section>
             </Suspense>
 
-            <Suspense fallback={<div>Newsletter Loading...</div>}>
+            <Suspense fallback={<NewsletterSkeleton />}>
               <NewsletterForm />
             </Suspense>
 
-            <div className="mb-8">
-              <div className="overflow-hidden text-center min-h-[300px]">
+            <section className="mb-8">
+              <div className="overflow-hidden text-center">
                 <AdSlot
                   targetingParams={dfpTargetingParams}
                   id="div-gpt-ad-1691483572864-0"
@@ -170,8 +153,8 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                   targetingParams={dfpTargetingParams}
                 />
               </div>
-            </div>
-          </article>
+            </section>
+          </main>
 
           <aside className="lg:w-1/3 overflow-hidden mt-3  md:mt-24">
             <CategorySidebar
@@ -180,60 +163,61 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
             />
           </aside>
         </div>
-      </main>
 
-      <footer className="mb-5">
-        <Suspense fallback={<div>Tags Loading...</div>}>
-          <TrendingNSubCategoriesList items={tagWithSlug} variant="tags" />
-        </Suspense>
+        <footer className="mt-16 md:mt-6">
+          <Suspense fallback={<TagsSkeleton />}>
+            <TrendingNSubCategoriesList items={tagWithSlug} variant="tags" />
+          </Suspense>
 
-        <Suspense fallback={<div>Related News Loading...</div>}>
-          {relatedPosts && (
-            <RelatedNews relatedPosts={relatedPosts} isBig={true} />
-          )}
-        </Suspense>
+          <Suspense fallback={<RelatedNewsSkeleton />}>
+            {relatedPosts && (
+              <RelatedNews relatedPosts={relatedPosts} isBig={true} />
+            )}
+          </Suspense>
 
-        <Suspense fallback={<div>You may like Loading...</div>}>
-          <div className="overflow-hidden">
-            <OutBrainWidget fullUrl={fullUri} />
-          </div>
-        </Suspense>
-      </footer>
+          <Suspense fallback={<OutbrainWidgetSkeleton />}>
+            <div className="overflow-hidden">
+              <OutBrainWidget fullUrl={fullUri} />
+            </div>
+          </Suspense>
+        </footer>
+      </article>
 
-      <Suspense fallback={<div>More Stories Loading...</div>}>
+      <Suspense fallback={<div>Loading...</div>}>
         <JumpSlider title="More Stories">
           {moreStories && <MoreStories moreStories={moreStories} />}
         </JumpSlider>
       </Suspense>
 
-      {/* Bottom Desktop Ad */}
-      <div className="ads-small-desktop">
-        <AdSlot
-          sizes={[
-            [728, 90],
-            [970, 90],
-          ]}
-          id="div-gpt-ad-1661418008040-0"
-          name="ROS_Multisize_Leaderboard_b"
-          visibleOnDevices="onlyDesktop"
-          targetingParams={dfpTargetingParams}
-        />
-      </div>
-
-      {/* Mobile Bottom Ads */}
-      <div className="my-8">
-        <div className="ads-tall-mobile">
+      <section>
+        {/* Bottom Desktop Ad */}
+        <div className="ads-small-desktop">
           <AdSlot
-            id="div-gpt-ad-1661355926077-0"
-            name="ROS_Halfpage"
-            sizes={[300, 600]}
-            visibleOnDevices="onlyMobile"
+            sizes={[
+              [728, 90],
+              [970, 90],
+            ]}
+            id="div-gpt-ad-1661418008040-0"
+            name="ROS_Multisize_Leaderboard_b"
+            visibleOnDevices="onlyDesktop"
             targetingParams={dfpTargetingParams}
           />
         </div>
 
-        {/* Not Working */}
-        <div className="overflow-hidden text-center">
+        {/* Mobile Bottom Ads */}
+        <div className="my-8">
+          <div className="ads-tall-mobile">
+            <AdSlot
+              id="div-gpt-ad-1661355926077-0"
+              name="ROS_Halfpage"
+              sizes={[300, 600]}
+              visibleOnDevices="onlyMobile"
+              targetingParams={dfpTargetingParams}
+            />
+          </div>
+
+          {/* Not Working in both v3 and v4 */}
+          {/* <div className="overflow-hidden text-center">
           <AdSlot
             targetingParams={dfpTargetingParams}
             id="div-gpt-ad-1691483572864-0"
@@ -241,18 +225,19 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
             sizes={[1, 1]}
             visibleOnDevices="onlyMobile"
           />
+        </div> */}
         </div>
-      </div>
 
-      {/* Our of Page Ad */}
-      <AdSlot
-        id="div-gpt-ad-1661362871446-0"
-        name="1x1_Programmatic"
-        sizes={[1, 1]}
-        targetingParams={dfpTargetingParams}
-        visibleOnDevices="onlyDesktop"
-        outOfPage={true}
-      />
+        {/* Our of Page Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362871446-0"
+          name="1x1_Programmatic"
+          sizes={[1, 1]}
+          targetingParams={dfpTargetingParams}
+          visibleOnDevices="onlyDesktop"
+          outOfPage={true}
+        />
+      </section>
     </>
   );
 };

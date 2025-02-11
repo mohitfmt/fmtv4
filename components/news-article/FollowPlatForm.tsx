@@ -21,11 +21,11 @@ const FollowPlatforms = () => {
             aria-label="Follow us on WhatsApp"
           >
             <SiWhatsapp
-              className="text-4xl md:text-xl"
+              className="text-4xl md:text-xl text-black"
               aria-hidden="true"
               role="img"
             />
-            <span className="hidden font-heading font-bold md:flex">
+            <span className="hidden text-black font-heading font-bold md:flex">
               WhatsApp
             </span>
           </Link>
@@ -55,11 +55,11 @@ const FollowPlatforms = () => {
             aria-label="Follow us on Telegram"
           >
             <FaTelegramPlane
-              className="text-4xl md:text-xl"
+              className="text-4xl md:text-xl text-black"
               aria-hidden="true"
               role="img"
             />
-            <span className="hidden font-heading font-bold md:flex">
+            <span className="hidden font-heading font-bold md:flex text-black">
               Telegram
             </span>
           </Link>

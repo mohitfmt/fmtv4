@@ -1,0 +1,140 @@
+User-agent: *
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=*
+Disallow: /*/edit/
+Disallow: /api/
+Disallow: /_next/image/
+Disallow: /_next/static/media/
+Disallow: /*/api/
+Disallow: /?*
+
+User-agent: Googlebot
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=*
+Disallow: /*/edit/
+Disallow: /api/
+Disallow: /_next/image/
+Disallow: /_next/static/media/
+Disallow: /*/api/
+Disallow: /?*
+
+User-agent: Googlebot-News
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=*
+Disallow: /*/edit/
+Disallow: /api/
+Disallow: /_next/image/
+Disallow: /_next/static/media/
+Disallow: /*/api/
+Disallow: /?*
+Disallow: /*/202[0-3]/*
+Disallow: /*/201[0-9]/*
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=*
+Disallow: /*/edit/
+Disallow: /api/
+Disallow: /_next/image/
+Disallow: /_next/static/media/
+Disallow: /*/api/
+Disallow: /?*
+
+User-agent: GoogleOther
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /?s=*
+Disallow: /*/edit/
+Disallow: /api/
+Disallow: /_next/image/
+Disallow: /_next/static/media/
+Disallow: /*/api/
+Disallow: /?*
+
+User-agent: FeedFetcher-Google
+Allow: /feeds/
+Allow: /feed/
+Allow: /websub/
+Disallow: /
+
+User-agent: GoogleProducer
+Allow: /feeds/
+Allow: /feed/
+Allow: /websub/
+Disallow: /
+
+User-agent: Google-Read-Aloud
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+
+User-agent: Mediapartners-Google
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MegaIndex.ru
+Disallow: /
+
+User-agent: Cutbot
+Disallow: /
+
+User-agent: ToutiaoSpider
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: Yandex
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: YandexImages
+Disallow: /
+
+User-agent: PaperLiBot
+Disallow: /
+
+User-agent: Clickagy Intelligence Bot
+Disallow: /
+
+User-agent: sogou spider
+Disallow: /
+
+User-agent: Cliqzbot
+Disallow: /
+
+User-agent: VoluumDSP-content-bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: Freshbot
+Disallow: /
+
+Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
+Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/news-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/landing-page-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/video-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/feeds-sitemap.xml

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
+import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";
 import { PostCardProps } from "@/types/global";
 import TTBNewsPreview from "../common/news-preview-cards/TTBNewsPreview";
-import HorizontalLoadMoreSkeleton from "../skeletons/HorizontalLoadMoreSkeleton";
+import { Button } from "../ui/button";
 
 interface Posts {
   edges: Array<{
@@ -17,149 +18,68 @@ export interface HorizontalLoadMoreProps {
   categoryName: string;
 }
 
-const HorizontalLoadMore = ({
-  posts,
-  categoryName,
-}: HorizontalLoadMoreProps) => {
-  // const normalizedCategoryName = categoryName === "/news" ? "/top-news" : categoryName;
-
+const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [allPosts, setAllPosts] = useState(posts.edges);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingNext, setIsLoadingNext] = useState(false);
+  const [isLoadingPrev, setIsLoadingPrev] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
-    "next"
-  );
-
-  // Cache for prefetched pages
-  const pageCache = useRef<Record<number, Array<{ node: PostCardProps }>>>({});
-  // Track what's being prefetched
-  const prefetchingPages = useRef<Set<number>>(new Set());
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">("next");
 
   const POSTS_PER_PAGE = 4;
 
-  // Optimized fetch with Cloudflare caching
-  const fetchWithCache = async (pageNumber: number) => {
-    // Check memory cache first
-    if (pageCache.current[pageNumber]) {
-      return {
-        posts: pageCache.current[pageNumber],
-        hasMore: pageCache.current[pageNumber].length === POSTS_PER_PAGE,
-      };
-    }
+  // Function to load more posts
+  const loadMorePosts = async () => {
+    if (isLoadingNext || !hasMore) return false;
 
     try {
+      const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
       const response = await fetch(
-        `/api/more-horizontal-posts?page=${pageNumber}&category=${categoryName}`
+        `/api/more-horizontal-posts?page=${nextPage}&category=${categoryName}`
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch posts");
-      }
+      if (!response.ok) throw new Error("Failed to fetch posts");
 
       const data = await response.json();
 
       if (data.posts?.length > 0) {
-        // Store in memory cache
-        pageCache.current[pageNumber] = data.posts;
-        return {
-          posts: data.posts,
-          hasMore: data.posts.length === POSTS_PER_PAGE,
-        };
+        setAllPosts((prev) => [...prev, ...data.posts]);
+        setHasMore(data.posts.length === POSTS_PER_PAGE);
+      } else {
+        setHasMore(false);
       }
-
-      return {
-        posts: [],
-        hasMore: false,
-      };
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-      return {
-        posts: [],
-        hasMore: false,
-      };
-    }
-  };
-
-  // Prefetch function
-  const prefetchNextPage = useCallback(async (pageNumber: number) => {
-    if (prefetchingPages.current.has(pageNumber)) {
-      return;
-    }
-
-    prefetchingPages.current.add(pageNumber);
-    try {
-      await fetchWithCache(pageNumber);
-    } finally {
-      prefetchingPages.current.delete(pageNumber);
-    }
-  }, []);
-
-  // Load more posts function
-  const loadMorePosts = async () => {
-    if (isLoading || !hasMore) return false;
-
-    const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
-
-    try {
-      const { posts: newPosts, hasMore: moreAvailable } =
-        await fetchWithCache(nextPage);
-
-      if (newPosts.length > 0) {
-        setAllPosts((prev) => [...prev, ...newPosts]);
-        setHasMore(moreAvailable);
-        return true;
-      }
-
-      setHasMore(false);
-      return false;
     } catch (error) {
       console.error("Error loading more posts:", error);
-      return false;
     }
   };
 
-  // Handle next page
+  // Handle Next Page Click
   const handleNext = async () => {
-    if (isLoading) return;
-
-    setIsLoading(true);
+    if (isLoadingNext || !canGoNext) return;
+    
+    setIsLoadingNext(true);
+    setAnimationDirection("next");
+    
     const nextPage = currentPage + 1;
     const needsMorePosts = nextPage * POSTS_PER_PAGE >= allPosts.length;
 
     if (needsMorePosts && hasMore) {
-      const loaded = await loadMorePosts();
-      if (!loaded) {
-        setIsLoading(false);
-        return;
-      }
+      await loadMorePosts();
     }
 
-    setAnimationDirection("next");
     setCurrentPage(nextPage);
-
-    // Add a small delay to ensure smooth transition
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-
-    // Prefetch next page
-    const nextPageToFetch = Math.floor(allPosts.length / POSTS_PER_PAGE) + 1;
-    prefetchNextPage(nextPageToFetch);
+    setTimeout(() => setIsLoadingNext(false), 300);
   };
 
-  // Handle previous page
-  const handlePrevious = useCallback(() => {
-    if (currentPage > 0) {
-      setIsLoading(true);
-      setAnimationDirection("prev");
-      setCurrentPage((prev) => prev - 1);
-
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
-    }
-  }, [currentPage]);
+  // Handle Previous Page Click
+  const handlePrevious = () => {
+    if (!canGoPrevious || isLoadingPrev) return;
+    
+    setIsLoadingPrev(true);
+    setAnimationDirection("prev");
+    setCurrentPage((prev) => prev - 1);
+    setTimeout(() => setIsLoadingPrev(false), 300);
+  };
 
   // Get current posts for display
   const getCurrentPosts = useCallback(() => {
@@ -167,52 +87,30 @@ const HorizontalLoadMore = ({
     return allPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
   }, [allPosts, currentPage]);
 
-  // Prefetch next page on mount and when approaching end
-  useEffect(() => {
-    const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
-    if (hasMore && currentPage >= nextPage - 1) {
-      prefetchNextPage(nextPage);
-    }
-  }, [currentPage, allPosts.length, hasMore, prefetchNextPage]);
-
   const currentPosts = getCurrentPosts();
-  const canGoNext =
-    hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
-
-  // Render loading state
-  if (isLoading && currentPosts.length === 0) {
-    return <HorizontalLoadMoreSkeleton />;
-  }
+  const canGoNext = hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
+  const canGoPrevious = currentPage > 0;
 
   return (
     <section className="relative z-0 overflow-hidden px-2">
       <div className="flex items-center">
-        {/* Previous Button */}
+        {/* Desktop Previous Button */}
         <button
           className={`
-            group absolute left-7 bg-foreground top-[48%] sm:top-[30%] z-10 -translate-x-full -translate-y-1/2 transform 
-            rounded-l-xl border border-gray-200 py-6
+            hidden md:flex absolute left-7 bg-foreground top-[48%] sm:top-[30%] z-10 
+            -translate-x-full -translate-y-1/2 transform rounded-l-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
-            ${
-              currentPage === 0
-                ? "cursor-not-allowed opacity-50 border-gray-200"
-                : "hover:border-accent-yellow"
-            }
+            ${(!canGoPrevious || isLoadingPrev) ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
           `}
-          disabled={currentPage === 0 || isLoading}
-          title="Previous"
+          disabled={!canGoPrevious || isLoadingPrev}
           onClick={handlePrevious}
           aria-label="Previous page"
         >
-          <HiOutlineChevronLeft
+          <HiOutlineChevronLeft 
             className={`
               h-6 w-6 
-              ${
-                currentPage === 0
-                  ? "text-gray-400"
-                  : "text-background group-hover:text-accent-yellow"
-              }
-            `}
+              ${(!canGoPrevious || isLoadingPrev) ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
+            `} 
           />
         </button>
 
@@ -220,7 +118,7 @@ const HorizontalLoadMore = ({
         <div
           key={currentPage}
           className={`
-            w-full mx-2 grid grid-cols-2 gap-4 sm:mt-4 md:grid-cols-4
+            w-full md:mx-2 grid grid-cols-2 gap-4 sm:mt-4 md:grid-cols-4
             horizontal-load-more-animation
             ${animationDirection === "next" ? "slide-in-right" : "slide-in-left"}
           `}
@@ -230,33 +128,54 @@ const HorizontalLoadMore = ({
           ))}
         </div>
 
-        {/* Next Button */}
+        {/* Desktop Next Button */}
         <button
           className={`
-            group absolute right-7 bg-foreground top-[48%] sm:top-[30%] z-10 translate-x-full -translate-y-1/2 transform 
-            rounded-r-xl border border-gray-200 py-6
+            hidden md:flex absolute right-7 bg-foreground top-[48%] sm:top-[30%] z-10 
+            translate-x-full -translate-y-1/2 transform rounded-r-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
-            ${
-              !canGoNext || isLoading
-                ? "cursor-not-allowed opacity-50"
-                : "hover:border-accent-yellow"
-            }
+            ${(!canGoNext || isLoadingNext) ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
           `}
-          disabled={!canGoNext || isLoading}
+          disabled={!canGoNext || isLoadingNext}
           onClick={handleNext}
           aria-label="Next page"
         >
-          <HiOutlineChevronRight
+          <HiOutlineChevronRight 
             className={`
               h-6 w-6 
-              ${
-                !canGoNext
-                  ? "text-gray-400"
-                  : "text-background group-hover:text-accent-yellow"
-              }
-            `}
+              ${(!canGoNext || isLoadingNext) ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
+            `} 
           />
         </button>
+      </div>
+
+      {/* Mobile Buttons */}
+      <div className="flex items-center gap-4 justify-between mt-4 md:hidden">
+        <Button
+          variant="outline"
+          className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          disabled={!canGoPrevious || isLoadingPrev}
+          onClick={handlePrevious}
+          aria-label="Previous page"
+        >
+          <span className="flex items-center justify-center">
+            <FaArrowLeftLong className="mr-2" aria-hidden="true" />
+            Previous
+          </span>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          disabled={!canGoNext || isLoadingNext}
+          onClick={handleNext}
+          aria-label="Next page"
+        >
+          <span className="flex items-center justify-center">
+            Next
+            <FaArrowRightLong className="ml-2" aria-hidden="true" />
+          </span>
+        </Button>
       </div>
     </section>
   );
