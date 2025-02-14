@@ -26,6 +26,11 @@ export const OrgJsonLD = {
     minValue: 100,
     maxValue: 500,
   },
+  mainEntityOfPage: {
+    '@type': 'WebSite',
+    '@id': 'https://www.freemalaysiatoday.com/',
+    url: 'https://www.freemalaysiatoday.com/',
+  },
   isAccessibleForFree: true,
   sameAs: [
     "https://www.facebook.com/profile.php?id=100064467980422",
@@ -104,6 +109,9 @@ export const OrgJsonLD = {
 export const websiteJSONLD = {
   "@context": "https://schema.org",
   "@type": ["WebSite", "CreativeWork"],
+  name: "Free Malaysia Today Website",
+  description:
+    "Explore 24/7 news on politics, economy, and more with Free Malaysia Today. Your source for unbiased Malaysian news in English & Malay since 2009.",
   url: `${siteConfig.baseUrl}`,
   potentialAction: {
     "@type": "SearchAction",
@@ -120,6 +128,7 @@ export const WebPageJsonLD = {
   "@type": "WebPage",
   additionalType: "News_Website",
   url: `${siteConfig.baseUrl}`,
+  name: `${siteConfig.baseUrl}`,
   inLanguage: [
     "en-MY",
     "en-US",
@@ -143,4 +152,17 @@ export const WebPageJsonLD = {
   ],
   publisher: OrgJsonLD,
   isPartOf: websiteJSONLD,
+  breadcrumb: {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        item: {
+          "@id": "https://www.freemalaysiatoday.com/",
+          name: "Home",
+        },
+      },
+    ],
+  },
 };

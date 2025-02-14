@@ -27,7 +27,7 @@ const HomeBerita = ({
       <CategoryMetadata config={categoriesMetadataConfigs.business} />
       <CategoryJsonLD
         posts={posts}
-        pathName="/business"
+        pathName="/berita"
         title={categoriesMetadataConfigs.business.title}
       />
 

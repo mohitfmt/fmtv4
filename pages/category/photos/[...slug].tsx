@@ -158,7 +158,7 @@ const NewsArticlePost = ({
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         />
-        <ArticleJsonLD data={post} />
+        <ArticleJsonLD data={post} relatedData={relatedPosts}/>
       </Head>
 
       <GalleryLayout
