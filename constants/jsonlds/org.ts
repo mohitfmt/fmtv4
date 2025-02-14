@@ -18,8 +18,8 @@ export const OrgJsonLD = {
   knowsLanguage: ["Malay", "English"],
   aggregateRating: {
     "@type": "AggregateRating",
-    ratingValue: 4.3,
-    ratingCount: 18,
+    ratingValue: 4.4,
+    ratingCount: 2608867,
   },
   numberOfEmployees: {
     "@type": "QuantitativeValue",
@@ -27,9 +27,9 @@ export const OrgJsonLD = {
     maxValue: 500,
   },
   mainEntityOfPage: {
-    '@type': 'WebSite',
-    '@id': 'https://www.freemalaysiatoday.com/',
-    url: 'https://www.freemalaysiatoday.com/',
+    "@type": "WebSite",
+    "@id": "https://www.freemalaysiatoday.com/",
+    url: "https://www.freemalaysiatoday.com/",
   },
   isAccessibleForFree: true,
   sameAs: [

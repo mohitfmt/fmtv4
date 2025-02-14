@@ -5,7 +5,7 @@ import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
-import { getSafeTags} from "@/lib/utils";
+import { getSafeTags } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import PhotoDetail from "@/components/gallery/PhotoDetials";
 import { getPostWithSlugAndDate } from "@/lib/gql-queries/get-post-slug-date";
@@ -158,9 +158,8 @@ const NewsArticlePost = ({
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         />
-        <ArticleJsonLD data={post} relatedData={relatedPosts}/>
       </Head>
-
+      <ArticleJsonLD data={post} relatedData={relatedPosts} />
       <GalleryLayout
         post={post}
         safeTitle={safeTitle}
