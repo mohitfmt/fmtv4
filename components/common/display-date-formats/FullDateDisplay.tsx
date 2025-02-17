@@ -96,7 +96,6 @@ const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
         className={`font-bitter rounded ${textSize === "small" ? "text-xs" : "uppercase"} + ${additionalClass} `}
         dateTime={date.toISOString()}
         title={format(date, "dd MMM yyyy, HH:mm")}
-        itemProp="datePublished"
       >
         {timeString || format(date, "dd-MMM-yyyy, HH:mm")}
       </time>
