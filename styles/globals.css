@@ -83,7 +83,7 @@ ul {
   }
 
   body {
-    @apply bg-background text-foreground ;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -97,9 +97,6 @@ ul {
     scrollbar-width: none;
   }
 }
-
-
-
 
 @keyframes marquee {
   from {
@@ -213,13 +210,9 @@ img.alignright {
   font-weight: bold;
   font-style: normal;
   display: inline;
-  color: var(--foreground)
+  color: var(--foreground);
 }
-
-
-
 @media (max-width: 768px) {
-
   figure.alignleft,
   figure.alignright,
   img.alignleft,
@@ -281,6 +274,12 @@ img.alignright {
   }
 }
 
+@media (min-width: 1024px) {
+  .top-navbar {
+    overflow: visible !important;
+  }
+}
+
 abbr {
   text-decoration: none;
 }
@@ -319,12 +318,11 @@ abbr {
   @apply hidden md:flex justify-center items-center md:h-[610px];
 }
 
-
 /* OutBrain  */
 .ob-widget-text {
   @apply text-foreground font-bitter font-bold;
 }
 
 .ob_what_is_text {
-  @apply text-foreground mr-1
+  @apply text-foreground mr-1;
 }

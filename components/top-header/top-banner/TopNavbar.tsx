@@ -35,7 +35,7 @@ const TopNavbar = ({ navigation }: Props) => {
   };
 
   return (
-    <nav className="border-b border-stone-400 py-2 font-semibold block overflow-x-scroll lg:overflow-x-clip relative">
+    <nav className="top-navbar border-b border-stone-400 py-2 font-semibold block overflow-x-scroll lg:overflow-x-clip relative">
       <ul className="flex justify-start gap-1 items-center min-w-full text-lg ">
         {navigation.map((item) => (
           <li key={item.id} className="group relative">

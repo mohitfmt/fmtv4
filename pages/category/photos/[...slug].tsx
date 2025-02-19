@@ -8,8 +8,8 @@ import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import { getSafeTags } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import PhotoDetail from "@/components/gallery/PhotoDetials";
-import { getPostWithSlugAndDate } from "@/lib/gql-queries/get-post-slug-date";
 import GalleryLayout from "@/components/gallery/GalleryLayout";
+import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -212,20 +212,18 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({
   params,
   preview = false,
+  previewData,
 }) => {
   try {
-    // Extract date and slug from params
-    const slugArray = Array.isArray(params?.slug) ? params.slug : [];
-    const slug = slugArray[slugArray.length - 1];
-    const date = slugArray
-      .slice(slugArray.length - 4, slugArray.length - 1)
-      .join("-");
+    const slug = Array.isArray(params?.slug)
+      ? params.slug[params.slug.length - 1]
+      : params?.slug;
 
-    if (!slug || !date) {
+    if (!slug) {
       return { notFound: true };
     }
 
-    const data = await getPostWithSlugAndDate(slug, date);
+    const data = await getPostAndMorePosts(slug, preview, previewData);
 
     if (!data?.post) {
       return { notFound: true };
