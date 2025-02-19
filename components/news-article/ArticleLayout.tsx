@@ -7,7 +7,6 @@ import React, { lazy, ReactNode, Suspense } from "react";
 import {
   FollowPlatformsSkeleton,
   NewsletterSkeleton,
-  OutbrainWidgetSkeleton,
   RelatedNewsSkeleton,
   TagsSkeleton,
 } from "../skeletons/ArticleBodySkeleton";
@@ -178,7 +177,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
             )}
           </Suspense>
 
-          <Suspense fallback={<OutbrainWidgetSkeleton />}>
+          <Suspense>
             <div className="overflow-hidden">
               <OutBrainWidget fullUrl={fullUri} />
             </div>
@@ -186,7 +185,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
         </footer>
       </article>
 
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense>
         <JumpSlider title="More Stories">
           {moreStories && <MoreStories moreStories={moreStories} />}
         </JumpSlider>

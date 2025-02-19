@@ -279,3 +279,36 @@ interface ArticleData {
   author: any;
   categories?: { edges?: { node?: { name?: string } }[] };
 }
+
+interface HomePost {
+  title: string;
+  excerpt: string;
+  slug: string;
+  uri: string;
+  date: string;
+  featuredImage: {
+    node: {
+      sourceUrl: string;
+    };
+  };
+  categories: {
+    edges: Array<{
+      node: {
+        slug: string;
+        name: string;
+        id: string;
+      };
+    }>;
+  };
+  author: {
+    node: {
+      slug: string;
+      name: string;
+      firstName: string | null;
+      lastName: string | null;
+      avatar: {
+        url: string;
+      };
+    };
+  };
+}

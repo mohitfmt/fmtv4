@@ -122,7 +122,7 @@ const ArticleJsonLD = ({
   relatedData: any;
 }) => {
   const keywords =
-    data?.keywords.keywords ||
+    data?.keywords?.keywords ||
     data?.tags?.edges?.map(({ node }: any) => node?.name).join(", ");
 
   const fullUrl = `${siteConfig.baseUrl}${data?.uri}`;

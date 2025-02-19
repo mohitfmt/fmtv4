@@ -5,7 +5,6 @@ import TrendingNSubCategoriesList from "@/components/common/TrendingNSubCategori
 import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPreview";
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
-import SecondarySuperNewsPreview from "@/components/landing-pages/SecondarySuperNewsPreview";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
@@ -20,10 +19,9 @@ import CategorySidebar from "@/components/common/CategorySidebar";
 import { getPlaylist } from "@/lib/api";
 import HomeFooter from "@/components/landing-pages/HomeFooter";
 import { useSectionData } from "@/hooks/useSectionData";
-import {
-  BusinessSectionSkeleton,
-  CommonSectionSkeleton,
-} from "@/components/skeletons/HomePageSkeletons";
+import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
+import HomeCommonSections from "@/components/home/HomeCommonSections";
+import HomeTopNewsOpinion from "@/components/home/HomeTopNewsOpinion";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -83,6 +81,21 @@ export default function Home({
   const { posts: currentSportsPosts, loading: sportsLoading } = useSectionData(
     sportsPosts,
     "sports",
+    5
+  );
+
+  const { posts: currentTopNewsPosts, loading: topNewsLoading } =
+    useSectionData(topNewsPosts, "top-news", 6);
+
+  const { posts: currentOpinionPosts, loading: opinionLoading } =
+    useSectionData(opinionPosts, "opinion", 6);
+
+  const { posts: currentLeisurePosts, loading: leisureLoading } =
+    useSectionData(leisurePosts, "leisure", 5);
+
+  const { posts: currentBeritaPosts, loading: beritaLoading } = useSectionData(
+    beritaPosts,
+    "top-bm",
     5
   );
 
@@ -230,28 +243,15 @@ export default function Home({
             visibleOnDevices="onlyMobile"
           />
         </div>
+
         <section id="TopNews-MostViewed" className="my-4">
           <div className="grid grid-cols-12 gap-4 gap-x-6">
-            <div className="md:col-span-8 col-span-12">
-              <Link href="/news">
-                <SectionHeading sectionName="Top News" />
-              </Link>
-              <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
-                {topNewsPosts
-                  ?.slice(0, 2)
-                  ?.map((post: any) => (
-                    <TTBNewsPreview {...post} key={post.slug} />
-                  ))}
-              </div>
-              <div className="mt-8 grid lg:grid-cols-2 gap-4">
-                {topNewsPosts
-                  ?.slice(2)
-                  ?.map((post: any) => (
-                    <LTRNewsPreview {...post} key={post?.slug} />
-                  ))}
-              </div>
-              {/* Previous Next Button Place */}
-            </div>
+            <HomeTopNewsOpinion
+              posts={currentTopNewsPosts}
+              loading={false}
+              categoryName="top-news"
+              sectionTitle="Top News"
+            />
             <div className="flex flex-col mb-3 md:col-span-4 col-span-12">
               <CategorySidebar
                 pageName="home"
@@ -260,30 +260,14 @@ export default function Home({
             </div>
           </div>
         </section>
-        <section id="Berita-Utama" className="my-20">
-          <Link href="/berita">
-            <SectionHeading sectionName="Berita Utama" />
-          </Link>
-          <div className="grid grid-cols-12 gap-4">
-            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-              {beritaPosts
-                ?.slice(0, 1)
-                ?.map((post: any) => (
-                  <SecondarySuperNewsPreview {...post} key={post.slug} />
-                ))}
-            </div>
-            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-              {beritaPosts
-                ?.slice(1)
-                ?.map((post: any) => (
-                  <TTBNewsPreview {...post} key={post?.slug} />
-                ))}
-              <div className="col-span-2">
-                {/* Previous Next Button Place */}
-              </div>
-            </div>
-          </div>
-        </section>
+
+        <HomeCommonSections
+          posts={currentBeritaPosts}
+          loading={false}
+          categoryName="top-bm"
+          sectionTitle="Berita Utama"
+          sectionId="Berita-Utama"
+        />
 
         <LatestVideosOnHomePage videos={videoPosts} />
 
@@ -298,58 +282,26 @@ export default function Home({
         </div>
         <section id="Opinion-Columnist" className="my-4">
           <div className="grid grid-cols-12 gap-8">
-            <div className="md:col-span-8 col-span-12">
-              <Link href="/opinion">
-                <SectionHeading sectionName="Opinion" />
-              </Link>
-              <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
-                {opinionPosts
-                  ?.slice(0, 2)
-                  ?.map((post: any) => (
-                    <TTBNewsPreview {...post} key={post.slug} />
-                  ))}
-              </div>
-              <div className="mt-8 grid lg:grid-cols-2 gap-4">
-                {opinionPosts
-                  ?.slice(2)
-                  ?.map((post: any) => (
-                    <LTRNewsPreview {...post} key={post?.slug} />
-                  ))}
-              </div>
-            </div>
+            <HomeTopNewsOpinion
+              posts={currentOpinionPosts}
+              loading={false}
+              categoryName="opinion"
+              sectionTitle="Opinion"
+            />
             <div className="flex flex-col md:col-span-4 md:h-auto col-span-12 h-screen">
               <SectionHeading sectionName="Columnist" />
               <ColumnistCredits columnists={columnists} />
             </div>
           </div>
         </section>
-        <section id="World-News" className="my-20">
-          <Link href="/world">
-            <SectionHeading sectionName="World News" />
-          </Link>
-          <div className="grid grid-cols-12 gap-4">
-            {worldLoading ? (
-              <CommonSectionSkeleton />
-            ) : (
-              <>
-                <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-                  {currentWorldPosts
-                    ?.slice(0, 1)
-                    ?.map((post: any) => (
-                      <SecondarySuperNewsPreview {...post} key={post.slug} />
-                    ))}
-                </div>
-                <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-                  {currentWorldPosts
-                    ?.slice(1)
-                    ?.map((post: any) => (
-                      <TTBNewsPreview {...post} key={post?.slug} />
-                    ))}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+
+        <HomeCommonSections
+          posts={currentWorldPosts}
+          loading={worldLoading}
+          categoryName="world"
+          sectionTitle="World News"
+          sectionId="World-News"
+        />
         <div className="ads-small-desktop">
           <AdSlot
             sizes={[
@@ -362,54 +314,20 @@ export default function Home({
             targetingParams={dfpTargetingParams}
           />
         </div>
-        <section id="Lifestyle-News" className="my-4">
-          <Link href="/lifestyle">
-            <SectionHeading sectionName="Lifestyle" />
-          </Link>
-          <div className="grid grid-cols-12 gap-4">
-            <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-              {leisurePosts
-                ?.slice(0, 1)
-                ?.map((post: any) => (
-                  <SecondarySuperNewsPreview {...post} key={post.slug} />
-                ))}
-            </div>
-            <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-              {leisurePosts
-                ?.slice(1)
-                ?.map((post: any) => (
-                  <TTBNewsPreview {...post} key={post?.slug} />
-                ))}
-            </div>
-          </div>
-        </section>
-        <section id="Sports-News" className="my-20 mb-32">
-          <Link href="/sports">
-            <SectionHeading sectionName="Sports News" />
-          </Link>
-          <div className="grid grid-cols-12 gap-4">
-            {sportsLoading ? (
-              <CommonSectionSkeleton />
-            ) : (
-              <>
-                <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-                  {currentSportsPosts
-                    ?.slice(0, 1)
-                    ?.map((post: any) => (
-                      <SecondarySuperNewsPreview {...post} key={post.slug} />
-                    ))}
-                </div>
-                <div className="grid col-span-12 lg:col-span-5 grid-cols-2 gap-4">
-                  {currentSportsPosts
-                    ?.slice(1)
-                    ?.map((post: any) => (
-                      <TTBNewsPreview {...post} key={post?.slug} />
-                    ))}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+        <HomeCommonSections
+          posts={currentLeisurePosts}
+          loading={false}
+          categoryName="leisure"
+          sectionTitle="Lifestyle"
+          sectionId="Lifestyle-News"
+        />
+        <HomeCommonSections
+          posts={currentSportsPosts}
+          loading={sportsLoading}
+          categoryName="sports"
+          sectionTitle="Sports News"
+          sectionId="Sports-News"
+        />
       </main>
       <footer>
         <HomeFooter currentHighlightPosts={highlightPosts} />
@@ -441,10 +359,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           preview
         );
 
-        // if(categoryName ==  'world' || categoryName == "business")
-        // {
-        //   console.log(`${categoryName} is null`)
-        //    return[];
+        // if (categoryName == "world" || categoryName == "business" || categoryName == "opinion") {
+        //   console.log(`${categoryName} is null`);
+        //   return [];
         // }
 
         return allPosts
@@ -499,7 +416,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       4,
       superBmPosts?.map((post: { slug: string }) => post?.slug)
     );
-
 
     // Combine superBmPosts and topBmPosts for Berita section
     const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
