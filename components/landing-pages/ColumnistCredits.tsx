@@ -119,7 +119,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
       </button>
       <div className="absolute top-3 right-3 text-foreground">
         <FullDateDisplay
-          dateString={columnists[currentIndex].posts.nodes[0].dateGmt}
+          dateString={columnists[currentIndex]?.posts?.nodes[0]?.dateGmt ?? ""}
         />
       </div>
     </div>

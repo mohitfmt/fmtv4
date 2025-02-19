@@ -2,7 +2,6 @@ import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
-import { websiteJSONLD } from "@/constants/jsonlds/org";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
@@ -72,7 +71,7 @@ const NewsArticlePost = ({
         <p>The article you are looking for might have been moved or deleted.</p>
       </div>
     );
-  } 
+  }
 
   // this is to show the related articles at the bottom of the page
   if (posts.length === 0) {
@@ -150,18 +149,12 @@ const NewsArticlePost = ({
         <meta property="twitter:title" content={safeTitle} />
         <meta property="twitter:description" content={safeExcerpt} />
         <meta property="twitter:image" content={safeFeaturedImage} />
-
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-          type="application/ld+json"
-          defer
-        />
         <meta
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         />
-        <ArticleJsonLD data={post} />
       </Head>
+      <ArticleJsonLD data={post} relatedData={relatedPosts} />
       <ArticleLayout
         post={post}
         safeTitle={safeTitle}

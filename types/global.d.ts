@@ -257,3 +257,25 @@ interface SearchWhereClause {
 interface SearchVariables {
   where: SearchWhereClause;
 }
+
+interface ArticleData {
+  tags?: { edges?: { node?: { name?: string } }[] };
+  uri?: string;
+  content?: string;
+  excerpt?: string;
+  title?: string;
+  keywords: { keywords: string };
+  dateGmt?: string;
+  modifiedGmt?: string;
+  featuredImage?: {
+    node?: {
+      sourceUrl?: string;
+      mediaDetails?: {
+        height?: number;
+        width?: number;
+      };
+    };
+  };
+  author: any;
+  categories?: { edges?: { node?: { name?: string } }[] };
+}

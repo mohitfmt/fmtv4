@@ -11,7 +11,6 @@ const NewsAuthor = ({ author }: any) => {
     <Link
       href={`/category/author/${author?.node?.slug}`}
       className="flex items-center"
-      itemProp="url"
     >
       <div
         className="tracking-wide font-rhd text-lg text-stone-700 dark:text-stone-300"
@@ -19,6 +18,7 @@ const NewsAuthor = ({ author }: any) => {
         itemType="https://schema.org/Person"
         itemScope
       >
+        <span></span>
         By:
         <span
           className="underline font-semibold underline-offset-4 text-stone-700 dark:text-stone-300"
@@ -26,6 +26,11 @@ const NewsAuthor = ({ author }: any) => {
         >
           {name}
         </span>
+        <Link
+          href={`https://www.freemalaysiatoday.com/category/author/${author?.node?.slug}`}
+          className="sr-only"
+          itemProp="url"
+        />
       </div>
     </Link>
   );
