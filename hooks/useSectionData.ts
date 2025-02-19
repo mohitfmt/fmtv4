@@ -5,6 +5,8 @@ export const useSectionData = (
   category: string,
   limit: number = 5
 ) => {
+
+  console.log("inside use section")
   const [posts, setPosts] = useState(initialPosts);
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);

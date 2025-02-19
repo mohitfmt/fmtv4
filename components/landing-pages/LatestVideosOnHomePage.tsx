@@ -210,7 +210,7 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
   if (!videos?.length) return null;
 
   return (
-    <section className="my-8">
+    <section className="my-10 mb-20">
       <Link href="/videos">
         <SectionHeading sectionName="Latest Videos" />
       </Link>

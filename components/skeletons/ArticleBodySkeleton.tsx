@@ -64,7 +64,7 @@ export const RelatedNewsSkeleton = () => {
     <section className="mt-8">
       <Skeleton className="h-8 w-48 mb-4" /> {/* Heading */}
       <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((index) => (
+        {[1, 2, 3,4,5,6].map((index) => (
           <div key={index} className="flex flex-col gap-2">
             <Skeleton className="aspect-video w-full rounded-lg" />
             <div className="p-2">
