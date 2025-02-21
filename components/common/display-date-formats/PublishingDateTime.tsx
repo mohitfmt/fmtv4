@@ -77,7 +77,7 @@ const PublishingDateTime = ({
 
   const content = (
     <>
-      <div className={`max-w-20 text-center`}>{timeString}</div>
+      <div className={`max-w-20 text-center text-md`}>{timeString}</div>
       <time className="hidden" dateTime={parseISO(dateString).toISOString()}>
         {timeString}
       </time>

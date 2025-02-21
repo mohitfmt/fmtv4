@@ -42,9 +42,9 @@ const SecondarySuperNewsPreview = ({
           </Link>
         </div>
       </article>
-      <div className="flex w-full justify-between items-center px-2 -mt-4">
+      <div className="flex w-full text-md justify-between items-center px-2 -mt-4 lg:-mt-10">
         <NewsAuthor author={author} />
-        <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+        <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
           <FullDateDisplay dateString={date} />
         </span>
       </div>

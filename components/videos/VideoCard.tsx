@@ -55,7 +55,7 @@ const VideoCard = ({ node }: VideoCardProps) => {
           priority={false}
         />
       </div>
-      <div className="py-2">
+      <div className="py-2 px-1">
         <h2 className="mb-2 line-clamp-1 text-base font-semibold">{title}</h2>
         <p className="mb-2 line-clamp-2 text-xs font-medium text-gray-700 dark:text-gray-300 ">
           {excerpt}
@@ -70,11 +70,6 @@ const VideoCard = ({ node }: VideoCardProps) => {
           </div>
           <div>
             {formattedDisplayDate(node?.dateGmt)}
-            {/* <FullDateDisplay
-              dateString={node?.dateGmt}
-              tooltipPosition="right"
-              textSize="small"
-            /> */}
           </div>
         </div>
       </div>

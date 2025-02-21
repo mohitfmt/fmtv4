@@ -76,7 +76,12 @@ const Headlines = () => {
         <div
           className="animate-marquee whitespace-nowrap"
           style={{
-            animation: `marquee 60s linear infinite ${isHovering ? "paused" : "running"}`,
+            willChange: "transform",
+            animation: posts?.length
+              ? `marquee 60s linear infinite ${
+                  isHovering ? "paused" : "running"
+                }`
+              : "none",
           }}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
