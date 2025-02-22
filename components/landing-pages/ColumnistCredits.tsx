@@ -31,7 +31,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
     if (!isHovering) {
       const interval = setInterval(() => {
         handleNext();
-      }, 15000); // 15 seconds
+      }, 10000); // 10 seconds
       return () => clearInterval(interval);
     }
   }, [currentIndex, isHovering]);
@@ -87,11 +87,13 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
             width={256}
             className="rounded-full w-64 h-64 my-4 border-4 border-accent-yellow"
           />
-          <h2 className="text-2xl mt-6 text-center font-semibold tracking-wider mb-4">
-            {columnists[currentIndex].name}
-          </h2>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <h2 className="text-2xl text-center font-semibold tracking-wider">
+              {columnists[currentIndex].name}
+            </h2>
+          </div>
         </Link>
-        <p className="font-bitter font-extralight text-lg">
+        <p className="font-bitter font-extralight text-lg mt-20">
           {columnists[currentIndex].description}
         </p>
 

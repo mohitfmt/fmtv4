@@ -8,31 +8,23 @@ const NewsAuthor = ({ author }: any) => {
     ? `${author.node.firstName} ${author.node.lastName}`
     : author?.node?.name || null;
   return (
-    <Link
-      href={`/category/author/${author?.node?.slug}`}
-      className="flex items-center"
+    <div
+      className="tracking-wide font-rhd text-stone-700 dark:text-stone-300"
+      itemProp="author"
+      itemType="https://schema.org/Person"
+      itemScope
     >
-      <div
-        className="tracking-wide font-rhd text-lg text-stone-700 dark:text-stone-300"
-        itemProp="author"
-        itemType="https://schema.org/Person"
-        itemScope
+      <Link
+        href={`/category/author/${author?.node?.slug}`}
+        className="flex items-center font-bold"
+        itemProp="url"
       >
-        <span></span>
-        By:
-        <span
-          className="underline font-semibold underline-offset-4 text-stone-700 dark:text-stone-300"
-          itemProp="name"
-        >
+        <span className="mr-1">By:</span>
+        <span className="underline underline-offset-4" itemProp="name">
           {name}
         </span>
-        <Link
-          href={`https://www.freemalaysiatoday.com/category/author/${author?.node?.slug}`}
-          className="sr-only"
-          itemProp="url"
-        />
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 };
 

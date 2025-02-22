@@ -15,7 +15,7 @@ const SuperNewsPreview = ({
   const updatedExcerpt = excerpt?.replace(/<[^>]*>/g, "");
 
   return (
-    <article className="p-0 md:p-2 border-b mt-1">
+    <article className="p-0 md:p-2 border-b mt-1 overflow-hidden">
       <header className="">
         {featuredImage && (
           <CoverImage
@@ -27,15 +27,15 @@ const SuperNewsPreview = ({
           />
         )}
       </header>
-      <div className="flex justify-between items-center my-1">
+      <div className="flex justify-between items-center my-2 text-md">
         <NewsAuthor author={author} />
-        <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+        <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
           <PublishingDateTime dateString={date} />
         </span>
       </div>
       <Link href={uri}>
         <h3
-          className="text-4xl leading-tight font-bold font-bitter"
+          className="text-4xl leading-tight font-bold font-bitter hover:text-blue-700 dark:hover:text-cyan-300"
           title={title}
         >
           {title}

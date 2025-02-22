@@ -104,7 +104,11 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                       />
                     </span>
                   )}
-                  {post.author && <NewsAuthor author={post.author} />}
+                  {post.author && (
+                    <div className="text-lg">
+                      <NewsAuthor author={post.author} />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <ShareButtons
