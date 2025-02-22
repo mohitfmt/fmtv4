@@ -179,21 +179,9 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
           <Clock size={12} />
           {formatDuration(duration)}
         </div>
-        <div className="absolute bottom-2 w-full text-white text-sm rounded-md flex items-center gap-1">
-          <div className="flex justify-between items-center w-full px-2">
-            <div className="flex items-center gap-1">
-              <span className="flex items-center bg-black/80 px-1.5 rounded">
-                <Eye size={12} />
-                {formatViewCount(statistics.viewCount)}
-              </span>
-              <span className="flex items-center bg-black/80 px-1.5 rounded">
-                <ThumbsUp size={12} />
-                {statistics.likeCount}
-              </span>
-            </div>
-            <div className="bg-black/80 px-1.5 rounded">
-              <PublishingDateTime dateString={dateGmt} isTextPop={false} />
-            </div>
+        <div className="absolute bottom-2 right-2">
+          <div className="bg-black/80 px-1.5 rounded text-white text-sm">
+            <PublishingDateTime dateString={dateGmt} isTextPop={false} />
           </div>
         </div>
       </div>
@@ -214,16 +202,9 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
       <Link href="/videos">
         <SectionHeading sectionName="Latest Videos" />
       </Link>
-      {/* <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Latest Videos</h2>
-        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-          View All
-        </button>
-      </div> */}
 
       <div className="grid grid-cols-12 gap-4">
         {/* Feature Video */}
-
         <Link
           href={videos[0].node.uri}
           className="col-span-12 lg:col-span-7 h-[400px]"

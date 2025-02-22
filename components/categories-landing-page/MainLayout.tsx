@@ -39,6 +39,17 @@ export default function MainLayout({
 
   return (
     <div>
+      {/* SubCategories - Only show if it's a category page and has subcategories */}
+      {isCategoryPage && hasSubcategories && (
+        <TrendingNSubCategoriesList
+          items={subcategories.map((cat) => ({
+            id: cat.slug,
+            title: cat.title,
+            href: cat.href,
+          }))}
+          variant="subcategories"
+        />
+      )}
       {/* Top Desktop Ad */}
       <div className="ads-dynamic-desktop">
         <AdSlot
@@ -67,18 +78,6 @@ export default function MainLayout({
           targetingParams={dfpTargetingParams}
         />
       </div>
-
-      {/* SubCategories - Only show if it's a category page and has subcategories */}
-      {isCategoryPage && hasSubcategories && (
-        <TrendingNSubCategoriesList
-          items={subcategories.map((cat) => ({
-            id: cat.slug,
-            title: cat.title,
-            href: cat.href,
-          }))}
-          variant="subcategories"
-        />
-      )}
 
       {/* Main Content Layout */}
       <div className="flex flex-col my-5 gap-10 lg:flex-row">

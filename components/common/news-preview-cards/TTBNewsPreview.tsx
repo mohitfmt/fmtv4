@@ -18,7 +18,7 @@ const TTBNewsPreview = ({
   const preferredCategory = getPreferredCategory(categories?.edges);
 
   return (
-    <article className="flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
+    <article className="flex px-1 flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       <figure className="relative">
         {featuredImage ? (
           <CoverImage
@@ -38,14 +38,14 @@ const TTBNewsPreview = ({
         )}
       </figure>
 
-      <Link href={uri} title={updatedExcerpt} className="my-2">
-        <h2 className="text-xs text-accent-category flex gap-2 items-center justify-between">
+      <Link href={uri} title={updatedExcerpt} className="my-2 text-sm">
+        <h2 className="text-accent-category flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span key={preferredCategory?.node?.id} className="tracking-wider">
               {preferredCategory?.node?.name.toUpperCase()}
             </span>
           )}
-          <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+          <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
             <PublishingDateTime dateString={date} />
           </span>
         </h2>
