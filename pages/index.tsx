@@ -20,8 +20,8 @@ import { getPlaylist } from "@/lib/api";
 import HomeFooter from "@/components/landing-pages/HomeFooter";
 import { useSectionData } from "@/hooks/useSectionData";
 import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
-import HomeCommonSections from "@/components/home/HomeCommonSections";
-import HomeTopNewsOpinion from "@/components/home/HomeTopNewsOpinion";
+import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
+import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";

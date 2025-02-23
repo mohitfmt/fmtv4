@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";
 import SectionHeading from "../common/SectionHeading";
-import SecondarySuperNewsPreview from "../landing-pages/SecondarySuperNewsPreview";
+import SecondarySuperNewsPreview from "./SecondarySuperNewsPreview";
 import TTBNewsPreview from "../common/news-preview-cards/TTBNewsPreview";
 import { CommonSectionSkeleton } from "../skeletons/HomePageSkeletons";
 import { Button } from "../ui/button";
