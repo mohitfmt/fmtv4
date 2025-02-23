@@ -11,7 +11,7 @@ interface HomeFooterProps {
 const HomeFooter = ({ currentHighlightPosts }: HomeFooterProps) => {
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 ">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 pb-2 ">
         <section>
           {/* <h2 className="text-2xl font-extrabold">
             Most Viewed Last 2 Days

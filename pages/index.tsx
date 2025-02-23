@@ -188,30 +188,30 @@ export default function Home({
       <main>
         <section
           id="TopSection"
-          className="my-4 grid grid-cols-1 md:grid-cols-12 gap-4"
+          className="my-4 grid grid-cols-1 gap-4 md:grid-cols-12"
         >
-          <div className="order-3 xl:order-1 xl:col-span-3 md:col-span-12">
+          <div className="order-3 md:col-span-12 xl:order-1 xl:col-span-3">
             <Link href="/business">
               <SectionHeading sectionName="Business" />
             </Link>
             {businessLoading ? (
               <BusinessSectionSkeleton />
             ) : (
-              <div className="xl:block md:grid md:grid-cols-2 sm:block md:gap-8 gap-2">
+              <div className="gap-2 sm:block md:grid md:grid-cols-2 md:gap-8 xl:block">
                 {currentBusinessPosts?.map((bizPost: any) => (
                   <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
                 ))}
               </div>
             )}
           </div>
-          <div className="order-1 xl:order-2 xl:col-span-5 md:col-span-7">
+          <div className="order-1 md:col-span-7 xl:order-2 xl:col-span-5">
             <SuperNewsPreview {...heroPosts[0]} />
           </div>
-          <div className="order-2 xl:order-3 xl:col-span-4 md:col-span-5">
+          <div className="order-2 md:col-span-5 xl:order-3 xl:col-span-4">
             <Link href="/news">
               <SectionHeading sectionName="Breaking" />
             </Link>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 grid-cols-2">
               {highlightPosts?.map((highlightPost: any) => (
                 <TTBNewsPreview key={highlightPost?.slug} {...highlightPost} />
               ))}
@@ -244,20 +244,23 @@ export default function Home({
           />
         </div>
 
-        <section id="TopNews-MostViewed" className="my-4">
-          <div className="grid grid-cols-12 gap-4 gap-x-6">
+        <section
+          id="TopNews-MostViewed"
+          className="my-4 grid grid-cols-3 gap-4 gap-x-6"
+        >
+          <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentTopNewsPosts}
               loading={false}
               categoryName="top-news"
               sectionTitle="Top News"
             />
-            <div className="flex flex-col mb-3 md:col-span-4 col-span-12">
-              <CategorySidebar
-                pageName="home"
-                adsTargetingParams={dfpTargetingParams}
-              />
-            </div>
+          </div>
+          <div className="col-span-3 mb-3 flex flex-col lg:col-span-1">
+            <CategorySidebar
+              pageName="home"
+              adsTargetingParams={dfpTargetingParams}
+            />
           </div>
         </section>
 
@@ -280,18 +283,21 @@ export default function Home({
             targetingParams={dfpTargetingParams}
           />
         </div>
-        <section id="Opinion-Columnist" className="my-4">
-          <div className="grid grid-cols-12 gap-8">
+        <section
+          id="Opinion-Columnist"
+          className="my-4 grid grid-cols-3 gap-4 gap-6"
+        >
+          <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentOpinionPosts}
               loading={false}
               categoryName="opinion"
               sectionTitle="Opinion"
             />
-            <div className="flex flex-col md:col-span-4 md:h-auto col-span-12 h-screen">
-              <SectionHeading sectionName="Columnist" />
-              <ColumnistCredits columnists={columnists} />
-            </div>
+          </div>
+          <div className="col-span-3 flex h-screen flex-col md:h-auto lg:col-span-1">
+            <SectionHeading sectionName="Columnist" />
+            <ColumnistCredits columnists={columnists} />
           </div>
         </section>
 

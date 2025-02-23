@@ -35,7 +35,7 @@ const TopNavbar = ({ navigation }: Props) => {
   };
 
   return (
-    <nav className="top-navbar border-b border-stone-400 py-2 font-semibold block overflow-x-scroll lg:overflow-x-clip relative">
+    <nav className="top-navbar border-b border-stone-400 py-2 font-semibold block overflow-x-scroll relative">
       <ul className="flex justify-start gap-1 items-center min-w-full text-lg ">
         {navigation.map((item) => (
           <li key={item.id} className="group relative">
@@ -61,7 +61,7 @@ const TopNavbar = ({ navigation }: Props) => {
               </Link>
             </div>
             {item.items && (
-              <ul className="absolute space-y-1 hidden lg:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg">
+              <ul className="absolute space-y-1 hidden xl:group-hover:block py-1 border border-stone-200 rounded-md bg-white dark:bg-secondary z-20 shadow-lg">
                 {item.items.map((subItem) => (
                   <li key={subItem.id}>
                     <Link

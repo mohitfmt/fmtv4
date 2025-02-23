@@ -48,16 +48,26 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
     );
   };
 
+  const truncateDescription = (
+    description: string | undefined,
+    wordLimit: number = 50
+  ) => {
+    if (!description) return "";
+    const words = description.split(" ");
+    if (words.length <= wordLimit) return description;
+    return words.slice(0, wordLimit).join(" ") + "...";
+  };
+
   return (
     <div
-      className="relative max-h-screen h-full flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-foreground text-stone-100 md:mx-0 mx-2"
+      className="text-foreground overflow-hidden relative flex h-full max-h-screen items-center justify-center bg-stone-100 text-stone-100 dark:bg-stone-800"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Progress Bar */}
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-yellow-400 ">
+      <div className="absolute left-0 top-0 h-1.5 w-full bg-yellow-400 ">
         <div
-          className="bg-green-500 h-full"
+          className="h-full bg-green-500"
           style={{
             width: `${((currentIndex + 1) / columnists.length) * 100}%`,
             transition: "width 0.3s linear",
@@ -68,13 +78,13 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
       {/* Previous Button */}
       <button
         onClick={handlePrevious}
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-3 rounded-full"
+        className="absolute left-2 top-1/2 z-20 -translate-y-1/2 transform rounded-full bg-blue-600 p-3 text-white"
       >
         &#10094;
       </button>
 
       {/* Columnist Profile */}
-      <div className="flex px-5  text-foreground flex-col items-center justify-around h-full">
+      <div className="text-foreground flex h-full flex-col items-center justify-around px-5">
         <Link
           href={columnists[currentIndex]?.uri}
           prefetch={false}
@@ -85,26 +95,26 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
             alt={columnists[currentIndex].name}
             height={256}
             width={256}
-            className="rounded-full w-64 h-64 my-4 border-4 border-accent-yellow"
+            className="border-accent-yellow my-10 h-60 w-60 rounded-full border-4 lg:my-4"
           />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <h2 className="text-2xl text-center font-semibold tracking-wider">
+          <div className="pointer-events-none  absolute inset-0 flex items-center justify-center">
+            <h2 className="z-10 max-w-[75%] text-center  text-2xl font-semibold tracking-wider">
               {columnists[currentIndex].name}
             </h2>
           </div>
         </Link>
-        <p className="font-bitter font-extralight text-lg mt-20">
-          {columnists[currentIndex].description}
+        <p className="font-bitter mt-[40px] sm:mt-[170px] text-lg font-extralight">
+          {truncateDescription(columnists[currentIndex].description)}
         </p>
 
         {columnists[currentIndex].posts.nodes.length > 0 && (
-          <div className="flex flex-col w-full">
+          <div className="flex w-full flex-col">
             <div className="mt-4">
               <SectionHeading sectionName="Latest article" />
             </div>
             <Link
               href={columnists[currentIndex].posts.nodes[0].uri}
-              className="font-bitter font-normal text-pretty text-lg text-yellow-500 dark:text-yellow-300"
+              className="font-bitter text-pretty text-lg font-normal text-yellow-500 dark:text-yellow-300"
             >
               {columnists[currentIndex].posts.nodes[0].title}
             </Link>
@@ -115,11 +125,11 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
       {/* Next Button */}
       <button
         onClick={handleNext}
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-3 rounded-full"
+        className="absolute right-2 top-1/2 z-20 -translate-y-1/2 transform rounded-full bg-blue-600 p-3 text-white"
       >
         &#10095;
       </button>
-      <div className="absolute top-3 right-3 text-foreground">
+      <div className="text-foreground absolute right-3 top-3">
         <FullDateDisplay
           dateString={columnists[currentIndex]?.posts?.nodes[0]?.dateGmt ?? ""}
         />
