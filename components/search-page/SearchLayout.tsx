@@ -12,7 +12,7 @@ export default function SearchLayout() {
 
   return (
     <>
-      {" "}
+  
       {/* Top Desktop Ad */}
       {/* <div className="ads-dynamic-desktop">
         <AdSlot
@@ -39,7 +39,7 @@ export default function SearchLayout() {
         />
       </div> */}
 
-      <section className="flex flex-col gap-10 lg:flex-row">
+      <section className="flex flex-col gap-10 lg:flex-row mt-6">
         <main className="lg:w-2/3">
           <SectionHeading sectionName="Search Results" />
           <SearchForm />

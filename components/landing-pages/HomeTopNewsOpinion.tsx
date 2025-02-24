@@ -24,14 +24,16 @@ const HorizontalNewsContent = ({
   loading = false,
   categoryName,
   sectionTitle,
-  className = "md:col-span-8 col-span-12",
+  className = "",
 }: HorizontalNewsContentProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [allPosts, setAllPosts] = useState<HomePost[]>([]);
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [isLoadingPrev, setIsLoadingPrev] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">("next");
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
 
   // Update posts when initialPosts changes
   useEffect(() => {
@@ -94,7 +96,10 @@ const HorizontalNewsContent = ({
 
   const getCurrentPosts = useCallback(() => {
     const startIndex = currentPage * POSTS_PER_PAGE;
-    const currentPosts = allPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
+    const currentPosts = allPosts.slice(
+      startIndex,
+      startIndex + POSTS_PER_PAGE
+    );
     return {
       topPosts: currentPosts.slice(0, 2),
       bottomPosts: currentPosts.slice(2),
@@ -102,7 +107,8 @@ const HorizontalNewsContent = ({
   }, [allPosts, currentPage]);
 
   const { topPosts, bottomPosts } = getCurrentPosts();
-  const canGoNext = hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
+  const canGoNext =
+    hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
   const canGoPrevious = currentPage > 0;
 
   // Loading or empty state
@@ -113,7 +119,7 @@ const HorizontalNewsContent = ({
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <div className="animate-pulse">
-          <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[1, 2].map((i) => (
               <div key={i} className="h-48 bg-gray-200 rounded-lg" />
             ))}
@@ -139,7 +145,7 @@ const HorizontalNewsContent = ({
           animationDirection === "next" ? "slide-in-right" : "slide-in-left"
         }`}
       >
-        <div className="grid lg:grid-cols-2 grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {topPosts.map((post) => (
             <TTBNewsPreview key={post.slug} {...post} />
           ))}
@@ -154,7 +160,7 @@ const HorizontalNewsContent = ({
       <div className="flex items-center gap-4 justify-between mt-4">
         <Button
           variant="outline"
-          className="flex-1 transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          className="flex-1 transition-colors duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-[0.5px] dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoPrevious || isLoadingPrev}
           onClick={handlePrevious}
         >
@@ -166,7 +172,7 @@ const HorizontalNewsContent = ({
 
         <Button
           variant="outline"
-          className="flex-1 transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
+          className="flex-1 transition-colors duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-[0.5px] dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoNext || isLoadingNext}
           onClick={handleNext}
         >

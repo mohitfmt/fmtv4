@@ -83,11 +83,15 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
       {/* </section> */}
 
       <article itemScope itemType="https://schema.org/NewsArticle">
+        <h1
+          className="headline my-4 font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight"
+          dangerouslySetInnerHTML={{ __html: safeTitle }}
+        />
         <div className="overflow-x-hidden flex flex-col my-5 gap-10 lg:flex-row">
           <main className="lg:w-2/3">
             <header>
-              <h1
-                className="headline mb-4 flex font-heading text-3xl font-extrabold leading-tight md:min-w-[80vw] md:text-4xl lg:text-5xl"
+              <p
+                className="sr-only"
                 itemProp="headline"
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
               />

@@ -274,9 +274,9 @@ img.alignright {
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .top-navbar {
-    overflow: visible !important;
+    overflow-x: visible !important;
   }
 }
 

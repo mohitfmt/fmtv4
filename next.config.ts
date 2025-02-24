@@ -40,23 +40,26 @@ const nextConfig: NextConfig = {
         hostname: "s3media.freemalaysiatoday.com",
         pathname: "/wp-content/**",
       },
+      {
+        protocol: "https",
+        hostname: "yt3.ggpht.com",
+        pathname: "/**",
+      },
       ...[
         "www.freemalaysiatoday.com",
         "stg-origin-s3media.freemalaysiatoday.com",
-      ].flatMap(
-        (hostname): RemotePattern[] => [
-          {
-            protocol: "https",
-            hostname,
-            pathname: "/wp-content/**",
-          },
-          {
-            protocol: "http",
-            hostname,
-            pathname: "/wp-content/**",
-          },
-        ]
-      ),
+      ].flatMap((hostname): RemotePattern[] => [
+        {
+          protocol: "https",
+          hostname,
+          pathname: "/wp-content/**",
+        },
+        {
+          protocol: "http",
+          hostname,
+          pathname: "/wp-content/**",
+        },
+      ]),
       ...[
         "i.ytimg.com",
         "yt3.ggpht.com",
