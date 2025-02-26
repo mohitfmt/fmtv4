@@ -35,7 +35,7 @@ const SuperNewsPreview = ({
       </div>
       <Link href={uri}>
         <h3
-          className="text-4xl leading-tight font-bold font-bitter hover:text-blue-700 dark:hover:text-cyan-300"
+          className="text-4xl leading-tight font-extrabold font-bitter hover:text-blue-700 dark:hover:text-cyan-300"
           title={title}
         >
           {title}

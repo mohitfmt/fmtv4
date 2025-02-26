@@ -52,16 +52,16 @@ const SignInModal: React.FC<SignInModalProps> = ({
       }
     },
     onError: () => {
-      console.log("Google Login Failed");
+      console.error("Google Login Failed");
     },
   });
 
   const handleFacebookLogin = () => {
-    console.log("Facebook login clicked");
+    // console.log("Facebook login clicked");
   };
 
   const handleAppleLogin = () => {
-    console.log("Apple login clicked");
+    // console.log("Apple login clicked");
   };
 
   if (!isOpen) return null;

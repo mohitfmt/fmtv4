@@ -19,16 +19,8 @@ const SearchWithLoadMore = ({ term, category }: SearchWithLoadMoreProps) => {
 
   const fetchPosts = async (pageNum: number) => {
     if (!term) {
-      console.log("[Search] No search term provided");
       return;
     }
-
-    console.log("[Search] Fetching posts:", {
-      term,
-      category,
-      page: pageNum,
-      currentPosts: posts.length,
-    });
 
     setLoading(true);
     setError(null);

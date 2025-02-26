@@ -46,7 +46,7 @@ export default function UserAuthControl() {
 
   useGoogleOneTapLogin({
     onError: () => {
-      console.log("One Tap Login Failed");
+      console.error("One Tap Login Failed");
     },
     // @ts-expect-error :ignoring onSuccess Error
     onSuccess: handleLoginSuccess,

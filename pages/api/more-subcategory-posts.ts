@@ -45,15 +45,6 @@ export default async function handler(
     ? CATEGORY_EXCLUDE_VARIABLES[categoryPath]
     : undefined;
 
-  // console.log("API Request:", {
-  //   page,
-  //   slug,
-  //   offset,
-  //   postsPerPage,
-  //   parentCategory,
-  //   hasExcludeVariables: !!excludeVariables,
-  // });
-
   try {
     const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
       variables: {

@@ -299,7 +299,7 @@ abbr {
 }
 
 .ad-top-banner-desktop {
-  @apply hidden lg:flex items-center justify-center w-full h-[100px] rounded-md mx-5;
+  @apply hidden lg:flex items-center justify-center w-full h-[100px] rounded-md;
 }
 
 .ads-dynamic-desktop {
