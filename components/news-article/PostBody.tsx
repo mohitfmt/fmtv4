@@ -176,7 +176,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
               domNode.attribs.class?.includes("alignright");
 
             if (isFloatingLeft || isFloatingRight) {
-              const floatingImageWidth = 200;
+              const floatingImageWidth = Number(domNode.attribs.width);
               const floatingImageHeight = Math.round(
                 floatingImageWidth / aspectRatio
               );

@@ -61,14 +61,6 @@ export default function Home({
   columnists,
   trendingTags,
 }: any) {
-  console.log("Top News Posts:", topNewsPosts);
-  console.log("Business Posts:", businessPosts);
-  console.log("Opinion Posts:", opinionPosts);
-  console.log("World Posts:", worldPosts);
-  console.log("Leisure Posts:", leisurePosts);
-  console.log("Sports Posts:", sportsPosts);
-  console.log("Berita Posts:", beritaPosts);
-
   const { posts: currentBusinessPosts, loading: businessLoading } =
     useSectionData(businessPosts, "business", 3);
 
@@ -364,11 +356,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           limit + excludeSlugs?.length + additionalExcludes?.length,
           preview
         );
-
-        // if (categoryName == "world" || categoryName == "business" || categoryName == "opinion") {
-        //   console.log(`${categoryName} is null`);
-        //   return [];
-        // }
 
         return allPosts
           .filter(
