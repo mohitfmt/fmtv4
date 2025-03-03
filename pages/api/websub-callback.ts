@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
+import { XMLParser } from "fast-xml-parser";
+import getRawBody from "raw-body";
 
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
@@ -41,8 +43,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log(req);
-  
   // Handle WebSub subscription verification
   if (req.method === "GET") {
     const { "hub.mode": mode, "hub.challenge": challenge } = req.query;
@@ -59,7 +59,22 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       console.log("[WebSub] Received content update notification");
+      // Parse incoming WebSub notification (RSS/Atom XML)
+      const xmlData = await getRawBody(req, { encoding: "utf-8" });
+      const parser = new XMLParser({ ignoreAttributes: false });
+      const jsonData = parser.parse(xmlData);
+      console.log("[WebSub] Parsed XML data:", jsonData, "/n XMLData", xmlData);
 
+      // Extract article URLs
+      let articleURLs: string[] = [];
+      if (jsonData.feed && jsonData.feed.entry) {
+        const entries = Array.isArray(jsonData.feed.entry)
+          ? jsonData.feed.entry
+          : [jsonData.feed.entry];
+        articleURLs = entries.map((entry: any) => entry.link["@_href"]);
+      }
+
+      console.log("[WebSub] Extracted article URLs:", articleURLs);
       // Step 1: Call revalidate endpoint
       const protocol = "https"; // or use your env condition
       const host =
@@ -96,6 +111,7 @@ export default async function handler(
 
       // Step 2: Purge Cloudflare cache
       await purgeCloudflareCache(["/"]);
+      await purgeCloudflareCache(articleURLs);
 
       return res.status(200).json({
         success: true,
