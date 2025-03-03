@@ -1,7 +1,33 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 import { XMLParser } from "fast-xml-parser";
-import getRawBody from "raw-body";
+
+// Disable Next.js body parsing for this route
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Helper function to read the request body as text
+const readRequestBody = (req: NextApiRequest): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+
+    req.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    req.on("end", () => {
+      const body = Buffer.concat(chunks).toString("utf-8");
+      resolve(body);
+    });
+
+    req.on("error", (err) => {
+      reject(err);
+    });
+  });
+};
 
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
@@ -11,7 +37,13 @@ async function purgeCloudflareCache(paths: string[]) {
 
   const currentDomain =
     process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
-  const urls = paths.map((path) => `https://${currentDomain}${path}`);
+  const urls = paths.map((path) => {
+    // Check if the path is already a full URL
+    if (path.startsWith("http")) {
+      return path;
+    }
+    return `https://${currentDomain}${path}`;
+  });
 
   try {
     const response = await fetch(
@@ -32,11 +64,79 @@ async function purgeCloudflareCache(paths: string[]) {
         `Cloudflare purge failed: ${result.errors?.[0]?.message}`
       );
     }
-    console.log(`[Cache] Purged ${urls.length} URLs from Cloudflare`);
+    console.log(`[Cache] Purged ${urls.length} URLs from Cloudflare:`, urls);
   } catch (error) {
     console.error("[Cache] Purge request failed:", error);
     throw error;
   }
+}
+
+// Extract URLs from different feed formats
+function extractArticleURLs(data: any): string[] {
+  const urls: string[] = [];
+
+  // Try to handle both Atom and RSS formats
+  // Atom format
+  if (data.feed && data.feed.entry) {
+    const entries = Array.isArray(data.feed.entry)
+      ? data.feed.entry
+      : [data.feed.entry];
+    entries.forEach((entry: any) => {
+      // Handle different link formats
+      if (entry.link) {
+        if (Array.isArray(entry.link)) {
+          entry.link.forEach((link: any) => {
+            if (link["@_href"] || link["@_url"]) {
+              urls.push(link["@_href"] || link["@_url"]);
+            }
+          });
+        } else if (typeof entry.link === "object") {
+          if (entry.link["@_href"] || entry.link["@_url"]) {
+            urls.push(entry.link["@_href"] || entry.link["@_url"]);
+          }
+        } else if (typeof entry.link === "string") {
+          urls.push(entry.link);
+        }
+      }
+
+      // Sometimes the URL might be in id field
+      if (
+        entry.id &&
+        typeof entry.id === "string" &&
+        entry.id.startsWith("http")
+      ) {
+        urls.push(entry.id);
+      }
+    });
+  }
+
+  // RSS format
+  if (data.rss && data.rss.channel && data.rss.channel.item) {
+    const items = Array.isArray(data.rss.channel.item)
+      ? data.rss.channel.item
+      : [data.rss.channel.item];
+
+    items.forEach((item: any) => {
+      if (item.link) {
+        if (typeof item.link === "string") {
+          urls.push(item.link);
+        } else if (item.link["#text"]) {
+          urls.push(item.link["#text"]);
+        }
+      }
+
+      // Check for guid that might be a permalink
+      if (
+        item.guid &&
+        typeof item.guid === "string" &&
+        item.guid.startsWith("http")
+      ) {
+        urls.push(item.guid);
+      }
+    });
+  }
+
+  return [...new Set(urls)]; // Remove duplicates
 }
 
 export default async function handler(
@@ -59,24 +159,52 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       console.log("[WebSub] Received content update notification");
-      // Parse incoming WebSub notification (RSS/Atom XML)
-      const xmlData = await getRawBody(req, { encoding: "utf-8" });
-      const parser = new XMLParser({ ignoreAttributes: false });
-      const jsonData = parser.parse(xmlData);
-      console.log("[WebSub] Parsed XML data:", jsonData, "/n XMLData", xmlData);
+      console.log("[WebSub] Content-Type:", req.headers["content-type"]);
 
-      // Extract article URLs
-      let articleURLs: string[] = [];
-      if (jsonData.feed && jsonData.feed.entry) {
-        const entries = Array.isArray(jsonData.feed.entry)
-          ? jsonData.feed.entry
-          : [jsonData.feed.entry];
-        articleURLs = entries.map((entry: any) => entry.link["@_href"]);
+      // Read the request body manually instead of using getRawBody
+      const xmlData = await readRequestBody(req);
+
+      // Log a snippet of the received XML for debugging
+      console.log(
+        "[WebSub] XML data preview:",
+        xmlData.substring(0, 200) + "..."
+      );
+
+      if (!xmlData || xmlData.trim() === "") {
+        console.error("[WebSub] Empty request body received");
+        return res.status(400).json({ error: "Empty request body" });
       }
 
+      // Parse the XML data
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+        isArray: (name) => ["entry", "item"].includes(name),
+      });
+
+      let jsonData;
+      try {
+        jsonData = parser.parse(xmlData);
+        console.log(
+          "[WebSub] Parsed XML structure:",
+          JSON.stringify(jsonData).substring(0, 300) + "..."
+        );
+      } catch (parseError) {
+        console.error("[WebSub] XML parsing error:", parseError);
+        return res.status(400).json({ error: "XML parsing failed" });
+      }
+
+      // Extract article URLs
+      const articleURLs = extractArticleURLs(jsonData);
       console.log("[WebSub] Extracted article URLs:", articleURLs);
+
+      if (articleURLs.length === 0) {
+        console.warn("[WebSub] No article URLs found in the notification");
+      }
+
       // Step 1: Call revalidate endpoint
-      const protocol = "https"; // or use your env condition
+      const protocol =
+        process.env.NODE_ENV === "development" ? "http" : "https";
       const host =
         req.headers.host ||
         process.env.NEXT_PUBLIC_DOMAIN ||
@@ -104,18 +232,23 @@ export default async function handler(
           method: "POST",
         }),
 
-        mutate("/api/top-news"),
         // Trigger SWR revalidation for all clients
+        mutate("/api/top-news"),
         mutate("/api/last-update"),
       ]);
 
-      // Step 2: Purge Cloudflare cache
+      // Step 2: Purge Cloudflare cache for homepage
       await purgeCloudflareCache(["/"]);
-      await purgeCloudflareCache(articleURLs);
+
+      // Step 3: Purge Cloudflare cache for article URLs if any were found
+      if (articleURLs.length > 0) {
+        await purgeCloudflareCache(articleURLs);
+      }
 
       return res.status(200).json({
         success: true,
         message: "Homepage revalidated and cache purged",
+        articleURLs,
       });
     } catch (error) {
       console.error("[WebSub] Error:", error);
