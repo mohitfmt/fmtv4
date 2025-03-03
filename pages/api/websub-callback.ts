@@ -41,6 +41,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  console.log(req);
+  
   // Handle WebSub subscription verification
   if (req.method === "GET") {
     const { "hub.mode": mode, "hub.challenge": challenge } = req.query;
