@@ -2,33 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 import { XMLParser } from "fast-xml-parser";
 
-// Disable Next.js body parsing for this route
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-// Helper function to read the request body as text
-const readRequestBody = (req: NextApiRequest): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-
-    req.on("data", (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
-
-    req.on("end", () => {
-      const body = Buffer.concat(chunks).toString("utf-8");
-      resolve(body);
-    });
-
-    req.on("error", (err) => {
-      reject(err);
-    });
-  });
-};
-
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
     console.warn("[Cache] Cloudflare credentials not configured");
@@ -71,8 +44,45 @@ async function purgeCloudflareCache(paths: string[]) {
   }
 }
 
+// Fetch a feed and extract its content
+async function fetchFeed(feedUrl: string): Promise<string[]> {
+  try {
+    console.log(`[WebSub] Fetching feed: ${feedUrl}`);
+    const response = await fetch(feedUrl, {
+      headers: {
+        Accept:
+          "application/atom+xml, application/rss+xml, application/xml, text/xml",
+        "User-Agent": "WebSub-Subscriber/1.0",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(
+        `[WebSub] Failed to fetch feed ${feedUrl}: ${response.status} ${response.statusText}`
+      );
+      return [];
+    }
+
+    const feedContent = await response.text();
+    console.log(`[WebSub] Received feed content (${feedContent.length} bytes)`);
+
+    // Parse XML feed content
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+      isArray: (name) => ["entry", "item"].includes(name),
+    });
+
+    const parsedFeed = parser.parse(feedContent);
+    return extractArticleURLsFromFeed(parsedFeed);
+  } catch (error) {
+    console.error(`[WebSub] Error fetching feed ${feedUrl}:`, error);
+    return [];
+  }
+}
+
 // Extract URLs from different feed formats
-function extractArticleURLs(data: any): string[] {
+function extractArticleURLsFromFeed(data: any): string[] {
   const urls: string[] = [];
 
   // Try to handle both Atom and RSS formats
@@ -161,45 +171,35 @@ export default async function handler(
       console.log("[WebSub] Received content update notification");
       console.log("[WebSub] Content-Type:", req.headers["content-type"]);
 
-      // Read the request body manually instead of using getRawBody
-      const xmlData = await readRequestBody(req);
+      // Process the form-encoded data that contains feed URLs
+      let feedUrls: string[] = [];
 
-      // Log a snippet of the received XML for debugging
-      console.log(
-        "[WebSub] XML data preview:",
-        xmlData.substring(0, 200) + "..."
+      // WebSub can send one or multiple hub.url parameters
+      if (req.body && req.body["hub.url"]) {
+        if (Array.isArray(req.body["hub.url"])) {
+          feedUrls = req.body["hub.url"];
+        } else {
+          feedUrls = [req.body["hub.url"]];
+        }
+      }
+
+      console.log("[WebSub] Extracted feed URLs:", feedUrls);
+
+      if (feedUrls.length === 0) {
+        console.warn("[WebSub] No feed URLs found in the notification");
+        return res.status(400).json({ error: "No feed URLs in notification" });
+      }
+
+      // Fetch all feeds and extract article URLs
+      const articleURLsArrays = await Promise.all(
+        feedUrls.map((url) => fetchFeed(url))
       );
+      const articleURLs = [...new Set(articleURLsArrays.flat())]; // Flatten and deduplicate
 
-      if (!xmlData || xmlData.trim() === "") {
-        console.error("[WebSub] Empty request body received");
-        return res.status(400).json({ error: "Empty request body" });
-      }
-
-      // Parse the XML data
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: "@_",
-        isArray: (name) => ["entry", "item"].includes(name),
-      });
-
-      let jsonData;
-      try {
-        jsonData = parser.parse(xmlData);
-        console.log(
-          "[WebSub] Parsed XML structure:",
-          JSON.stringify(jsonData).substring(0, 300) + "..."
-        );
-      } catch (parseError) {
-        console.error("[WebSub] XML parsing error:", parseError);
-        return res.status(400).json({ error: "XML parsing failed" });
-      }
-
-      // Extract article URLs
-      const articleURLs = extractArticleURLs(jsonData);
-      console.log("[WebSub] Extracted article URLs:", articleURLs);
+      console.log("[WebSub] All article URLs extracted:", articleURLs);
 
       if (articleURLs.length === 0) {
-        console.warn("[WebSub] No article URLs found in the notification");
+        console.warn("[WebSub] No article URLs found in the feeds");
       }
 
       // Step 1: Call revalidate endpoint
