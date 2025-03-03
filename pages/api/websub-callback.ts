@@ -2,21 +2,100 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 import { XMLParser } from "fast-xml-parser";
 
+// We actually DO want body parsing for this route since we're receiving form data
+export const config = {
+  api: {
+    bodyParser: {
+      // This ensures we can handle urlencoded form data
+      urlencoded: true,
+    },
+  },
+};
+
+// Function to transform URLs to the correct domain and extract category pages
+function processURLsForPurging(urls: string[]): string[] {
+  if (urls.length === 0) return [];
+
+  const currentDomain =
+    process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  const processedUrls: string[] = [];
+  const categoryPages = new Set<string>();
+
+  // Add default news category page
+  categoryPages.add(`https://${currentDomain}/news`);
+
+  // Define category mappings
+  const categoryMappings: Record<string, string> = {
+    bahasa: "berita",
+    leisure: "lifestyle",
+    nation: "news",
+    business: "business",
+    opinion: "opinion",
+    sports: "sports",
+    world: "world",
+  };
+
+  urls.forEach((url) => {
+    try {
+      // Parse the URL to extract just the path
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+
+      // Add the path with the correct domain
+      processedUrls.push(`https://${currentDomain}${path}`);
+
+      // Extract category for category page purging
+      const pathParts = path.split("/").filter(Boolean);
+      if (pathParts.length >= 2 && pathParts[0] === "category") {
+        const category = pathParts[1];
+
+        // Map category to frontend route
+        const frontendCategory = categoryMappings[category];
+
+        // If category isn't in our mapping, default to 'news'
+        if (!frontendCategory) {
+          // Special handling for special categories used for placement
+          // We'll still purge them but also ensure 'news' is purged
+          categoryPages.add(`https://${currentDomain}/news`);
+        } else {
+          // Add the mapped category page
+          categoryPages.add(`https://${currentDomain}/${frontendCategory}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`[Cache] Failed to process URL ${url}:`, error);
+      // If URL parsing fails, use the original URL
+      processedUrls.push(url);
+    }
+  });
+
+  // Add all category pages to the processed URLs
+  return [...processedUrls, ...categoryPages];
+}
+
 async function purgeCloudflareCache(paths: string[]) {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
     console.warn("[Cache] Cloudflare credentials not configured");
     return;
   }
 
-  const currentDomain =
-    process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  // Process URLs to fix domains and add category pages
   const urls = paths.map((path) => {
-    // Check if the path is already a full URL
-    if (path.startsWith("http")) {
-      return path;
+    // Handle non-URL paths (like "/")
+    if (!path.startsWith("http")) {
+      const currentDomain =
+        process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+      return `https://${currentDomain}${path}`;
     }
-    return `https://${currentDomain}${path}`;
+    return path;
   });
+
+  const processedUrls = processURLsForPurging(urls);
+
+  if (processedUrls.length === 0) {
+    console.log("[Cache] No URLs to purge after processing");
+    return;
+  }
 
   try {
     const response = await fetch(
@@ -27,7 +106,7 @@ async function purgeCloudflareCache(paths: string[]) {
           Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ files: urls }),
+        body: JSON.stringify({ files: processedUrls }),
       }
     );
 
@@ -37,7 +116,10 @@ async function purgeCloudflareCache(paths: string[]) {
         `Cloudflare purge failed: ${result.errors?.[0]?.message}`
       );
     }
-    console.log(`[Cache] Purged ${urls.length} URLs from Cloudflare:`, urls);
+    console.log(
+      `[Cache] Purged ${processedUrls.length} URLs from Cloudflare:`,
+      processedUrls
+    );
   } catch (error) {
     console.error("[Cache] Purge request failed:", error);
     throw error;
@@ -211,9 +293,11 @@ export default async function handler(
         "dev-v4.freemalaysiatoday.com";
       const baseUrl = `${protocol}://${host}`;
 
-      // Run all operations in parallel since they're independent
-      await Promise.all([
-        // Revalidate pages
+      // Step 1: Call revalidate endpoint for each article URL and category
+      const revalidationPromises = [];
+
+      // Revalidate the homepage
+      revalidationPromises.push(
         fetch(`${baseUrl}/api/revalidate`, {
           method: "POST",
           headers: {
@@ -221,21 +305,98 @@ export default async function handler(
             "x-revalidate-key":
               process.env.REVALIDATE_SECRET_KEY || "default-secret",
           },
-        }),
+        })
+      );
 
-        fetch(`${baseUrl}/api/top-news`, {
-          method: "POST",
-        }),
+      // Extract unique categories to revalidate
+      const categories = new Set<string>();
 
-        // Update last update time
-        fetch(`${baseUrl}/api/last-update`, {
-          method: "POST",
-        }),
+      // Process each article URL to get the slug and category
+      articleURLs.forEach((url) => {
+        try {
+          const urlObj = new URL(url);
+          const pathParts = urlObj.pathname.split("/").filter(Boolean);
 
-        // Trigger SWR revalidation for all clients
+          // Only process category paths with proper structure
+          if (pathParts.length >= 4 && pathParts[0] === "category") {
+            const category = pathParts[1];
+            // For each article, revalidate the article page
+            // Format should be: /category/news/2025/03/03/article-slug
+            const year = pathParts[2];
+            const month = pathParts[3];
+            const day = pathParts[4];
+            const slug = pathParts[5];
+
+            if (slug) {
+              // Revalidate the specific article
+              revalidationPromises.push(
+                fetch(`${baseUrl}/api/revalidate`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-revalidate-key":
+                      process.env.REVALIDATE_SECRET_KEY || "default-secret",
+                  },
+                  body: JSON.stringify({
+                    type: "post",
+                    postSlug: `${category}/${year}/${month}/${day}/${slug}`,
+                  }),
+                })
+              );
+
+              // Add the category to our set for revalidation
+              categories.add(category);
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `[WebSub] Failed to process URL ${url} for revalidation:`,
+            error
+          );
+        }
+      });
+
+      // Revalidate each category
+      categories.forEach((category) => {
+        // Map WordPress category to frontend path if needed
+        const categoryMappings: Record<string, string> = {
+          bahasa: "/berita",
+          leisure: "/lifestyle",
+          nation: "/news",
+          business: "/business",
+          opinion: "/opinion",
+          sports: "/sports",
+          world: "/world",
+        };
+
+        const categoryPath = categoryMappings[category] || "/news";
+
+        revalidationPromises.push(
+          fetch(`${baseUrl}/api/revalidate`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-revalidate-key":
+                process.env.REVALIDATE_SECRET_KEY || "default-secret",
+            },
+            body: JSON.stringify({
+              type: "category",
+              path: categoryPath,
+            }),
+          })
+        );
+      });
+
+      // Also ensure we revalidate these specific endpoints
+      revalidationPromises.push(
+        fetch(`${baseUrl}/api/top-news`, { method: "POST" }),
+        fetch(`${baseUrl}/api/last-update`, { method: "POST" }),
         mutate("/api/top-news"),
-        mutate("/api/last-update"),
-      ]);
+        mutate("/api/last-update")
+      );
+
+      // Run all revalidation operations in parallel
+      await Promise.all(revalidationPromises);
 
       // Step 2: Purge Cloudflare cache for homepage
       await purgeCloudflareCache(["/"]);
