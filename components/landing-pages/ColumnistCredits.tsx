@@ -92,7 +92,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
         >
           <Image
             src={columnists[currentIndex].avatar.url}
-            alt={columnists[currentIndex].name}
+            alt={`columnist-${columnists[currentIndex].name}`}
             height={256}
             width={256}
             className="border-accent-yellow my-10 h-60 w-60 rounded-full border-4 lg:my-4"

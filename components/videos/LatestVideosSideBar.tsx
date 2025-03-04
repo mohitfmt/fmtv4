@@ -14,7 +14,7 @@ export const LatestVideosSidebar: React.FC<RelatedVideosSidebarProps> = ({
 }) => {
   return (
     <aside className="rounded-lg bg-primary-foreground text-foreground p-4  md:p-6 lg:w-1/3 lg:p-8">
-      <h3 className="text-2xl font-extrabold">Latest Videos</h3>
+      <h2 className="text-2xl font-extrabold">Latest Videos</h2>
 
       <div className="flex flex-col gap-4 py-4">
         {videos?.map(({ node }: { node: any }) => (

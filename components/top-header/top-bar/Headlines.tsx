@@ -53,7 +53,7 @@ const Headlines = () => {
   // Error handling with retry
   if (error) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-hidden">
         <HeadlineSkeleton />
         <button
           onClick={() => mutate()}
@@ -67,7 +67,7 @@ const Headlines = () => {
 
   return (
     <div className="flex flex-1 items-center gap-2 overflow-hidden">
-      <h3 className="uppercase font-rhd flex flex-col items-end leading-none shrink-0">
+      <h3 className="uppercase text-sm sm:text-base sm:leading-none font-rhd flex flex-col items-end leading-none shrink-0">
         <span className="tracking-widest">Latest</span>
         <span className="font-semibold">Headlines</span>
       </h3>
