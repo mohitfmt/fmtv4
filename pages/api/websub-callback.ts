@@ -1,3 +1,4 @@
+import { addMinutes } from "date-fns";
 import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 
@@ -82,8 +83,8 @@ async function getRecentlyModifiedArticles(
     // Get posts modified in the last hour
     // We use a short timeframe to ensure we only get recently modified content
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const modifiedAfter = oneHourAgo.toISOString();
+    const fifteenMinsAgo = addMinutes(now, -15);
+    const modifiedAfter = fifteenMinsAgo.toISOString();
 
     console.log(`[WebSub] Fetching posts modified after ${modifiedAfter}`);
 
