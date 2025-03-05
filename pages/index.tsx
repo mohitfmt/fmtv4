@@ -203,7 +203,7 @@ export default function Home({
             <Link href="/news">
               <SectionHeading sectionName="Breaking" />
             </Link>
-            <div className="grid grid-cols-1 gap-2 grid-cols-2">
+            <div className="grid gap-2 grid-cols-2">
               {highlightPosts?.map((highlightPost: any) => (
                 <TTBNewsPreview key={highlightPost?.slug} {...highlightPost} />
               ))}
@@ -275,10 +275,7 @@ export default function Home({
             targetingParams={dfpTargetingParams}
           />
         </div>
-        <section
-          id="Opinion-Columnist"
-          className="my-4 grid grid-cols-3 gap-4 gap-6"
-        >
+        <section id="Opinion-Columnist" className="my-4 grid grid-cols-3 gap-6 gap-y-10">
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentOpinionPosts}

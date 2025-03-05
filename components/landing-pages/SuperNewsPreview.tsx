@@ -34,12 +34,12 @@ const SuperNewsPreview = ({
         </span>
       </div>
       <Link href={uri}>
-        <h3
+        <h2
           className="text-4xl leading-tight font-extrabold font-bitter hover:text-blue-700 dark:hover:text-cyan-300"
           title={title}
         >
           {title}
-        </h3>
+        </h2>
       </Link>
 
       <footer className="flex items-center justify-between my-2">

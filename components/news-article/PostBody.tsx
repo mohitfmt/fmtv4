@@ -32,7 +32,7 @@ const processParagraph = (text: string): string => {
         _,
         location
       ) => `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
-        <span itemProp='name'>${location.trim().slice(0, -1)}</span>:
+        <span itemProp='name'>${location?.trim().slice(0, -1)}</span>:
       </address>`
     );
   }
@@ -102,7 +102,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
     },
     transformTags: {
       a: (tagName, attribs) => {
-        const href = attribs.href || "#";
+        const href = attribs?.href ?? "#";
         const isExternal =
           !href.includes("freemalaysiatoday.com") && !href.startsWith("/");
 
@@ -130,12 +130,12 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
       if (domNode instanceof Element) {
         switch (domNode.name) {
           case "p": {
-            const children = domNode.children || [];
+            const children = domNode.children ?? [];
 
             // Get text content from children
             const textContent = children
               .map((child: any) =>
-                typeof child === "string" ? child : child.data || ""
+                typeof child === "string" ? child : (child?.data ?? "")
               )
               .join("");
 
@@ -153,7 +153,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
 
             // Handle regular paragraphs normally
             const containsImage = children.some(
-              (child: any) => child.name === "img" || child.attribs?.src
+              (child: any) => child?.name === "img" || child?.attribs?.src
             );
 
             return containsImage ? (
@@ -169,26 +169,29 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
             const tabletWidth = 800;
             const mobileWidth = 512;
 
+            const width = Number(domNode.attribs?.width) || 0;
+            const height = Number(domNode.attribs?.height) || 1;
             const aspectRatio =
-              Number(domNode.attribs.width) / Number(domNode.attribs.height);
-            const isFloatingLeft = domNode.attribs.class?.includes("alignleft");
+              width > 0 && height > 0 ? width / height : 16 / 9; // Default to 16:9 if invalid
+            const isFloatingLeft =
+              domNode.attribs?.class?.includes("alignleft") ?? false;
             const isFloatingRight =
-              domNode.attribs.class?.includes("alignright");
+              domNode.attribs?.class?.includes("alignright") ?? false;
 
             if (isFloatingLeft || isFloatingRight) {
-              const floatingImageWidth = Number(domNode.attribs.width);
+              const floatingImageWidth = Number(domNode.attribs?.width ?? 200);
               const floatingImageHeight = Math.round(
                 floatingImageWidth / aspectRatio
               );
 
               return (
                 <Image
-                  src={domNode.attribs.src}
-                  alt={domNode.attribs.alt || ""}
+                  src={domNode.attribs?.src}
+                  alt={domNode.attribs?.alt ?? "Free Malaysia Today"}
                   width={floatingImageWidth}
                   height={floatingImageHeight}
                   className={`${isFloatingLeft ? "alignleft" : "alignright"} ${
-                    Number(domNode.attribs.height) < 199 && isFloatingLeft
+                    Number(domNode.attribs?.height ?? 0) < 199 && isFloatingLeft
                       ? "mt-4"
                       : ""
                   }`}
@@ -210,10 +213,10 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
                 itemType="https://schema.org/ImageObject"
                 itemScope
               >
-                <meta content={domNode.attribs.src} itemProp="url" />
+                <meta content={domNode.attribs?.src} itemProp="url" />
                 <Image
-                  src={domNode.attribs.src}
-                  alt={domNode.attribs.alt || ""}
+                  src={domNode.attribs?.src}
+                  alt={domNode.attribs?.alt ?? "Free Malaysia Today"}
                   width={mobileWidth}
                   height={mobileHeight}
                   className="html-img h-auto w-full"
@@ -224,15 +227,16 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
               </div>
             );
           }
-          case "figure":
+          case "figure": {
             const imageChild = domNode.children.find(
               (child): child is Element =>
-                (child as Element).attribs !== undefined
+                (child as Element)?.attribs !== undefined
             );
 
-            const isFloatingLeft = domNode.attribs.class?.includes("alignleft");
+            const isFloatingLeft =
+              domNode.attribs?.class?.includes("alignleft") ?? false;
             const isFloatingRight =
-              domNode.attribs.class?.includes("alignright");
+              domNode.attribs?.class?.includes("alignright") ?? false;
 
             if (isFloatingLeft || isFloatingRight) {
               return (
@@ -255,6 +259,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
                 {domToReact(domNode.children as DOMNode[], options)}
               </figure>
             );
+          }
 
           case "figcaption":
             return (
@@ -264,7 +269,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
             );
 
           case "iframe": {
-            const src = domNode.attribs.src || "";
+            const src = domNode.attribs?.src ?? "";
 
             if (src.includes("youtube")) {
               return (
@@ -272,7 +277,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
                   <YouTubeEmbed
                     params="controls=1&showinfo=1"
                     style="max-width: 100%;"
-                    videoid={getYouTubeVideoId(src as string)}
+                    videoid={getYouTubeVideoId(src as string) ?? ""}
                   />
                 </div>
               );
@@ -282,8 +287,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
           }
 
           case "a": {
-            const href = domNode.attribs.href;
-            if (href?.includes("freemalaysiatoday.com")) {
+            const href = domNode.attribs?.href ?? "#";
+            if (href.includes("freemalaysiatoday.com")) {
               const cleanHref =
                 href.replace(/https:\/\/(www\.)?freemalaysiatoday\.com/g, "") ||
                 "/";
@@ -297,8 +302,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
               <a
                 className="text-accent-category"
                 href={href}
-                target={domNode.attribs.target}
-                rel={domNode.attribs.rel}
+                target={domNode.attribs?.target ?? "_blank"}
+                rel={domNode.attribs?.rel ?? "noopener noreferrer"}
               >
                 {domToReact(domNode.children as DOMNode[], options)}
               </a>
@@ -344,10 +349,14 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
           visibleOnDevices="both"
           targetingParams={{
             pos: "article",
-            section: additionalFields?.categories.edges.map(
-              (category) => category.node.name
-            ),
-            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
+            section:
+              additionalFields?.categories?.edges?.map(
+                (category) => category?.node?.name ?? ""
+              ) ?? [],
+            key:
+              additionalFields?.tags?.edges?.map(
+                (tag) => tag?.node?.name ?? ""
+              ) ?? [],
           }}
         />
       ),
@@ -363,10 +372,14 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
           visibleOnDevices="both"
           targetingParams={{
             pos: "article",
-            section: additionalFields?.categories.edges.map(
-              (category) => category.node.name
-            ),
-            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
+            section:
+              additionalFields?.categories?.edges?.map(
+                (category) => category?.node?.name ?? ""
+              ) ?? [],
+            key:
+              additionalFields?.tags?.edges?.map(
+                (tag) => tag?.node?.name ?? ""
+              ) ?? [],
           }}
         />
       ),
@@ -382,10 +395,14 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
           visibleOnDevices="onlyMobile"
           targetingParams={{
             pos: "article",
-            section: additionalFields?.categories.edges.map(
-              (category) => category.node.name
-            ),
-            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
+            section:
+              additionalFields?.categories?.edges?.map(
+                (category) => category?.node?.name ?? ""
+              ) ?? [],
+            key:
+              additionalFields?.tags?.edges?.map(
+                (tag) => tag?.node?.name ?? ""
+              ) ?? [],
           }}
         />
       ),
@@ -401,10 +418,14 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
           visibleOnDevices="onlyMobile"
           targetingParams={{
             pos: "article",
-            section: additionalFields?.categories.edges.map(
-              (category) => category.node.name
-            ),
-            key: additionalFields?.tags.edges.map((tag) => tag.node.name),
+            section:
+              additionalFields?.categories?.edges?.map(
+                (category) => category?.node?.name ?? ""
+              ) ?? [],
+            key:
+              additionalFields?.tags?.edges?.map(
+                (tag) => tag?.node?.name ?? ""
+              ) ?? [],
           }}
         />
       ),
@@ -419,8 +440,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
       if (
         React.isValidElement(element) &&
         element.type === "p" &&
-        (!element.props.children?.[0]?.type ||
-          element.props.children?.[0]?.type !== "img")
+        (!element.props?.children?.[0]?.type ||
+          element.props?.children?.[0]?.type !== "img")
       ) {
         paragraphCount++;
         const adToInsert = adConfigurations.find(

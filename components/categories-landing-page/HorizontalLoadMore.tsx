@@ -92,7 +92,7 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
   const canGoPrevious = currentPage > 0;
 
   return (
-    <section className="relative z-0 overflow-hidden px-2">
+    <section className="relative z-0 overflow-hidden px-0 md:px-2">
       <div className="flex items-center">
         {/* Desktop Previous Button */}
         <button

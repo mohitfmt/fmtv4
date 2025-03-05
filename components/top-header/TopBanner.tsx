@@ -7,8 +7,6 @@ import Link from "next/link";
 import AdSlot from "../common/AdSlot";
 import { useStableId } from "@/hooks/useStableId";
 
-
-
 const dfpTargetingParams = {
   pos: "listing",
   section: ["homepage", "business", "opinion", "world", "lifestyle", "sports"],
@@ -35,7 +33,7 @@ export default function TopBanner() {
   const refreshId = useStableId();
   return (
     <>
-      <header className="sticky overflow-hidden lg:-top-20 top-10 z-40 bg-background br-b border-stone-400">
+      <header className="max-w-[1440px] mx-auto sticky overflow-hidden px-2 md:px-4 lg:-top-20 top-10  z-40 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
             href={refreshId ? `/?${refreshId}` : "/"}
@@ -69,7 +67,7 @@ export default function TopBanner() {
           </div>
         </div>
       </header>
-      <div className="lg:sticky top-[55px] bg-background z-30">
+      <div className="lg:sticky max-w-[1440px] mx-auto px-2 md:px-4 top-[55px] bg-background z-30">
         <TopNavbar navigation={navigation} />
       </div>
     </>

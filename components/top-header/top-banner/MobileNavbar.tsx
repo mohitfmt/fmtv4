@@ -63,7 +63,7 @@ const MobileNavbar = ({ navigation }: Props) => {
     <div className="relative block lg:hidden">
       {/* Menu Toggle Button */}
       <button
-        className="text-2xl p-2 focus:outline-none"
+        className="text-2xl py-2 ml-2 focus:outline-none"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle menu"
       >
@@ -77,7 +77,7 @@ const MobileNavbar = ({ navigation }: Props) => {
         }`}
       >
         {/* Header Section */}
-        <div className="flex justify-between px-4 items-center pt-5 pb-2 border-b border-stone-700">
+        <div className="flex justify-between pr-2 pl-4 items-center pt-5 pb-2 border-b border-stone-700">
           <div className="flex gap-2 capitalize items-center">
             {/* Theme Toggle */}
             <ThemeToggle />
