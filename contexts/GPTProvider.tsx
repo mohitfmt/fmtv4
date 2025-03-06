@@ -41,6 +41,7 @@ const GPTProvider: React.FC<{
   const pageAdSlotsRef = useRef<Record<string, any>>({});
   const [isGPTInitialized, setIsGPTInitialized] = useState(false);
   const initializationTimer = useRef<number>();
+  const definedSlotsRef = useRef<any[]>([]);
 
   const addPageAdSlot = useCallback(
     (id: string, params = {}) => {
@@ -90,6 +91,12 @@ const GPTProvider: React.FC<{
 
   const definePageAdSlot = useCallback(
     (params: any, cb: any = null) => {
+      if (!window.googletag) {
+        // Queue for later if GPT not loaded yet
+        window.setTimeout(() => definePageAdSlot(params, cb), 100);
+        return;
+      }
+
       window.googletag?.cmd.push(() => {
         const existingSlot = window.googletag
           ?.pubads()
@@ -138,6 +145,7 @@ const GPTProvider: React.FC<{
   );
 
   useEffect(() => {
+    if (isGPTInitialized) return;
     const initGPT = () => {
       if (!window.googletag) {
         window.googletag = { cmd: [] } as unknown as typeof googletag;
