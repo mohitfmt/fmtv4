@@ -34,6 +34,7 @@ const dfpTargetingParams = {
 };
 
 const ChannelInfoSection = ({ info }: { info: any }) => {
+  console.log("[Info] Youtube Channel :", info);
   const isLive = !!info; // Check if we have live data
   const channelInfo = info || DEFAULT_CHANNEL_INFO;
   const hasValidThumbnail = channelInfo?.snippet?.thumbnails?.default?.url;
@@ -166,17 +167,30 @@ const Videos = ({ info }: VideosProps) => {
 
 export default Videos;
 
-// getStaticProps remains the same but with improved error logging
 export const getStaticProps: GetStaticProps<VideosProps> = async () => {
   try {
+    console.log("[YouTube API] Environment check:", {
+      hasApiKey: !!process.env.YOUTUBE_API_KEY,
+      apiKeyLength: process.env.YOUTUBE_API_KEY
+        ? process.env.YOUTUBE_API_KEY.length
+        : 0,
+      nodeEnv: process.env.NODE_ENV,
+    });
+
     const params = new URLSearchParams({
       key: process.env.YOUTUBE_API_KEY ?? "",
-      forUsername: "FreeMalaysiaToday",
+      id: "UC2CzLwbhTiI8pTKNVyrOnJQ",
       part: "snippet,statistics",
     });
 
     const res = await fetch(
-      `https://youtube.googleapis.com/youtube/v3/channels?${params}`
+      `https://youtube.googleapis.com/youtube/v3/channels?${params}`,
+      {
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+      }
     );
 
     if (!res.ok) {
@@ -199,7 +213,7 @@ export const getStaticProps: GetStaticProps<VideosProps> = async () => {
     }
 
     const channel = data?.items[0];
-    
+
     return {
       props: {
         info: channel || null,
