@@ -41,7 +41,6 @@ const GPTProvider: React.FC<{
   const pageAdSlotsRef = useRef<Record<string, any>>({});
   const [isGPTInitialized, setIsGPTInitialized] = useState(false);
   const initializationTimer = useRef<number>();
-  const definedSlotsRef = useRef<any[]>([]);
 
   const addPageAdSlot = useCallback(
     (id: string, params = {}) => {
