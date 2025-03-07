@@ -112,6 +112,7 @@ steps:
           --set-env-vars="NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}" \
           --set-env-vars="CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}" \
           --set-env-vars="CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}" \
+          --set-env-vars="YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}" \
           --quiet
 
         # Verify deployment
