@@ -169,6 +169,14 @@ export default Videos;
 
 export const getStaticProps: GetStaticProps<VideosProps> = async () => {
   try {
+    console.log("[YouTube API] Environment check:", {
+      hasApiKey: !!process.env.YOUTUBE_API_KEY,
+      apiKeyLength: process.env.YOUTUBE_API_KEY
+        ? process.env.YOUTUBE_API_KEY.length
+        : 0,
+      nodeEnv: process.env.NODE_ENV,
+    });
+
     const params = new URLSearchParams({
       key: process.env.YOUTUBE_API_KEY ?? "",
       id: "UC2CzLwbhTiI8pTKNVyrOnJQ",
