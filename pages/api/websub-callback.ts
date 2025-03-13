@@ -361,7 +361,7 @@ export default async function handler(
 
       // Get current domains
       const wpDomain =
-        process.env.NEXT_PUBLIC_CMS_URL || "staging-cms.freemalaysiatoday.com";
+        process.env.NEXT_PUBLIC_CMS_URL || "cms.freemalaysiatoday.com";
       const frontendDomain =
         process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
 
