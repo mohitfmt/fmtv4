@@ -48,6 +48,10 @@ steps:
       - "--build-arg"
       - "YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}"
       - "--build-arg"
+      - "WORDPRESS_API_URL=${_WORDPRESS_API_URL}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL}"
+      - "--build-arg"
       - "NEXT_PUBLIC_CDN_URL=https://freemalaysiatoday.com"
       - "--build-arg"
       - "NEXT_PUBLIC_GCS_BUCKET=https://media.freemalaysiatoday.com"
@@ -113,6 +117,8 @@ steps:
           --set-env-vars="CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}" \
           --set-env-vars="CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}" \
           --set-env-vars="YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}" \
+          --set-env-vars="WORDPRESS_API_URL=${_WORDPRESS_API_URL}" \
+          --set-env-vars="NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL}" \
           --quiet
 
         # Verify deployment

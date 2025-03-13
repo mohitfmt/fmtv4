@@ -3,7 +3,7 @@ import { RemotePattern } from "next/dist/shared/lib/image-config";
 
 const { protocol, hostname, port, pathname } = new URL(
   process.env.WORDPRESS_API_URL ||
-    "https://staging-cms.freemalaysiatoday.com/graphql"
+    "https://cms.freemalaysiatoday.com/graphql"
 );
 
 const nextConfig: NextConfig = {
