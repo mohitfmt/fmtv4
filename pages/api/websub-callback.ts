@@ -87,7 +87,7 @@ async function getRecentlyModifiedArticles(
     const modifiedAfter = fifteenMinsAgo.toISOString();
 
     console.log(
-      `[WebSub] Fetching posts modified after ${modifiedAfter} from ${wpDomain} - full URL: ${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`
+      `[WebSub] Fetching posts modified after ${modifiedAfter}`
     );
 
     const response = await fetch(
@@ -108,7 +108,7 @@ async function getRecentlyModifiedArticles(
 
     const posts: WPPost[] = await response.json();
     console.log(
-      `[WebSub] Found ${posts.length} recently modified posts. ${posts}`
+      `[WebSub] Found ${posts.length} recently modified posts`
     );
 
     return posts;

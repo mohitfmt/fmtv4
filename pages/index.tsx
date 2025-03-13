@@ -447,7 +447,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         trendingTags,
         _lastUpdate: Date.now(),
       },
-      revalidate: 90, // Re-generate every 5 minutes
+      revalidate: 1500, // Re-generate every 25 minutes
     };
   } catch (error) {
     console.error("[HomePage] Error fetching data:", error);
