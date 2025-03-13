@@ -87,11 +87,11 @@ async function getRecentlyModifiedArticles(
     const modifiedAfter = fifteenMinsAgo.toISOString();
 
     console.log(
-      `[WebSub] Fetching posts modified after ${modifiedAfter} from ${wpDomain} - full URL: https://${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`
+      `[WebSub] Fetching posts modified after ${modifiedAfter} from ${wpDomain} - full URL: ${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`
     );
 
     const response = await fetch(
-      `https://${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
+      `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
       {
         headers: {
           Accept: "application/json",
@@ -361,7 +361,7 @@ export default async function handler(
 
       // Get current domains
       const wpDomain =
-        process.env.NEXT_PUBLIC_CMS_URL || "cms.freemalaysiatoday.com";
+        process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com";
       const frontendDomain =
         process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
 
