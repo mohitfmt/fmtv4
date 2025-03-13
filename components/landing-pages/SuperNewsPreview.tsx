@@ -16,7 +16,7 @@ const SuperNewsPreview = ({
 
   return (
     <article className="p-0 md:p-2 border-b mt-1 overflow-hidden">
-      <header className="">
+      <header className="relative">
         {featuredImage && (
           <CoverImage
             title={title}

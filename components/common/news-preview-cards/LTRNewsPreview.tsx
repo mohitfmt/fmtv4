@@ -25,6 +25,7 @@ const LTRNewsPreview = ({
               coverImage={featuredImage}
               slug={slug}
               url={uri}
+              className="relative"
             />
           )}
         </figure>

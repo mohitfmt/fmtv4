@@ -82,7 +82,7 @@ export default function CoverImage({
   const image = (
     <div
       ref={ref}
-      className={`relative ${dimensions.containerClass} ${className}`}
+      className={`${dimensions.containerClass} ${className}`}
       style={{
         aspectRatio: 8 / 5,
       }}
