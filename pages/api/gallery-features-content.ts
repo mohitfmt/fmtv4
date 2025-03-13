@@ -11,7 +11,7 @@ export default async function handler(
       `s-maxage=3600, stale-while-revalidate=60`
     );
     const [specialFeaturesPosts, galleryPosts] = await Promise.all([
-      getCategoryNews("sponsored-content", 5, false),
+      getCategoryNews("sponsored-content", 6, false),
       getCategoryNews("photos", 5, false),
     ]);
 

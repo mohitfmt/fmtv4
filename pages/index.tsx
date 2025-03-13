@@ -79,7 +79,7 @@ export default function Home({
   const { posts: currentTopNewsPosts, loading: topNewsLoading } =
     useSectionData(topNewsPosts, "top-news", 6);
 
-  const { posts: currentOpinionPosts, loading: opinionLoading } =
+  const { posts: currentOpinionPosts , loading:opinionLoading} =
     useSectionData(opinionPosts, "opinion", 6);
 
   const { posts: currentLeisurePosts, loading: leisureLoading } =
@@ -243,7 +243,7 @@ export default function Home({
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentTopNewsPosts}
-              loading={false}
+              loading={opinionLoading}
               categoryName="top-news"
               sectionTitle="Top News"
             />
@@ -258,7 +258,7 @@ export default function Home({
 
         <HomeCommonSections
           posts={currentBeritaPosts}
-          loading={false}
+          loading={beritaLoading}
           categoryName="top-bm"
           sectionTitle="Berita Utama"
           sectionId="Berita-Utama"
@@ -279,7 +279,7 @@ export default function Home({
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentOpinionPosts}
-              loading={false}
+              loading={topNewsLoading}
               categoryName="opinion"
               sectionTitle="Opinion"
             />
@@ -311,7 +311,7 @@ export default function Home({
         </div>
         <HomeCommonSections
           posts={currentLeisurePosts}
-          loading={false}
+          loading={leisureLoading}
           categoryName="leisure"
           sectionTitle="Lifestyle"
           sectionId="Lifestyle-News"
@@ -447,7 +447,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         trendingTags,
         _lastUpdate: Date.now(),
       },
-      revalidate: 1500, // Re-generate every 5 minutes
+      revalidate: 90, // Re-generate every 5 minutes
     };
   } catch (error) {
     console.error("[HomePage] Error fetching data:", error);

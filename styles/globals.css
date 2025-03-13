@@ -320,7 +320,7 @@ abbr {
 
 /* OutBrain  */
 .ob-widget-text {
-  @apply text-foreground font-bitter font-bold;
+  @apply font-bitter font-bold;
 }
 
 .ob_what_is_text {
