@@ -86,7 +86,9 @@ async function getRecentlyModifiedArticles(
     const fifteenMinsAgo = addMinutes(now, -15);
     const modifiedAfter = fifteenMinsAgo.toISOString();
 
-    console.log(`[WebSub] Fetching posts modified after ${modifiedAfter}`);
+    console.log(
+      `[WebSub] Fetching posts modified after ${modifiedAfter} from ${wpDomain} - full URL: https://${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`
+    );
 
     const response = await fetch(
       `https://${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
@@ -105,7 +107,9 @@ async function getRecentlyModifiedArticles(
     }
 
     const posts: WPPost[] = await response.json();
-    console.log(`[WebSub] Found ${posts.length} recently modified posts`);
+    console.log(
+      `[WebSub] Found ${posts.length} recently modified posts. ${posts}`
+    );
 
     return posts;
   } catch (error) {
@@ -349,7 +353,11 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       console.log("[WebSub] Received content update notification");
-      console.log("[WebSub] Content-Type:", req.headers["content-type"]);
+      console.log(
+        "[WebSub] Content-Type:",
+        req.headers["content-type"],
+        req.headers.host
+      );
 
       // Get current domains
       const wpDomain =
@@ -362,8 +370,7 @@ export default async function handler(
         process.env.REVALIDATE_SECRET_KEY || "default-secret";
 
       // Set up base URL for API calls
-      const protocol =
-        process.env.NODE_ENV === "development" ? "http" : "https";
+      const protocol = "https";
       const host = req.headers.host || frontendDomain;
       const baseUrl = `${protocol}://${host}`;
 
