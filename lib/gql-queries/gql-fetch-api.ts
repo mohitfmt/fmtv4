@@ -1,4 +1,6 @@
-const API_URL = "https://staging-cms.freemalaysiatoday.com/graphql";
+const API_URL =
+  process.env.WORDPRESS_API_URL ||
+  "https://staging-cms.freemalaysiatoday.com/graphql";
 
 export async function gqlFetchAPI(
   query = "",

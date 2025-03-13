@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-stone-800 text-stone-100 pt-8 pb-2 z-8">
-      <div className="container mx-auto md:px-6 px-2">
+      <div className="container max-w-[1440px] mx-auto md:px-6 px-2">
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <Link
             href={refreshId ? `/?${refreshId}` : "/"}

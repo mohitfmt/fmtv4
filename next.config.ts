@@ -25,6 +25,12 @@ const nextConfig: NextConfig = {
         port: port || undefined,
         pathname: `${pathname}/**`,
       },
+      // Add Gravatar domain
+      {
+        protocol: "https",
+        hostname: "secure.gravatar.com",
+        pathname: "/**",
+      },
       {
         protocol: "https",
         hostname: "media.freemalaysiatoday.com",
@@ -159,7 +165,7 @@ const nextConfig: NextConfig = {
         destination: `${CMS_URL}/:path*/feed/`,
         permanent: false,
       },
- 
+
       {
         source: "/fmtapp/",
         destination: `${CMS_URL}/fmtapp/`,
