@@ -80,15 +80,12 @@ async function getRecentlyModifiedArticles(
   wpDomain: string
 ): Promise<WPPost[]> {
   try {
-    // Get posts modified in the last hour
-    // We use a short timeframe to ensure we only get recently modified content
+    // Get posts modified in the last 10 minutes
     const now = new Date();
-    const fifteenMinsAgo = addMinutes(now, -15);
-    const modifiedAfter = fifteenMinsAgo.toISOString();
+    const tenMinsAgo = addMinutes(now, -10);
+    const modifiedAfter = tenMinsAgo.toISOString();
 
-    console.log(
-      `[WebSub] Fetching posts modified after ${modifiedAfter}`
-    );
+    console.log(`[WebSub] Fetching posts modified after ${modifiedAfter}`);
 
     const response = await fetch(
       `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
@@ -107,9 +104,7 @@ async function getRecentlyModifiedArticles(
     }
 
     const posts: WPPost[] = await response.json();
-    console.log(
-      `[WebSub] Found ${posts.length} recently modified posts`
-    );
+    console.log(`[WebSub] Found ${posts.length} recently modified posts`);
 
     return posts;
   } catch (error) {
@@ -165,63 +160,76 @@ async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
 }
 
 /**
- * Split array into chunks for batch processing
+ * Simplified revalidation process - processes all items at once
+ * with a reasonable concurrency limit
  */
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
-
-/**
- * Process revalidation in batches
- */
-async function batchRevalidation(
+async function processRevalidation(
   baseUrl: string,
   items: { path: string; type: string }[],
   revalidateKey: string
 ): Promise<void> {
   if (items.length === 0) return;
 
-  console.log(`[WebSub] Revalidating ${items.length} items in batches`);
+  console.log(`[WebSub] Revalidating ${items.length} items`);
 
-  // Split into small batches to prevent server overload
-  const batchSize = 5;
-  const batches = chunkArray(items, batchSize);
+  // Process all items in parallel, but with reasonable concurrency
+  // This is a simplified approach that still provides some protection against
+  // overwhelming the server with too many simultaneous requests
+  const maxConcurrency = 20; // Maximum number of concurrent requests
 
-  for (const [index, batch] of batches.entries()) {
-    console.log(`[WebSub] Processing batch ${index + 1}/${batches.length}`);
+  // Sort items to prioritize category pages before individual posts
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.type === "category" && b.type !== "category") return -1;
+    if (a.type !== "category" && b.type === "category") return 1;
+    return 0;
+  });
 
-    // Process batch in parallel
-    await Promise.all(
-      batch.map(async (item) => {
-        try {
-          await fetch(`${baseUrl}/api/revalidate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-revalidate-key": revalidateKey,
-            },
-            body: JSON.stringify({
-              type: item.type,
-              [item.type === "post" ? "postSlug" : "path"]: item.path,
-            }),
-          });
-        } catch (error) {
-          console.error(
-            `[WebSub] Error revalidating ${item.type} ${item.path}:`,
-            error
-          );
-        }
-      })
-    );
+  const pendingPromises: Promise<any>[] = [];
 
-    // Add small delay between batches
-    if (index < batches.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+  for (const item of sortedItems) {
+    // Create the revalidation promise
+    const revalidationPromise = fetch(`${baseUrl}/api/revalidate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-revalidate-key": revalidateKey,
+      },
+      body: JSON.stringify({
+        type: item.type,
+        [item.type === "post" ? "postSlug" : "path"]: item.path,
+      }),
+    }).catch((error) => {
+      console.error(
+        `[WebSub] Error revalidating ${item.type} ${item.path}:`,
+        error
+      );
+    });
+
+    pendingPromises.push(revalidationPromise);
+
+    // If we've reached max concurrency, wait for one to complete
+    if (pendingPromises.length >= maxConcurrency) {
+      await Promise.race(pendingPromises);
+      // Remove completed promises
+      const completedIndex = await Promise.all(
+        pendingPromises.map(async (p, index) => {
+          const settled = await Promise.race([
+            p.then(() => true),
+            Promise.resolve(false),
+          ]);
+          return settled ? index : -1;
+        })
+      ).then((indexes) => indexes.find((i) => i !== -1) || -1);
+
+      if (completedIndex >= 0) {
+        pendingPromises.splice(completedIndex, 1);
+      }
     }
+  }
+
+  // Wait for any remaining promises to complete
+  if (pendingPromises.length > 0) {
+    await Promise.all(pendingPromises);
   }
 }
 
@@ -414,8 +422,8 @@ export default async function handler(
         await purgeCloudflareCache(categoryUrls);
       }
 
-      // Process revalidation in batches
-      await batchRevalidation(baseUrl, revalidationItems, revalidateKey);
+      // Process revalidation with simplified approach
+      await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
       // Revalidate API endpoints for fresh data
       try {
