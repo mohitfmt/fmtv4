@@ -27,6 +27,7 @@ const SearchCard = ({
                 coverImage={featuredImage}
                 slug={slug}
                 url={uri}
+                className="relative"
               />
             </div>
           )}

@@ -38,6 +38,7 @@ const CategoryHeroPost = ({
             slug={post.slug}
             url={post.uri}
             isPriority={eagerLoadImage}
+            className="relative"
           />
         )}
       </figure>
