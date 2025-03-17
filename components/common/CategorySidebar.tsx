@@ -45,13 +45,15 @@ const CategorySidebar = ({
     <section className="space-y-6">
       {/* First Ad Slot */}
       {shouldShowAds && (
-        <div className="ads-medium-desktop">
+        <div
+          className={`my-8 h-[260px] justify-center items-center ${pageName === "article" ? "hidden md:flex" : ""}`}
+        >
           <AdSlot
             targetingParams={adsTargetingParams}
             id="div-gpt-ad-1661333336129-0"
             name="ROS_Midrec"
             sizes={[300, 250]}
-            visibleOnDevices="onlyDesktop"
+            visibleOnDevices={pageName === "home" ? "both" : "onlyDesktop"}
           />
         </div>
       )}

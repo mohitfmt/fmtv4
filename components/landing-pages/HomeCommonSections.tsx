@@ -13,6 +13,7 @@ import { HomePost } from "@/types/global";
 interface HomeCommonSectionsProps {
   posts: HomePost[];
   loading?: boolean;
+  categoryRoute: string;
   categoryName: string;
   sectionTitle: string;
   sectionId: string;
@@ -23,6 +24,7 @@ const POSTS_PER_PAGE = 4;
 const HomeCommonSections = ({
   posts: initialPosts,
   loading = false,
+  categoryRoute,
   categoryName,
   sectionTitle,
   sectionId,
@@ -34,7 +36,9 @@ const HomeCommonSections = ({
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [isLoadingPrev, setIsLoadingPrev] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">("next");
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
 
   // Add cache and prefetching refs
   const pageCache = useRef<Record<number, HomePost[]>>({});
@@ -49,40 +53,46 @@ const HomeCommonSections = ({
     }
   }, [initialPosts]);
 
-  const prefetchNextPage = useCallback(async (pageNumber: number) => {
-    if (pageCache.current[pageNumber] || prefetchingPages.current.has(pageNumber)) {
-      return;
-    }
-
-    prefetchingPages.current.add(pageNumber);
-    try {
-      const response = await fetch(
-        `/api/more-home-posts?page=${pageNumber}&category=${categoryName}`
-      );
-
-      if (!response.ok) throw new Error("Failed to fetch posts");
-
-      const data = await response.json();
-      
-      if (data.posts?.edges?.length > 0) {
-        const processedPosts = data.posts.edges.map((edge: any) => edge.node);
-        pageCache.current[pageNumber] = processedPosts;
+  const prefetchNextPage = useCallback(
+    async (pageNumber: number) => {
+      if (
+        pageCache.current[pageNumber] ||
+        prefetchingPages.current.has(pageNumber)
+      ) {
+        return;
       }
-    } catch (error) {
-      console.error("Error prefetching:", error);
-    } finally {
-      prefetchingPages.current.delete(pageNumber);
-    }
-  }, [categoryName]);
+
+      prefetchingPages.current.add(pageNumber);
+      try {
+        const response = await fetch(
+          `/api/more-home-posts?page=${pageNumber}&category=${categoryName}`
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch posts");
+
+        const data = await response.json();
+
+        if (data.posts?.edges?.length > 0) {
+          const processedPosts = data.posts.edges.map((edge: any) => edge.node);
+          pageCache.current[pageNumber] = processedPosts;
+        }
+      } catch (error) {
+        console.error("Error prefetching:", error);
+      } finally {
+        prefetchingPages.current.delete(pageNumber);
+      }
+    },
+    [categoryName]
+  );
 
   const loadMorePosts = async () => {
     if (isLoadingNext || !hasMore) return false;
 
     try {
       const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
-      
+
       if (pageCache.current[nextPage]) {
-        setAllPosts(prev => [...prev, ...pageCache.current[nextPage]]);
+        setAllPosts((prev) => [...prev, ...pageCache.current[nextPage]]);
         setHasMore(pageCache.current[nextPage].length === POSTS_PER_PAGE);
         return true;
       }
@@ -97,7 +107,7 @@ const HomeCommonSections = ({
 
       if (data.posts?.edges?.length > 0) {
         const processedPosts = data.posts.edges.map((edge: any) => edge.node);
-        setAllPosts(prev => [...prev, ...processedPosts]);
+        setAllPosts((prev) => [...prev, ...processedPosts]);
         setHasMore(data.hasMore);
         return true;
       }
@@ -135,7 +145,7 @@ const HomeCommonSections = ({
 
     setIsLoadingPrev(true);
     setAnimationDirection("prev");
-    setCurrentPage(prev => prev - 1);
+    setCurrentPage((prev) => prev - 1);
     setTimeout(() => setIsLoadingPrev(false), 300);
   };
 
@@ -152,13 +162,14 @@ const HomeCommonSections = ({
   }, [currentPage, allPosts.length, hasMore, prefetchNextPage]);
 
   const currentPosts = getCurrentPosts();
-  const canGoNext = hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
+  const canGoNext =
+    hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
   const canGoPrevious = currentPage > 0;
 
   if (loading || !initialPosts || initialPosts.length === 0) {
     return (
       <section id={sectionId} className="my-20 mb-32">
-        <Link href={`/${categoryName}`}>
+        <Link href={`/${categoryRoute}`}>
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <CommonSectionSkeleton />
@@ -168,12 +179,14 @@ const HomeCommonSections = ({
 
   return (
     <section id={sectionId} className="my-20">
-      <Link href={`/${categoryName}`}>
+      <Link href={`/${categoryRoute}`}>
         <SectionHeading sectionName={sectionTitle} />
       </Link>
       <div className="grid grid-cols-12 gap-4">
         <div className="grid col-span-12 lg:col-span-7 grid-cols-1 gap-4">
-          {heroPost && <SecondarySuperNewsPreview {...heroPost} key={heroPost.slug} />}
+          {heroPost && (
+            <SecondarySuperNewsPreview {...heroPost} key={heroPost.slug} />
+          )}
         </div>
 
         <div className="grid overflow-hidden col-span-12 lg:col-span-5 relative">

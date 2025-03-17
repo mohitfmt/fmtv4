@@ -2,8 +2,7 @@ import type { NextConfig } from "next";
 import { RemotePattern } from "next/dist/shared/lib/image-config";
 
 const { protocol, hostname, port, pathname } = new URL(
-  process.env.WORDPRESS_API_URL ||
-    "https://cms.freemalaysiatoday.com/graphql"
+  process.env.WORDPRESS_API_URL || "https://cms.freemalaysiatoday.com/graphql"
 );
 
 const nextConfig: NextConfig = {
@@ -139,113 +138,6 @@ const nextConfig: NextConfig = {
             value: "public, max-age=31536000, immutable",
           },
         ],
-      },
-    ];
-  },
-
-  async redirects() {
-    const CMS_URL =
-      process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com";
-
-    return [
-      // Sitemap redirects
-      {
-        source: "/:filename(sitemap.*\\.xml)",
-        destination: `${CMS_URL}/:filename`,
-        permanent: false,
-      },
-      // Feed redirects
-      {
-        source: "/feed/",
-        destination: `${CMS_URL}/feed/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/feed/",
-        destination: `${CMS_URL}/:path*/feed/`,
-        permanent: false,
-      },
-
-      {
-        source: "/fmtapp/",
-        destination: `${CMS_URL}/fmtapp/`,
-        permanent: false,
-      },
-      {
-        source: "/feed/fmtapp/",
-        destination: `${CMS_URL}/feed/fmtapp/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/fmtapp/",
-        destination: `${CMS_URL}/:path*/fmtapp/`,
-        permanent: false,
-      },
-      {
-        source: "/fmtemail/",
-        destination: `${CMS_URL}/fmtemail/`,
-        permanent: false,
-      },
-      {
-        source: "/feed/fmtemail/",
-        destination: `${CMS_URL}/feed/fmtemail/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/fmtemail/",
-        destination: `${CMS_URL}/:path*/fmtemail/`,
-        permanent: false,
-      },
-      {
-        source: "/fmtmsn/",
-        destination: `${CMS_URL}/fmtmsn/`,
-        permanent: false,
-      },
-      {
-        source: "/feed/fmtmsn/",
-        destination: `${CMS_URL}/feed/fmtmsn/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/fmtmsn/",
-        destination: `${CMS_URL}/:path*/fmtmsn/`,
-        permanent: false,
-      },
-      {
-        source: "/json/",
-        destination: `${CMS_URL}/json/`,
-        permanent: false,
-      },
-      {
-        source: "/feed/json/",
-        destination: `${CMS_URL}/feed/json/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/json/",
-        destination: `${CMS_URL}/:path*/json/`,
-        permanent: false,
-      },
-      {
-        source: "/json/app/",
-        destination: `${CMS_URL}/json/app/`,
-        permanent: false,
-      },
-      {
-        source: "/feed/json/app/",
-        destination: `${CMS_URL}/feed/json/app/`,
-        permanent: false,
-      },
-      {
-        source: "/:path*/json/app/",
-        destination: `${CMS_URL}/:path*/json/app/`,
-        permanent: false,
-      },
-
-      {
-        source: "/amp/:slug*",
-        destination: "/:slug*",
-        permanent: true,
       },
     ];
   },

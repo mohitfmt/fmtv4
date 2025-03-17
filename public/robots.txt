@@ -82,7 +82,7 @@ User-agent: AdsBot-Google-Mobile
 Allow: /
 
 User-agent: Mediapartners-Google
-Disallow: /
+Allow: /
 
 User-agent: AhrefsBot
 Disallow: /

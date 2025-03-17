@@ -12,6 +12,7 @@ import { HomePost } from "@/types/global";
 interface HorizontalNewsContentProps {
   posts: HomePost[];
   loading?: boolean;
+  categoryRoute: string;
   categoryName: string;
   sectionTitle: string;
   className?: string;
@@ -23,6 +24,7 @@ const HorizontalNewsContent = ({
   posts: initialPosts,
   loading = false,
   categoryName,
+  categoryRoute,
   sectionTitle,
   className = "",
 }: HorizontalNewsContentProps) => {
@@ -115,7 +117,7 @@ const HorizontalNewsContent = ({
   if (loading || !initialPosts || initialPosts.length === 0) {
     return (
       <div className={className}>
-        <Link href={`/${categoryName}`}>
+        <Link href={`/${categoryRoute}`}>
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <div className="animate-pulse">
@@ -136,7 +138,7 @@ const HorizontalNewsContent = ({
 
   return (
     <div className={`${className} overflow-hidden`}>
-      <Link href={`/${categoryName}`}>
+      <Link href={`/${categoryRoute}`}>
         <SectionHeading sectionName={sectionTitle} />
       </Link>
       <div

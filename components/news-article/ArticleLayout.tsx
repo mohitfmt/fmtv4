@@ -186,7 +186,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
           </Suspense>
 
           <Suspense>
-            <div className="overflow-hidden bg-white rounded-md pb-4 px-4">
+            <div className="overflow-hidden">
               <OutBrainWidget fullUrl={fullUri} />
             </div>
           </Suspense>
