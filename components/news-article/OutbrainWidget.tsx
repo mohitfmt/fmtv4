@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface OutBrainWidgetProps {
   fullUrl: string;
 }
 
 const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
+  const [hasContent, setHasContent] = useState(false);
+
   useEffect(() => {
     const enhanceWidgetAccessibility = () => {
       // Fix the "What is" link accessibility
@@ -18,7 +20,7 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
         );
         whatIsLink.setAttribute("role", "link");
         whatIsLink.setAttribute("tabindex", "0");
-        
+
         // Add visible text for screen readers while maintaining original design
         const spanElement = document.createElement("span");
         spanElement.className = "sr-only";
@@ -42,8 +44,16 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
     // Set up observer to watch for Outbrain content
     const observer = new MutationObserver((mutations) => {
       mutations.forEach(() => {
-        if (document.querySelector(".ob_what")) {
+        // Check for specific Outbrain content elements that indicate actual content loaded
+        const hasActualContent = 
+          document.querySelector(".ob-rec-image") || 
+          document.querySelector(".ob-rec-text") ||
+          (document.querySelector(".ob-widget") && 
+           document.querySelector(".ob-widget")?.children.length);
+
+        if (hasActualContent) {
           enhanceWidgetAccessibility();
+          setHasContent(true);
           observer.disconnect();
         }
       });
@@ -62,8 +72,20 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
 
     document.body.appendChild(script);
 
+    // Set a timeout to check if content loaded after a reasonable time
+    const timeout = setTimeout(() => {
+      const hasVisibleContent = 
+        document.querySelector(".ob-widget") && 
+        document.querySelector(".ob-widget")?.children.length ;
+      
+      if (hasVisibleContent) {
+        setHasContent(true);
+      }
+    }, 3000); // 3 seconds should be enough for content to load
+
     // Cleanup function
     return () => {
+      clearTimeout(timeout);
       observer.disconnect();
       const scriptElement = document.querySelector(
         'script[src*="outbrain.js"]'
@@ -79,13 +101,15 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
   }, []);
 
   return (
-    <div
-      className="OUTBRAIN"
-      data-src={fullUrl}
-      data-widget-id="AR_1"
-      role="complementary"
-      aria-label="Recommended articles from around the web"
-    />
+    <div className={hasContent ? "bg-white rounded-md pb-2 px-4" : ""}>
+      <div
+        className="OUTBRAIN"
+        data-src={fullUrl}
+        data-widget-id="AR_1"
+        role="complementary"
+        aria-label="Recommended articles from around the web"
+      />
+    </div>
   );
 };
 

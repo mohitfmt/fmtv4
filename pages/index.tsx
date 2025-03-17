@@ -244,6 +244,7 @@ export default function Home({
             <HomeTopNewsOpinion
               posts={currentTopNewsPosts}
               loading={opinionLoading}
+              categoryRoute="news"
               categoryName="top-news"
               sectionTitle="Top News"
             />
@@ -259,6 +260,7 @@ export default function Home({
         <HomeCommonSections
           posts={currentBeritaPosts}
           loading={beritaLoading}
+          categoryRoute="berita"
           categoryName="top-bm"
           sectionTitle="Berita Utama"
           sectionId="Berita-Utama"
@@ -280,6 +282,7 @@ export default function Home({
             <HomeTopNewsOpinion
               posts={currentOpinionPosts}
               loading={topNewsLoading}
+              categoryRoute="opinion"
               categoryName="opinion"
               sectionTitle="Opinion"
             />
@@ -293,6 +296,7 @@ export default function Home({
         <HomeCommonSections
           posts={currentWorldPosts}
           loading={worldLoading}
+          categoryRoute="world"
           categoryName="world"
           sectionTitle="World News"
           sectionId="World-News"
@@ -312,6 +316,7 @@ export default function Home({
         <HomeCommonSections
           posts={currentLeisurePosts}
           loading={leisureLoading}
+          categoryRoute="lifestyle"
           categoryName="leisure"
           sectionTitle="Lifestyle"
           sectionId="Lifestyle-News"
@@ -319,6 +324,7 @@ export default function Home({
         <HomeCommonSections
           posts={currentSportsPosts}
           loading={sportsLoading}
+          categoryRoute="sports"
           categoryName="sports"
           sectionTitle="Sports News"
           sectionId="Sports-News"
