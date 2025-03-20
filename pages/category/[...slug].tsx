@@ -12,7 +12,7 @@ import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
-const REVALIDATION_INTERVAL = 300; // 5 minutes
+const REVALIDATION_INTERVAL = 1500; // 25 minutes
 
 interface ArticleProps {
   post: any;

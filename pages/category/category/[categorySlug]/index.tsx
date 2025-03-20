@@ -118,7 +118,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         categorySlug,
         posts: { edges: [] },
       },
-      revalidate: 60,
+      revalidate: 10,
     };
   }
 };

@@ -38,7 +38,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
 
   const handleNext = () => {
     setCurrentIndex((prevIndex) =>
-      prevIndex === columnists.length - 1 ? 0 : prevIndex + 1
+      prevIndex === columnists?.length - 1 ? 0 : prevIndex + 1
     );
   };
 
@@ -69,7 +69,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
         <div
           className="h-full bg-green-500"
           style={{
-            width: `${((currentIndex + 1) / columnists.length) * 100}%`,
+            width: `${((currentIndex + 1) / columnists?.length) * 100}%`,
             transition: "width 0.3s linear",
           }}
         />
@@ -91,20 +91,20 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
           title={columnists[currentIndex]?.name}
         >
           <Image
-            src={columnists[currentIndex].avatar.url}
-            alt={`columnist-${columnists[currentIndex].name}`}
+            src={columnists[currentIndex]?.avatar.url}
+            alt={`columnist-${columnists[currentIndex]?.name}`}
             height={256}
             width={256}
             className="border-accent-yellow my-10 h-60 w-60 rounded-full border-4 lg:my-4"
           />
           <div className="pointer-events-none  absolute inset-0 flex items-center justify-center">
             <h2 className="z-10 max-w-[75%] text-center  text-2xl font-semibold tracking-wider">
-              {columnists[currentIndex].name}
+              {columnists[currentIndex]?.name}
             </h2>
           </div>
         </Link>
         <p className="font-bitter mt-[40px] sm:mt-[170px] text-lg font-extralight">
-          {truncateDescription(columnists[currentIndex].description)}
+          {truncateDescription(columnists[currentIndex]?.description)}
         </p>
 
         {columnists[currentIndex].posts.nodes.length > 0 && (
@@ -113,10 +113,10 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
               <SectionHeading sectionName="Latest article" />
             </div>
             <Link
-              href={columnists[currentIndex].posts.nodes[0].uri}
+              href={columnists[currentIndex]?.posts.nodes[0]?.uri}
               className="font-bitter text-pretty text-lg font-normal text-yellow-500 dark:text-yellow-300"
             >
-              {columnists[currentIndex].posts.nodes[0].title}
+              {columnists[currentIndex]?.posts.nodes[0]?.title}
             </Link>
           </div>
         )}
