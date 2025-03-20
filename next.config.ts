@@ -110,6 +110,11 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, s-maxage=300, stale-while-revalidate=60",
           },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value:
+              "stale-while-revalidate=300, stale-if-error=300, public",
+          },
           // Add security headers
           {
             key: "X-DNS-Prefetch-Control",
@@ -129,12 +134,31 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value:
+              "stale-while-revalidate=300, stale-if-error=300, public",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value:
+              "stale-while-revalidate=300, stale-if-error=300, public",
+          },
+        ],
+      },
       // Add cache headers for static assets
       {
         source: "/:path*.(jpg|jpeg|png|gif|webp|svg|ico)",
         headers: [
           {
             key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
             value: "public, max-age=31536000, immutable",
           },
         ],

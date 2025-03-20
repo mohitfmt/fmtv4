@@ -22,7 +22,7 @@ const dfpTargetingParams = {
 // Constants for cache and revalidation times
 const CACHE_MAXAGE = 3600; // 1 hour
 const STALE_REVALIDATE = 60; // 1 minute
-const ISR_REVALIDATE = 300; // 5 minutes
+const ISR_REVALIDATE = 30*24*60*60; // 30 days
 const ERROR_REVALIDATE = 60; // 1 minute
 
 async function fetchAcceleratorData() {

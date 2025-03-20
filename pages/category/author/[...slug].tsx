@@ -181,7 +181,7 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
         author: userData.user,
         posts: postsData.posts,
       },
-      revalidate: 360,
+      revalidate: 1500,
     };
   } catch (error) {
     console.error("Error in getStaticProps:", error);

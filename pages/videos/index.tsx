@@ -217,7 +217,7 @@ export const getStaticProps: GetStaticProps<VideosProps> = async () => {
       props: {
         info: null,
       },
-      revalidate: 45,
+      revalidate: 10,
     };
   }
 };

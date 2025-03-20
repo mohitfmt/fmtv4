@@ -88,7 +88,7 @@ export const getPlaylist = async (playlistId: string) => {
     const res = await fetch(
       `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`,
       {
-        next: { revalidate: 3600 }, // Optional: cache for 1 hour
+        next: { revalidate: 360 }, // Optional: cache for 1 hour
       }
     );
 

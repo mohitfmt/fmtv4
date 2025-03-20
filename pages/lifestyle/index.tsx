@@ -147,7 +147,7 @@ export const getStaticProps: GetStaticProps = async () => {
         currentPage: currentPage || null,
         subCategoryPosts: initialSubCategoryPosts,
       },
-      revalidate: 300,
+      revalidate: 1500,
     };
   } catch (error) {
     console.error("Error in getStaticProps:", error);
