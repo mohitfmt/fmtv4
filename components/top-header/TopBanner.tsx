@@ -30,13 +30,14 @@ const dfpTargetingParams = {
 };
 
 export default function TopBanner() {
-  const refreshId = useStableId();
+  const { id, refreshId } = useStableId();
   return (
     <>
       <header className="max-w-[1440px] mx-auto sticky overflow-hidden px-2 md:px-4 lg:-top-20 top-10  z-40 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
-            href={refreshId ? `/?${refreshId}` : "/"}
+            href={id ? `/?${id}` : "/"}
+            onClick={refreshId}
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex flex-col items-center"
           >

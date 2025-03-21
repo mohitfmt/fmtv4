@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
   const filteredNavigation = navigation.filter((item) => item.id !== 1);
   const singleNavItems = filteredNavigation.filter((item) => !item.items);
   const groupedNavItems = filteredNavigation.filter((item) => item.items);
-  const refreshId = useStableId();
+  const { id, refreshId } = useStableId();
   const columnData = [
     groupedNavItems.slice(0, 3),
     groupedNavItems.slice(4, 6),
@@ -24,7 +24,9 @@ const Footer: React.FC = () => {
       <div className="container max-w-[1440px] mx-auto md:px-6 px-2">
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <Link
-            href={refreshId ? `/?${refreshId}` : "/"}
+            href={id ? `/?${id}` : "/"}
+            onClick={refreshId}
+            aria-label="Free Malaysia Today - Return to homepage"
             className="flex justify-center items-center lg:justify-start md:mb-4"
           >
             <LogoSVG className="w-[200px] h-auto" />

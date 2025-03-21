@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { nanoid } from "nanoid";
 
 export function useStableId() {
-  const [id, setId] = useState("");
+  const [id, setId] = useState(nanoid());
 
-  useEffect(() => {
+  // Function to refresh the ID
+  const refreshId = () => {
     setId(nanoid());
-  }, []);
+  };
 
-  return id || "";
+  return {
+    id: id || "",
+    refreshId,
+  };
 }
