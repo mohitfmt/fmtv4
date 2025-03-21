@@ -2,8 +2,14 @@ import React from "react";
 import Image from "next/image";
 import { Clock, Eye, ThumbsUp, MessageSquare, Play } from "lucide-react";
 import SectionHeading from "../common/SectionHeading";
-import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
+// import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
 import Link from "next/link";
+import {
+  formatMalaysianDate,
+  formatMalaysianTime24h,
+  // formattedDate,
+  // formattedDisplayDate,
+} from "../common/display-date-formats/DateFormates";
 
 // TypeScript Interfaces
 interface Statistics {
@@ -86,7 +92,6 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
 }) => {
   const { title, excerpt, featuredImage, duration, statistics, dateGmt } =
     video;
-
   if (isFeature) {
     return (
       <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[450px] ">
@@ -147,9 +152,23 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
                 </span>
               )}
             </div>
-            <span className="flex items-center gap-1.5 bg-black text-white">
+            {/* <span className="flex items-center gap-1.5 bg-black text-white">
               <PublishingDateTime dateString={dateGmt} isTextPop={false} />
-            </span>
+            </span> */}
+            {/* <time
+              // className="text-sm font-semibold text-white"
+              className="flex items-center gap-1.5 bg-black text-white"
+              dateTime={formattedDisplayDate(dateGmt, false)}
+            >
+              {format(dateGmt)}
+            </time> */}
+
+            <time
+              className="flex items-center gap-1.5 bg-black text-white"
+              dateTime={formatMalaysianDate(dateGmt, false)}
+            >
+              {formatMalaysianTime24h(dateGmt)}
+            </time>
           </div>
         </div>
       </div>
@@ -180,9 +199,15 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
           {formatDuration(duration)}
         </div>
         <div className="absolute bottom-2 right-2">
-          <div className="bg-black/80 px-1.5 rounded text-white text-sm">
+          {/* <div className="bg-black/80 px-1.5 rounded text-white text-sm">
             <PublishingDateTime dateString={dateGmt} isTextPop={false} />
-          </div>
+          </div> */}
+          <time
+            className="flex items-center gap-1.5 bg-black text-white"
+            dateTime={formatMalaysianDate(dateGmt, false)}
+          >
+            {formatMalaysianTime24h(dateGmt)}
+          </time>
         </div>
       </div>
 

@@ -140,12 +140,12 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value:
-              "stale-while-revalidate=300, stale-if-error=300, public",
+              "max-age=0,stale-while-revalidate=300, stale-if-error=300, public",
           },
           {
             key: "Cloudflare-CDN-Cache-Control",
             value:
-              "stale-while-revalidate=300, stale-if-error=300, public",
+              "max-age=0,stale-while-revalidate=300, stale-if-error=300, public",
           },
         ],
       },
