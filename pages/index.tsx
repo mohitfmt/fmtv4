@@ -22,6 +22,7 @@ import { useSectionData } from "@/hooks/useSectionData";
 import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
 import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
 import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -61,6 +62,7 @@ export default function Home({
   columnists,
   trendingTags,
 }: any) {
+  useVisibilityRefresh();
   const { posts: currentBusinessPosts, loading: businessLoading } =
     useSectionData(businessPosts, "business", 3);
 
@@ -79,7 +81,7 @@ export default function Home({
   const { posts: currentTopNewsPosts, loading: topNewsLoading } =
     useSectionData(topNewsPosts, "top-news", 6);
 
-  const { posts: currentOpinionPosts , loading:opinionLoading} =
+  const { posts: currentOpinionPosts, loading: opinionLoading } =
     useSectionData(opinionPosts, "opinion", 6);
 
   const { posts: currentLeisurePosts, loading: leisureLoading } =
@@ -277,7 +279,10 @@ export default function Home({
             targetingParams={dfpTargetingParams}
           />
         </div>
-        <section id="Opinion-Columnist" className="my-4 grid grid-cols-3 gap-6 gap-y-10">
+        <section
+          id="Opinion-Columnist"
+          className="my-4 grid grid-cols-3 gap-6 gap-y-10"
+        >
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
               posts={currentOpinionPosts}

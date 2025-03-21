@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import HorizontalLoadMore from "./HorizontalLoadMore";
 import MainLayout from "./MainLayout";
 import { PostCardProps } from "@/types/global";
@@ -8,6 +9,7 @@ import CategoryHeroPost from "../common/news-preview-cards/CategoryHeroPost";
 import AdSlot from "../common/AdSlot";
 import SectionHeading from "../common/SectionHeading";
 import CategoryWithLoadMore from "./SubCategoryWithLoadMore";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface PostsData {
   edges: Array<{
@@ -42,6 +44,16 @@ export const CategoryPostsLayout = ({
   subCategoryPosts,
   categoryName,
 }: CategoryPostsLayoutProps) => {
+  // Use the visibility refresh hook
+  const { lastRefreshed, isRefreshing } = useVisibilityRefresh();
+
+  // Log when refresh occurs (optional, for debugging)
+  useEffect(() => {
+    if (lastRefreshed) {
+      console.log(`CategoryPostsLayout for ${categoryName} refreshed at:`, lastRefreshed.toISOString());
+    }
+  }, [lastRefreshed, categoryName]);
+
   if (!posts || !currentPage) return null;
 
   // Get the first post for hero section
@@ -54,6 +66,13 @@ export const CategoryPostsLayout = ({
 
   return (
     <MainLayout adsTargetingParams={AdsTargetingParams} isCategoryPage={true}>
+      {/* Optional small indicator during development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 mb-2">
+          {isRefreshing ? 'Refreshing...' : lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}` : 'No refresh yet'}
+        </div>
+      )}
+
       <SectionHeading sectionName={title} />
 
       {/* Featured Posts Section */}
@@ -79,7 +98,6 @@ export const CategoryPostsLayout = ({
       </section>
 
       {/* Horizontal Load More Section */}
-
       <HorizontalLoadMore posts={remainingPosts} categoryName={categoryName} />
 
       {/* Category Sections */}
