@@ -108,12 +108,12 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=300, stale-while-revalidate=60",
+            value: "public, s-maxage=60, stale-while-revalidate=60",
           },
           {
             key: "Cloudflare-CDN-Cache-Control",
             value:
-              "stale-while-revalidate=300, stale-if-error=300, public",
+              "stale-while-revalidate=60, stale-if-error=60, public",
           },
           // Add security headers
           {
@@ -140,12 +140,12 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value:
-              "max-age=0,stale-while-revalidate=300, stale-if-error=300, public",
+              "max-age=0, stale-while-revalidate=60, stale-if-error=60, public",
           },
           {
             key: "Cloudflare-CDN-Cache-Control",
             value:
-              "max-age=0,stale-while-revalidate=300, stale-if-error=300, public",
+              "max-age=0,stale-while-revalidate=60, stale-if-error=60, public",
           },
         ],
       },
