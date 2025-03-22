@@ -91,9 +91,9 @@ const nextConfig: NextConfig = {
   staticPageGenerationTimeout: 120,
   compress: true,
 
-  // Headers configuration
   async headers() {
     return [
+      // API specific headers
       {
         source: "/api/websub-callback",
         headers: [
@@ -103,19 +103,56 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+
+      // Revalidation API should never be cached
       {
-        source: "/",
+        source: "/api/revalidate",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=60, stale-while-revalidate=60",
+            value: "no-store, no-cache, must-revalidate",
+          },
+          {
+            key: "Pragma",
+            value: "no-cache",
+          },
+        ],
+      },
+
+      // Default static assets (middleware will override for article images)
+      {
+        source: "/:path*.(jpg|jpeg|png|gif|webp|svg|ico)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
           {
             key: "Cloudflare-CDN-Cache-Control",
-            value:
-              "stale-while-revalidate=60, stale-if-error=60, public",
+            value: "public, max-age=31536000, immutable",
           },
-          // Add security headers
+        ],
+      },
+
+      // JavaScript and CSS assets
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // Security headers for all pages
+      {
+        source: "/(.*)",
+        headers: [
           {
             key: "X-DNS-Prefetch-Control",
             value: "on",
@@ -134,37 +171,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value:
-              "max-age=0, stale-while-revalidate=60, stale-if-error=60, public",
-          },
-          {
-            key: "Cloudflare-CDN-Cache-Control",
-            value:
-              "max-age=0,stale-while-revalidate=60, stale-if-error=60, public",
-          },
-        ],
-      },
-      // Add cache headers for static assets
-      {
-        source: "/:path*.(jpg|jpeg|png|gif|webp|svg|ico)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-          {
-            key: "Cloudflare-CDN-Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
     ];
   },
 };
-
 export default nextConfig;
