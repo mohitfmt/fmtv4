@@ -2,28 +2,112 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Helper function to determine if current time is peak hours
-function isPeakHours(): boolean {
+/**
+ * Gets current time in Malaysia timezone (UTC+8)
+ * This function handles timezone conversion properly regardless of server location
+ * @returns Date object representing the current time in Malaysia
+ */
+function getMalaysiaTime(): Date {
   const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
 
-  // Check if it's weekend (0 = Sunday, 6 = Saturday)
-  const isWeekend = day === 0 || day === 6;
+  // Get UTC time in milliseconds
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
 
-  // Check if outside operational hours (12:30 AM - 6:30 AM)
-  const isOffHours =
-    hour < 6 ||
-    (hour === 6 && now.getMinutes() < 30) ||
-    (hour === 0 && now.getMinutes() >= 30);
+  // Malaysia timezone offset (UTC+8 = +480 minutes)
+  const malaysiaOffset = 8 * 60;
 
-  // If weekend or off-hours, not peak
-  if (isWeekend || isOffHours) return false;
+  // Malaysia time in milliseconds
+  const malaysiaTime = utcTime + malaysiaOffset * 60000;
 
-  // Define peak hours (9 AM - 9 PM on weekdays)
-  return hour >= 9 && hour < 21;
+  // Return Malaysia time
+  return new Date(malaysiaTime);
 }
 
+/**
+ * Determines the current activity level based on Malaysia time
+ * @returns {'low' | 'high' | 'normal'} Activity level
+ */
+function getActivityLevel(): "low" | "high" | "normal" {
+  const malaysiaTime = getMalaysiaTime();
+  const hours = malaysiaTime.getHours();
+  const minutes = malaysiaTime.getMinutes();
+
+  // Convert current time to minutes since midnight for easier comparison
+  const minutesSinceMidnight = hours * 60 + minutes;
+
+  // Define time ranges in minutes since midnight
+  const lowActivityStart = 0 * 60 + 30; // 12:30 AM
+  const lowActivityEnd = 5 * 60; // 5:00 AM
+
+  const highActivityMorningStart = 8 * 60; // 8:00 AM
+  const highActivityMorningEnd = 11 * 60 + 30; // 11:30 AM
+
+  const highActivityEveningStart = 20 * 60 + 30; // 8:30 PM
+  const highActivityEveningEnd = 23 * 60 + 30; // 11:30 PM
+
+  // Check if current time falls within low activity period
+  if (
+    minutesSinceMidnight >= lowActivityStart &&
+    minutesSinceMidnight < lowActivityEnd
+  ) {
+    return "low";
+  }
+
+  // Check if current time falls within high activity periods
+  if (
+    (minutesSinceMidnight >= highActivityMorningStart &&
+      minutesSinceMidnight <= highActivityMorningEnd) ||
+    (minutesSinceMidnight >= highActivityEveningStart &&
+      minutesSinceMidnight <= highActivityEveningEnd)
+  ) {
+    return "high";
+  }
+
+  // Default to normal activity
+  return "normal";
+}
+
+/**
+ * Determine cache duration settings based on content type and activity level
+ */
+function getCacheDurations(
+  pathname: string,
+  activityLevel: "low" | "high" | "normal"
+): {
+  staleDuration: number;
+  errorDuration: number;
+} {
+  // Check if it's a specific article page
+  const isArticlePage = pathname.includes("/category/");
+
+  // Set cache durations based on activity level and page type
+  switch (activityLevel) {
+    case "low":
+      // Low Activity period (12:30 AM - 5:00 AM): Very few updates
+      return {
+        staleDuration: isArticlePage ? 3600 : 1800, // 1 hour for articles, 30 min for homepage/categories
+        errorDuration: isArticlePage ? 7200 : 3600, // 2 hours for articles, 1 hour for homepage/categories
+      };
+
+    case "high":
+      // High Activity period (8:00 AM - 11:30 AM & 8:30 PM - 11:30 PM): Peak publishing
+      return {
+        staleDuration: isArticlePage ? 180 : 120, // 3 min for articles, 2 min for homepage/categories
+        errorDuration: isArticlePage ? 360 : 240, // 6 min for articles, 4 min for homepage/categories
+      };
+
+    default:
+      // Normal Activity period (all other times): Moderate publishing
+      return {
+        staleDuration: isArticlePage ? 600 : 450, // 10 min for articles, 7.5 min for homepage/categories
+        errorDuration: isArticlePage ? 1200 : 900, // 20 min for articles, 15 min for homepage/categories
+      };
+  }
+}
+
+/**
+ * Next.js middleware function to handle cache settings based on content type and activity period
+ */
 export function middleware(request: NextRequest) {
   // Clone the response
   const response = NextResponse.next();
@@ -31,7 +115,7 @@ export function middleware(request: NextRequest) {
   // Get the pathname
   const { pathname } = request.nextUrl;
 
-  // For static assets, we'll implement a smarter caching strategy
+  // For static assets, implement a smarter caching strategy
   if (/\.(jpg|jpeg|png|gif|webp|svg|ico|js|css)$/.test(pathname)) {
     // Parse the URL to check if it's an image in a post context
     const isArticleImage =
@@ -40,7 +124,6 @@ export function middleware(request: NextRequest) {
 
     if (isArticleImage) {
       // For images that might be updated, use shorter cache with revalidation
-      // This allows your revalidation system to update images without waiting for cache expiry
       response.headers.set(
         "Cache-Control",
         "public, max-age=300, stale-while-revalidate=3600"
@@ -71,48 +154,14 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Determine cache duration based on peak hours
-  let staleDuration: number;
-  let errorDuration: number;
+  // Get the current activity level based on Malaysia time
+  const activityLevel = getActivityLevel();
 
-  // Check if it's a specific article page that might be frequently updated
-  const isArticlePage = pathname.includes("/category/");
-
-  if (isPeakHours()) {
-    // Peak hours (9AM-9PM weekdays)
-    if (isArticlePage) {
-      // Article pages during peak hours: very short cache (1 minute)
-      // This matches your publishing frequency of ~2 posts per 5 mins
-      staleDuration = 60;
-      errorDuration = 120;
-    } else {
-      // Home and category pages during peak: short cache (2 minutes)
-      staleDuration = 120;
-      errorDuration = 300;
-    }
-  } else if (pathname === "/" || pathname.includes("/category/")) {
-    // Home and category pages during off-peak: medium cache
-    staleDuration = 180;
-    errorDuration = 300;
-  } else {
-    // Article pages during off-peak: longer cache
-    staleDuration = 300;
-    errorDuration = 600;
-  }
-
-  // Check if it's during non-operational hours (12:30 AM - 6:30 AM)
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  if (
-    (hour === 0 && minute >= 30) ||
-    (hour > 0 && hour < 6) ||
-    (hour === 6 && minute < 30)
-  ) {
-    // Overnight: much longer cache (30 minutes)
-    staleDuration = 1800;
-    errorDuration = 3600;
-  }
+  // Get appropriate cache durations based on path and activity level
+  const { staleDuration, errorDuration } = getCacheDurations(
+    pathname,
+    activityLevel
+  );
 
   // Set cache headers
   response.headers.set(
@@ -123,6 +172,14 @@ export function middleware(request: NextRequest) {
   response.headers.set(
     "Cloudflare-CDN-Cache-Control",
     `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
+  );
+
+  // Add debug header
+
+  const malaysiaTime = getMalaysiaTime();
+  response.headers.set(
+    "X-Cache-Debug",
+    `activity=${activityLevel}, stale=${staleDuration}s, error=${errorDuration}s, malaysia_time=${malaysiaTime.toISOString()}`
   );
 
   return response;
