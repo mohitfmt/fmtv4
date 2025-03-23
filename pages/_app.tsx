@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
+import ContentVersionTracker from "@/components/ContentVersionTracker";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -72,6 +73,7 @@ export default function App({
     <div
       className={`${bitter.variable} ${rhd.variable} ${roboto.variable} min-h-screen bg-background text-foreground`}
     >
+      <ContentVersionTracker />
       <NextTopLoader
         color="#FFD700"
         initialPosition={0.08}

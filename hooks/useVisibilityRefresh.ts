@@ -1,100 +1,142 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 /**
- * Custom hook that refreshes the page data when tab becomes visible
+ * Enhanced hook that forcefully refreshes page data when a tab becomes visible
+ * Uses a cache-busting strategy to ensure fresh content is fetched
+ *
  * @param {boolean} enabled - Whether the hook should be enabled
  * @param {number} debounceMs - Debounce time in milliseconds to prevent multiple refreshes
  * @returns {object} - Object containing refresh state information
  */
 export const useVisibilityRefresh = (enabled = true, debounceMs = 1000) => {
-  console.log(
-    "Component with visibility hook rendered",
-    new Date().toISOString()
-  );
-
   const router = useRouter();
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    console.log("useVisibilityRefresh hook initialized with enabled:", enabled);
+  /**
+   * Forcefully refresh the current page data
+   * Uses a cache-busting technique to guarantee fresh data
+   */
+  const refreshData = useCallback(() => {
+    // Debounce check
+    const now = new Date();
+    if (lastRefreshed && now.getTime() - lastRefreshed.getTime() < debounceMs) {
+      return;
+    }
 
-    if (!enabled) return;
+    // Update state
+    setIsRefreshing(true);
+    setLastRefreshed(now);
+
+    // Get current path
+    const currentPath = router.asPath;
+
+    // Create a cache-busting version by adding a timestamp parameter
+    const hasQuery = currentPath.includes("?");
+    const timestampParam = `_refresh=${Date.now()}`;
+    const newPath = hasQuery
+      ? `${currentPath}&${timestampParam}`
+      : `${currentPath}?${timestampParam}`;
+
+    // First navigate to the timestamped path to force data refetch
+    router
+      .replace(newPath, undefined, {
+        scroll: false,
+        shallow: false, // Crucial: don't use shallow routing to force data refetch
+      })
+      .then(() => {
+        // Then navigate back to the clean path to maintain URL cleanliness
+        return router.replace(currentPath, undefined, {
+          scroll: false,
+          shallow: true, // We can use shallow here since we just want to clean the URL
+        });
+      })
+      .catch((error) => {
+        console.error("[useVisibilityRefresh] Error refreshing page:", error);
+      })
+      .finally(() => {
+        // Set a delay before clearing the refreshing state to prevent UI flickers
+        setTimeout(() => {
+          setIsRefreshing(false);
+        }, 500);
+      });
+  }, [router, lastRefreshed, debounceMs]);
+
+  // Set up the visibility change listener
+  useEffect(() => {
+    if (!enabled || typeof document === "undefined") return;
 
     let debounceTimer: NodeJS.Timeout;
 
-    const refreshData = () => {
-      console.log("refreshData function called");
-
-      const now = new Date();
-      if (
-        lastRefreshed &&
-        now.getTime() - lastRefreshed.getTime() < debounceMs
-      ) {
-        console.log("Skipping refresh - too soon since last refresh");
-        return;
-      }
-
-      setIsRefreshing(true);
-      console.log("Setting isRefreshing to true");
-
-      setLastRefreshed(now);
-      console.log("lastRefreshed updated to:", now.toISOString());
-
-      router
-        .replace(router.asPath, undefined, { scroll: false })
-        .then(() => {
-          console.log("router.replace completed successfully");
-        })
-        .catch((error) => {
-          console.error("Error in router.replace:", error);
-        })
-        .finally(() => {
-          setTimeout(() => {
-            setIsRefreshing(false);
-            console.log("isRefreshing set to false");
-          }, 500);
-        });
-    };
-
     const handleVisibilityChange = () => {
-      console.log(
-        "visibilitychange event triggered, current state:",
-        document.visibilityState
-      );
-
       if (document.visibilityState === "visible") {
-        console.log("Tab became visible, scheduling refresh with debounce");
+        // Clear any pending refresh
         clearTimeout(debounceTimer);
+
+        // Set a short delay before refreshing to ensure the tab is fully visible
         debounceTimer = setTimeout(() => {
-          console.log("Debounce timeout complete, calling refreshData");
           refreshData();
         }, 300);
       }
     };
 
-    if (typeof document !== "undefined") {
-      console.log("Adding visibilitychange event listener");
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
+    // Add visibility change listener
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    // Clean up
     return () => {
-      console.log("Cleaning up useVisibilityRefresh hook");
-      if (typeof document !== "undefined") {
-        console.log("Removing visibilitychange event listener");
-        document.removeEventListener(
-          "visibilitychange",
-          handleVisibilityChange
-        );
-      }
-      console.log("Clearing debounce timer");
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearTimeout(debounceTimer);
     };
-  }, [router, enabled, lastRefreshed, debounceMs]);
+  }, [enabled, refreshData]);
+
+  // Also set up a periodic check for content updates
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") return;
+
+    // Store initial content version when page loads
+    const initialVersion = document
+      .querySelector('meta[name="content-version"]')
+      ?.getAttribute("content");
+
+    // Function to check for new content
+    const checkForUpdates = async () => {
+      try {
+        // Fetch just the headers of the current page to check for new versions
+        const response = await fetch(window.location.pathname, {
+          method: "HEAD",
+          cache: "no-cache",
+          headers: {
+            "x-fmt-fresh": "1", // Custom header to signal we want fresh content
+          },
+        });
+
+        // Get the server's content version
+        const serverVersion = response.headers.get("x-fmt-version");
+
+        // If server has newer content, trigger a refresh
+        if (serverVersion && serverVersion !== initialVersion) {
+          refreshData();
+        }
+      } catch (e) {
+        console.error(
+          "[useVisibilityRefresh] Error checking for content updates:",
+          e
+        );
+      }
+    };
+
+    // Check for updates periodically (every 30 seconds)
+    const checkInterval = setInterval(checkForUpdates, 30000);
+
+    // Clean up
+    return () => clearInterval(checkInterval);
+  }, [enabled, refreshData]);
 
   return {
     lastRefreshed,
     isRefreshing,
+    refreshData, // Expose the refresh function so it can be triggered manually
   };
 };

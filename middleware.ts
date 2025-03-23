@@ -91,16 +91,17 @@ function getCacheDurations(
 
     case "high":
       // High Activity period (8:00 AM - 11:30 AM & 8:30 PM - 11:30 PM): Peak publishing
+      // Using more aggressive caching during high activity to ensure fresh content
       return {
-        staleDuration: isArticlePage ? 180 : 120, // 3 min for articles, 2 min for homepage/categories
-        errorDuration: isArticlePage ? 360 : 240, // 6 min for articles, 4 min for homepage/categories
+        staleDuration: isArticlePage ? 60 : 30, // 1 min for articles, 30 secs for homepage/categories
+        errorDuration: isArticlePage ? 180 : 120, // 3 min for articles, 2 min for homepage/categories
       };
 
     default:
       // Normal Activity period (all other times): Moderate publishing
       return {
-        staleDuration: isArticlePage ? 600 : 450, // 10 min for articles, 7.5 min for homepage/categories
-        errorDuration: isArticlePage ? 1200 : 900, // 20 min for articles, 15 min for homepage/categories
+        staleDuration: isArticlePage ? 300 : 180, // 5 min for articles, 3 min for homepage/categories
+        errorDuration: isArticlePage ? 600 : 360, // 10 min for articles, 6 min for homepage/categories
       };
   }
 }
@@ -149,38 +150,67 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Skip for API routes
-  if (pathname.startsWith("/api/")) {
+  // Skip for API routes except for revalidate (which needs custom headers)
+  if (pathname.startsWith("/api/") && !pathname.includes("/api/revalidate")) {
     return response;
   }
 
-  // Get the current activity level based on Malaysia time
-  const activityLevel = getActivityLevel();
+  // Identify dynamic content pages - expanded to cover all navigation sections
+  const isDynamicContent =
+    pathname.includes("/category/") ||
+    pathname === "/" ||
+    pathname.match(
+      /^\/(news|berita|business|opinion|world|sports|lifestyle|photos|videos|accelerator)\/?$/
+    );
 
-  // Get appropriate cache durations based on path and activity level
-  const { staleDuration, errorDuration } = getCacheDurations(
-    pathname,
-    activityLevel
-  );
+  // For dynamic content, add cache-busting headers
+  if (isDynamicContent) {
+    // Get the current activity level based on Malaysia time
+    const activityLevel = getActivityLevel();
 
-  // Set cache headers
-  response.headers.set(
-    "Cache-Control",
-    `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
-  );
+    // Get appropriate cache durations based on path and activity level
+    const { staleDuration, errorDuration } = getCacheDurations(
+      pathname,
+      activityLevel
+    );
 
-  response.headers.set(
-    "Cloudflare-CDN-Cache-Control",
-    `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
-  );
+    // Set cache headers
+    response.headers.set(
+      "Cache-Control",
+      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
+    );
 
-  // Add debug header
+    response.headers.set(
+      "Cloudflare-CDN-Cache-Control",
+      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
+    );
 
-  const malaysiaTime = getMalaysiaTime();
-  response.headers.set(
-    "X-Cache-Debug",
-    `activity=${activityLevel}, stale=${staleDuration}s, error=${errorDuration}s, malaysia_time=${malaysiaTime.toISOString()}`
-  );
+    // Add Vary header to differentiate cached versions
+    response.headers.set("Vary", "Accept-Encoding, Cookie, x-fmt-fresh");
+
+    // Add a version header for client-side detection of fresh content
+    response.headers.set("x-fmt-version", Date.now().toString());
+
+    // Add debug header in non-production environments
+    if (process.env.NODE_ENV !== "production") {
+      const malaysiaTime = getMalaysiaTime();
+      response.headers.set(
+        "X-Cache-Debug",
+        `activity=${activityLevel}, stale=${staleDuration}s, error=${errorDuration}s, malaysia_time=${malaysiaTime.toISOString()}`
+      );
+    }
+  } else {
+    // For other pages, use default cache settings
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=60, s-maxage=60, stale-while-revalidate=600"
+    );
+
+    response.headers.set(
+      "Cloudflare-CDN-Cache-Control",
+      "public, max-age=60, s-maxage=60, stale-while-revalidate=600"
+    );
+  }
 
   return response;
 }

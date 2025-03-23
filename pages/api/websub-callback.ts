@@ -1,6 +1,8 @@
+// pages/api/websub-callback.ts
 import { addMinutes } from "date-fns";
 import { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
+import { getAllNavigationPaths } from "../../lib/navigation-cache";
 
 // Define types for WordPress API responses
 interface WPPost {
@@ -71,6 +73,29 @@ function extractCategoryFromUrl(url: string): string[] {
  */
 function getCategoryPath(category: string): string {
   return categoryMappings[category] || "news";
+}
+
+/**
+ * Map category IDs to slugs using a cache/lookup table
+ */
+const categoryIdToSlugMap: Record<number, string> = {
+  // You should populate this with your actual category mappings
+  // These are example mappings - replace with your actual values
+  1: "nation",
+  2: "business",
+  3: "world",
+  4: "sports",
+  5: "opinion",
+  6: "bahasa",
+  7: "leisure",
+  // Add more category mappings as needed
+};
+
+/**
+ * Get category slugs from WordPress category IDs
+ */
+function getCategorySlugsFromIds(categoryIds: number[]): string[] {
+  return categoryIds.map((id) => categoryIdToSlugMap[id]).filter(Boolean); // Remove undefined/null values
 }
 
 /**
@@ -160,81 +185,7 @@ async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
 }
 
 /**
- * Simplified revalidation process - processes all items at once
- * with a reasonable concurrency limit
- */
-async function processRevalidation(
-  baseUrl: string,
-  items: { path: string; type: string }[],
-  revalidateKey: string
-): Promise<void> {
-  if (items.length === 0) return;
-
-  console.log(`[WebSub] Revalidating ${items.length} items`);
-
-  // Process all items in parallel, but with reasonable concurrency
-  // This is a simplified approach that still provides some protection against
-  // overwhelming the server with too many simultaneous requests
-  const maxConcurrency = 20; // Maximum number of concurrent requests
-
-  // Sort items to prioritize category pages before individual posts
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.type === "category" && b.type !== "category") return -1;
-    if (a.type !== "category" && b.type === "category") return 1;
-    return 0;
-  });
-
-  const pendingPromises: Promise<any>[] = [];
-
-  for (const item of sortedItems) {
-    // Create the revalidation promise
-    const revalidationPromise = fetch(`${baseUrl}/api/revalidate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-revalidate-key": revalidateKey,
-      },
-      body: JSON.stringify({
-        type: item.type,
-        [item.type === "post" ? "postSlug" : "path"]: item.path,
-      }),
-    }).catch((error) => {
-      console.error(
-        `[WebSub] Error revalidating ${item.type} ${item.path}:`,
-        error
-      );
-    });
-
-    pendingPromises.push(revalidationPromise);
-
-    // If we've reached max concurrency, wait for one to complete
-    if (pendingPromises.length >= maxConcurrency) {
-      await Promise.race(pendingPromises);
-      // Remove completed promises
-      const completedIndex = await Promise.all(
-        pendingPromises.map(async (p, index) => {
-          const settled = await Promise.race([
-            p.then(() => true),
-            Promise.resolve(false),
-          ]);
-          return settled ? index : -1;
-        })
-      ).then((indexes) => indexes.find((i) => i !== -1) || -1);
-
-      if (completedIndex >= 0) {
-        pendingPromises.splice(completedIndex, 1);
-      }
-    }
-  }
-
-  // Wait for any remaining promises to complete
-  if (pendingPromises.length > 0) {
-    await Promise.all(pendingPromises);
-  }
-}
-
-/**
- * Process different article types and generate URLs to purge
+ * Process articles to get URLs to purge and paths to revalidate
  */
 function processArticles(
   articles: WPPost[],
@@ -243,7 +194,7 @@ function processArticles(
   newArticleUrls: string[];
   updatedArticleUrls: string[];
   categoryPaths: Set<string>;
-  revalidationItems: { path: string; type: string }[];
+  revalidationItems: { path: string; type: string; categories?: string[] }[];
 } {
   // Separate new vs updated articles
   const newArticles = articles.filter(
@@ -273,14 +224,38 @@ function processArticles(
   const categoryPaths = new Set<string>();
   categoryPaths.add("/"); // Always include homepage
 
+  // Get all navigation paths for potential revalidation
+  const allNavigationPaths = getAllNavigationPaths();
+
+  // Add all main navigation sections
+  allNavigationPaths.forEach((path: any) => {
+    if (!path.includes("/category/")) {
+      categoryPaths.add(path);
+    }
+  });
+
   // Items for revalidation
-  const revalidationItems: { path: string; type: string }[] = [];
+  const revalidationItems: {
+    path: string;
+    type: string;
+    categories?: string[];
+  }[] = [];
 
   // Process each article for revalidation
   [...newArticles, ...updatedArticles].forEach((post) => {
-    const categories = extractCategoryFromUrl(post.link);
+    // Get categories from the post - both from URL and API if available
+    const urlCategories = extractCategoryFromUrl(post.link);
+    const apiCategories = post.categories
+      ? getCategorySlugsFromIds(post.categories)
+      : [];
 
-    categories.forEach((category) => {
+    // Combine all categories (remove duplicates)
+    const allCategories = [...new Set([...urlCategories, ...apiCategories])];
+
+    // Process each category for this post
+    allCategories.forEach((category) => {
+      if (!category) return;
+
       const frontendPath = `/${getCategoryPath(category)}`;
       categoryPaths.add(frontendPath);
 
@@ -304,30 +279,44 @@ function processArticles(
     // Handle both standard and bahasa URLs
     if (pathParts.length >= 5 && pathParts[0] === "category") {
       let articlePath = "";
+      let categoryList: string[] = [];
 
       // Handle bahasa with subcategory
       if (pathParts[1] === "bahasa" && pathParts.length >= 6) {
         // Format: /category/bahasa/subcategory/year/month/day/slug
         articlePath = `${pathParts[1]}/${pathParts[2]}/${pathParts[3]}/${pathParts[4]}/${pathParts[5]}/${pathParts.slice(6).join("/")}`;
+        categoryList = [pathParts[1], pathParts[2]]; // Add both bahasa and subcategory
       } else {
         // Format: /category/categoryName/year/month/day/slug
         articlePath = `${pathParts[1]}/${pathParts[2]}/${pathParts[3]}/${pathParts[4]}/${pathParts.slice(5).join("/")}`;
+        categoryList = [pathParts[1]]; // Add main category
+
+        // If there's a subcategory, add it
+        if (pathParts.length > 5 && pathParts[1] !== pathParts[2]) {
+          categoryList.push(pathParts[2]);
+        }
       }
 
-      // Only revalidate if it's an updated article (not new)
-      if (updatedArticles.some((a) => a.id === post.id)) {
-        revalidationItems.push({
-          type: "post",
-          path: articlePath,
-        });
-      }
+      // For both new and updated articles, we need proper revalidation
+      revalidationItems.push({
+        type: "post",
+        path: articlePath,
+        categories: [...new Set([...categoryList, ...allCategories])], // Combine and deduplicate
+      });
     }
   });
 
-  // Add homepage revalidation (just once)
-  revalidationItems.push({
-    type: "category",
-    path: "/",
+  // Add revalidation items for all main navigation sections
+  allNavigationPaths.forEach((path: any) => {
+    if (
+      !path.includes("/category/") &&
+      !revalidationItems.some((item) => item.path === path)
+    ) {
+      revalidationItems.push({
+        type: "category",
+        path,
+      });
+    }
   });
 
   return {
@@ -339,7 +328,119 @@ function processArticles(
 }
 
 /**
- * Main handler function
+ * Process revalidation requests with improved error handling
+ */
+async function processRevalidation(
+  baseUrl: string,
+  items: { path: string; type: string; categories?: string[] }[],
+  revalidateKey: string
+): Promise<void> {
+  if (items.length === 0) return;
+
+  console.log(`[WebSub] Revalidating ${items.length} items`);
+
+  // Process all items in parallel, but with reasonable concurrency
+  const maxConcurrency = 20; // Maximum number of concurrent requests
+
+  // Sort items to prioritize category pages before individual posts
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.type === "category" && b.type !== "category") return -1;
+    if (a.type !== "category" && b.type === "category") return 1;
+    return 0;
+  });
+
+  const pendingPromises: Promise<any>[] = [];
+  const results = {
+    success: 0,
+    failed: 0,
+    items: [] as Array<{ path: string; success: boolean; error?: string }>,
+  };
+
+  for (const item of sortedItems) {
+    // Prepare request body with category information when applicable
+    const requestBody: any = {
+      type: item.type,
+      [item.type === "post" ? "postSlug" : "path"]: item.path,
+    };
+
+    // Include categories information for posts to enable comprehensive revalidation
+    if (item.type === "post" && item.categories && item.categories.length > 0) {
+      requestBody.categories = item.categories;
+    }
+
+    // Create the revalidation promise
+    const revalidationPromise = fetch(`${baseUrl}/api/revalidate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-revalidate-key": revalidateKey,
+      },
+      body: JSON.stringify(requestBody),
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || "Unknown error");
+        }
+
+        results.success++;
+        results.items.push({
+          path: item.path,
+          success: true,
+        });
+
+        return result;
+      })
+      .catch((error) => {
+        console.error(
+          `[WebSub] Error revalidating ${item.type} ${item.path}:`,
+          error
+        );
+
+        results.failed++;
+        results.items.push({
+          path: item.path,
+          success: false,
+          error: error.message,
+        });
+
+        return null;
+      });
+
+    pendingPromises.push(revalidationPromise);
+
+    // If we've reached max concurrency, wait for one to complete
+    if (pendingPromises.length >= maxConcurrency) {
+      await Promise.race(pendingPromises);
+      // Remove completed promises
+      const completedIndex = await Promise.all(
+        pendingPromises.map(async (p, index) => {
+          const settled = await Promise.race([
+            p.then(() => true),
+            Promise.resolve(false),
+          ]);
+          return settled ? index : -1;
+        })
+      ).then((indexes) => indexes.find((i) => i !== -1) || -1);
+
+      if (completedIndex >= 0) {
+        pendingPromises.splice(completedIndex, 1);
+      }
+    }
+  }
+
+  // Wait for any remaining promises to complete
+  if (pendingPromises.length > 0) {
+    await Promise.all(pendingPromises);
+  }
+
+  console.log(
+    `[WebSub] Revalidation completed: ${results.success} successful, ${results.failed} failed`
+  );
+}
+
+/**
+ * Main handler function for WebSub notifications
  */
 export default async function handler(
   req: NextApiRequest,
@@ -378,7 +479,7 @@ export default async function handler(
         process.env.REVALIDATE_SECRET_KEY || "default-secret";
 
       // Set up base URL for API calls
-      const protocol = "https";
+      const protocol = req.headers["x-forwarded-proto"] || "https";
       const host = req.headers.host || frontendDomain;
       const baseUrl = `${protocol}://${host}`;
 
@@ -422,7 +523,7 @@ export default async function handler(
         await purgeCloudflareCache(categoryUrls);
       }
 
-      // Process revalidation with simplified approach
+      // Process revalidation with improved approach
       await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
       // Revalidate API endpoints for fresh data
