@@ -9,6 +9,7 @@ import {
   CategoryJsonLD,
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
   categorySlug: string;
@@ -29,6 +30,7 @@ interface SeoConfig {
 type SeoSubCategoriesType = Record<string, SeoConfig>;
 
 const CategoryPage = ({ categorySlug, posts }: Props) => {
+  useVisibilityRefresh();
   // Create AdsTargetingParams
 
   const AdsTargetingParams = {
@@ -55,11 +57,7 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   return (
     <>
       <CategoryMetadata config={metadataConfig} />
-      <CategoryJsonLD
-        posts={posts}
-        pathName={pathName}
-        title={categorySlug}
-      />
+      <CategoryJsonLD posts={posts} pathName={pathName} title={categorySlug} />
       <SubCategoryPostLayout
         title={seoData?.h1Title || categorySlug}
         posts={posts}

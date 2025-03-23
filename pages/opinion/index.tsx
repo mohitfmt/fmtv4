@@ -11,6 +11,7 @@ import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { opinionLandingTargetingParams } from "@/constants/ads-targeting-params/opinion";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const categoryTitle = "Opinion";
 const excludeVariables = CustomHomeOpinionExcludeVariables;
@@ -22,6 +23,7 @@ const HomeOpinion = ({
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
+  useVisibilityRefresh();
   return (
     <>
       <CategoryMetadata config={categoriesMetadataConfigs.opinion} />

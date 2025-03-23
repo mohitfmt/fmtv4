@@ -11,6 +11,7 @@ import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { lifestyleLandingTargetingParams } from "@/constants/ads-targeting-params/lifestyle";
+import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const categoryTitle = "Lifestyle";
 const excludeVariables = CustomHomeLifestyleExcludeVariables;
@@ -22,6 +23,7 @@ const HomeLifestyle = ({
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
+  useVisibilityRefresh();
   return (
     <>
       <CategoryMetadata config={categoriesMetadataConfigs.lifestyle} />
