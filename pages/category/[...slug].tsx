@@ -204,8 +204,15 @@ export const getStaticProps: GetStaticProps = async ({
   previewData,
 }) => {
   try {
+    const isEditMode =
+      Array.isArray(params?.slug) &&
+      params.slug[params.slug.length - 1] === "edit";
+
+    // If in edit mode, get the actual slug from the previous part
     const slug = Array.isArray(params?.slug)
-      ? params.slug[params.slug.length - 1]
+      ? isEditMode
+        ? params.slug[params.slug.length - 2]
+        : params.slug[params.slug.length - 1]
       : params?.slug;
 
     if (!slug) {
@@ -213,6 +220,20 @@ export const getStaticProps: GetStaticProps = async ({
     }
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
+
+    if (!data?.post) {
+      return { notFound: true };
+    }
+
+    // If in edit mode, redirect to CMS
+    if (isEditMode) {
+      return {
+        redirect: {
+          destination: `${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${data.post.databaseId}&action=edit`,
+          permanent: false,
+        },
+      };
+    }
 
     if (!data?.post) {
       return { notFound: true };

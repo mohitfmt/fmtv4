@@ -5,7 +5,6 @@ import { LogoSVG } from "../ui/icons/LogoSVG";
 import SearchNews from "./top-bar/SearchNews";
 import Link from "next/link";
 import AdSlot from "../common/AdSlot";
-import { useStableId } from "@/hooks/useStableId";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -30,14 +29,12 @@ const dfpTargetingParams = {
 };
 
 export default function TopBanner() {
-  const { id, refreshId } = useStableId();
   return (
     <>
       <header className="max-w-[1440px] mx-auto sticky overflow-hidden px-2 md:px-4 lg:-top-20 top-10  z-40 bg-background br-b border-stone-400">
         <div className="flex flex-row items-center justify-between py-2">
           <Link
-            href={id ? `/?${id}` : "/"}
-            onClick={refreshId}
+            href={"/"}
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex flex-col items-center"
           >

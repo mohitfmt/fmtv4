@@ -14,7 +14,6 @@ type CategoryHeroPostProps = {
 
 const CategoryHeroPost = ({
   post,
-  imageWrapperClass,
   className,
   eagerLoadImage,
 }: CategoryHeroPostProps) => {

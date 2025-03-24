@@ -21,7 +21,6 @@ interface PublishingDateTimeProps {
 
 const PublishingDateTime = ({
   dateString,
-  size,
   isTextPop = true,
 }: PublishingDateTimeProps) => {
   const [timeString, setTimeString] = useState("");

@@ -1,19 +1,21 @@
 const API_URL =
-  process.env.WORDPRESS_API_URL ||
-  "https://cms.freemalaysiatoday.com/graphql";
+  process.env.WORDPRESS_API_URL || "https://cms.freemalaysiatoday.com/graphql";
 
 export async function gqlFetchAPI(
   query = "",
-  { variables }: Record<string, any> = {}
+  {
+    variables,
+    headers = {},
+  }: { variables?: any; headers?: Record<string, string> } = {}
 ) {
   try {
-    const headers: Record<string, string> = {
+    const baseHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate",
     };
 
     const res = await fetch(API_URL, {
-      headers,
+      headers: { ...baseHeaders, ...headers },
       method: "POST",
       body: JSON.stringify({
         query,

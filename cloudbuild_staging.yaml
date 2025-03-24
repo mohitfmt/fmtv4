@@ -22,7 +22,7 @@ steps:
       - "--build-arg"
       - "NODE_ENV=production"
       - "--build-arg"
-      - "DATABASE_URL=${_DATABASE_URL}" 
+      - "DATABASE_URL=${_DATABASE_URL}"
       - "--build-arg"
       - "NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}"
       - "--build-arg"
@@ -52,9 +52,27 @@ steps:
       - "--build-arg"
       - "NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL}"
       - "--build-arg"
-      - "NEXT_PUBLIC_CDN_URL=https://freemalaysiatoday.com"
+      - "NEXT_PUBLIC_CDN_URL=${_NEXT_PUBLIC_CDN_URL}"
       - "--build-arg"
-      - "NEXT_PUBLIC_GCS_BUCKET=https://media.freemalaysiatoday.com"
+      - "NEXT_PUBLIC_GCS_BUCKET=${_NEXT_PUBLIC_GCS_BUCKET}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_WORDPRESS_SECRET=${_NEXT_PUBLIC_WORDPRESS_SECRET}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN}"
+      - "--build-arg"
+      - "GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET}"
+      - "--build-arg"
+      - "REVALIDATION_TOKEN=${_REVALIDATION_TOKEN}"
+      - "--build-arg"
+      - "SYNC_KEY=${_SYNC_KEY}"
+      - "--build-arg"
+      - "CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY}"
+      - "--build-arg"
+      - "CHARTBEAT_HOST=${_CHARTBEAT_HOST}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}"
+      - "--build-arg"
+      - "NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}"
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
       - "-t"
@@ -87,15 +105,15 @@ steps:
         activeEnv=$(gcloud run services describe ${_SERVICE_NAME} \
           --region=${_REGION} \
           --format='value(status.traffic.tags)' || echo "blue")
-        
+
         # Set next environment
         nextEnv="green"
         if [[ "$activeEnv" == *"green"* ]]; then
           nextEnv="blue"
         fi
-        
+
         echo "🚀 Current active: $activeEnv, Deploying to: $nextEnv"
-        
+
         # Deploy new version with runtime environment variables
         echo "📦 Deploying new version..."
         gcloud run deploy ${_SERVICE_NAME} \
@@ -119,19 +137,36 @@ steps:
           --set-env-vars="YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}" \
           --set-env-vars="WORDPRESS_API_URL=${_WORDPRESS_API_URL}" \
           --set-env-vars="NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL}" \
+          --set-env-vars="NEXT_PUBLIC_CDN_URL=${_NEXT_PUBLIC_CDN_URL}" \
+          --set-env-vars="NEXT_PUBLIC_GCS_BUCKET=${_NEXT_PUBLIC_GCS_BUCKET}" \
+          --set-env-vars="NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}" \
+          --set-env-vars="NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}" \
+          --set-env-vars="NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID}" \
+          --set-env-vars="NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY}" \
+          --set-env-vars="NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST}" \
+          --set-env-vars="NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}" \
+          --set-env-vars="NEXT_PUBLIC_WORDPRESS_SECRET=${_NEXT_PUBLIC_WORDPRESS_SECRET}" \
+          --set-env-vars="NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN}" \
+          --set-env-vars="GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET}" \
+          --set-env-vars="REVALIDATION_TOKEN=${_REVALIDATION_TOKEN}" \
+          --set-env-vars="SYNC_KEY=${_SYNC_KEY}" \
+          --set-env-vars="CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY}" \
+          --set-env-vars="CHARTBEAT_HOST=${_CHARTBEAT_HOST}" \
+          --set-env-vars="NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}" \
+          --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
           --quiet
 
         # Verify deployment
         echo "🔍 Verifying deployment..."
         sleep 10
-        
+
         # Switch traffic
         echo "🔄 Switching traffic..."
         gcloud run services update-traffic ${_SERVICE_NAME} \
           --to-tags $nextEnv=100 \
           --region=${_REGION} \
           --quiet
-        
+
         if [ $? -eq 0 ]; then
           # Purge Cloudflare cache only if deployment successful
           echo "🧹 Purging Cloudflare cache..."
