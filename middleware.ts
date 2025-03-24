@@ -40,9 +40,9 @@ function getActivityLevel(): "low" | "high" | "normal" {
   const lowActivityEnd = 5 * 60; // 5:00 AM
 
   const highActivityMorningStart = 8 * 60; // 8:00 AM
-  const highActivityMorningEnd = 11 * 60 + 30; // 11:30 AM
+  const highActivityMorningEnd = 12 * 60 + 30; // 12:30 AM
 
-  const highActivityEveningStart = 20 * 60 + 30; // 8:30 PM
+  const highActivityEveningStart = 17 * 60 + 30; // 5:30 PM
   const highActivityEveningEnd = 23 * 60 + 30; // 11:30 PM
 
   // Check if current time falls within low activity period
