@@ -6,7 +6,7 @@ import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPrevie
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
-import { websiteJSONLD } from "@/constants/jsonlds/org";
+import { WebPageJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { getColumnists } from "@/lib/gql-queries/get-columnists";
@@ -151,6 +151,10 @@ export default function Home({
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+          type="application/ld+json"
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
           type="application/ld+json"
         />
         <script

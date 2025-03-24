@@ -46,8 +46,8 @@ export const OrgJsonLD = {
   logo: {
     "@context": "https://schema.org",
     "@type": "ImageObject",
-    url: `${getIconUrl}`,
-    contentUrl: `${getIconUrl}`,
+    url: getIconUrl(),
+    contentUrl: getIconUrl(),
     width: 512,
     height: 512,
     creditText: "Free Malaysia Today",
