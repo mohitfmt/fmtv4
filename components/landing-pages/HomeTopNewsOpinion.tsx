@@ -147,7 +147,7 @@ const HorizontalNewsContent = ({
       >
         <div className="grid grid-cols-2 gap-4">
           {topPosts.map((post) => (
-            <TTBNewsPreview key={post.slug} {...post} />
+            <TTBNewsPreview key={post.slug} {...post} isBig={true} />
           ))}
         </div>
         <div className="mt-8 grid lg:grid-cols-2 gap-4">
