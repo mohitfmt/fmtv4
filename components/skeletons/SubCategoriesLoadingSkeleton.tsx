@@ -1,5 +1,3 @@
-"use client";
-// components/skeletons/SubCategoriesLoadingSkeleton.tsx
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SubCategoriesLoadingSkeleton = () => {

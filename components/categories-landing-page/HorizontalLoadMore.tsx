@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
 import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";
@@ -18,13 +16,18 @@ export interface HorizontalLoadMoreProps {
   categoryName: string;
 }
 
-const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) => {
+const HorizontalLoadMore = ({
+  posts,
+  categoryName,
+}: HorizontalLoadMoreProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [allPosts, setAllPosts] = useState(posts.edges);
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [isLoadingPrev, setIsLoadingPrev] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">("next");
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
 
   const POSTS_PER_PAGE = 4;
 
@@ -56,10 +59,10 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
   // Handle Next Page Click
   const handleNext = async () => {
     if (isLoadingNext || !canGoNext) return;
-    
+
     setIsLoadingNext(true);
     setAnimationDirection("next");
-    
+
     const nextPage = currentPage + 1;
     const needsMorePosts = nextPage * POSTS_PER_PAGE >= allPosts.length;
 
@@ -74,7 +77,7 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
   // Handle Previous Page Click
   const handlePrevious = () => {
     if (!canGoPrevious || isLoadingPrev) return;
-    
+
     setIsLoadingPrev(true);
     setAnimationDirection("prev");
     setCurrentPage((prev) => prev - 1);
@@ -88,7 +91,8 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
   }, [allPosts, currentPage]);
 
   const currentPosts = getCurrentPosts();
-  const canGoNext = hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
+  const canGoNext =
+    hasMore || currentPage < Math.ceil(allPosts.length / POSTS_PER_PAGE) - 1;
   const canGoPrevious = currentPage > 0;
 
   return (
@@ -100,17 +104,17 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
             hidden md:flex absolute left-7 bg-foreground top-[48%] sm:top-[30%] z-10 
             -translate-x-full -translate-y-1/2 transform rounded-l-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
-            ${(!canGoPrevious || isLoadingPrev) ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
+            ${!canGoPrevious || isLoadingPrev ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
           `}
           disabled={!canGoPrevious || isLoadingPrev}
           onClick={handlePrevious}
           aria-label="Previous page"
         >
-          <HiOutlineChevronLeft 
+          <HiOutlineChevronLeft
             className={`
               h-6 w-6 
-              ${(!canGoPrevious || isLoadingPrev) ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
-            `} 
+              ${!canGoPrevious || isLoadingPrev ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
+            `}
           />
         </button>
 
@@ -134,17 +138,17 @@ const HorizontalLoadMore = ({ posts, categoryName }: HorizontalLoadMoreProps) =>
             hidden md:flex absolute right-7 bg-foreground top-[48%] sm:top-[30%] z-10 
             translate-x-full -translate-y-1/2 transform rounded-r-xl border border-gray-200 py-6
             transition-all duration-300 ease-in-out
-            ${(!canGoNext || isLoadingNext) ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
+            ${!canGoNext || isLoadingNext ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
           `}
           disabled={!canGoNext || isLoadingNext}
           onClick={handleNext}
           aria-label="Next page"
         >
-          <HiOutlineChevronRight 
+          <HiOutlineChevronRight
             className={`
               h-6 w-6 
-              ${(!canGoNext || isLoadingNext) ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
-            `} 
+              ${!canGoNext || isLoadingNext ? "text-gray-400" : "text-background group-hover:text-accent-yellow"}
+            `}
           />
         </button>
       </div>

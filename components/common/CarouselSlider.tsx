@@ -1,4 +1,3 @@
-"use client";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
@@ -41,7 +40,7 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
         {posts.map((post: Post, index: number) => {
           // Ensure we have a unique key by combining id and index as fallback
           const uniqueKey = post?.id ? post.id : `post-${index}`;
-          
+
           return (
             <CarouselItem
               key={uniqueKey}

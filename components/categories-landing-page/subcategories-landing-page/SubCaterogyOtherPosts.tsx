@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { PostCardProps } from "@/types/global";
 import TTBNewsPreview from "../../common/news-preview-cards/TTBNewsPreview";

@@ -1,6 +1,3 @@
-// components/skeletons/HorizontalLoadMoreSkeleton.tsx
-"use client";
-
 import { Skeleton } from "@/components/ui/skeleton";
 
 const HorizontalLoadMoreSkeleton = () => {

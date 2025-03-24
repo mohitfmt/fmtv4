@@ -1,5 +1,3 @@
-"use client";
-
 import { PostCardProps } from "@/types/global";
 import CategoryHeroPost from "../../common/news-preview-cards/CategoryHeroPost";
 import AdSlot from "../../common/AdSlot";

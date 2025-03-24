@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 interface OutBrainWidgetProps {
@@ -45,11 +43,11 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach(() => {
         // Check for specific Outbrain content elements that indicate actual content loaded
-        const hasActualContent = 
-          document.querySelector(".ob-rec-image") || 
+        const hasActualContent =
+          document.querySelector(".ob-rec-image") ||
           document.querySelector(".ob-rec-text") ||
-          (document.querySelector(".ob-widget") && 
-           document.querySelector(".ob-widget")?.children.length);
+          (document.querySelector(".ob-widget") &&
+            document.querySelector(".ob-widget")?.children.length);
 
         if (hasActualContent) {
           enhanceWidgetAccessibility();
@@ -74,10 +72,10 @@ const OutBrainWidget = ({ fullUrl }: OutBrainWidgetProps) => {
 
     // Set a timeout to check if content loaded after a reasonable time
     const timeout = setTimeout(() => {
-      const hasVisibleContent = 
-        document.querySelector(".ob-widget") && 
-        document.querySelector(".ob-widget")?.children.length ;
-      
+      const hasVisibleContent =
+        document.querySelector(".ob-widget") &&
+        document.querySelector(".ob-widget")?.children.length;
+
       if (hasVisibleContent) {
         setHasContent(true);
       }

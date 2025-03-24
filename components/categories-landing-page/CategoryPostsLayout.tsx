@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import HorizontalLoadMore from "./HorizontalLoadMore";
 import MainLayout from "./MainLayout";
@@ -50,7 +48,10 @@ export const CategoryPostsLayout = ({
   // Log when refresh occurs (optional, for debugging)
   useEffect(() => {
     if (lastRefreshed) {
-      console.log(`CategoryPostsLayout for ${categoryName} refreshed at:`, lastRefreshed.toISOString());
+      console.log(
+        `CategoryPostsLayout for ${categoryName} refreshed at:`,
+        lastRefreshed.toISOString()
+      );
     }
   }, [lastRefreshed, categoryName]);
 
@@ -67,9 +68,13 @@ export const CategoryPostsLayout = ({
   return (
     <MainLayout adsTargetingParams={AdsTargetingParams} isCategoryPage={true}>
       {/* Optional small indicator during development */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <div className="text-xs text-gray-500 mb-2">
-          {isRefreshing ? 'Refreshing...' : lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}` : 'No refresh yet'}
+          {isRefreshing
+            ? "Refreshing..."
+            : lastRefreshed
+              ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}`
+              : "No refresh yet"}
         </div>
       )}
 

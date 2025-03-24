@@ -1,12 +1,7 @@
-'use client'
-
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import NewsletterModal from "./NewsletterModal";
 
 const NewsletterButton = () => {
-  const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
-
   return (
     <div className="relative hidden lg:block">
       <NewsletterModal

@@ -1,4 +1,3 @@
-"use client";
 import React, { useState } from "react";
 import { LogoSVG } from "../ui/icons/LogoSVG";
 import { Input } from "../ui/input";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { FaArrowLeftLong, FaArrowRightLong } from "react-icons/fa6";

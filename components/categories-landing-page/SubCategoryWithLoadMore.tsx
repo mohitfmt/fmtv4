@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { PostCardProps } from "@/types/global";

@@ -434,9 +434,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
 
   let paragraphCount = 0;
   const contentWithAds = React.Children.toArray(transformedContent).reduce(
-    (acc: React.ReactNode[], element, index) => {
+    (acc: React.ReactNode[], element) => {
       acc.push(element);
-
       if (
         React.isValidElement(element) &&
         element.type === "p" &&

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import parse from "html-react-parser";
 import PostBody from "../news-article/PostBody";

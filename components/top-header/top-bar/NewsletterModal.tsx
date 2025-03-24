@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import NewsletterForm from "@/components/news-article/NewsLetterForm";

@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Carousel,
   CarouselContent,
@@ -46,7 +44,7 @@ const CarouselSkeleton: React.FC<CarouselSkeletonProps> = ({
           </CarouselItem>
         ))}
       </CarouselContent>
-      
+
       {/* Navigation buttons skeleton */}
       <CarouselNext className="h-6 w-6 bg-gray-200 rounded-r-xl rounded-l-none py-10 animate-pulse" />
       <CarouselPrevious className="h-6 w-6 bg-gray-200 rounded-l-xl rounded-r-none py-10 animate-pulse" />
