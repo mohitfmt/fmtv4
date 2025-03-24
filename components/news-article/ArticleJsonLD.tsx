@@ -1,6 +1,6 @@
 import siteConfig, { getIconUrl } from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
-import { WebPageJsonLD} from "@/constants/jsonlds/org";
+import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
 
 const extractFirstParagraph = (htmlContent: string) => {
@@ -37,8 +37,7 @@ const getRelatedNewsJsonLd = (relatedData: any) => {
   };
 };
 const getBreadcrumbJsonLd = (uri: string) => {
-  let baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.freemalaysiatoday.com";
+  let baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
   baseUrl = baseUrl.replace(/\/$/, "");
 
   const postUri = uri.split("/").filter(Boolean);

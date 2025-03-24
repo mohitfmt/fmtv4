@@ -83,7 +83,7 @@ export const generateCollectionPageJsonLD = ({
   columnists,
 }: any) => {
   const protocol = "https"; // or use your env condition
-  const host = process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com";
+  const host = process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com";
   const baseUrl = `${protocol}://${host}`;
 
   const createArticleLD = (posts: any[], categoryName: string) => {

@@ -23,9 +23,7 @@ interface TagPageProps {
   };
 }
 export default function TagPage({ tag, posts }: TagPageProps) {
-  const domainUrl = (
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.freemalaysiatoday.com/"
-  ).replace(/\/$/, "");
+  const domainUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
 
   const fullUrl = `${domainUrl}/tag/${tag.slug}`;
   const description = `Latest ${tag.name} news and updates from Free Malaysia Today. Browse ${tag.count}+ articles about ${tag.name}. Stay informed with our comprehensive coverage of ${tag.name}-related topics.`;

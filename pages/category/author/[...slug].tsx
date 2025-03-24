@@ -29,9 +29,7 @@ interface AuthorPageProps {
 }
 
 export default function AuthorPage({ author, posts }: AuthorPageProps) {
-  const domainUrl = (
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.freemalaysiatoday.com/"
-  ).replace(/\/$/, "");
+  const domainUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
 
   const fullUrl = `${domainUrl}/category/author/${author.slug}`;
   const description =

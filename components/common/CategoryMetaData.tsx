@@ -67,7 +67,7 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       ))}
       <meta
         property="og:url"
-        content={`${process.env.NEXT_PUBLIC_APP_URL}${pathName}`}
+        content={`https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}${pathName}`}
       />
 
       {/* Twitter Tags */}
@@ -108,10 +108,9 @@ interface JsonLDProps {
 }
 
 export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
-
   const jsonLD = generatedJsonLd(
     posts?.edges || [],
-    `${process.env.NEXT_PUBLIC_APP_URL}${pathName}`,
+    `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}${pathName}`,
     title
   );
 

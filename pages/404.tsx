@@ -3,8 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 const NotFound = () => {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.freemalaysiatoday.com";
+  const siteUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
 
   return (
     <>

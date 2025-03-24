@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   env: {
     NEXT_PUBLIC_DOMAIN:
-      process.env.NEXT_PUBLIC_DOMAIN || "dev-v4.freemalaysiatoday.com",
+      process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com",
   },
   experimental: {
     optimizeCss: true,

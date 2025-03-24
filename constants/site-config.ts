@@ -11,8 +11,7 @@ interface SiteConfig {
 const siteConfig: SiteConfig = {
   siteName: "Free Malaysia Today",
   siteShortName: "FMT",
-  baseUrl:
-    process.env.NEXT_PUBLIC_BASE_URL || "https://www.freemalaysiatoday.com",
+  baseUrl: `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`,
   nonCanonicalBaseUrl: "https://freemalaysiatoday.com",
   tagline: "Current Affairs, Business, Economy, Lifestyle, News and Analysis",
   siteDescription:
