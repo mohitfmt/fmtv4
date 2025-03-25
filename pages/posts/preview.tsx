@@ -5,9 +5,7 @@ import siteConfig from "@/constants/site-config";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
 import { getSafeTags } from "@/lib/utils";
-import { GET_POST } from "@/lib/gql-queries/get-preview-post";
 import ErrorPage from "next/error";
-import { fetchPreviewData } from "@/lib/preview-fetcher";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -33,14 +31,14 @@ const getAdTargeting = (post: any, tagNames: any) => {
     section: safeCategories,
     key: safeTags,
     articleId: post.id || "",
-    premium: "no", // Not checking premium status for previews
-    sponsored: "no", // Not checking sponsored status for previews
+    premium: "no",
+    sponsored: "no",
   };
 };
 
 export default function PostPreview() {
   const router = useRouter();
-  const { p } = router.query; // The encrypted preview token
+  const { p } = router.query;
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -56,60 +54,35 @@ export default function PostPreview() {
       try {
         setLoading(true);
 
-        // Step 1: Get token decrypted on the server
-        const tokenResponse = await fetch("/api/decrypt-preview-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: p }),
-        });
+        // Fetch the preview data using our server-side API
+        const response = await fetch(
+          `/api/get-preview-data?p=${encodeURIComponent(p)}`
+        );
 
-        if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.json();
-          throw new Error(errorData.error || "Failed to decrypt token");
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to load preview");
         }
 
-        const tokenData = await tokenResponse.json();
-        const { postId, previewFlag } = tokenData;
+        const data = await response.json();
 
-        // Step 2: Fetch the post data through our proxy
-        const result = await fetchPreviewData(GET_POST, {
-          id: postId,
-          idType: "DATABASE_ID",
-          asPreview: previewFlag === "1",
-        });
-
-        if (!result || !result.post) {
-          throw new Error("No post data returned from GraphQL query");
+        if (!data.post) {
+          throw new Error("No post data returned");
         }
 
-        setPost(result.post);
+        console.log("Post data retrieved successfully:", {
+          title: data.post.title,
+          id: data.post.databaseId,
+        });
+
+        // Set the post data
+        setPost(data.post);
         setLoading(false);
-      } catch (e) {
-        console.error("Error in preview fetch:", e);
+      } catch (error: any) {
+        console.error("Error in preview fetch:", error);
         setError(true);
-        setErrorMessage(e instanceof Error ? e.message : "Unknown error");
+        setErrorMessage(error.message || "Failed to load preview");
         setLoading(false);
-
-        // Redirect to WordPress editor if we have a post ID
-        if (e instanceof Error && e.message.includes("GraphQL error")) {
-          try {
-            const tokenResponse = await fetch("/api/decrypt-preview-token", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ token: p }),
-            });
-
-            if (tokenResponse.ok) {
-              const { postId } = await tokenResponse.json();
-              if (postId && typeof window !== "undefined") {
-                const editUrl = `${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${postId}&action=edit`;
-                window.location.href = editUrl;
-              }
-            }
-          } catch (redirectError) {
-            console.error("Failed to redirect:", redirectError);
-          }
-        }
       }
     };
 
@@ -166,7 +139,7 @@ export default function PostPreview() {
 
   console.log("Rendering preview page with post data");
 
-  // Process the post data similarly to your article page
+  // Process the post data safely
   const tagsWithSlug = getSafeTags(post);
   console.log("Tags with slug:", tagsWithSlug);
 

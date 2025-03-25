@@ -11,14 +11,6 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com",
-    WORDPRESS_API_URL:
-      process.env.WORDPRESS_API_URL ||
-      "https://cms.freemalaysiatoday.com/graphql",
-    NEXT_PUBLIC_WP_REFRESH_TOKEN:
-      process.env.NEXT_PUBLIC_WP_REFRESH_TOKEN ||
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3d3dy5mcmVlbWFsYXlzaWF0b2RheS5jb20iLCJpYXQiOjE2NzYzNzE0MzksIm5iZiI6MTY3NjM3MTQzOSwiZXhwIjoyMTQ3NDgzNjQ3LCJkYXRhIjp7InVzZXIiOnsiaWQiOiI1OTEiLCJ1c2VyX3NlY3JldCI6ImdyYXBocWxfand0XzYzZWI1NTg3N2MxOTkifX19.5Ui4TcQ2Er7nJhvXYW8XOAi0-a6OEodoGYk03z7c7Ic",
-    NEXT_PUBLIC_CMS_URL:
-      process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com",
   },
   experimental: {
     optimizeCss: true,

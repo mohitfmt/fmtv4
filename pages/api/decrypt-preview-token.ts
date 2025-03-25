@@ -29,7 +29,7 @@ export default async function handler(
       cipherText = CryptoJS.enc.Base64.parse(token);
     } catch (parseError) {
       return res.status(400).json({
-        error: "Failed to parse the preview token",
+        error: "Failed to parse the preview token (Base64 error)",
       });
     }
 
