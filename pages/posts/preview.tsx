@@ -1,11 +1,24 @@
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+// pages/posts/preview.tsx
+
 import Head from "next/head";
-import siteConfig from "@/constants/site-config";
+import CryptoJS from "crypto-js";
+import encHex from "crypto-js/enc-hex";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
-import { getSafeTags } from "@/lib/utils";
-import ErrorPage from "next/error";
+
+// Include getSafeTags directly to avoid import errors
+const getSafeTags = (post: any) => {
+  if (!post?.tags?.edges || !Array.isArray(post.tags.edges)) {
+    return [];
+  }
+
+  return post.tags.edges
+    .filter((edge: any) => edge?.node?.name && edge?.node?.uri)
+    .map((edge: any) => ({
+      name: edge.node.name,
+      href: edge.node.uri,
+    }));
+};
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -36,118 +49,199 @@ const getAdTargeting = (post: any, tagNames: any) => {
   };
 };
 
-export default function PostPreview() {
-  const router = useRouter();
-  const { p } = router.query;
-  const [post, setPost] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    if (!p || typeof p !== "string") {
-      console.log("No preview token available yet");
-      return;
-    }
-
-    const fetchPreview = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch the preview data using our server-side API
-        const response = await fetch(
-          `/api/get-preview-data?p=${encodeURIComponent(p)}`
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to load preview");
+// Define your GET_POST query directly here to avoid import errors
+const GET_POST = `
+  query GetPost($id: ID!, $idType: PostIdType, $asPreview: Boolean = false) {
+    post(id: $id, idType: $idType, asPreview: $asPreview) {
+      id
+      databaseId
+      title
+      slug
+      date
+      modified
+      excerpt
+      content
+      uri
+      featuredImage {
+        node {
+          sourceUrl
+          altText
+          caption
         }
-
-        const data = await response.json();
-
-        if (!data.post) {
-          throw new Error("No post data returned");
-        }
-
-        console.log("Post data retrieved successfully:", {
-          title: data.post.title,
-          id: data.post.databaseId,
-        });
-
-        // Set the post data
-        setPost(data.post);
-        setLoading(false);
-      } catch (error: any) {
-        console.error("Error in preview fetch:", error);
-        setError(true);
-        setErrorMessage(error.message || "Failed to load preview");
-        setLoading(false);
       }
-    };
-
-    fetchPreview();
-  }, [p]);
-
-  // Show loading state
-  if (loading) {
-    console.log("Rendering loading state");
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="mt-4">Loading preview...</p>
-      </div>
-    );
+      author {
+        node {
+          name
+          firstName
+          lastName
+          uri
+        }
+      }
+      categories {
+        edges {
+          node {
+            name
+            uri
+            slug
+          }
+        }
+      }
+      tags {
+        edges {
+          node {
+            name
+            uri
+            slug
+          }
+        }
+      }
+    }
   }
+`;
 
-  // Show error if preview couldn't be loaded
-  if (error || !post) {
-    console.log(
-      "Rendering error state. Error:",
-      error,
-      "Post available:",
-      !!post
-    );
-    console.log("Error message:", errorMessage);
+// Server-side props to fetch data before rendering
+export const getServerSideProps = async (context: any) => {
+  try {
+    const { p } = context.query;
 
-    // Custom error display instead of direct 404
-    if (error) {
-      return (
-        <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold mb-4">Preview Error</h1>
-          <p className="mb-4">{errorMessage || "Failed to load the preview"}</p>
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-            <p className="font-bold">Debug Information:</p>
-            <p className="text-sm my-2">
-              If this error persists, try editing the post directly in
-              WordPress.
-            </p>
-          </div>
-          <div className="mt-8">
-            <a
-              href={process.env.NEXT_PUBLIC_CMS_URL}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Return to WordPress
-            </a>
-          </div>
-        </div>
-      );
+    if (!p || typeof p !== "string") {
+      console.error("No preview token provided");
+      return {
+        notFound: true,
+      };
     }
 
-    return <ErrorPage statusCode={404} />;
+    // Decrypt the token - use the App Router method that we know works
+    const encryptedStr = p;
+    const iv = encHex.parse(process.env.NEXT_PUBLIC_CRYPTO_IV || "");
+    const key = process.env.NEXT_PUBLIC_CRYPTO_KEY || "";
+
+    if (!key) {
+      console.error("Crypto key not configured");
+      return { notFound: true };
+    }
+
+    const keyObj = CryptoJS.enc.Utf8.parse(key);
+
+    try {
+      // Step 1: Parse Base64
+      const cipherText = CryptoJS.enc.Base64.parse(encryptedStr);
+
+      // Step 2: Decrypt the token - using the method that worked in test-token
+      const decryptedStr = CryptoJS.AES.decrypt(
+        cipherText.toString(CryptoJS.enc.Utf8),
+        keyObj,
+        { iv }
+      );
+
+      // Step 3: Convert to string
+      const plainText = decryptedStr.toString(CryptoJS.enc.Utf8);
+
+      if (!plainText) {
+        throw new Error("Empty decryption result");
+      }
+
+      // Continue with splitting the token parts
+      const parts = plainText.split("|");
+
+      if (parts.length < 3) {
+        console.error("Invalid token format: not enough parts");
+        return { notFound: true };
+      }
+
+      const [postId, previewFlag, secret] = parts;
+
+      if (!postId || secret !== process.env.NEXT_PUBLIC_WORDPRESS_SECRET) {
+        console.error("Invalid or unauthorized token");
+        return { notFound: true };
+      }
+
+      // Fetch post data directly from WordPress
+      console.log("Fetching preview for post:", {
+        postId,
+        isPreview: previewFlag === "1",
+      });
+
+      const wpUrl =
+        process.env.WORDPRESS_API_URL ||
+        "https://cms.freemalaysiatoday.com/graphql";
+
+      const authToken = process.env.NEXT_PUBLIC_WP_REFRESH_TOKEN;
+      if (!authToken) {
+        console.error("WordPress auth token not configured");
+        return { notFound: true };
+      }
+
+      // Fetch post data from WordPress GraphQL API
+      const response = await fetch(wpUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          query: GET_POST,
+          variables: {
+            id: postId,
+            idType: "DATABASE_ID",
+            asPreview: previewFlag === "1",
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("WordPress API error:", {
+          status: response.status,
+          statusText: response.statusText,
+        });
+        return { notFound: true };
+      }
+
+      const result = await response.json();
+
+      if (result.errors) {
+        console.error("GraphQL errors:", result.errors);
+        return { notFound: true };
+      }
+
+      if (!result.data || !result.data.post) {
+        console.error("Post not found in API response");
+        return { notFound: true };
+      }
+
+      // Return the data as props
+      return {
+        props: {
+          post: result.data.post,
+          databaseId: postId,
+          siteConfig: {
+            siteShortName: "FMT",
+            baseUrl:
+              process.env.NEXT_PUBLIC_DOMAIN ||
+              "https://www.freemalaysiatoday.com",
+          },
+        },
+      };
+    } catch (error) {
+      console.error("Token processing error:", error);
+      return { notFound: true };
+    }
+  } catch (error) {
+    console.error("Preview error:", error);
+    return { notFound: true };
   }
+};
 
-  console.log("Rendering preview page with post data");
-
+// Client component that receives the props
+export default function PostPreview({ post, databaseId, siteConfig }: any) {
   // Process the post data safely
   const tagsWithSlug = getSafeTags(post);
-  console.log("Tags with slug:", tagsWithSlug);
 
-  const safeTags = tagsWithSlug.map((tag: any) => tag.href.split("/").pop());
-  console.log("Safe tags:", safeTags);
+  const safeTags = tagsWithSlug.map(
+    (tag: any) => tag.href?.split("/").pop() || ""
+  );
 
   const dfpTargetingParams = getAdTargeting(post, safeTags);
-  console.log("DFP targeting params:", dfpTargetingParams);
 
   const safeTitle = post.title || "Untitled Article";
   const safeExcerpt = post.excerpt || "No excerpt available";
@@ -156,21 +250,17 @@ export default function PostPreview() {
     post.featuredImage?.node?.sourceUrl ||
     `${siteConfig.baseUrl}/default-og-image.jpg`;
 
-  console.log("Article layout props:", {
-    hasTitle: !!safeTitle,
-    hasExcerpt: !!safeExcerpt,
-    hasUri: !!safeUri,
-    hasFeaturedImage: !!safeFeaturedImage,
-    hasTagsWithSlug: tagsWithSlug.length > 0,
-    hasDfpTargetingParams: !!dfpTargetingParams,
-    postDatabaseId: post.databaseId,
-  });
-
   return (
     <>
       <Head>
         <title>{`PREVIEW: ${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="robots" content="noindex, nofollow" />
+        <meta
+          httpEquiv="Cache-Control"
+          content="no-cache, no-store, must-revalidate"
+        />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
       </Head>
 
       {/* Preview banner */}
@@ -178,7 +268,7 @@ export default function PostPreview() {
         <p className="font-medium">
           This is a preview of an unpublished article.{" "}
           <a
-            href={`${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${post.databaseId}&action=edit`}
+            href={`${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${databaseId}&action=edit`}
             className="underline font-bold"
             target="_blank"
             rel="noopener noreferrer"
