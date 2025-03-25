@@ -173,5 +173,46 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  async rewrites() {
+    return [
+      // Sitemap index
+      {
+        source: "/sitemaps-index.xml",
+        destination: "/api/sitemaps/sitemaps-index.xml",
+      },
+      {
+        source: "/feeds-sitemap.xml",
+        destination: "/api/sitemaps/feeds-sitemap.xml",
+      },
+      {
+        source: "/landing-page-sitemap.xml",
+        destination: "/api/sitemaps/landing-page-sitemap.xml",
+      },
+      {
+        source: "/news-sitemap.xml",
+        destination: "/api/sitemaps/news-sitemap.xml",
+      },
+      {
+        source: "/video-sitemap.xml",
+        destination: "/api/sitemaps/video-sitemap.xml",
+      },
+
+      //feeds
+      {
+        source: "/feeds/atom/:slug",
+        destination: "/api/feeds/atom/:slug",
+      },
+      {
+        source: "/feeds/rss/:slug",
+        destination: "/api/feeds/rss/:slug",
+      },
+      {
+        source: "/feeds/json/:slug",
+        destination: "/api/feeds/json/:slug",
+      },
+    ];
+  },
 };
+
 export default nextConfig;

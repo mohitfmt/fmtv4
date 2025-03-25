@@ -1,23 +1,22 @@
-// pages/posts/preview.tsx
+import { GetServerSideProps } from 'next';
+import Head from 'next/head';
+import ErrorPage from 'next/error';
+import CryptoJS from 'crypto-js';
+import encHex from 'crypto-js/enc-hex';
+import siteConfig from '@/constants/site-config';
+import ArticleLayout from '@/components/news-article/ArticleLayout';
+import PostBody from '@/components/news-article/PostBody';
+import { getSafeTags } from '@/lib/utils';
+import { gqlFetchAPI } from '@/lib/gql-queries/gql-fetch-api';
+import { GET_POST } from '@/lib/gql-queries/get-preview-post';
 
-import Head from "next/head";
-import CryptoJS from "crypto-js";
-import encHex from "crypto-js/enc-hex";
-import ArticleLayout from "@/components/news-article/ArticleLayout";
-import PostBody from "@/components/news-article/PostBody";
-
-// Include getSafeTags directly to avoid import errors
-const getSafeTags = (post: any) => {
-  if (!post?.tags?.edges || !Array.isArray(post.tags.edges)) {
-    return [];
-  }
-
-  return post.tags.edges
-    .filter((edge: any) => edge?.node?.name && edge?.node?.uri)
-    .map((edge: any) => ({
-      name: edge.node.name,
-      href: edge.node.uri,
-    }));
+// Environment variables
+const ENV = {
+  CRYPTO_IV: process.env.NEXT_PUBLIC_CRYPTO_IV || '',
+  CRYPTO_KEY: process.env.NEXT_PUBLIC_CRYPTO_KEY || '',
+  WORDPRESS_SECRET: process.env.NEXT_PUBLIC_WORDPRESS_SECRET || '',
+  WP_REFRESH_TOKEN: process.env.NEXT_PUBLIC_WP_REFRESH_TOKEN || '',
+  CMS_URL: process.env.NEXT_PUBLIC_CMS_URL || 'https://cms.freemalaysiatoday.com'
 };
 
 // Default categories if none are provided
@@ -28,225 +27,201 @@ const getSafeCategories = (post: any) => {
   if (!post?.categories?.edges || !Array.isArray(post.categories.edges)) {
     return DEFAULT_CATEGORIES;
   }
+  
   const categories = post.categories.edges
     .filter((edge: any) => edge?.node?.name)
     .map((edge: any) => edge.node.name);
+    
   return categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 };
 
 // Ad targeting helper
 const getAdTargeting = (post: any, tagNames: any) => {
-  const safeTags = tagNames;
   const safeCategories = getSafeCategories(post);
 
   return {
     pos: "article",
     section: safeCategories,
-    key: safeTags,
+    key: tagNames,
     articleId: post.id || "",
     premium: "no",
-    sponsored: "no",
+    sponsored: "no"
   };
 };
 
-// Define your GET_POST query directly here to avoid import errors
-const GET_POST = `
-  query GetPost($id: ID!, $idType: PostIdType, $asPreview: Boolean = false) {
-    post(id: $id, idType: $idType, asPreview: $asPreview) {
-      id
-      databaseId
-      title
-      slug
-      date
-      modified
-      excerpt
-      content
-      uri
-      featuredImage {
-        node {
-          sourceUrl
-          altText
-          caption
-        }
+interface PreviewProps {
+  post: any;
+  error?: string;
+  isPreview: boolean;
+}
+
+export const getServerSideProps: GetServerSideProps<PreviewProps> = async ({ query }) => {
+  const { p } = query;
+  
+  if (!p || typeof p !== 'string') {
+    return {
+      props: {
+        error: "No preview token provided",
+        post: null,
+        isPreview: true
       }
-      author {
-        node {
-          name
-          firstName
-          lastName
-          uri
-        }
-      }
-      categories {
-        edges {
-          node {
-            name
-            uri
-            slug
-          }
-        }
-      }
-      tags {
-        edges {
-          node {
-            name
-            uri
-            slug
-          }
-        }
-      }
-    }
+    };
   }
-`;
-
-// Server-side props to fetch data before rendering
-export const getServerSideProps = async (context: any) => {
+  
   try {
-    const { p } = context.query;
-
-    if (!p || typeof p !== "string") {
-      console.error("No preview token provided");
-      return {
-        notFound: true,
-      };
-    }
-
-    // Decrypt the token - use the App Router method that we know works
-    const encryptedStr = p;
-    const iv = encHex.parse(process.env.NEXT_PUBLIC_CRYPTO_IV || "");
-    const key = process.env.NEXT_PUBLIC_CRYPTO_KEY || "";
-
-    if (!key) {
-      console.error("Crypto key not configured");
-      return { notFound: true };
-    }
-
-    const keyObj = CryptoJS.enc.Utf8.parse(key);
-
+    // Decrypt the token
+    const iv = encHex.parse(ENV.CRYPTO_IV);
+    const keyObj = CryptoJS.enc.Utf8.parse(ENV.CRYPTO_KEY);
+    
+    // Parse and decrypt token
+    let plainText;
     try {
-      // Step 1: Parse Base64
-      const cipherText = CryptoJS.enc.Base64.parse(encryptedStr);
-
-      // Step 2: Decrypt the token - using the method that worked in test-token
+      const cipherText = CryptoJS.enc.Base64.parse(p);
       const decryptedStr = CryptoJS.AES.decrypt(
         cipherText.toString(CryptoJS.enc.Utf8),
         keyObj,
         { iv }
       );
-
-      // Step 3: Convert to string
-      const plainText = decryptedStr.toString(CryptoJS.enc.Utf8);
-
+      
+      plainText = decryptedStr.toString(CryptoJS.enc.Utf8);
+      
       if (!plainText) {
-        throw new Error("Empty decryption result");
+        throw new Error("Decrypted text is empty");
       }
-
-      // Continue with splitting the token parts
-      const parts = plainText.split("|");
-
-      if (parts.length < 3) {
-        console.error("Invalid token format: not enough parts");
-        return { notFound: true };
-      }
-
-      const [postId, previewFlag, secret] = parts;
-
-      if (!postId || secret !== process.env.NEXT_PUBLIC_WORDPRESS_SECRET) {
-        console.error("Invalid or unauthorized token");
-        return { notFound: true };
-      }
-
-      // Fetch post data directly from WordPress
-      console.log("Fetching preview for post:", {
-        postId,
-        isPreview: previewFlag === "1",
-      });
-
-      const wpUrl =
-        process.env.WORDPRESS_API_URL ||
-        "https://cms.freemalaysiatoday.com/graphql";
-
-      const authToken = process.env.NEXT_PUBLIC_WP_REFRESH_TOKEN;
-      if (!authToken) {
-        console.error("WordPress auth token not configured");
-        return { notFound: true };
-      }
-
-      // Fetch post data from WordPress GraphQL API
-      const response = await fetch(wpUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          query: GET_POST,
-          variables: {
-            id: postId,
-            idType: "DATABASE_ID",
-            asPreview: previewFlag === "1",
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("WordPress API error:", {
-          status: response.status,
-          statusText: response.statusText,
-        });
-        return { notFound: true };
-      }
-
-      const result = await response.json();
-
-      if (result.errors) {
-        console.error("GraphQL errors:", result.errors);
-        return { notFound: true };
-      }
-
-      if (!result.data || !result.data.post) {
-        console.error("Post not found in API response");
-        return { notFound: true };
-      }
-
-      // Return the data as props
+    } catch (error) {
+      console.error("Token decryption error:", error);
       return {
         props: {
-          post: result.data.post,
-          databaseId: postId,
-          siteConfig: {
-            siteShortName: "FMT",
-            baseUrl:
-              process.env.NEXT_PUBLIC_DOMAIN ||
-              "https://www.freemalaysiatoday.com",
-          },
-        },
+          error: "Failed to decrypt the preview token",
+          post: null,
+          isPreview: true
+        }
       };
-    } catch (error) {
-      console.error("Token processing error:", error);
-      return { notFound: true };
     }
-  } catch (error) {
-    console.error("Preview error:", error);
-    return { notFound: true };
+    
+    // Parse token parts
+    const parts = plainText.split("|");
+    
+    if (parts.length < 3) {
+      return {
+        props: {
+          error: "Invalid preview token format",
+          post: null,
+          isPreview: true
+        }
+      };
+    }
+    
+    const [postId, previewFlag, secret] = parts;
+    
+    if (!postId) {
+      return {
+        props: {
+          error: "No post ID found in preview token",
+          post: null,
+          isPreview: true
+        }
+      };
+    }
+    
+    if (secret !== ENV.WORDPRESS_SECRET) {
+      return {
+        props: {
+          error: "Security verification failed for preview",
+          post: null,
+          isPreview: true
+        }
+      };
+    }
+    
+    // Fetch post data
+    try {
+      const result = await gqlFetchAPI(GET_POST, {
+        variables: {
+          id: postId,
+          idType: "DATABASE_ID",
+          asPreview: previewFlag === "1",
+        },
+        headers: {
+          Authorization: `Bearer ${ENV.WP_REFRESH_TOKEN}`,
+        },
+      });
+      
+      if (!result || !result.post) {
+        return {
+          props: {
+            error: "Could not retrieve the preview content",
+            post: null,
+            isPreview: true
+          }
+        };
+      }
+      
+      return {
+        props: {
+          post: result.post,
+          isPreview: true
+        }
+      };
+    } catch (fetchError: any) {
+      return {
+        props: {
+          error: `Error fetching post data: ${fetchError.message}`,
+          post: null,
+          isPreview: true
+        }
+      };
+    }
+  } catch (e: any) {
+    return {
+      props: {
+        error: `Unexpected error: ${e.message}`,
+        post: null,
+        isPreview: true
+      }
+    };
   }
 };
 
-// Client component that receives the props
-export default function PostPreview({ post, databaseId, siteConfig }: any) {
-  // Process the post data safely
+export default function PostPreview({ post, error, isPreview }: PreviewProps) {
+  // Show error if preview couldn't be loaded
+  if (error || !post) {
+    if (error) {
+      return (
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Preview Error</h1>
+          <p className="mb-4">{error}</p>
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+            <p className="font-bold">Debug Information:</p>
+            <p className="text-sm my-2">
+              If this error persists, try editing the post directly in WordPress.
+            </p>
+          </div>
+          <div className="mt-8">
+            <a
+              href={ENV.CMS_URL}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Return to WordPress
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    return <ErrorPage statusCode={404} />;
+  }
+
+  // Process the post data
   const tagsWithSlug = getSafeTags(post);
-
-  const safeTags = tagsWithSlug.map(
-    (tag: any) => tag.href?.split("/").pop() || ""
-  );
-
+  const safeTags = tagsWithSlug.map((tag: any) => tag.href.split("/").pop());
   const dfpTargetingParams = getAdTargeting(post, safeTags);
-
+  
+  // Safe post data
   const safeTitle = post.title || "Untitled Article";
   const safeExcerpt = post.excerpt || "No excerpt available";
   const safeUri = post.uri || "/";
-  const safeFeaturedImage =
+  const safeFeaturedImage = 
     post.featuredImage?.node?.sourceUrl ||
     `${siteConfig.baseUrl}/default-og-image.jpg`;
 
@@ -268,7 +243,7 @@ export default function PostPreview({ post, databaseId, siteConfig }: any) {
         <p className="font-medium">
           This is a preview of an unpublished article.{" "}
           <a
-            href={`${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${databaseId}&action=edit`}
+            href={`${ENV.CMS_URL}/wp-admin/post.php?post=${post.databaseId}&action=edit`}
             className="underline font-bold"
             target="_blank"
             rel="noopener noreferrer"
@@ -279,7 +254,6 @@ export default function PostPreview({ post, databaseId, siteConfig }: any) {
       </div>
 
       <div className="pt-12">
-        {/* Add padding to account for the preview banner */}
         <ArticleLayout
           post={post}
           safeTitle={safeTitle}
@@ -287,8 +261,8 @@ export default function PostPreview({ post, databaseId, siteConfig }: any) {
           safeUri={safeUri}
           safeFeaturedImage={safeFeaturedImage}
           tagWithSlug={tagsWithSlug}
-          relatedPosts={[]} // Empty for preview
-          moreStories={[]} // Empty for preview
+          relatedPosts={[]} 
+          moreStories={[]} 
           dfpTargetingParams={dfpTargetingParams}
         >
           <PostBody content={post.content} additionalFields={post} />
