@@ -56,39 +56,27 @@ export default function PostPreview() {
       try {
         setLoading(true);
 
-        // Step 1: Decrypt the token on the server side
+        // Step 1: Get token decrypted on the server
         const tokenResponse = await fetch("/api/decrypt-preview-token", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: p }),
         });
 
         if (!tokenResponse.ok) {
-          const tokenError = await tokenResponse.json();
-          throw new Error(
-            tokenError.error || "Failed to decrypt preview token"
-          );
+          const errorData = await tokenResponse.json();
+          throw new Error(errorData.error || "Failed to decrypt token");
         }
 
         const tokenData = await tokenResponse.json();
-        const { postId, previewFlag, isValidToken } = tokenData;
+        const { postId, previewFlag } = tokenData;
 
-        if (!isValidToken) {
-          throw new Error("Invalid preview token");
-        }
-
-        // Step 2: Fetch the post data using our server-side proxy
-        const result = await fetchPreviewData(
-          GET_POST,
-          {
-            id: postId,
-            idType: "DATABASE_ID",
-            asPreview: previewFlag === "1",
-          },
-          process.env.NEXT_PUBLIC_WP_REFRESH_TOKEN
-        );
+        // Step 2: Fetch the post data through our proxy
+        const result = await fetchPreviewData(GET_POST, {
+          id: postId,
+          idType: "DATABASE_ID",
+          asPreview: previewFlag === "1",
+        });
 
         if (!result || !result.post) {
           throw new Error("No post data returned from GraphQL query");
@@ -96,42 +84,37 @@ export default function PostPreview() {
 
         setPost(result.post);
         setLoading(false);
-      } catch (e: any) {
+      } catch (e) {
         console.error("Error in preview fetch:", e);
         setError(true);
-        setErrorMessage(e.message || "Failed to load preview");
+        setErrorMessage(e instanceof Error ? e.message : "Unknown error");
         setLoading(false);
 
-        // Redirect to editor on error if possible
-        if (typeof window !== "undefined") {
+        // Redirect to WordPress editor if we have a post ID
+        if (e instanceof Error && e.message.includes("GraphQL error")) {
           try {
-            const url = new URL(router.asPath, window.location.origin);
-            const params = new URLSearchParams(url.search);
-            const p = params.get("p");
+            const tokenResponse = await fetch("/api/decrypt-preview-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: p }),
+            });
 
-            if (p) {
-              // Try to extract postId from URL
-              const tokenResponse = await fetch("/api/decrypt-preview-token", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: p }),
-              }).then((r) => (r.ok ? r.json() : null));
-
-              if (tokenResponse?.postId) {
-                const editUrl = `${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${tokenResponse.postId}&action=edit`;
-                console.log("Redirecting to WordPress editor:", editUrl);
+            if (tokenResponse.ok) {
+              const { postId } = await tokenResponse.json();
+              if (postId && typeof window !== "undefined") {
+                const editUrl = `${process.env.NEXT_PUBLIC_CMS_URL}/wp-admin/post.php?post=${postId}&action=edit`;
                 window.location.href = editUrl;
               }
             }
           } catch (redirectError) {
-            console.error("Failed to redirect to editor:", redirectError);
+            console.error("Failed to redirect:", redirectError);
           }
         }
       }
     };
 
     fetchPreview();
-  }, [p, router.asPath]);
+  }, [p]);
 
   // Show loading state
   if (loading) {

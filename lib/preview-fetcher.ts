@@ -1,18 +1,12 @@
-/**
- * Preview Data Fetcher
- *
- * This specialized function fetches WordPress preview data through our proxy API.
- * It avoids CORS issues by not directly calling the WordPress GraphQL endpoint.
- */
-export async function fetchPreviewData(
-  query: string,
-  variables: any,
-  token?: string
-) {
-  console.log("[Preview Fetcher] Fetching preview data through proxy");
+// lib/preview-fetcher.ts
+export async function fetchPreviewData(query: string, variables: any) {
+  console.log(
+    "[Preview Fetcher] Starting request with variables:",
+    JSON.stringify(variables).substring(0, 100) + "..."
+  );
 
   try {
-    // Make a request to our preview proxy API
+    // Make the request to our proxy
     const response = await fetch("/api/wordpress-preview-proxy", {
       method: "POST",
       headers: {
@@ -21,43 +15,44 @@ export async function fetchPreviewData(
       body: JSON.stringify({
         query,
         variables,
-        token, // Pass the token to be forwarded to WordPress
       }),
     });
 
-    // Check if the proxy request was successful
-    if (!response.ok) {
-      let errorMessage = `Preview proxy returned ${response.status}`;
+    console.log("[Preview Fetcher] Proxy response status:", response.status);
 
-      try {
-        // Try to get detailed error information
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.details || errorMessage;
-      } catch (e) {
-        // If we can't parse the JSON, fall back to text
-        const errorText = await response.text();
-        errorMessage = errorText || errorMessage;
+    // Get the full response text first for debugging
+    const responseText = await response.text();
+
+    // Try to parse the response text as JSON
+    try {
+      // If we can parse it as JSON, it's likely a proper API response
+      const data = JSON.parse(responseText);
+
+      // Check for GraphQL errors
+      if (data.errors) {
+        console.error("[Preview Fetcher] GraphQL errors:", data.errors);
+        throw new Error(data.errors[0]?.message || "GraphQL error");
       }
 
-      console.error("[Preview Fetcher] Proxy error:", errorMessage);
-      throw new Error(`Preview fetch failed: ${errorMessage}`);
+      if (!data.data) {
+        console.error("[Preview Fetcher] No data in response:", data);
+        throw new Error("WordPress returned empty data");
+      }
+
+      return data.data;
+    } catch (parseError) {
+      // If parsing fails, the response is not valid JSON
+      console.error(
+        "[Preview Fetcher] Failed to parse response as JSON:",
+        responseText.substring(0, 150) + "..."
+      );
+
+      throw new Error(
+        `WordPress API error: ${responseText.substring(0, 100)}...`
+      );
     }
-
-    // Parse the JSON response
-    const json = await response.json();
-
-    // Check for GraphQL errors
-    if (json.errors) {
-      const errorMessage =
-        json.errors[0]?.message || "GraphQL error in preview";
-      console.error("[Preview Fetcher] GraphQL errors:", json.errors);
-      throw new Error(errorMessage);
-    }
-
-    console.log("[Preview Fetcher] Successfully fetched preview data");
-    return json.data;
   } catch (error) {
-    console.error("[Preview Fetcher] Error:", error);
-    throw error; // Re-throw to allow the component to handle it
+    console.error("[Preview Fetcher] Request error:", error);
+    throw error;
   }
 }
