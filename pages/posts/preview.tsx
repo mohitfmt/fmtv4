@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import ErrorPage from "next/error";
+// import ErrorPage from "next/error";
 import CryptoJS from "crypto-js";
 import encHex from "crypto-js/enc-hex";
 import { useEffect, useState } from "react";
