@@ -93,9 +93,6 @@ const NewsArticlePost = ({
 
   const safeTitle = post.title || "Untitled Article";
 
-  console.log("aurt :", post?.author?.node);
-  const authorUrl = `${siteConfig.baseUrl}/category/author/${post?.author?.node?.slug}`;
-
   const safeExcerpt = stripHTML(post.excerpt) || "No excerpt available";
 
   const safeUri = post.uri || "/";
