@@ -224,7 +224,7 @@ const ArticleJsonLD = ({
       url: `${siteConfig.baseUrl}`,
       logo: {
         "@type": "ImageObject",
-        url: `${getIconUrl()}`,
+        url: getIconUrl(),
         width: 512,
         height: 512,
       },

@@ -67,17 +67,6 @@ export const CategoryPostsLayout = ({
 
   return (
     <MainLayout adsTargetingParams={AdsTargetingParams} isCategoryPage={true}>
-      {/* Optional small indicator during development */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="text-xs text-gray-500 mb-2">
-          {isRefreshing
-            ? "Refreshing..."
-            : lastRefreshed
-              ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()}`
-              : "No refresh yet"}
-        </div>
-      )}
-
       <SectionHeading sectionName={title} />
 
       {/* Featured Posts Section */}
