@@ -97,7 +97,6 @@ export default function Home({
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
         <title>{`${siteConfig.siteName} | ${siteConfig.tagline}`}</title>
         <meta name="description" content={siteConfig.siteDescription} />
         <meta
@@ -130,10 +129,10 @@ export default function Home({
           content={`${siteConfig.siteName} | ${siteConfig.tagline}`}
         />
         <meta property="og:description" content={siteConfig.siteDescription} />
-        <meta
-          property="og:image"
-          content={`${siteConfig.baseUrl}/default-og-image.jpg`}
-        />
+        <meta property="og:image" content={siteConfig.iconPath} />
+
+        <meta property="og:image:secure_url" content={siteConfig.iconPath} />
+        <meta property="og:image:alt" content="News | Free Malaysia Today" />
 
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content={siteConfig.baseUrl} />
@@ -145,9 +144,10 @@ export default function Home({
           property="twitter:description"
           content={siteConfig.siteDescription}
         />
+        <meta property="twitter:image" content={siteConfig.iconPath} />
         <meta
-          property="twitter:image"
-          content={`${siteConfig.baseUrl}/default-og-image.jpg`}
+          name="twitter:image:alt"
+          content="Latest News | Free Malaysia Today"
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}

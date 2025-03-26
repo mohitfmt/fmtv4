@@ -10,6 +10,7 @@ import {
   RelatedNewsSkeleton,
   TagsSkeleton,
 } from "../skeletons/ArticleBodySkeleton";
+import siteConfig from "@/constants/site-config";
 
 const TrendingNSubCategoriesList = lazy(
   () => import("@/components/common/TrendingNSubCategoriesList")
@@ -47,8 +48,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
   moreStories,
   children,
 }) => {
-  const fullUri = `https://www.freemalaysiatoday.com${post?.uri}`;
-
+  const fullUri = `${siteConfig.baseUrl}${post?.uri}`;
   return (
     <>
       {/* Top Desktop Ad */}
@@ -116,7 +116,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                 </div>
                 <div>
                   <ShareButtons
-                    url={safeUri}
+                    url={fullUri}
                     title={safeTitle}
                     mediaUrl={safeFeaturedImage || ""}
                     hashs={tagWithSlug}

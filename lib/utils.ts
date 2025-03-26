@@ -275,8 +275,19 @@ export async function fetchLastUpdateTime() {
   return response.json();
 }
 
-export const stripHTML = (htmlString: string) =>
-  htmlString?.replace(/<\/?[^>]+(>|$)|\n/g, "").trim();
+export const stripHTML = (htmlString: string) => {
+  if (!htmlString) return "";
+
+  return htmlString
+    .replace(/<\/?[^>]+(>|$)|\n/g, "") // Remove HTML tags and newlines
+    .replace(/&amp;/g, "&") // Convert HTML entities
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .trim(); // Remove extra whitespace
+};
 
 export const parseISO8601DurationToSeconds = (duration: string) => {
   try {

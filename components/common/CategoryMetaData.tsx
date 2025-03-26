@@ -2,6 +2,7 @@
 import Head from "next/head";
 import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
+import siteConfig from "@/constants/site-config";
 
 interface MetadataConfig {
   title: string;
@@ -75,7 +76,11 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:site" content="@fmtoday" />
-
+      <meta name="twitter:image" content={siteConfig.iconPath} />
+      <meta
+        name="twitter:image:alt"
+        content="Latest News | Free Malaysia Today"
+      />
       {/* Alternate Links */}
       <link
         rel="canonical"

@@ -11,6 +11,8 @@ import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import ContentVersionTracker from "@/components/ContentVersionTracker";
+import Head from "next/head";
+import siteConfig from "@/constants/site-config";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -91,33 +93,82 @@ export default function App({
   );
 
   return (
-    <GoogleOAuthProvider
-      clientId={`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}`}
-    >
-      <AuthProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem={true}
-          value={{
-            light: "light",
-            dark: "dark",
-            system: "system",
+    <>
+      <Head>
+        <meta charSet="UTF-8" />
+        <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
+        {/* Viewport for responsiveness */}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* Robots directives for indexing */}
+        <meta
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        <meta name="googlebot-news" content="index, follow" />
+        <meta name="googlebot" content="index, follow" />
+
+        <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
+        <link
+          rel="alternate"
+          hrefLang="ms"
+          href={`${siteConfig.baseUrl}/ms/`}
+        />
+        <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
+
+        {/* Meta Pixel*/}
+        <script
+          id="meta-pixel-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+                  !function(f,b,e,v,n,t,s)
+                  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                  n.queue=[];t=b.createElement(e);t.async=!0;
+                  t.src=v;s=b.getElementsByTagName(e)[0];
+                  s.parentNode.insertBefore(t,s)}(window, document,'script',
+                  'https://connect.facebook.net/en_US/fbevents.js');
+                  fbq('init', '1700117030393255');
+                  fbq('track', 'PageView');
+                `,
           }}
-        >
-          <MultipurposeProvider>
-            <GPTProvider
-              prefix="FMT"
-              networkId="1009103"
-              bodyAdSlots={{}}
-              dfpTargetingParams={{}}
-              asPath="/"
-            >
-              {content}
-            </GPTProvider>
-          </MultipurposeProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </GoogleOAuthProvider>
+        />
+        <noscript>
+          {`<img height="1" width="1" style="display:none"
+                src="https://www.facebook.com/tr?id=1700117030393255&ev=PageView&noscript=1"
+              />`}
+        </noscript>
+      </Head>
+
+      <GoogleOAuthProvider
+        clientId={`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}`}
+      >
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem={true}
+            value={{
+              light: "light",
+              dark: "dark",
+              system: "system",
+            }}
+          >
+            <MultipurposeProvider>
+              <GPTProvider
+                prefix="FMT"
+                networkId="1009103"
+                bodyAdSlots={{}}
+                dfpTargetingParams={{}}
+                asPath="/"
+              >
+                {content}
+              </GPTProvider>
+            </MultipurposeProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
+    </>
   );
 }
