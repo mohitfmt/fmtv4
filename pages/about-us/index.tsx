@@ -2,7 +2,8 @@ import { GetStaticProps, NextPage } from "next";
 import parse from "html-react-parser";
 import Meta from "@/components/common/Meta";
 import { getAboutPage } from "@/lib/gql-queries/get-about-page";
-
+import { NextSeo } from "next-seo";
+import siteConfig from "@/constants/site-config";
 interface PageData {
   dateGmt: string;
   databaseId: number;
@@ -95,10 +96,31 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
 
   return (
     <>
-      <Meta
-        title="About Us | Free Malaysia Today (FMT)"
-        description="Learn more about Free Malaysia Today (FMT)"
-        canonical="about-us"
+      <NextSeo
+        title="About Us"
+        description="Learn more about our team, mission, and vision."
+        canonical="https://www.mywebsite.com/about"
+        openGraph={{
+          url: "https://www.mywebsite.com/about",
+          title: "About Us",
+          description: "Learn more about our team, mission, and vision.",
+          images: [
+            {
+              url:
+                siteConfig.iconPath ||
+                "https://www.google.com/imgres?q=free%20malaysia%20today&imgurl=https%3A%2F%2Flookaside.fbsbx.com%2Flookaside%2Fcrawler%2Fmedia%2F%3Fmedia_id%3D100063570188784&imgrefurl=https%3A%2F%2Fwww.facebook.com%2Ffmtlifestyle%2F&docid=XEk7rDIub7c7fM&tbnid=hJj_K2aSFTUJFM&vet=12ahUKEwj3_t-v7KmMAxWs_DgGHU0FC5QQM3oECDgQAA..i&w=500&h=500&hcb=2&ved=2ahUKEwj3_t-v7KmMAxWs_DgGHU0FC5QQM3oECDgQAA",
+              width: 1200,
+              height: 630,
+              alt: "Team working together",
+            },
+          ],
+          siteName: "My Website",
+        }}
+        twitter={{
+          handle: "@myhandle",
+          site: "@mywebsite",
+          cardType: "summary_large_image",
+        }}
       />
 
       <div className="py-4">

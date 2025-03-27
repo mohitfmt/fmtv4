@@ -20,6 +20,6 @@ const siteConfig: SiteConfig = {
     "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
 };
 
-export const getIconUrl = () => `${siteConfig.baseUrl}${siteConfig.iconPath}`;
+export const getIconUrl = () => `${siteConfig.iconPath}`;
 
 export default siteConfig;
