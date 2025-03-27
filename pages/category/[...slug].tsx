@@ -142,18 +142,11 @@ const NewsArticlePost = ({
         <meta property="og:description" content={safeExcerpt} />
         <meta property="og:image" content={safeFeaturedImage} />
 
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta
-          property="twitter:url"
-          content={`${siteConfig.baseUrl}${safeUri}`}
-        />
-        <meta property="twitter:title" content={safeTitle} />
-        <meta property="twitter:description" content={safeExcerpt} />
-        <meta property="twitter:image" content={safeFeaturedImage} />
-        <meta
-          name="google-signin-client_id"
-          content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={`${siteConfig.baseUrl}${safeUri}`} />
+        <meta name="twitter:title" content={safeTitle} />
+        <meta name="twitter:description" content={safeExcerpt} />
+        <meta name="twitter:image" content={safeFeaturedImage} />
       </Head>
       <ArticleJsonLD data={post} relatedData={relatedPosts} />
       <ArticleLayout

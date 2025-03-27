@@ -134,54 +134,47 @@ export default function Home({
         <meta property="og:image:secure_url" content={siteConfig.iconPath} />
         <meta property="og:image:alt" content="News | Free Malaysia Today" />
 
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content={siteConfig.baseUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={siteConfig.baseUrl} />
         <meta
-          property="twitter:title"
+          name="twitter:title"
           content={`${siteConfig.siteName} | ${siteConfig.tagline}`}
         />
-        <meta
-          property="twitter:description"
-          content={siteConfig.siteDescription}
-        />
-        <meta property="twitter:image" content={siteConfig.iconPath} />
+        <meta name="twitter:description" content={siteConfig.siteDescription} />
+        <meta name="twitter:image" content={siteConfig.iconPath} />
         <meta
           name="twitter:image:alt"
           content="Latest News | Free Malaysia Today"
         />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-          type="application/ld+json"
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
-          type="application/ld+json"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              generateCollectionPageJsonLD({
-                heroPosts,
-                highlightPosts,
-                topNewsPosts,
-                businessPosts,
-                opinionPosts,
-                worldPosts,
-                leisurePosts,
-                sportsPosts,
-                beritaPosts,
-                videoPosts,
-                columnists,
-              })
-            ),
-          }}
-          type="application/ld+json"
-        />
-        <meta
-          name="google-signin-client_id"
-          content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-        ></meta>
       </Head>
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            generateCollectionPageJsonLD({
+              heroPosts,
+              highlightPosts,
+              topNewsPosts,
+              businessPosts,
+              opinionPosts,
+              worldPosts,
+              leisurePosts,
+              sportsPosts,
+              beritaPosts,
+              videoPosts,
+              columnists,
+            })
+          ),
+        }}
+        type="application/ld+json"
+      />
       <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
       <main>
         <section
