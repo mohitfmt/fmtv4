@@ -7,6 +7,7 @@ interface MetaProps {
   description: string;
   canonical?: string;
   imageUrl?: string;
+  type?: string;
 }
 
 const Meta = ({
@@ -15,6 +16,7 @@ const Meta = ({
   canonical,
   imageUrl = siteConfig.iconPath ||
     "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
+  type = "website",
 }: MetaProps) => {
   const fullCanonical = canonical
     ? `https://www.freemalaysiatoday.com/${canonical.replace(/^\/|\/$/g, "")}/`
@@ -27,7 +29,7 @@ const Meta = ({
       canonical={fullCanonical}
       openGraph={{
         url: fullCanonical,
-        type: "website",
+        type: type,
         title,
         description,
         images: [
