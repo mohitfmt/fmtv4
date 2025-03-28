@@ -143,6 +143,7 @@ const NewsArticlePost = ({
         <meta property="og:image" content={safeFeaturedImage} />
 
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@fmtoday" />
         <meta name="twitter:url" content={`${siteConfig.baseUrl}${safeUri}`} />
         <meta name="twitter:title" content={safeTitle} />
         <meta name="twitter:description" content={safeExcerpt} />

@@ -4,7 +4,6 @@ import { ThemeProvider } from "next-themes";
 import { Bitter, Red_Hat_Display, Roboto_Slab } from "next/font/google";
 import Layout from "@/components/Layout";
 import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
-// import { GPTProvider } from "@/contexts/GPTProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
@@ -23,9 +22,18 @@ const preloadGPTScript = () => {
   document.head.appendChild(link);
 };
 
-const GPTProvider = dynamic(() =>
-  import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider)
-);
+const GPTProvider =
+  process.env.NODE_ENV === "development"
+    ? dynamic(
+        () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
+        {
+          ssr: false,
+          loading: () => null,
+        }
+      )
+    : dynamic(() =>
+        import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider)
+      );
 
 const bitter = Bitter({
   subsets: ["latin"],
