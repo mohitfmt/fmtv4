@@ -135,6 +135,7 @@ export default function Home({
         <meta property="og:image:alt" content="News | Free Malaysia Today" />
 
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@fmtoday" />
         <meta name="twitter:url" content={siteConfig.baseUrl} />
         <meta
           name="twitter:title"
