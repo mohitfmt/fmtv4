@@ -8,7 +8,7 @@ import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import ContentVersionTracker from "@/components/ContentVersionTracker";
 import Head from "next/head";
@@ -22,13 +22,13 @@ const preloadGPTScript = () => {
   document.head.appendChild(link);
 };
 
-const GPTProvider = dynamic(
-  () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
-  {
-    ssr: false,
-    loading: () => null,
-  }
-);
+// const GPTProvider = dynamic(
+//   () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
+//   {
+//     ssr: false,
+//     loading: () => null,
+//   }
+// );
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -156,15 +156,15 @@ export default function App({
             }}
           >
             <MultipurposeProvider>
-              <GPTProvider
+              {/* <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
                 bodyAdSlots={{}}
                 dfpTargetingParams={{}}
                 asPath="/"
-              >
+              > */}
                 {content}
-              </GPTProvider>
+              {/* </GPTProvider> */}
             </MultipurposeProvider>
           </ThemeProvider>
         </AuthProvider>
