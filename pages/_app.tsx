@@ -8,11 +8,12 @@ import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
-// import dynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import ContentVersionTracker from "@/components/ContentVersionTracker";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
+import Script from "next/script";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -22,13 +23,9 @@ const preloadGPTScript = () => {
   document.head.appendChild(link);
 };
 
-// const GPTProvider = dynamic(
-//   () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
-//   {
-//     ssr: false,
-//     loading: () => null,
-//   }
-// );
+const GPTProvider = dynamic(() =>
+  import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider)
+);
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -115,30 +112,6 @@ export default function App({
           href={`${siteConfig.baseUrl}/ms/`}
         />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
-
-        {/* Meta Pixel*/}
-        <script
-          id="meta-pixel-init"
-          dangerouslySetInnerHTML={{
-            __html: `
-                  !function(f,b,e,v,n,t,s)
-                  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                  n.queue=[];t=b.createElement(e);t.async=!0;
-                  t.src=v;s=b.getElementsByTagName(e)[0];
-                  s.parentNode.insertBefore(t,s)}(window, document,'script',
-                  'https://connect.facebook.net/en_US/fbevents.js');
-                  fbq('init', '1700117030393255');
-                  fbq('track', 'PageView');
-                `,
-          }}
-        />
-        <noscript>
-          {`<img height="1" width="1" style="display:none"
-                src="https://www.facebook.com/tr?id=1700117030393255&ev=PageView&noscript=1"
-              />`}
-        </noscript>
       </Head>
 
       <GoogleOAuthProvider
@@ -156,19 +129,50 @@ export default function App({
             }}
           >
             <MultipurposeProvider>
-              {/* <GPTProvider
+              <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
                 bodyAdSlots={{}}
                 dfpTargetingParams={{}}
                 asPath="/"
-              > */}
+              >
                 {content}
-              {/* </GPTProvider> */}
+              </GPTProvider>
             </MultipurposeProvider>
           </ThemeProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
+
+      {/* Meta Pixel script using Next.js Script component */}
+      <Script
+        id="meta-pixel-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1700117030393255');
+      fbq('track', 'PageView');
+    `,
+        }}
+      />
+
+      {/* NoScript fallback as a proper React component */}
+      <noscript>
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src="https://www.facebook.com/tr?id=1700117030393255&ev=PageView&noscript=1"
+          alt=""
+        />
+      </noscript>
     </>
   );
 }
