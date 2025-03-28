@@ -133,6 +133,8 @@ export default function Home({
 
         <meta property="og:image:secure_url" content={siteConfig.iconPath} />
         <meta property="og:image:alt" content="News | Free Malaysia Today" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />

@@ -8,6 +8,7 @@ import { youTubePlaylists } from "@/constants/youtube-playlists";
 import SubscribeButton from "@/components/videos/SubscribeButton";
 import AdSlot from "@/components/common/AdSlot";
 import { LogoSVG } from "@/components/ui/icons/LogoSVG";
+import siteConfig from "@/constants/site-config";
 
 interface VideosProps {
   info: any;
@@ -99,6 +100,37 @@ const Videos = ({ info }: VideosProps) => {
           name="description"
           content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
         />
+        <meta property="og:title" content="Videos" />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="video.episode" />
+        <meta
+          property="og:title"
+          content="News Videos | Free Malaysia Today (FMT)"
+        />
+        <meta
+          property="og:description"
+          content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
+        />
+        <meta
+          property="og:url"
+          content="https://www.freemalaysiatoday.com/videos"
+        />
+        <meta property="og:image" content={siteConfig.iconPath} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="FMT News" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="News Videos | Free Malaysia Today (FMT)"
+        />
+        <meta
+          name="twitter:description"
+          content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
+        />
+        <meta name="twitter:image" content={siteConfig.iconPath} />
       </Head>
 
       {/* Top Mobile Ad */}
