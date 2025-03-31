@@ -1,19 +1,17 @@
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
-import { YouTubeEmbed } from "@next/third-parties/google";
-import Linkify from "linkify-react";
-
+import dynamic from "next/dynamic";
 import React, { Suspense } from "react";
+
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import { parseISO8601DurationToSeconds } from "@/lib/utils";
-import ShareComponents from "@/components/news-article/ShareButtons";
-import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import { VideoDetailPageProps } from "@/types/global";
-import AdSlot from "@/components/common/AdSlot";
-import dynamic from "next/dynamic";
-import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { getPlaylist } from "@/lib/api";
+import AdSlot from "@/components/common/AdSlot";
+import VideoDetailContent from "@/components/videos/VideoDetailContent";
 
+// Dynamically import the sidebar component
 const LatestVideosSidebar = dynamic(
   () =>
     import("@/components/videos/LatestVideosSideBar").then(
@@ -24,6 +22,7 @@ const LatestVideosSidebar = dynamic(
     ssr: false,
   }
 );
+
 // Main page component
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   video,
@@ -82,24 +81,21 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
         />
 
         {/* JSON-LD scripts */}
-
-        <section>
-          <script
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
-            type="application/ld+json"
-            defer
-          />
-          <script
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-            type="application/ld+json"
-            defer
-          />
-          <script
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
-            type="application/ld+json"
-            defer
-          />
-        </section>
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
+          type="application/ld+json"
+          defer
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+          type="application/ld+json"
+          defer
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
+          type="application/ld+json"
+          defer
+        />
       </Head>
 
       {/* Top Desktop Ad */}
@@ -134,44 +130,14 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
       {/* Main Content Area */}
       <div className="flex flex-col gap-4 lg:flex-row my-3">
         {/* Video Main Content */}
-        <main className="lg:w-2/3">
-          <YouTubeEmbed
-            params="controls=1&showinfo=1"
-            style="max-width: 100vw; rounded: 50px"
-            videoid={videoId}
-          />
-
-          <div className="py-4">
-            <h1 className="mt-1 text-4xl font-extrabold">
-              {video?.node?.title}
-            </h1>
-
-            <div className="mt-4 flex justify-between items-center align-middle">
-              {video?.node?.dateGmt && (
-                <FullDateDisplay
-                  dateString={video.node?.dateGmt}
-                  tooltipPosition="right"
-                />
-              )}
-              <div>
-                <ShareComponents
-                  url={shareUrl}
-                  title={shareTitle}
-                  mediaUrl={shareThumbnail}
-                  hashs={tags}
-                />
-              </div>
-            </div>
-
-            <div className="overflow-hidden text-wrap py-8 font-roboto">
-              <Linkify
-                options={{ nl2br: true, rel: "nofollow", target: "_blank" }}
-              >
-                {video?.node?.excerpt}
-              </Linkify>
-            </div>
-          </div>
-        </main>
+        <VideoDetailContent
+          video={video}
+          videoId={videoId}
+          shareUrl={shareUrl}
+          shareTitle={shareTitle}
+          shareThumbnail={shareThumbnail}
+          tags={tags}
+        />
 
         {/* Related Videos Sidebar */}
         <Suspense fallback={<VideoSidebarSkeleton />}>
@@ -202,8 +168,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    // const video = await getVideo(playlistIdStr, videoId);
-
     const videos = await getPlaylist(playlistIdStr);
     const video = videos.find((p: any) => p?.node?.videoId === videoId);
 
