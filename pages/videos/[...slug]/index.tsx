@@ -1,29 +1,17 @@
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
-import dynamic from "next/dynamic";
 import React, { Suspense } from "react";
 
-import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import { parseISO8601DurationToSeconds } from "@/lib/utils";
 import { VideoDetailPageProps } from "@/types/global";
-import { getPlaylist } from "@/lib/api";
 import AdSlot from "@/components/common/AdSlot";
-import VideoDetailContent from "@/components/videos/VideoDetailContent";
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+import { getPlaylist } from "@/lib/api";
+import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
+import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
 
-// Dynamically import the sidebar component
-const LatestVideosSidebar = dynamic(
-  () =>
-    import("@/components/videos/LatestVideosSideBar").then(
-      (mod) => mod.LatestVideosSidebar
-    ),
-  {
-    loading: () => <VideoSidebarSkeleton />,
-    ssr: false,
-  }
-);
 
-// Main page component
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   video,
   videos,
@@ -130,7 +118,7 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
       {/* Main Content Area */}
       <div className="flex flex-col gap-4 lg:flex-row my-3">
         {/* Video Main Content */}
-        <VideoDetailContent
+        <VideoDetailedContent
           video={video}
           videoId={videoId}
           shareUrl={shareUrl}
