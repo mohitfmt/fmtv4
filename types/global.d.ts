@@ -193,6 +193,14 @@ interface VideoDetailPageProps {
   };
   videoArticles: any;
 }
+interface VideoContentProps {
+  video: any;
+  videoId: string;
+  shareUrl: string;
+  shareTitle: string;
+  shareThumbnail: string;
+  tags: string[];
+}
 
 export interface VideoItem {
   id: string;
