@@ -1,15 +1,15 @@
-import { GetServerSideProps, NextPage } from "next";
+import React from "react";
 import Head from "next/head";
-import React, { Suspense } from "react";
+import { GetServerSideProps, NextPage } from "next";
 
-import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
-import { parseISO8601DurationToSeconds } from "@/lib/utils";
 import { VideoDetailPageProps } from "@/types/global";
-import AdSlot from "@/components/common/AdSlot";
-import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
-import { getPlaylist } from "@/lib/api";
-import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
+import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+import AdSlot from "@/components/common/AdSlot";
+import { getPlaylist } from "@/lib/api";
+import { parseISO8601DurationToSeconds } from "@/lib/utils";
+import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
@@ -20,10 +20,16 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   metaData,
   videoArticles,
 }) => {
-  const shareUrl = metaData.openGraph.url;
-  const shareTitle = video?.node?.title;
-  const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl;
+  const shareUrl = metaData?.openGraph?.url || "";
+  const shareTitle = video?.node?.title || "";
+  const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl || "";
   const tags = video?.node?.tags || [];
+
+  console.log("[VideoDetailPage] Rendering with data:");
+  console.log("videoId:", videoId);
+  console.log("playlistId:", playlistId);
+  console.log("videoTitle:", video?.node?.title);
+  console.log("thumbnail:", shareThumbnail);
 
   const dfpTargetingParams = {
     pos: "listing",
@@ -32,94 +38,84 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   };
 
   return (
-    <>
-      {/* Head with Metadata and JSON-LD scripts */}
-      <Head>
-        <title>{metaData.title}</title>
-        <meta name="description" content={metaData.description} />
-        <meta name="keywords" content={metaData.keywords} />
+    <ErrorBoundary>
+      <>
+        <Head>
+          <title>{metaData.title}</title>
+          <meta name="description" content={metaData.description} />
+          <meta name="keywords" content={metaData.keywords} />
+          <meta property="og:title" content={metaData.openGraph.title} />
+          <meta
+            property="og:description"
+            content={metaData.openGraph.description}
+          />
+          <meta property="og:url" content={metaData.openGraph.url} />
+          <meta property="og:type" content={metaData.openGraph.type} />
 
-        {/* Open Graph Meta Tags */}
-        <meta property="og:title" content={metaData.openGraph.title} />
-        <meta
-          property="og:description"
-          content={metaData.openGraph.description}
-        />
-        <meta property="og:url" content={metaData.openGraph.url} />
-        <meta property="og:type" content={metaData.openGraph.type} />
-        {metaData.openGraph.images?.map((image: any, index: any) => (
-          <React.Fragment key={index}>
-            <meta property="og:image" content={image.url} />
-            <meta property="og:image:width" content={image.width.toString()} />
-            <meta
-              property="og:image:height"
-              content={image.height.toString()}
-            />
-            <meta property="og:image:alt" content={image.alt} />
-          </React.Fragment>
-        ))}
+          {Array.isArray(metaData.openGraph.images) &&
+            metaData.openGraph.images.map((image: any, index: number) => (
+              <React.Fragment key={index}>
+                <meta property="og:image" content={image.url} />
+                <meta property="og:image:width" content={String(image.width)} />
+                <meta
+                  property="og:image:height"
+                  content={String(image.height)}
+                />
+                <meta property="og:image:alt" content={image.alt} />
+              </React.Fragment>
+            ))}
 
-        {/* Twitter Card Meta Tags */}
-        <meta name="twitter:card" content={metaData.twitter.card} />
-        <meta name="twitter:site" content={metaData.twitter.site} />
-        <meta name="twitter:title" content={metaData.twitter.title} />
-        <meta
-          name="twitter:description"
-          content={metaData.twitter.description}
-        />
+          <meta name="twitter:card" content={metaData.twitter.card} />
+          <meta name="twitter:site" content={metaData.twitter.site} />
+          <meta name="twitter:title" content={metaData.twitter.title} />
+          <meta
+            name="twitter:description"
+            content={metaData.twitter.description}
+          />
 
-        {/* JSON-LD scripts */}
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
-          type="application/ld+json"
-          defer
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-          type="application/ld+json"
-          defer
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
-          type="application/ld+json"
-          defer
-        />
-      </Head>
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
+            type="application/ld+json"
+          />
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+            type="application/ld+json"
+          />
+          <script
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
+            type="application/ld+json"
+          />
+        </Head>
 
-      {/* Top Desktop Ad */}
-      <div className="ads-dynamic-desktop">
-        <AdSlot
-          sizes={[
-            [970, 90],
-            [970, 250],
-            [728, 90],
-          ]}
-          id="div-gpt-ad-1661333181124-0"
-          name="ROS_Billboard"
-          visibleOnDevices="onlyDesktop"
-          targetingParams={dfpTargetingParams}
-        />
-      </div>
+        {/* Ads */}
+        <div className="ads-dynamic-desktop">
+          <AdSlot
+            sizes={[
+              [970, 90],
+              [970, 250],
+              [728, 90],
+            ]}
+            id="div-gpt-ad-1661333181124-0"
+            name="ROS_Billboard"
+            visibleOnDevices="onlyDesktop"
+            targetingParams={dfpTargetingParams}
+          />
+        </div>
 
-      {/* Top Mobile Ad */}
-      <div className="ads-small-mobile">
-        <AdSlot
-          sizes={[
-            [320, 50],
-            [320, 100],
-          ]}
-          id="div-gpt-ad-1661362470988-0"
-          name="ROS_Mobile_Leaderboard"
-          visibleOnDevices="onlyMobile"
-          targetingParams={dfpTargetingParams}
-        />
-      </div>
+        <div className="ads-small-mobile">
+          <AdSlot
+            sizes={[
+              [320, 50],
+              [320, 100],
+            ]}
+            id="div-gpt-ad-1661362470988-0"
+            name="ROS_Mobile_Leaderboard"
+            visibleOnDevices="onlyMobile"
+            targetingParams={dfpTargetingParams}
+          />
+        </div>
 
-      {/* Main Content Area */}
-      <div className="flex flex-col gap-4 lg:flex-row my-3">
-        {/* Video Main Content */}
-
-        <ErrorBoundary>
+        <div className="flex flex-col gap-4 lg:flex-row my-3">
           <VideoDetailedContent
             video={video}
             videoId={videoId}
@@ -128,42 +124,36 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
             shareThumbnail={shareThumbnail}
             tags={tags}
           />
-        </ErrorBoundary>
 
-        {/* Related Videos Sidebar */}
-
-        <Suspense fallback={<VideoSidebarSkeleton />}>
-          <LatestVideosSidebar videos={videos} playlistId={playlistId} />
-        </Suspense>
-      </div>
-    </>
+          <React.Suspense fallback={<VideoSidebarSkeleton />}>
+            <LatestVideosSidebar videos={videos} playlistId={playlistId} />
+          </React.Suspense>
+        </div>
+      </>
+    </ErrorBoundary>
   );
 };
 
-// Server-side props fetching
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  // Extract slug and playlistId from context
   const { slug } = context.params || {};
   const { playlistId } = context.query;
 
-  // Ensure slug and playlistId are strings
-  const videoId = slug && Array.isArray(slug) ? slug[0] : slug || "";
+  const videoId = Array.isArray(slug) ? slug[0] : slug || "";
   const playlistIdStr = Array.isArray(playlistId)
     ? playlistId[0]
     : playlistId || "";
 
-  // Fetch video and playlist data
+  console.log("[SSR] videoId:", videoId);
+  console.log("[SSR] playlistId:", playlistIdStr);
+
   if (!videoId || !playlistIdStr) {
-    return {
-      notFound: true,
-    };
+    return { notFound: true };
   }
 
   try {
     const videos = await getPlaylist(playlistIdStr);
     const video = videos.find((p: any) => p?.node?.videoId === videoId);
 
-    // If video not found, redirect to YouTube
     if (!video) {
       return {
         redirect: {
@@ -173,27 +163,25 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    // Determine the slug suffix for URL (use first alternate slug if exists)
     const slugSuffix =
       Array.isArray(slug) && slug.length > 1
         ? slug[1]
-        : video?.node?.title.toLowerCase().replace(/\s+/g, "-");
+        : video?.node?.title?.toLowerCase().replace(/\s+/g, "-");
 
-    // Generate metadata similar to App Router approach
     const videoURL = `https://www.freemalaysiatoday.com/videos/${video?.node?.videoId}/${slugSuffix}/?playlistId=${playlistIdStr}`;
     const thumbnailURL = video?.node?.featuredImage?.node?.mediaItemUrl || "";
     const publicationDate = video?.node?.dateGmt || "";
-    const tags = video?.node?.tags ? video?.node?.tags?.join(", ") : "FMT";
+    const tags = video?.node?.tags?.join(", ") || "FMT";
     const durationInSeconds = parseISO8601DurationToSeconds(
       video?.node?.duration || "PT0S"
     );
 
     const metaData = {
       title: `${video?.node?.title} | FMT Videos`,
-      description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+      description: `${video?.node?.excerpt?.split(" ").slice(0, 30).join(" ") + "..."}`,
       openGraph: {
         title: video?.node?.title,
-        description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+        description: `${video?.node?.excerpt?.split(" ").slice(0, 30).join(" ") + "..."}`,
         url: videoURL,
         type: "video.movie",
         duration: durationInSeconds,
@@ -221,7 +209,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         card: "summary_large_image",
         site: "@fmtoday",
         title: video?.node?.title,
-        description: `${video?.node?.excerpt.split(" ").slice(0, 30).join(" ") + "..."}`,
+        description: `${video?.node?.excerpt?.split(" ").slice(0, 30).join(" ") + "..."}`,
       },
       keywords: tags,
       category: video?.node?.categories?.nodes?.map(
@@ -229,17 +217,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       ),
     };
 
-    // Prepare JSON-LD data for SEO
     const videoArticles = {
       "@context": "https://schema.org",
       "@type": "VideoObject",
       "@id": `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
       name: video?.node?.title,
       description: video?.node?.excerpt?.split("Subscribe to our channel")[0],
-      thumbnailUrl: video?.node?.featuredImage?.node?.mediaItemUrl,
-      uploadDate: video?.node?.dateGmt,
-      contentUrl: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
-      embedUrl: "https://www.youtube.com/embed/" + video?.node?.videoId,
+      thumbnailUrl: thumbnailURL,
+      uploadDate: publicationDate,
+      contentUrl: video?.node?.uri,
+      embedUrl: `https://www.youtube.com/embed/${video?.node?.videoId}`,
       duration: video?.node?.duration,
       author: {
         "@type": "NewsMediaOrganization",
@@ -256,24 +243,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         "@type": "NewsMediaOrganization",
         name: "Free Malaysia Today",
         logo: {
-          "@context": "https://schema.org",
           "@type": "ImageObject",
           url: "https://www.freemalaysiatoday.com/icon-512x512.png",
-          contentUrl: "https://www.freemalaysiatoday.com/icon-512x512.png",
           width: 512,
           height: 512,
-          creditText: "Free Malaysia Today",
         },
       },
       isFamilyFriendly: true,
-      keywords: video?.node?.tags.join(", "),
+      keywords: tags,
       caption: video?.node?.title,
       genre: video?.node?.categories?.nodes
-        .map((category: { name: string }) => category?.name)
+        ?.map((category: { name: string }) => category?.name)
         .join(", "),
     };
 
-    // Pass data to the page via props
     return {
       props: {
         video,
@@ -285,10 +268,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     };
   } catch (error) {
-    console.error("Error fetching video details:", error);
-    return {
-      notFound: true,
-    };
+    console.error("[getServerSideProps] Error fetching video details:", error);
+    return { notFound: true };
   }
 };
 

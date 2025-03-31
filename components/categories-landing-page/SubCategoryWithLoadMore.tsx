@@ -198,7 +198,6 @@ const SubCategoriesWithLoadMore = ({
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeCategoryJsonLD) }}
         type="application/ld+json"
-        defer
       />
 
       <section

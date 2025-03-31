@@ -124,14 +124,12 @@ export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
-        defer
       />
       <script
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLD),
         }}
         type="application/ld+json"
-        defer
       />
     </section>
   );

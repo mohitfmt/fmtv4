@@ -257,7 +257,6 @@ const ArticleJsonLD = ({
           }}
           id="video-json-ld"
           type="application/ld+json"
-          defer
         />
       )}
       <script
@@ -266,7 +265,6 @@ const ArticleJsonLD = ({
         }}
         id="article-json-ld"
         type="application/ld+json"
-        defer
       />
 
       <script

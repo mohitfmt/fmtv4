@@ -1,4 +1,6 @@
-import React from 'react';
+// components/common/ErrorBoundary.tsx
+import React from "react";
+import Link from "next/link";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -6,52 +8,42 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: React.ErrorInfo | null;
+  error?: Error;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { 
-      hasError: false, 
-      error: null, 
-      errorInfo: null 
-    };
+    this.state = { hasError: false, error: undefined };
   }
 
-  static getDerivedStateFromError(error: Error): { hasError: boolean } {
-    // Update state so the next render will show the fallback UI
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log the error to the console
-    console.error("Error caught by boundary:", error);
-    console.error("Component stack:", errorInfo?.componentStack);
-    this.setState({ error, errorInfo });
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(
+      "[ErrorBoundary] Client-side crash caught:",
+      error,
+      errorInfo
+    );
   }
 
   render() {
     if (this.state.hasError) {
-      // Fallback UI when an error occurs
       return (
-        <div className="p-4 bg-red-50 text-red-800 rounded-md my-4">
-          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-          <p className="mb-4">
-            There was an error loading this content. Please try refreshing the page.
+        <div className="p-6 text-center text-red-600">
+          <h1 className="text-2xl font-bold mb-2">Something went wrong.</h1>
+          <p className="bg-yellow-200">{this.state.error?.message}</p>
+          <p className="mt-2">
+            Try refreshing the page or{" "}
+            <Link href="/videos" className="underline text-blue-600">
+              go back to videos
+            </Link>
           </p>
-          <details className="mt-2">
-            <summary className="cursor-pointer font-medium">Technical details</summary>
-            <pre className="mt-2 p-2 bg-red-100 rounded text-sm whitespace-pre-wrap overflow-x-auto">
-              {this.state.error?.toString()}
-            </pre>
-            {this.state.errorInfo && (
-              <pre className="mt-2 p-2 bg-red-100 rounded text-sm whitespace-pre-wrap overflow-x-auto">
-                {this.state.errorInfo.componentStack}
-              </pre>
-            )}
-          </details>
         </div>
       );
     }
