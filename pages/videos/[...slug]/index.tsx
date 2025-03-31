@@ -10,7 +10,7 @@ import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { getPlaylist } from "@/lib/api";
 import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
-
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   video,
@@ -118,16 +118,20 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
       {/* Main Content Area */}
       <div className="flex flex-col gap-4 lg:flex-row my-3">
         {/* Video Main Content */}
-        <VideoDetailedContent
-          video={video}
-          videoId={videoId}
-          shareUrl={shareUrl}
-          shareTitle={shareTitle}
-          shareThumbnail={shareThumbnail}
-          tags={tags}
-        />
+
+        <ErrorBoundary>
+          <VideoDetailedContent
+            video={video}
+            videoId={videoId}
+            shareUrl={shareUrl}
+            shareTitle={shareTitle}
+            shareThumbnail={shareThumbnail}
+            tags={tags}
+          />
+        </ErrorBoundary>
 
         {/* Related Videos Sidebar */}
+
         <Suspense fallback={<VideoSidebarSkeleton />}>
           <LatestVideosSidebar videos={videos} playlistId={playlistId} />
         </Suspense>

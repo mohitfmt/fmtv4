@@ -86,10 +86,7 @@ export async function getMoreStories(postId: string) {
 export const getPlaylist = async (playlistId: string) => {
   try {
     const res = await fetch(
-      `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`,
-      {
-        next: { revalidate: 360 }, // Optional: cache for 1 hour
-      }
+      `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`
     );
 
     if (!res.ok) {
