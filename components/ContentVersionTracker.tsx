@@ -17,7 +17,16 @@ export const ContentVersionTracker: React.FC = () => {
     const checkAndTrackVersion = async () => {
       try {
         // Request the current page to check its headers
-        const response = await fetch(window.location.pathname, {
+
+        let currentPath = window.location.pathname;
+        const currentQuery = window.location.search;
+
+        // If we have query parameters, include them in the HEAD request
+        if (currentQuery) {
+          currentPath += currentQuery;
+        }
+
+        const response = await fetch(currentPath, {
           method: "HEAD",
           cache: "no-cache",
         });

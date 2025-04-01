@@ -28,8 +28,6 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   console.log("[VideoDetailPage] Rendering with data:");
   console.log("videoId:", videoId);
   console.log("playlistId:", playlistId);
-  console.log("videoTitle:", video?.node?.title);
-  console.log("thumbnail:", shareThumbnail);
 
   const dfpTargetingParams = {
     pos: "listing",
