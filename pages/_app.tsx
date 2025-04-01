@@ -9,7 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
-import ContentVersionTracker from "@/components/ContentVersionTracker";
+// import ContentVersionTracker from "@/components/ContentVersionTracker";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
 import Script from "next/script";
