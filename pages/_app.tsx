@@ -80,7 +80,7 @@ export default function App({
     <div
       className={`${bitter.variable} ${rhd.variable} ${roboto.variable} min-h-screen bg-background text-foreground`}
     >
-      <ContentVersionTracker />
+      {/* <ContentVersionTracker /> */}
       <NextTopLoader
         color="#FFD700"
         initialPosition={0.08}
