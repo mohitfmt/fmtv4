@@ -2,23 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import FullDateDisplay from "../common/display-date-formats/FullDateDisplay";
-import { useEffect } from "react";
 
 interface RelatedVideosSidebarProps {
   videos: any[];
-  playlistId: string;
+  playlistId: string | "ddd";
 }
 
 export const LatestVideosSidebar: React.FC<RelatedVideosSidebarProps> = ({
   videos,
   playlistId,
 }) => {
-  useEffect(() => {
-    console.log("[LatestVideosSidebar] Component mounted");
-    console.log("playlistId:", playlistId);
-    console.log("videos:", videos?.map((v) => v?.node?.title));
-  }, []);
-
   return (
     <aside className="rounded-lg bg-primary-foreground text-foreground p-4  md:p-6 lg:w-1/3 lg:p-8">
       <h2 className="text-2xl font-extrabold">Latest Videos</h2>

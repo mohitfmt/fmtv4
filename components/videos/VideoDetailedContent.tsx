@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Linkify from "linkify-react";
 import ShareComponents from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
@@ -20,16 +20,7 @@ const VideoDetailedContent: React.FC<VideoContentProps> = ({
   shareThumbnail,
   tags,
 }) => {
-  const [isClient, setIsClient] = useState(false);
-
-  // Only render YouTube component on client side
-  useEffect(() => {
-    setIsClient(true);
-
-    // Debug information
-    console.log("VideoDetailedContent mounted, videoId:", videoId);
-  }, [videoId]);
-
+  console.log("[Video Details Component] mounted :", videoId);
   if (!video?.node) {
     return <div className="lg:w-2/3 p-4">Video information not available</div>;
   }
@@ -37,19 +28,13 @@ const VideoDetailedContent: React.FC<VideoContentProps> = ({
   return (
     <main className="lg:w-2/3">
       <div className="aspect-video w-full bg-slate-100 mb-4">
-        {isClient ? (
-          <iframe
-            className="w-full h-full"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title={video?.node?.title || "YouTube video player"}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <p>Loading video...</p>
-          </div>
-        )}
+        <iframe
+          className="w-full h-full"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title={video?.node?.title || "YouTube video player"}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
       </div>
 
       <div className="py-4">

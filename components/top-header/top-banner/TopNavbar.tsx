@@ -15,6 +15,9 @@ interface Props {
 const TopNavbar = ({ navigation }: Props) => {
   const pathname = usePathname();
 
+  // Handle null pathname case
+  if (!pathname) return false;
+
   const isActive = (href: string) => {
     // Special case for home route
     if (href === "/" && pathname === "/") return true;
