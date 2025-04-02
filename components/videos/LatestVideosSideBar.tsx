@@ -5,7 +5,7 @@ import FullDateDisplay from "../common/display-date-formats/FullDateDisplay";
 
 interface RelatedVideosSidebarProps {
   videos: any[];
-  playlistId: string | "ddd";
+  playlistId: string;
 }
 
 export const LatestVideosSidebar: React.FC<RelatedVideosSidebarProps> = ({
