@@ -182,6 +182,7 @@ interface VideoDetailPageProps {
   video: any;
   videos: any[];
   videoId: string;
+  initialPlaylistId: string;
   playlistId: string;
   metaData: {
     title: string;
