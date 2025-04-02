@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
@@ -6,8 +6,8 @@ import { parseISO8601DurationToSeconds } from "@/lib/utils";
 import AdSlot from "@/components/common/AdSlot";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
 import siteConfig from "@/constants/site-config";
-// import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
-// import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 
 export default function VideoDetailPage() {
   const router = useRouter();
@@ -59,7 +59,9 @@ export default function VideoDetailPage() {
         });
 
         if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+          console.error(`API request failed with status ${response.status}`);
+          window.location.href = `https://www.youtube.com/watch?v=${videoId}`;
+          return;
         }
 
         const fetchedVideos = await response.json();
@@ -213,15 +215,6 @@ export default function VideoDetailPage() {
     );
   }
 
-  // If we don't have a video after loading completed
-  if (!video) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="text-amber-500">Video not found</div>
-      </div>
-    );
-  }
-
   // Process data for rendering
   const shareUrl = metaData?.openGraph?.url;
   const shareTitle = video?.node?.title;
@@ -234,6 +227,7 @@ export default function VideoDetailPage() {
     key: tags,
   };
 
+  console.log("meta data :", metaData);
   return (
     <>
       {/* Head with Metadata and JSON-LD scripts */}
@@ -343,9 +337,11 @@ export default function VideoDetailPage() {
         />
 
         {/* Related Videos Sidebar */}
-        {/* <Suspense fallback={<VideoSidebarSkeleton />}>
-          <LatestVideosSidebar videos={videos} playlistId={playlistId} />
-        </Suspense> */}
+        <Suspense fallback={<VideoSidebarSkeleton />}>
+          {playlistId && (
+            <LatestVideosSidebar videos={videos} playlistId={playlistId} />
+          )}
+        </Suspense>
       </div>
     </>
   );
