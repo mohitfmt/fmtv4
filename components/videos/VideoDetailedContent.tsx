@@ -20,7 +20,6 @@ const VideoDetailedContent: React.FC<VideoContentProps> = ({
   shareThumbnail,
   tags,
 }) => {
-  console.log("[Video Details Component] mounted :", videoId);
   if (!video?.node) {
     return <div className="lg:w-2/3 p-4">Video information not available</div>;
   }
