@@ -19,11 +19,6 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   metaData,
   videoArticles,
 }) => {
-  console.log("[CS] VideoDetailPage Rendering with data:");
-  console.log("[CS] videoId:", videoId);
-  console.log("[CS] playlistId:", playlistId);
-  console.log("[CS] video title:", video?.node?.title);
-
   const shareUrl = metaData.openGraph.url;
   const shareTitle = video?.node?.title;
   const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl;
@@ -152,9 +147,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     ? playlistId[0]
     : playlistId || "";
 
-  console.log("[SSR] videoId:", videoId);
-  console.log("[SSR] playlistId:", playlistIdStr);
-
   // Fetch video and playlist data
   if (!videoId || !playlistIdStr) {
     return {
@@ -275,10 +267,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         .map((category: { name: string }) => category?.name)
         .join(", "),
     };
-    console.log("[SSR] videoId2:", videoId);
-    console.log("[SSR] playlistId2:", playlistIdStr);
-    console.log("[SSR] detailed video id :", video?.node?.videoId);
-    console.log("[SSR] side bar videos lenght :", videos?.length);
 
     // Pass data to the page via props
     return {
