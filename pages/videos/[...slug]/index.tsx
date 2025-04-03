@@ -1,14 +1,14 @@
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
-import React from "react";
+import React, { Suspense } from "react";
 
 import { OrgJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import { parseISO8601DurationToSeconds } from "@/lib/utils";
 import { VideoDetailPageProps } from "@/types/global";
 import AdSlot from "@/components/common/AdSlot";
-// import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
+import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { getPlaylist } from "@/lib/api";
-// import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
+import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
 
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
@@ -131,10 +131,10 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
           tags={tags}
         />
 
-        {/* Related Videos Sidebar
+        {/* Related Videos Sidebar */}
         <Suspense fallback={<VideoSidebarSkeleton />}>
           <LatestVideosSidebar videos={videos} playlistId={playlistId} />
-        </Suspense> */}
+        </Suspense>
       </div>
     </>
   );
