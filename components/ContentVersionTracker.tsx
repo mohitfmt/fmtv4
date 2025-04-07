@@ -18,13 +18,13 @@ export const ContentVersionTracker: React.FC = () => {
       try {
         // Request the current page to check its headers
 
-        let currentPath = window.location.pathname;
-        const currentQuery = window.location.search;
+        const currentPath = window.location.pathname;
+        // const currentQuery = window.location.search;
 
         // If we have query parameters, include them in the HEAD request
-        if (currentQuery) {
-          currentPath += currentQuery;
-        }
+        // if (currentQuery) {
+        //   currentPath += currentQuery;
+        // }
 
         const response = await fetch(currentPath, {
           method: "HEAD",

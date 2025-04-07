@@ -11,7 +11,7 @@ import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { newsLandingTargetingParams } from "@/constants/ads-targeting-params/news";
-import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const categoryTitle = "News: East & West Malaysia";
 const excludeVariables = CustomHomeNewsExcludeVariables;
@@ -23,7 +23,7 @@ const HomeNews = ({
   currentPage,
   subCategoryPosts,
 }: CategoryLandingProps) => {
-  useVisibilityRefresh();
+  // useVisibilityRefresh();
   return (
     <>
       <CategoryMetadata config={categoriesMetadataConfigs.news} />
