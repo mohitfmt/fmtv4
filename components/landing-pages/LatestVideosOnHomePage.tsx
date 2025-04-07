@@ -164,7 +164,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
             </time> */}
 
             <time
-              className="flex items-center gap-1.5 bg-black text-white"
+              className="flex items-center gap-1.5  bg-black/80 text-white px-1.5 py-1 rounded-md"
               dateTime={formatMalaysianDate(dateGmt, false)}
             >
               {formatMalaysianTime24h(dateGmt)}
@@ -203,7 +203,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
             <PublishingDateTime dateString={dateGmt} isTextPop={false} />
           </div> */}
           <time
-            className="flex items-center gap-1.5 bg-black text-white"
+            className="flex items-center gap-1.5 bg-black/80 text-white px-1 py-0.5 rounded-md"
             dateTime={formatMalaysianDate(dateGmt, false)}
           >
             {formatMalaysianTime24h(dateGmt)}

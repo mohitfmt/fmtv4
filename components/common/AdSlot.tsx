@@ -124,8 +124,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
           refreshAd();
         });
 
-        // Set up a periodic refresh (e.g., every 30 seconds)
-        const refreshInterval = setInterval(refreshAd, 30000);
+        // Set up a periodic refresh (e.g., every 60 seconds)
+        const refreshInterval = setInterval(refreshAd, 60000);
 
         return () => {
           clearInterval(refreshInterval);

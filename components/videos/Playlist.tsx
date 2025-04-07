@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AdSlot from "../common/AdSlot";
@@ -42,38 +42,36 @@ const Playlist = ({ playlistId }: PlaylistProps) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPlaylist = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/get-yt-playlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ playlistId }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch playlist");
-      }
-
-      const data = await res.json();
-      setVideos(data);
-    } catch (error) {
-      console.error("Error fetching playlist:", error);
-      setError("Failed to load videos. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [playlistId]);
-
   useEffect(() => {
-    if (playlistId) {
-      fetchPlaylist();
-    }
-  }, [playlistId, fetchPlaylist]);
+    const fetchPlaylist = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/get-yt-playlist", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ playlistId }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch playlist (status ${res.status})`);
+        }
+
+        const data = await res.json();
+        setVideos(data || []);
+      } catch (err) {
+        console.error("Error fetching playlist:", err);
+        setError("Failed to load videos. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlaylist();
+  }, [playlistId]);
 
   if (loading) {
     return <LoadingState />;
@@ -83,7 +81,7 @@ const Playlist = ({ playlistId }: PlaylistProps) => {
     return (
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={fetchPlaylist} variant="outline" size="sm">
+        <Button onClick={() => location.reload()} variant="outline" size="sm">
           Try Again
         </Button>
       </div>
