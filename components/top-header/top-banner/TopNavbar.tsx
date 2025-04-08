@@ -52,15 +52,6 @@ const TopNavbar = ({ navigation }: Props) => {
                 }`}
               >
                 {item.title}
-                {/* {item.items && (
-                  <span className="ml-1 hidden xl:block hover:text-white">
-                    {isParentActive(item) ? (
-                      <CaretUp size={12} />
-                    ) : (
-                      <CaretDown size={12} />
-                    )}
-                  </span>
-                )} */}
               </Link>
             </div>
             {item.items && (

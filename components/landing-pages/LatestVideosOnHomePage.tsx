@@ -194,14 +194,11 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
           </div>
         </div>
         {/* Duration Badge */}
-        <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 text-sm rounded-md flex items-center gap-1">
+        {/* <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 text-sm rounded-md flex items-center gap-1">
           <Clock size={12} />
           {formatDuration(duration)}
-        </div>
+        </div> */}
         <div className="absolute bottom-2 right-2">
-          {/* <div className="bg-black/80 px-1.5 rounded text-white text-sm">
-            <PublishingDateTime dateString={dateGmt} isTextPop={false} />
-          </div> */}
           <time
             className="flex items-center gap-1.5 bg-black/80 text-white px-1 py-0.5 rounded-md"
             dateTime={formatMalaysianDate(dateGmt, false)}
@@ -213,7 +210,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
 
       {/* Content Below Thumbnail */}
       <div className="mt-2">
-        <h3 className="line-clamp-3">{title}</h3>
+        <h3>{title}</h3>
       </div>
     </div>
   );

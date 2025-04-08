@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import HorizontalLoadMore from "./HorizontalLoadMore";
 import MainLayout from "./MainLayout";
 import { PostCardProps } from "@/types/global";
@@ -43,17 +42,7 @@ export const CategoryPostsLayout = ({
   categoryName,
 }: CategoryPostsLayoutProps) => {
   // Use the visibility refresh hook
-  const { lastRefreshed, isRefreshing } = useVisibilityRefresh();
-
-  // Log when refresh occurs (optional, for debugging)
-  useEffect(() => {
-    if (lastRefreshed) {
-      console.log(
-        `CategoryPostsLayout for ${categoryName} refreshed at:`,
-        lastRefreshed.toISOString()
-      );
-    }
-  }, [lastRefreshed, categoryName]);
+  useVisibilityRefresh();
 
   if (!posts || !currentPage) return null;
 

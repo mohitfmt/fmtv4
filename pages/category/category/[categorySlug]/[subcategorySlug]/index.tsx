@@ -35,7 +35,24 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
   const AdsTargetingParams = {
     pos: "listing",
     section: [`${subcategorySlug}-landing-page`, "landing-page"],
-    key: [],
+    key: [
+      `${subcategorySlug}`,
+      "Free Malaysia Today",
+      "Malaysia News",
+      "Latest Malaysia News",
+      "Breaking News Malaysia",
+      "Malaysia Politics News",
+      "gambling",
+      "religion",
+      "alcohol",
+      "lgbt",
+      "sex",
+      "drug abuse",
+      "get rich",
+      "match-making",
+      "dating",
+      "lottery",
+    ],
   };
 
   const typedSeoSubCategories = seoSubCategories as SeoSubCategoriesType;

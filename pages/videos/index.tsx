@@ -9,6 +9,7 @@ import SubscribeButton from "@/components/videos/SubscribeButton";
 import AdSlot from "@/components/common/AdSlot";
 import { LogoSVG } from "@/components/ui/icons/LogoSVG";
 import siteConfig from "@/constants/site-config";
+import useVisibilityRefresh from "@/hooks/useVisibilityRefresh";
 
 interface VideosProps {
   info: any;
@@ -92,6 +93,7 @@ const ChannelInfoSection = ({ info }: { info: any }) => {
 };
 
 const Videos = ({ info }: VideosProps) => {
+  useVisibilityRefresh();
   return (
     <>
       <Head>

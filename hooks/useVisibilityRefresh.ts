@@ -129,7 +129,7 @@ export const useVisibilityRefresh = (
 
     // Check session age
     if (isSessionTooOld()) {
-      console.log("[Refresh] Session too old, disabling automatic refreshes");
+      // console.log("[Refresh] Session too old, disabling automatic refreshes");
       setIsEnabled(false);
       return;
     }
@@ -165,15 +165,15 @@ export const useVisibilityRefresh = (
 
       // Try SWR mutate first
       if (await methods.mutateData()) {
-        console.log("[Refresh] Successfully refreshed via SWR mutate");
+        // console.log("[Refresh] Successfully refreshed via SWR mutate");
       }
       // If that fails, try router refresh
       else if (await methods.routerRefresh()) {
-        console.log("[Refresh] Successfully refreshed via router");
+        // console.log("[Refresh] Successfully refreshed via router");
       }
       // If all else fails, try a safe reload
       else if (methods.safeReload()) {
-        console.log("[Refresh] Performing safe page reload");
+        // console.log("[Refresh] Performing safe page reload");
         return; // Return early as page will reload
       }
       // If all methods fail, log the error
@@ -273,9 +273,9 @@ export const useVisibilityRefresh = (
           contentVersionRef.current &&
           serverVersion !== contentVersionRef.current
         ) {
-          console.log(
-            `[Refresh] Content version changed from ${contentVersionRef.current} to ${serverVersion}`
-          );
+          // console.log(
+          //   `[Refresh] Content version changed from ${contentVersionRef.current} to ${serverVersion}`
+          // );
           contentVersionRef.current = serverVersion;
           refreshData();
         } else if (serverVersion && !contentVersionRef.current) {
@@ -316,9 +316,9 @@ export const useVisibilityRefresh = (
 
     // Disable automatic refreshes after the max session age
     const disableTimer = setTimeout(() => {
-      console.log(
-        "[Refresh] Maximum session age reached, disabling automatic refreshes"
-      );
+      // console.log(
+      //   "[Refresh] Maximum session age reached, disabling automatic refreshes"
+      // );
       setIsEnabled(false);
     }, maxSessionAgeMs);
 
