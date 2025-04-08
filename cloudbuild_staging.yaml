@@ -73,6 +73,10 @@ steps:
       - "NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}"
       - "--build-arg"
       - "NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}"
+      - "--build-arg"
+      - "CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}"
+      - "--build-arg"
+      - "SENDGRID_API_KEY=${_SENDGRID_API_KEY}"
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
       - "-t"
@@ -154,6 +158,8 @@ steps:
           --set-env-vars="CHARTBEAT_HOST=${_CHARTBEAT_HOST}" \
           --set-env-vars="NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}" \
           --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
+          --set-env-vars="CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}" \
+          --set-env-vars="SENDGRID_API_KEY=${_SENDGRID_API_KEY}" \
           --quiet
 
         # Verify deployment
