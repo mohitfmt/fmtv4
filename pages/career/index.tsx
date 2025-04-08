@@ -65,7 +65,7 @@ const JobListing = ({
   postedDate,
   email,
 }: (typeof jobListings)[number] & { email: string }) => (
-  <div className="rounded-lg border border-gray-100 p-8">
+  <div className="rounded-lg border border-gray-300 p-8">
     <h2 className="text-2xl font-extrabold">{title}</h2>
     <p className="py-2">{description}</p>
 
