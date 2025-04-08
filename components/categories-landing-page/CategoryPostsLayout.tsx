@@ -6,7 +6,7 @@ import CategoryHeroPost from "../common/news-preview-cards/CategoryHeroPost";
 import AdSlot from "../common/AdSlot";
 import SectionHeading from "../common/SectionHeading";
 import CategoryWithLoadMore from "./SubCategoryWithLoadMore";
-import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface PostsData {
   edges: Array<{
@@ -42,7 +42,7 @@ export const CategoryPostsLayout = ({
   categoryName,
 }: CategoryPostsLayoutProps) => {
   // Use the visibility refresh hook
-  useVisibilityRefresh();
+  // useVisibilityRefresh();
 
   if (!posts || !currentPage) return null;
 

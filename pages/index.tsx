@@ -22,7 +22,7 @@ import { useSectionData } from "@/hooks/useSectionData";
 import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
 import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
 import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
-import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
@@ -62,7 +62,7 @@ export default function Home({
   columnists,
   trendingTags,
 }: any) {
-  useVisibilityRefresh();
+  // useVisibilityRefresh();
   const { posts: currentBusinessPosts, loading: businessLoading } =
     useSectionData(businessPosts, "business", 3);
 

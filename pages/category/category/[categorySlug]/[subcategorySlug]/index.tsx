@@ -9,7 +9,7 @@ import {
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
-import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
   subcategorySlug: string;
@@ -31,7 +31,7 @@ interface SeoConfig {
 type SeoSubCategoriesType = Record<string, SeoConfig>;
 
 const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
-  useVisibilityRefresh();
+  // useVisibilityRefresh();
   const AdsTargetingParams = {
     pos: "listing",
     section: [`${subcategorySlug}-landing-page`, "landing-page"],
