@@ -113,10 +113,7 @@ const Videos = ({ info }: VideosProps) => {
           property="og:description"
           content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
         />
-        <meta
-          property="og:url"
-          content="https://www.freemalaysiatoday.com/videos"
-        />
+        <meta property="og:url" content={`${siteConfig.baseUrl}/videos`} />
         <meta property="og:image" content={siteConfig.iconPath} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />

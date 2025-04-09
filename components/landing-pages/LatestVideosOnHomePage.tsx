@@ -177,7 +177,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
 
   // Secondary Video Card
   return (
-    <div className="group px-1 border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
+    <div className="group px-1 h-full flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       {/* Thumbnail Container */}
       <div className="relative overflow-hidden rounded-lg aspect-video">
         <Image
@@ -209,7 +209,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
       </div>
 
       {/* Content Below Thumbnail */}
-      <div className="my-2">
+      <div className="my-2 text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
         <h3>{title}</h3>
       </div>
     </div>
@@ -227,10 +227,7 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
 
       <div className="grid grid-cols-12 gap-4">
         {/* Feature Video */}
-        <Link
-          href={videos[0].node.uri}
-          className="col-span-12 lg:col-span-7 h-[400px]"
-        >
+        <Link href={videos[0].node.uri} className="col-span-12 lg:col-span-7">
           <HomeVideoCard video={videos[0].node} isFeature={true} />
         </Link>
 
