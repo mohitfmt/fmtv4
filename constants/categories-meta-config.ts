@@ -79,7 +79,7 @@ export const categoriesMetadataConfigs = {
       site: "@fmtoday",
     },
     alternates: {
-      canonical: "https://www.freemalaysiatoday.com/home-news/",
+      canonical: "https://www.freemalaysiatoday.com/news/",
       types: {
         "application/atom+xml": "feeds/atom/headlines/",
         "application/rss+xml": "feeds/rss/headlines/",
@@ -159,7 +159,7 @@ export const categoriesMetadataConfigs = {
       site: "@fmtoday",
     },
     alternates: {
-      canonical: "https://www.freemalaysiatoday.com/home-berita/",
+      canonical: "https://www.freemalaysiatoday.com/berita/",
       types: {
         "application/atom+xml": "feeds/atom/berita/",
         "application/rss+xml": "feeds/rss/berita/",
@@ -301,7 +301,7 @@ export const categoriesMetadataConfigs = {
       ],
     },
     alternates: {
-      canonical: "https://www.freemalaysiatoday.com/home-business/",
+      canonical: "https://www.freemalaysiatoday.com/business/",
       types: {
         "application/atom+xml": "feeds/atom/business/",
         "application/rss+xml": "feeds/rss/business/",
@@ -396,7 +396,7 @@ export const categoriesMetadataConfigs = {
       site: "@fmtoday",
     },
     alternates: {
-      canonical: "https://www.freemalaysiatoday.com/home-opinion/",
+      canonical: "https://www.freemalaysiatoday.com/opinion/",
       types: {
         "application/atom+xml": "feeds/atom/opinion/",
         "application/rss+xml": "feeds/rss/opinion/",
@@ -499,7 +499,7 @@ export const categoriesMetadataConfigs = {
       site: "@fmtoday",
     },
     alternates: {
-      canonical: "https://www.freemalaysiatoday.com/home-lifestyle/",
+      canonical: "https://www.freemalaysiatoday.com/lifestyle/",
       types: {
         "application/atom+xml": "feeds/atom/lifestyle/",
         "application/rss+xml": "feeds/rss/lifestyle/",
