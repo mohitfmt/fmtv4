@@ -5,6 +5,7 @@ import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import React, { lazy, ReactNode, Suspense } from "react";
+import siteConfig from "@/constants/site-config";
 
 const TrendingNSubCategoriesList = lazy(
   () => import("@/components/common/TrendingNSubCategoriesList")
@@ -94,7 +95,7 @@ const GalleryLayout: React.FC<GalleryLayoutProps> = ({
                 </div>
                 <div>
                   <ShareButtons
-                    url={safeUri}
+                    url={siteConfig.baseUrl + safeUri}
                     title={safeTitle}
                     mediaUrl={safeFeaturedImage || ""}
                     hashs={tagWithSlug}
