@@ -10,6 +10,7 @@ import VideoSidebarSkeleton from "@/components/skeletons/VideoSidebarSkeleton";
 import { getPlaylist } from "@/lib/api";
 import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
+import siteConfig from "@/constants/site-config";
 
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   video,
@@ -23,6 +24,7 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   const shareTitle = video?.node?.title;
   const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl;
   const tags = video?.node?.tags || [];
+  console.log("share :", shareUrl);
 
   const dfpTargetingParams = {
     pos: "listing",
@@ -175,7 +177,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         : video?.node?.title.toLowerCase().replace(/\s+/g, "-");
 
     // Generate metadata similar to App Router approach
-    const videoURL = `https://www.freemalaysiatoday.com/videos/${video?.node?.videoId}/${slugSuffix}/?playlistId=${playlistIdStr}`;
+    const videoURL = `${siteConfig.baseUrl}/videos/${video?.node?.videoId}/${slugSuffix}/?playlistId=${playlistIdStr}`;
     const thumbnailURL = video?.node?.featuredImage?.node?.mediaItemUrl || "";
     const publicationDate = video?.node?.dateGmt || "";
     const tags = video?.node?.tags ? video?.node?.tags?.join(", ") : "FMT";
