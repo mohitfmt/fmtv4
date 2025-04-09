@@ -1,15 +1,23 @@
-import React, { createContext, useEffect, useState, ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useState,
+  ReactNode,
+  useRef,
+} from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import { Toaster } from "@/components/ui/sonner";
 import { useMounted } from "@/hooks/useMounted";
 
+// Define the shape of our provider state
 interface ProviderState {
   isGPTInitialized: boolean;
   isComscoreInitialized: boolean;
   isChartbeatInitialized: boolean;
   isLotameInitialized: boolean;
-  pSUPERFLY: any;
+  pSUPERFLY: any; // Chartbeat instance type
 }
 
 const initialState: ProviderState = {
@@ -22,14 +30,13 @@ const initialState: ProviderState = {
 
 export const MultipurposeContext = createContext<ProviderState>(initialState);
 
-// Improved loadScript function with duplicate check.
+// Helper: load script with a duplicate check
 const loadScript = (
   src: string,
   onLoad: () => void,
   onError: (err: Event | string) => void
 ) => {
   if (document.querySelector(`script[src="${src}"]`)) {
-    // Script already exists; run onLoad immediately.
     onLoad();
     return;
   }
@@ -45,66 +52,63 @@ const handleMissingEnvVariable = (variableName: string) => {
   console.error(`Environment variable ${variableName} is missing.`);
 };
 
-// Use URL constructor for reliable canonical URL generation.
-const getCanonicalUrl = (pathname: string) => {
+// A utility to build a canonical URL; when includeOrigin is false,
+// we only return the pathname and query, which is later adjusted.
+const getCanonicalUrl = (
+  pathname: string,
+  options?: { includeOrigin?: boolean }
+) => {
+  const includeOrigin = options?.includeOrigin ?? true;
   if (typeof window !== "undefined") {
     try {
-      const url = new URL(pathname, window.location.origin);
-      return url.href;
+      const url = includeOrigin
+        ? new URL(pathname, window.location.origin)
+        : new URL(pathname, "http://dummy.com");
+      return includeOrigin ? url.href : url.pathname;
     } catch (err) {
       console.error("Error constructing canonical URL", err);
-      return `${window.location.origin}${pathname}`;
+      return pathname;
     }
   }
   return pathname;
 };
 
-const getPageMetadata = (pathname: string) => {
-  const fullPath = getCanonicalUrl(pathname);
-
-  const defaults = {
-    title: "Free Malaysia Today",
-    sections: "homepage",
-    authors: "FMT Reporters",
-  };
-
-  const f_title =
-    typeof document !== "undefined" && document.title
-      ? document.title.split("|")[0].trim()
-      : defaults.title;
-  let f_sections = defaults.sections;
-  let f_authors = defaults.authors;
-
-  if (typeof document !== "undefined") {
-    document.head.querySelectorAll("meta").forEach((meta) => {
-      const name = meta.getAttribute("name");
-      const content = meta.getAttribute("content");
-
-      if (name === "category" && content) {
-        f_sections = content;
-      }
-      if (name === "author" && content) {
-        f_authors = content;
-      }
-    });
-  }
-
-  return {
-    fullPath,
-    f_sections,
-    f_authors,
-    f_title,
-  };
-};
+interface PageMetadata {
+  fullPath: string;
+  sections: string;
+  authors: string;
+  title: string;
+}
 
 export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { mounted } = useMounted();
   const [state, setState] = useState<ProviderState>(initialState);
-  // Track the previous path to optionally use as the referrer for Chartbeat.
-  const [previousPath, setPreviousPath] = useState<string | null>(null);
+  // For Chartbeat: Track if it's the first mount to avoid triggering a virtual page view immediately.
+  const initialChartbeatMount = useRef(true);
 
-  // GPT Initialization
+  // Memoized function to extract page metadata similarly to your working ChartbeatProvider.
+  const getPageMetadata = useCallback((path: string): PageMetadata => {
+    // Use getCanonicalUrl with includeOrigin false, then clean any accidental double slashes.
+    const fullPath = getCanonicalUrl(path, { includeOrigin: false }).replace(
+      /\/\//,
+      "/"
+    );
+    const title = document.title?.split("|")[0].trim() ?? "Free Malaysia Today";
+    const metaTags = Array.from(document.head.querySelectorAll("meta"));
+    const sections =
+      metaTags
+        .find((meta) => meta.getAttribute("name") === "category")
+        ?.getAttribute("content") || "homepage";
+    const authors =
+      metaTags
+        .find((meta) => meta.getAttribute("name") === "author")
+        ?.getAttribute("content") || "FMT Reporters";
+    return { fullPath, sections, authors, title };
+  }, []);
+
+  /* --- GPT Initialization --- */
   useEffect(() => {
     if (!mounted) return;
 
@@ -131,7 +135,7 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [mounted]);
 
-  // Comscore Initialization
+  /* --- Comscore Initialization --- */
   useEffect(() => {
     const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
     if (!comscoreId) {
@@ -162,17 +166,15 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [mounted]);
 
-  // Track Comscore page views on route changes
+  // Comscore: Track page view on route changes.
   useEffect(() => {
     const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
     if (!state.isComscoreInitialized || !comscoreId) return;
-
     window._comscore = window._comscore || [];
     window._comscore.push({
       c1: "2",
       c2: comscoreId,
     });
-
     if (window.COMSCORE) {
       window.COMSCORE.beacon({
         c1: "2",
@@ -181,27 +183,28 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [pathname, mounted, state.isComscoreInitialized]);
 
-  // Chartbeat Initialization
+  /* --- Chartbeat Initialization & Virtual Pageviews --- */
   useEffect(() => {
+    // Check if Chartbeat is already initialized (from a previous mount) to avoid duplicate script injection.
+    if (window.pSUPERFLY) {
+      return;
+    }
+
+    const metadata = getPageMetadata(pathname);
     const cbUid = process.env.NEXT_PUBLIC_CB_UID;
     if (!cbUid) {
       handleMissingEnvVariable("NEXT_PUBLIC_CB_UID");
       return;
     }
 
-    const metaData = getPageMetadata(pathname);
-    if (!window._sf_async_config) {
-      window._sf_async_config = {} as Window["_sf_async_config"];
-    }
-
     window._sf_async_config = {
       uid: cbUid,
       domain: "freemalaysiatoday.com",
       useCanonical: true,
-      path: metaData.fullPath,
-      title: metaData.f_title,
-      sections: metaData.f_sections || "homepage",
-      authors: metaData.f_authors || "FMT Reporters",
+      path: metadata.fullPath,
+      title: metadata.title,
+      sections: metadata.sections,
+      authors: metadata.authors,
     };
 
     loadScript(
@@ -215,9 +218,21 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
       },
       (err) => console.error("Failed to load Chartbeat script:", err)
     );
-  }, [mounted, pathname]);
+  }, [mounted, pathname, getPageMetadata]);
 
-  // Lotame Initialization
+  // On subsequent route changes, trigger Chartbeat virtual page views.
+  useEffect(() => {
+    if (!state.pSUPERFLY) return;
+
+    if (initialChartbeatMount.current) {
+      initialChartbeatMount.current = false;
+    } else {
+      const metadata = getPageMetadata(pathname);
+      state.pSUPERFLY.virtualPage(metadata);
+    }
+  }, [pathname, searchParams, state.pSUPERFLY, getPageMetadata]);
+
+  /* --- Lotame Initialization --- */
   useEffect(() => {
     const lotameClientId = process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID;
     if (!lotameClientId) {
@@ -280,27 +295,6 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [mounted]);
 
-  // Chartbeat virtual pageviews on route changes.
-  useEffect(() => {
-    if (!state.pSUPERFLY) return;
-    const metaData = getPageMetadata(pathname);
-
-    // If your Chartbeat integration supports including a referrer,
-    // you could add it here. For example:
-    // metaData.referrer = previousPath;
-    state.pSUPERFLY.virtualPage({
-      sections: metaData.f_sections,
-      authors: metaData.f_authors,
-      title: metaData.f_title,
-      path: metaData.fullPath,
-      // Optionally pass a referrer if supported:
-      // referrer: previousPath,
-    });
-
-    // Update previousPath for the next page view.
-    setPreviousPath(pathname);
-  }, [pathname, state.pSUPERFLY]);
-
   return (
     <MultipurposeContext.Provider value={state}>
       <GoogleTagManager gtmId="GTM-M848LK5" />
@@ -310,3 +304,5 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     </MultipurposeContext.Provider>
   );
 };
+
+export default MultipurposeProvider;
