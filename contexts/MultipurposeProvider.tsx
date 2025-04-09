@@ -22,18 +22,22 @@ const initialState: ProviderState = {
 
 export const MultipurposeContext = createContext<ProviderState>(initialState);
 
+// Improved loadScript function with duplicate check.
 const loadScript = (
   src: string,
   onLoad: () => void,
   onError: (err: Event | string) => void
 ) => {
+  if (document.querySelector(`script[src="${src}"]`)) {
+    // Script already exists; run onLoad immediately.
+    onLoad();
+    return;
+  }
   const script = document.createElement("script");
   script.src = src;
   script.async = true;
   script.onload = onLoad;
-  script.onerror = (event: Event | string) => {
-    onError(event);
-  };
+  script.onerror = onError;
   document.head.appendChild(script);
 };
 
@@ -41,19 +45,18 @@ const handleMissingEnvVariable = (variableName: string) => {
   console.error(`Environment variable ${variableName} is missing.`);
 };
 
+// Use URL constructor for reliable canonical URL generation.
 const getCanonicalUrl = (pathname: string) => {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-  let url = `${origin}${pathname}`;
-  url = url.replace(/(https?:\/\/)|(\/\/)+/g, (match, protocol) => {
-    return protocol || "/";
-  });
-
-  if (!url.startsWith("http")) {
-    url = `https://${url}`;
+  if (typeof window !== "undefined") {
+    try {
+      const url = new URL(pathname, window.location.origin);
+      return url.href;
+    } catch (err) {
+      console.error("Error constructing canonical URL", err);
+      return `${window.location.origin}${pathname}`;
+    }
   }
-
-  return url;
+  return pathname;
 };
 
 const getPageMetadata = (pathname: string) => {
@@ -65,21 +68,26 @@ const getPageMetadata = (pathname: string) => {
     authors: "FMT Reporters",
   };
 
-  const f_title = document?.title?.split("|")[0]?.trim() || defaults.title;
+  const f_title =
+    typeof document !== "undefined" && document.title
+      ? document.title.split("|")[0].trim()
+      : defaults.title;
   let f_sections = defaults.sections;
   let f_authors = defaults.authors;
 
-  document.head.querySelectorAll("meta").forEach((meta) => {
-    const name = meta.getAttribute("name");
-    const content = meta.getAttribute("content");
+  if (typeof document !== "undefined") {
+    document.head.querySelectorAll("meta").forEach((meta) => {
+      const name = meta.getAttribute("name");
+      const content = meta.getAttribute("content");
 
-    if (name === "category" && content) {
-      f_sections = content;
-    }
-    if (name === "author" && content) {
-      f_authors = content;
-    }
-  });
+      if (name === "category" && content) {
+        f_sections = content;
+      }
+      if (name === "author" && content) {
+        f_authors = content;
+      }
+    });
+  }
 
   return {
     fullPath,
@@ -93,6 +101,8 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const { mounted } = useMounted();
   const [state, setState] = useState<ProviderState>(initialState);
+  // Track the previous path to optionally use as the referrer for Chartbeat.
+  const [previousPath, setPreviousPath] = useState<string | null>(null);
 
   // GPT Initialization
   useEffect(() => {
@@ -102,10 +112,10 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
       if (!window.googletag) {
         window.googletag = {} as typeof googletag;
       }
-      window?.googletag?.cmd?.push(() => {
-        const pubAds = window?.googletag?.pubads();
-        pubAds?.enableSingleRequest();
-        window?.googletag?.enableServices();
+      window.googletag.cmd.push(() => {
+        const pubAds = window.googletag.pubads();
+        pubAds.enableSingleRequest();
+        window.googletag.enableServices();
         setState((prevState) => ({ ...prevState, isGPTInitialized: true }));
       });
     };
@@ -124,18 +134,16 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
   // Comscore Initialization
   useEffect(() => {
     const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
-
     if (!comscoreId) {
       handleMissingEnvVariable("NEXT_PUBLIC_COMSCORE_ID");
       return;
     }
 
-    // Define COMSCORE tracking function
     const trackComscore = () => {
       window._comscore = window._comscore || [];
       window._comscore.push({
         c1: "2",
-        c2: comscoreId, // Now we know this is defined
+        c2: comscoreId,
       });
     };
 
@@ -157,17 +165,14 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
   // Track Comscore page views on route changes
   useEffect(() => {
     const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
-
     if (!state.isComscoreInitialized || !comscoreId) return;
 
-    // Rerun tracking on page change
     window._comscore = window._comscore || [];
     window._comscore.push({
       c1: "2",
       c2: comscoreId,
     });
 
-    // Force beacon send
     if (window.COMSCORE) {
       window.COMSCORE.beacon({
         c1: "2",
@@ -178,7 +183,8 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
 
   // Chartbeat Initialization
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_CB_UID) {
+    const cbUid = process.env.NEXT_PUBLIC_CB_UID;
+    if (!cbUid) {
       handleMissingEnvVariable("NEXT_PUBLIC_CB_UID");
       return;
     }
@@ -189,13 +195,13 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     }
 
     window._sf_async_config = {
-      uid: process.env.NEXT_PUBLIC_CB_UID,
+      uid: cbUid,
       domain: "freemalaysiatoday.com",
       useCanonical: true,
-      path: metaData?.fullPath?.trim(),
-      title: metaData?.f_title?.trim(),
-      sections: metaData?.f_sections?.trim() || "homepage",
-      authors: metaData?.f_authors?.trim() || "FMT Reporters",
+      path: metaData.fullPath,
+      title: metaData.f_title,
+      sections: metaData.f_sections || "homepage",
+      authors: metaData.f_authors || "FMT Reporters",
     };
 
     loadScript(
@@ -213,30 +219,31 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
 
   // Lotame Initialization
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID) {
+    const lotameClientId = process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID;
+    if (!lotameClientId) {
       handleMissingEnvVariable("NEXT_PUBLIC_LOTAME_CLIENT_ID");
       return;
     }
 
     const lotameScript = `
       !function() {
-        window.googletag = window?.googletag || {};
-        window.googletag.cmd = window?.googletag.cmd || [];
+        window.googletag = window.googletag || {};
+        window.googletag.cmd = window.googletag.cmd || [];
         var targetingKey = 'lotame';
-        var lotameClientId = '${process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID}';
-        var audLocalStorageKey = 'lotame_${process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID}_auds';
+        var lotameClientId = '${lotameClientId}';
+        var audLocalStorageKey = 'lotame_${lotameClientId}_auds';
         try {
-          var storedAuds = window?.localStorage.getItem(audLocalStorageKey) || '';
+          var storedAuds = window.localStorage.getItem(audLocalStorageKey) || '';
           if (storedAuds) {
             googletag.cmd.push(function() {
-              window?.googletag.pubads().setTargeting(targetingKey, storedAuds.split(','));
+              window.googletag.pubads().setTargeting(targetingKey, storedAuds.split(','));
             });
           }
         } catch(e) {}
         var audienceReadyCallback = function (profile) {
           var lotameAudiences = profile.getAudiences() || [];
           googletag.cmd.push(function() {
-            window?.googletag.pubads().setTargeting(targetingKey, lotameAudiences);
+            window.googletag.pubads().setTargeting(targetingKey, lotameAudiences);
           });
         };
         var lotameTagInput = {
@@ -259,7 +266,7 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
       `data:text/javascript,${encodeURIComponent(lotameScript)}`,
       () => {
         loadScript(
-          `https://tags.crwdcntrl.net/lt/c/${process.env.NEXT_PUBLIC_LOTAME_CLIENT_ID}/lt.min.js`,
+          `https://tags.crwdcntrl.net/lt/c/${lotameClientId}/lt.min.js`,
           () => {
             setState((prevState) => ({
               ...prevState,
@@ -273,17 +280,25 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [mounted]);
 
-  // Chartbeat virtual page views
+  // Chartbeat virtual pageviews on route changes.
   useEffect(() => {
     if (!state.pSUPERFLY) return;
-
     const metaData = getPageMetadata(pathname);
+
+    // If your Chartbeat integration supports including a referrer,
+    // you could add it here. For example:
+    // metaData.referrer = previousPath;
     state.pSUPERFLY.virtualPage({
       sections: metaData.f_sections,
       authors: metaData.f_authors,
       title: metaData.f_title,
       path: metaData.fullPath,
+      // Optionally pass a referrer if supported:
+      // referrer: previousPath,
     });
+
+    // Update previousPath for the next page view.
+    setPreviousPath(pathname);
   }, [pathname, state.pSUPERFLY]);
 
   return (
