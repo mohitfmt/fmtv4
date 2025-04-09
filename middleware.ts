@@ -85,8 +85,8 @@ function getCacheDurations(
     case "low":
       // Low Activity period (12:30 AM - 5:00 AM): Very few updates
       return {
-        staleDuration: isArticlePage ? 3600 : 1800, // 1 hour for articles, 30 min for homepage/categories
-        errorDuration: isArticlePage ? 7200 : 3600, // 2 hours for articles, 1 hour for homepage/categories
+        staleDuration: isArticlePage ? 360 : 180, // 1 hour for articles, 30 min for homepage/categories
+        errorDuration: isArticlePage ? 720 : 360, // 2 hours for articles, 1 hour for homepage/categories
       };
 
     case "high":
