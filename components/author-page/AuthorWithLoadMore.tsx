@@ -77,7 +77,7 @@ const AuthorPostsWithLoadMore = ({
 
   return (
     <div className="mt-8">
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-2 gap-4">
         {posts.map(({ node }) => (
           <TTBNewsPreview
             isBig={bigImage}

@@ -205,7 +205,7 @@ export default function Home({
             <Link href="/news">
               <SectionHeading sectionName="Breaking" />
             </Link>
-            <div className="grid gap-2 grid-cols-2">
+            <div className="grid gap-2 gap-y-4 grid-cols-2">
               {highlightPosts?.map((highlightPost: any) => (
                 <TTBNewsPreview key={highlightPost?.slug} {...highlightPost} />
               ))}
