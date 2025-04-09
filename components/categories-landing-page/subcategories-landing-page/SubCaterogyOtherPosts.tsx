@@ -77,7 +77,7 @@ const SubCategoryOtherPosts = ({
 
   return (
     <div className="mt-8">
-      <div className="grid grid-cols-2 gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-2">
         {posts.map(({ node }) => (
           <TTBNewsPreview
             {...node}

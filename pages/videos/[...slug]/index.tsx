@@ -24,7 +24,6 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   const shareTitle = video?.node?.title;
   const shareThumbnail = video?.node?.featuredImage?.node?.mediaItemUrl;
   const tags = video?.node?.tags || [];
-  console.log("share :", shareUrl);
 
   const dfpTargetingParams = {
     pos: "listing",

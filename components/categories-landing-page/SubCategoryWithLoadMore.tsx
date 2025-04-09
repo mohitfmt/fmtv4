@@ -217,7 +217,7 @@ const SubCategoriesWithLoadMore = ({
             />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentPosts.slice(2, 6).map(({ node }) => (
             <LTRNewsPreview {...node} key={`ltr-${node.id || node.slug}`} />
           ))}
