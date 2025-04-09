@@ -182,12 +182,12 @@ export function middleware(request: NextRequest) {
     // Set cache headers
     response.headers.set(
       "Cache-Control",
-      `max-age=60, s-maxage=60, stale-while-revalidate=60, stale-if-error=30, public`
+      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
     );
 
     response.headers.set(
       "Cloudflare-CDN-Cache-Control",
-      `max-age=60, s-maxage=60, stale-while-revalidate=60, stale-if-error=30, public`
+      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
     );
 
     // Add Vary header to differentiate cached versions
@@ -201,7 +201,7 @@ export function middleware(request: NextRequest) {
       const malaysiaTime = getMalaysiaTime();
       response.headers.set(
         "X-Cache-Debug",
-        `activity=high, stale=60s, error=180s, malaysia_time=${malaysiaTime.toISOString()}`
+        `activity=${activityLevel}, stale=${staleDuration}s, error=${errorDuration}s, malaysia_time=${malaysiaTime.toISOString()}`
       );
     }
   } else {
