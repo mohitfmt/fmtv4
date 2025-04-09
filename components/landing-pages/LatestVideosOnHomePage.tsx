@@ -94,7 +94,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
     video;
   if (isFeature) {
     return (
-      <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[450px] ">
+      <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[460px] ">
         {/* Thumbnail with better aspect ratio handling */}
         <div className="relative h-full">
           <Image
@@ -177,7 +177,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
 
   // Secondary Video Card
   return (
-    <div className="group">
+    <div className="group px-1 border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       {/* Thumbnail Container */}
       <div className="relative overflow-hidden rounded-lg aspect-video">
         <Image
@@ -209,7 +209,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
       </div>
 
       {/* Content Below Thumbnail */}
-      <div className="mt-2">
+      <div className="my-2">
         <h3>{title}</h3>
       </div>
     </div>
