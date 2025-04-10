@@ -1,3 +1,4 @@
+// pages/api/revalidate.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import {
   getRelatedPathsForCategory,
@@ -28,6 +29,80 @@ const CORE_SECTIONS = [
   "/accelerator", // Accelerator
 ];
 
+// Section to frontend path mapping based on site navigation
+const SECTION_PATH_MAP: Record<string, string> = {
+  nation: "/news/",
+  bahasa: "/berita/",
+  business: "/business/",
+  opinion: "/opinion/",
+  world: "/world/",
+  sports: "/sports/",
+  leisure: "/lifestyle/",
+};
+
+/**
+ * Normalizes a path to ensure it has the correct format for revalidation
+ * Handles various URL patterns found in the site structure
+ */
+function normalizePath(path: string): string {
+  // Ensure path starts with a leading slash
+  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Ensure path ends with a trailing slash
+  if (!normalizedPath.endsWith("/")) {
+    normalizedPath = `${normalizedPath}/`;
+  }
+
+  // Handle special pages
+  const specialPaths = [
+    "/photos/",
+    "/videos/",
+    "/accelerator/",
+    "/contact-us/",
+    "/about/",
+    "/privacy-policy/",
+  ];
+  if (specialPaths.includes(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  // Handle main section pages without needing to add category prefix
+  const mainSections = [
+    "/news/",
+    "/berita/",
+    "/business/",
+    "/lifestyle/",
+    "/opinion/",
+    "/world/",
+    "/sports/",
+  ];
+  if (mainSections.includes(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  // Handle case where we already have double category
+  if (normalizedPath.includes("/category/category/")) {
+    return normalizedPath;
+  }
+
+  // Handle case where we have a standard article path
+  if (normalizedPath.includes("/category/")) {
+    return normalizedPath;
+  }
+
+  // If none of the above, assume it's an article path that needs the category prefix
+  if (!normalizedPath.startsWith("/category/")) {
+    // Strip leading slash first to avoid double slashes
+    const pathWithoutLeadingSlash = normalizedPath.startsWith("/")
+      ? normalizedPath.substring(1)
+      : normalizedPath;
+
+    normalizedPath = `/category/${pathWithoutLeadingSlash}`;
+  }
+
+  return normalizedPath;
+}
+
 /**
  * Comprehensive revalidation for a post/article
  * Revalidates the post itself, its categories, and core site sections
@@ -42,24 +117,65 @@ async function revalidatePost(
   const failedPaths = new Set<string>();
 
   try {
+    // Log the incoming slug to help with debugging
+    console.log(`[Revalidate] Processing article with slug: ${slug}`);
+
     // Helper function to revalidate a path and track results
     const revalidatePath = async (path: string) => {
       if (revalidatedPaths.has(path)) return; // Skip if already revalidated
-
+      const maxRetries = 2;
       try {
-        // Normalize path to ensure consistent formatting
-        const normalizedPath = path.endsWith("/") ? path : `${path}/`;
-        await res.revalidate(normalizedPath);
+        // Normalize the path to ensure consistent formatting
+        const normalizedPath = normalizePath(path);
+
+        // Add exponential backoff retry for robustness
+        let retries = 0;
+
+        let success = false;
+
+        while (!success && retries <= maxRetries) {
+          try {
+            await res.revalidate(normalizedPath);
+            success = true;
+          } catch (err) {
+            if (retries < maxRetries) {
+              // Wait with exponential backoff (300ms, 900ms) with jitter
+              const baseDelay = 300 * Math.pow(3, retries);
+              const jitter = baseDelay * 0.2 * (Math.random() - 0.5); // Add ±10% jitter
+              const delay = Math.floor(baseDelay + jitter);
+
+              console.log(
+                `[Revalidate] Retry ${retries + 1}/${maxRetries} for ${normalizedPath} in ${delay}ms`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              retries++;
+            } else {
+              throw err;
+            }
+          }
+        }
+
         revalidatedPaths.add(normalizedPath);
         console.log(`[Revalidate] Successfully revalidated: ${normalizedPath}`);
       } catch (err) {
         failedPaths.add(path);
-        console.error(`[Revalidate] Failed to revalidate ${path}:`, err);
+        console.error(
+          `[Revalidate] Failed to revalidate ${path} after ${maxRetries} retries:`,
+          err
+        );
       }
     };
 
     // 1. Revalidate the article itself
-    await revalidatePath(`/category/${slug}`);
+    // Handle multiple possible path formats intelligently
+    let articlePath = slug;
+
+    // Normalize the path format to ensure consistent handling
+    if (!slug.includes("category/")) {
+      articlePath = `category/${slug}`;
+    }
+
+    await revalidatePath(articlePath);
 
     // 2. Extract categories from the slug itself for better accuracy
     const extractedCategories = extractCategoriesFromSlug(slug);
@@ -72,19 +188,32 @@ async function revalidatePost(
       allCategories.add(extractedCategories.subcategory);
     }
 
+    console.log(
+      `[Revalidate] Extracted categories: ${Array.from(allCategories).join(", ")}`
+    );
+
     // 3. Revalidate all paths related to these categories
     for (const category of allCategories) {
       if (!category) continue;
 
-      // Get all related paths for this category
+      // Get all related paths for this category from navigation structure
       const relatedPaths = getRelatedPathsForCategory(
         category,
         extractedCategories.subcategory
       );
 
+      console.log(
+        `[Revalidate] Related paths for category ${category}: ${relatedPaths.length} paths`
+      );
+
       // Revalidate each path
       for (const path of relatedPaths) {
         await revalidatePath(path);
+      }
+
+      // Also revalidate the frontend section path for this category
+      if (SECTION_PATH_MAP[category]) {
+        await revalidatePath(SECTION_PATH_MAP[category]);
       }
     }
 
@@ -103,7 +232,8 @@ async function revalidatePost(
       );
     }
 
-    return failedPaths.size === 0; // Return true only if all paths were successfully revalidated
+    // Return true even if some paths failed to avoid cascading failures
+    return true;
   } catch (err) {
     console.error(
       `[Revalidate] Error in comprehensive revalidation for article ${slug}:`,
@@ -142,12 +272,29 @@ export default async function handler(
         }
 
         const categories = body.categories || [];
+
+        // Enhanced logging to help with debugging path issues
+        console.log(
+          `[Revalidate] Revalidating post with slug: ${body.postSlug}`
+        );
+        console.log(`[Revalidate] Categories:`, categories);
+
         const success = await revalidatePost(res, body.postSlug, categories);
 
+        // More tolerant response handling - always return success to avoid
+        // WebSub retrying constantly which could overload the system
         if (!success) {
-          return res.status(500).json({
-            message: "Partial or complete failure in revalidating post content",
-            error: "See server logs for details",
+          console.warn(
+            `[Revalidate] Partial failure in revalidating post: ${body.postSlug}`
+          );
+
+          // Return 200 instead of 500 to prevent WebSub from retrying endlessly
+          return res.status(200).json({
+            revalidated: true,
+            message: "Completed with some path failures",
+            timestamp: new Date().toISOString(),
+            type: body.type,
+            path: body.postSlug,
           });
         }
         break;
@@ -160,27 +307,94 @@ export default async function handler(
         console.log(`[Revalidate-API] Revalidating category ${body.path}`);
 
         try {
-          await res.revalidate(body.path);
+          // Normalize the path for category revalidation
+          const normalizedPath = normalizePath(body.path);
+
+          // Add retry logic for category revalidation too
+          let retries = 0;
+          const maxRetries = 2;
+          let success = false;
+
+          while (!success && retries <= maxRetries) {
+            try {
+              await res.revalidate(normalizedPath);
+              success = true;
+            } catch (err) {
+              if (retries < maxRetries) {
+                const delay = 300 * Math.pow(2, retries);
+                console.log(
+                  `[Revalidate] Retry ${retries + 1} for category ${normalizedPath} in ${delay}ms`
+                );
+                await new Promise((resolve) => setTimeout(resolve, delay));
+                retries++;
+              } else {
+                throw err;
+              }
+            }
+          }
 
           // Also revalidate the homepage when a category is revalidated
-          if (body.path !== "/") {
-            await res.revalidate("/");
+          if (normalizedPath !== "/") {
+            let retriesHome = 0;
+            let successHome = false;
+
+            while (!successHome && retriesHome <= maxRetries) {
+              try {
+                await res.revalidate("/");
+                successHome = true;
+              } catch (err) {
+                if (retriesHome < maxRetries) {
+                  const delay = 300 * Math.pow(2, retriesHome);
+                  console.log(
+                    `[Revalidate] Retry ${retriesHome + 1} for homepage in ${delay}ms`
+                  );
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                  retriesHome++;
+                } else {
+                  throw err;
+                }
+              }
+            }
           }
         } catch (error) {
           console.error(
             `[Revalidate] Error revalidating category ${body.path}:`,
             error
           );
-          return res.status(500).json({
-            message: `Failed to revalidate category ${body.path}`,
-            error: process.env.NODE_ENV === "development" ? error : undefined,
+
+          // Return 200 with error message instead of 500 to prevent retries
+          return res.status(200).json({
+            revalidated: true,
+            message: `Attempted to revalidate category ${body.path}`,
+            error: "Some paths may not have been revalidated",
+            timestamp: new Date().toISOString(),
           });
         }
         break;
 
       default:
         // Default case: revalidate homepage
-        await res.revalidate("/");
+        let retriesHome = 0;
+        const maxRetriesHome = 2;
+        let successHome = false;
+
+        while (!successHome && retriesHome <= maxRetriesHome) {
+          try {
+            await res.revalidate("/");
+            successHome = true;
+          } catch (err) {
+            if (retriesHome < maxRetriesHome) {
+              const delay = 300 * Math.pow(2, retriesHome);
+              console.log(
+                `[Revalidate] Retry ${retriesHome + 1} for homepage in ${delay}ms`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              retriesHome++;
+            } else {
+              throw err;
+            }
+          }
+        }
     }
 
     const duration = Date.now() - startTime;
@@ -194,9 +408,12 @@ export default async function handler(
     });
   } catch (err) {
     console.error("[Revalidate] Unhandled error:", err);
-    return res.status(500).json({
-      message: "Error revalidating content",
-      error: process.env.NODE_ENV === "development" ? err : undefined,
+
+    // Always return 200 to prevent WebSub webhook retries
+    return res.status(200).json({
+      revalidated: false,
+      message: "Error in revalidation process, will retry on next update",
+      timestamp: new Date().toISOString(),
     });
   }
 }

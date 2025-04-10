@@ -173,13 +173,13 @@ steps:
           --region=${_REGION} \
           --quiet
 
-        if [ $? -eq 0 ]; then
-          # Purge Cloudflare cache only if deployment successful
-          echo "🧹 Purging Cloudflare cache..."
-          curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'
+        # if [ $? -eq 0 ]; then
+        #   # Purge Cloudflare cache only if deployment successful
+        #   echo "🧹 Purging Cloudflare cache..."
+        #   curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
+        #     -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
+        #     -H "Content-Type: application/json" \
+        #     --data '{"purge_everything":true}'
           
           echo "✨ Deployment completed successfully!"
         else
