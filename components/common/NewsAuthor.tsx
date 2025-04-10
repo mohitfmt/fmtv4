@@ -19,7 +19,7 @@ const NewsAuthor = ({ author }: any) => {
         className="flex items-center font-bold"
         itemProp="url"
       >
-        <span className="mr-1">By:</span>
+        {/* <span className="mr-1">By:</span> */}
         <span className="underline underline-offset-4" itemProp="name">
           {name}
         </span>

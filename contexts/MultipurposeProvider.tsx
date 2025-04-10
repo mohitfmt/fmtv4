@@ -201,12 +201,11 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
       uid: cbUid,
       domain: "freemalaysiatoday.com",
       useCanonical: true,
-      path: metadata.fullPath,
-      title: metadata.title,
-      sections: metadata.sections,
-      authors: metadata.authors,
+      path: metadata.fullPath || pathname,
+      title: metadata.title || "Free Malaysia Today",
+      sections: metadata.sections || "homepage",
+      authors: metadata.authors || "FMT Reporters",
     };
-
     loadScript(
       "https://static.chartbeat.com/js/chartbeat.js",
       () => {
