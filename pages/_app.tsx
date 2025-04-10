@@ -103,7 +103,7 @@ export default function App({
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
         {/* Viewport for responsiveness */}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         {/* Robots directives for indexing */}
         <meta
