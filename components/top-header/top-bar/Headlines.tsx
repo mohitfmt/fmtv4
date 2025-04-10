@@ -1,54 +1,137 @@
-import { useState, useCallback } from "react";
-import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
-import useSWR from "swr";
-import HeadlineSkeleton from "@/components/skeletons/HeadlineSkeleton";
+'use client'
+
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { ArrowRightIcon } from "lucide-react"
+import HeadlineSkeleton from "@/components/skeletons/HeadlineSkeleton"
+import { GET_HEADLINES } from "@/lib/gql-queries/get-headlines"
+
+const API_URL =
+  process.env.NEXT_PUBLIC_WORDPRESS_API_URL ||
+  "https://cms.freemalaysiatoday.com/graphql"
 
 type Post = {
-  id: string;
-  uri: string;
-  title: string;
-  categoryName: string;
-};
-
-// Separate fetcher function with error handling
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error("Failed to fetch headlines");
-  }
-  return res.json();
-};
+  id?: string
+  title: string
+  uri: string
+  categoryName: string
+}
 
 // Category mapping in a constant
 const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   "super-highlight": "breaking news",
   "top-news": "just in",
   "top-bm": "berita",
-  leisure: "Lifestyle",
-};
+  "leisure": "Lifestyle",
+  "sports": "Sports",
+  "opinion": "Opinion",
+  "business": "Business",
+  "world": "World",
+  "video": "Video",
+}
 
 const Headlines = () => {
-  const [isHovering, setIsHovering] = useState(false);
+  const [isHovering, setIsHovering] = useState(false)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  const {
-    data: posts,
-    error,
-    isLoading,
-    mutate,
-  } = useSWR<Post[]>("/api/top-news", fetcher, {
-    fallbackData: [],
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-    revalidateIfStale: true,
-    refreshInterval: 60000,
-    dedupingInterval: 30000, // Prevent duplicate requests
-  });
+  const categories = [
+    "super-highlight",
+    "top-news",
+    "business",
+    "opinion",
+    "world",
+    "leisure",
+    "sports",
+    "top-bm",
+    "video",
+  ]
+
+  const fetchCategoryPosts = async (category: string) => {
+    try {
+      console.log(`Fetching posts for category: ${category}`)
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: GET_HEADLINES,
+          variables: {
+            categoryName: category,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        console.error(
+          `HTTP error for ${category}:`,
+          response.status,
+          response.statusText
+        )
+        throw new Error(`Failed to fetch ${category} headlines`)
+      }
+
+      const responseData = await response.json()
+      console.log(
+        `Response for ${category}:`,
+        JSON.stringify(responseData, null, 2)
+      )
+
+      // Check if there are any posts
+      if (responseData.data?.posts?.edges?.length > 0) {
+        const post = responseData.data.posts.edges[0].node
+        return {
+          title: post.title,
+          uri: post.uri,
+          categoryName: category,
+        }
+      }
+
+      console.log(`No posts found for category: ${category}`)
+      return null
+    } catch (err) {
+      console.error(`Complete error fetching ${category} posts:`, err)
+      return null
+    }
+  }
+
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true)
+
+      // Process all categories
+      const results = await Promise.all(
+        categories.map((category) => fetchCategoryPosts(category))
+      )
+
+      // Filter out null results
+      const filteredResults = results.filter(Boolean) as Post[]
+
+      console.log("Final filtered results:", filteredResults)
+
+      setPosts(filteredResults)
+      setIsLoading(false)
+    } catch (err) {
+      console.error("Failed to load headlines:", err)
+      setError(
+        err instanceof Error ? err : new Error("Failed to load headlines")
+      )
+      setIsLoading(false)
+    }
+  }
+
+  // Initial fetch
+  useEffect(() => {
+    fetchPosts()
+  }, [])
 
   // Memoized category name function
   const getCategoryDisplayName = useCallback((catName: string): string => {
-    return CATEGORY_DISPLAY_NAMES[catName.toLowerCase()] || catName;
-  }, []);
+    return CATEGORY_DISPLAY_NAMES[catName.toLowerCase()] || catName
+  }, [])
 
   // Error handling with retry
   if (error) {
@@ -56,13 +139,16 @@ const Headlines = () => {
       <div className="flex items-center gap-2 overflow-hidden">
         <HeadlineSkeleton />
         <button
-          onClick={() => mutate()}
+          onClick={() => {
+            setError(null)
+            fetchPosts()
+          }}
           className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100"
         >
           Retry
         </button>
       </div>
-    );
+    )
   }
 
   return (
@@ -91,7 +177,7 @@ const Headlines = () => {
           ) : (
             posts?.map((post, index) => (
               <Link
-                key={`${post.id}-${index}`}
+                key={`${post.categoryName}-${index}`}
                 className="mx-1 inline-flex items-center group"
                 href={post.uri}
                 prefetch={false}
@@ -111,7 +197,7 @@ const Headlines = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Headlines;
+export default Headlines
