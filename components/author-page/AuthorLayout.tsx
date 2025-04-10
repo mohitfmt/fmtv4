@@ -72,7 +72,7 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
               </div>
               <div className="flex flex-col gap-2">
                 <h1 id="author-name" className="text-4xl font-medium">
-                  {author.name}
+                  {author?.name}
                 </h1>
                 {hasDescription && (
                   <p
