@@ -50,7 +50,7 @@ const Headlines = () => {
 
   const fetchCategoryPosts = async (category: string) => {
     try {
-      console.log(`Fetching posts for category: ${category}`)
+      // console.log(`Fetching posts for category: ${category}`)
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -75,10 +75,7 @@ const Headlines = () => {
       }
 
       const responseData = await response.json()
-      console.log(
-        `Response for ${category}:`,
-        JSON.stringify(responseData, null, 2)
-      )
+   
 
       // Check if there are any posts
       if (responseData.data?.posts?.edges?.length > 0) {
@@ -90,7 +87,7 @@ const Headlines = () => {
         }
       }
 
-      console.log(`No posts found for category: ${category}`)
+      // console.log(`No posts found for category: ${category}`)
       return null
     } catch (err) {
       console.error(`Complete error fetching ${category} posts:`, err)
@@ -110,7 +107,7 @@ const Headlines = () => {
       // Filter out null results
       const filteredResults = results.filter(Boolean) as Post[]
 
-      console.log("Final filtered results:", filteredResults)
+      // console.log("Final filtered results:", filteredResults)
 
       setPosts(filteredResults)
       setIsLoading(false)

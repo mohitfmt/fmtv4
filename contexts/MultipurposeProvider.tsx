@@ -14,8 +14,8 @@ import { useMounted } from "@/hooks/useMounted";
 // Define proper types for third-party libraries
 interface ChartbeatInstance {
   virtualPage: (
-    path: string,
-    title: string,
+    config: VirtualPageConfig | string,
+    title?: string,
     options?: {
       sections?: string;
       authors?: string;
@@ -26,24 +26,40 @@ interface ChartbeatInstance {
   [key: string]: any;
 }
 
+interface VirtualPageConfig {
+  sections?: string;
+  authors?: string;
+  title?: string;
+  path?: string;
+  fullPath?: string;
+}
+
 // Define the shape of our provider state
 interface ProviderState {
   isGPTInitialized: boolean;
   isComscoreInitialized: boolean;
-  isChartbeatInitialized: boolean;
   isLotameInitialized: boolean;
-  pSUPERFLY: ChartbeatInstance | null; // Improved type for Chartbeat instance
 }
 
-const initialState: ProviderState = {
+interface ChartbeatContextType {
+  pSUPERFLY: ChartbeatInstance | null;
+}
+
+const initialProviderState: ProviderState = {
   isGPTInitialized: false,
   isComscoreInitialized: false,
-  isChartbeatInitialized: false,
   isLotameInitialized: false,
+};
+
+const initialChartbeatState: ChartbeatContextType = {
   pSUPERFLY: null,
 };
 
-export const MultipurposeContext = createContext<ProviderState>(initialState);
+export const MultipurposeContext =
+  createContext<ProviderState>(initialProviderState);
+export const ChartbeatContext = createContext<ChartbeatContextType>(
+  initialChartbeatState
+);
 
 // Helper: load script with a duplicate check
 const loadScript = (
@@ -100,23 +116,22 @@ interface PageMetadata {
   sections: string;
   authors: string;
   title: string;
-  referrer?: string; // Add referrer for proper tracking
+  referrer?: string;
 }
 
-export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
+// Separate Chartbeat Provider that won't cause re-renders on parent components
+export const ChartbeatProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { mounted } = useMounted();
-  const [state, setState] = useState<ProviderState>(initialState);
-  // For Chartbeat: Track if it's the first mount to avoid triggering a virtual page view immediately.
-  const initialChartbeatMount = useRef(true);
-  // Track previous path to accurately set referrer
+  const [pSUPERFLY, setPSUPERFLY] = useState<ChartbeatInstance | null>(null);
+  const initialMount = useRef(true);
+  const chartbeatDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastNavigationTimeRef = useRef(0);
   const previousPathRef = useRef("");
 
-  // Memoized function to extract page metadata
+  // Get page metadata
   const getPageMetadata = useCallback(
     (path: string, prevPath?: string): PageMetadata => {
-      // Use getCanonicalUrl with includeOrigin false, then clean any accidental double slashes.
       const fullPath = getCanonicalUrl(path, searchParams, {
         includeOrigin: false,
       }).replace(/\/\//, "/");
@@ -133,7 +148,6 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
           .find((meta) => meta.getAttribute("name") === "author")
           ?.getAttribute("content") || "FMT Reporters";
 
-      // Include referrer information for accurate tracking
       const referrer = prevPath
         ? getCanonicalUrl(prevPath, undefined, { includeOrigin: true })
         : document.referrer || "";
@@ -142,6 +156,127 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     },
     [searchParams]
   );
+
+  // Initialize Chartbeat only once
+  useEffect(() => {
+    // Don't re-initialize if already initialized
+    if (window.pSUPERFLY || pSUPERFLY) {
+      if (window.pSUPERFLY && !pSUPERFLY) {
+        setPSUPERFLY(window.pSUPERFLY);
+      }
+      return;
+    }
+
+    const cbUid = process.env.NEXT_PUBLIC_CB_UID;
+    if (!cbUid) {
+      handleMissingEnvVariable("NEXT_PUBLIC_CB_UID");
+      return;
+    }
+
+    // Initial page metadata
+    const metadata = getPageMetadata(pathname);
+    previousPathRef.current = pathname;
+
+    // Configure Chartbeat
+    window._sf_async_config = window._sf_async_config || {};
+    window._sf_async_config.uid = cbUid;
+    window._sf_async_config.domain = "freemalaysiatoday.com";
+    window._sf_async_config.useCanonical = true;
+    window._sf_async_config.path = metadata.fullPath || pathname;
+    window._sf_async_config.title = metadata.title || "Free Malaysia Today";
+    window._sf_async_config.sections = metadata.sections || "homepage";
+    window._sf_async_config.authors = metadata.authors || "FMT Reporters";
+
+    // Load Chartbeat script in a non-blocking way
+    loadScript(
+      "https://static.chartbeat.com/js/chartbeat.js",
+      () => {
+        if (window.pSUPERFLY) {
+          setPSUPERFLY(window.pSUPERFLY);
+        }
+      },
+      (err) => console.error("Failed to load Chartbeat script:", err)
+    );
+  }, [pathname, getPageMetadata]);
+
+  // Handle page changes with debounce for Chartbeat
+  useEffect(() => {
+    if (!pSUPERFLY) return;
+
+    // Skip first mount
+    if (initialMount.current) {
+      initialMount.current = false;
+      return;
+    }
+
+    // Don't track if path hasn't changed
+    if (pathname === previousPathRef.current) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (chartbeatDebounceTimerRef.current) {
+      clearTimeout(chartbeatDebounceTimerRef.current);
+    }
+
+    // Determine how long to wait based on time since last navigation
+    const now = Date.now();
+    const timeSinceLastNav = now - lastNavigationTimeRef.current;
+    const debounceTime = timeSinceLastNav < 300 ? 600 : 300;
+
+    lastNavigationTimeRef.current = now;
+
+    // Schedule virtualPage call with debounce
+    chartbeatDebounceTimerRef.current = setTimeout(() => {
+      try {
+        const metadata = getPageMetadata(pathname, previousPathRef.current);
+
+        // The exact API call depends on what version of Chartbeat you're using
+        // Both formats are supported here
+        if (typeof pSUPERFLY.virtualPage === "function") {
+          // Try the object format first (newer API)
+          try {
+            pSUPERFLY.virtualPage({
+              path: metadata.fullPath,
+              title: metadata.title,
+              sections: metadata.sections,
+              authors: metadata.authors,
+            });
+          } catch (e) {
+            // Fall back to the string/options format (older API)
+            pSUPERFLY.virtualPage(metadata.fullPath, metadata.title, {
+              sections: metadata.sections,
+              authors: metadata.authors,
+              referrer: metadata.referrer,
+            });
+          }
+        }
+
+        // Update previous path
+        previousPathRef.current = pathname;
+      } catch (error) {
+        console.error("Error in Chartbeat tracking:", error);
+      }
+    }, debounceTime);
+
+    // Clean up on unmount or re-run
+    return () => {
+      if (chartbeatDebounceTimerRef.current) {
+        clearTimeout(chartbeatDebounceTimerRef.current);
+      }
+    };
+  }, [pathname, pSUPERFLY, getPageMetadata]);
+
+  return (
+    <ChartbeatContext.Provider value={{ pSUPERFLY }}>
+      {children}
+    </ChartbeatContext.Provider>
+  );
+};
+
+export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
+  const { mounted } = useMounted();
+  const [state, setState] = useState<ProviderState>(initialProviderState);
 
   /* --- GPT Initialization --- */
   useEffect(() => {
@@ -175,11 +310,6 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       initializeGPT();
     }
-
-    // Clean up function for the effect
-    return () => {
-      // No specific cleanup needed for GPT, but good practice to include
-    };
   }, [mounted]);
 
   /* --- Comscore Initialization --- */
@@ -213,19 +343,14 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
       },
       (err) => console.error("Failed to load Comscore script:", err)
     );
-
-    // Cleanup function
-    return () => {
-      // No specific cleanup needed for Comscore
-    };
   }, [mounted]);
 
   // Comscore: Track page view on route changes.
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !state.isComscoreInitialized) return;
 
     const comscoreId = process.env.NEXT_PUBLIC_COMSCORE_ID;
-    if (!state.isComscoreInitialized || !comscoreId) return;
+    if (!comscoreId) return;
 
     try {
       window._comscore = window._comscore || [];
@@ -242,149 +367,7 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error tracking Comscore pageview:", error);
     }
-
-    // Cleanup function
-    return () => {
-      // No specific cleanup needed
-    };
-  }, [pathname, mounted, state.isComscoreInitialized]);
-
-  /* --- Chartbeat Initialization --- */
-  useEffect(() => {
-    if (!mounted) return;
-
-    // Don't initiate if we already have a valid Chartbeat instance
-    if (window._sf_async_config && window.pSUPERFLY) {
-      setState((prevState) => ({
-        ...prevState,
-        isChartbeatInitialized: true,
-        pSUPERFLY: window.pSUPERFLY,
-      }));
-      return;
-    }
-
-    const cbUid = process.env.NEXT_PUBLIC_CB_UID;
-    if (!cbUid) {
-      handleMissingEnvVariable("NEXT_PUBLIC_CB_UID");
-      return;
-    }
-
-    try {
-      // Set up proper Chartbeat configuration
-      const metadata = getPageMetadata(pathname);
-
-      // STEP 1: Initialize the global Chartbeat configuration
-      window._sf_async_config = window._sf_async_config || {};
-      window._sf_async_config.uid = cbUid;
-      window._sf_async_config.domain = "freemalaysiatoday.com";
-      window._sf_async_config.useCanonical = true;
-      window._sf_async_config.path = metadata.fullPath || pathname;
-      window._sf_async_config.title = metadata.title || "Free Malaysia Today";
-      window._sf_async_config.sections = metadata.sections || "homepage";
-      window._sf_async_config.authors = metadata.authors || "FMT Reporters";
-
-      // STEP 2: Load the Chartbeat header script first
-      // This is critical - you need both scripts for Chartbeat to work properly
-      const loadChartbeatMain = () => {
-        loadScript(
-          "https://static.chartbeat.com/js/chartbeat.js",
-          () => {
-            if (process.env.NODE_ENV !== "production") {
-              console.log("Chartbeat main script loaded successfully");
-            }
-            setState((prevState) => ({
-              ...prevState,
-              isChartbeatInitialized: true,
-              pSUPERFLY: window.pSUPERFLY,
-            }));
-          },
-          (err) => console.error("Failed to load Chartbeat main script:", err)
-        );
-      };
-
-      loadScript(
-        "https://static.chartbeat.com/js/chartbeat_mab.js",
-        loadChartbeatMain,
-        (err) => {
-          console.error("Failed to load Chartbeat header script:", err);
-          // Try to load the main script anyway in case header script is cached
-          loadChartbeatMain();
-        }
-      );
-    } catch (error) {
-      console.error("Error setting up Chartbeat:", error);
-    }
-
-    // Cleanup function
-    return () => {
-      // No specific cleanup needed for Chartbeat scripts
-    };
-  }, [mounted, pathname, getPageMetadata]);
-
-  // Handle route changes for Chartbeat virtual pageviews with debounce
-  useEffect(() => {
-    if (!mounted || !state.isChartbeatInitialized || !state.pSUPERFLY) return;
-
-    // First mount, just update the previous path
-    if (initialChartbeatMount.current) {
-      initialChartbeatMount.current = false;
-      previousPathRef.current = pathname;
-      return;
-    }
-
-    // Use debounce to prevent multiple rapid calls
-    const debounceTimeout = 200; // ms
-    const timeoutId = setTimeout(() => {
-      // Only trigger virtualPage if we have a route change
-      if (pathname !== previousPathRef.current) {
-        try {
-          const metadata = getPageMetadata(pathname, previousPathRef.current);
-
-          // Debug what we're sending to Chartbeat (remove in production)
-          if (process.env.NODE_ENV !== "production") {
-            console.log("Chartbeat virtualPage called with:", {
-              path: metadata.fullPath,
-              title: metadata.title,
-              sections: metadata.sections,
-              authors: metadata.authors,
-              referrer: metadata.referrer,
-            });
-          }
-
-          // Call virtualPage with complete metadata including referrer
-          if (
-            state.pSUPERFLY &&
-            typeof state.pSUPERFLY.virtualPage === "function"
-          ) {
-            state.pSUPERFLY.virtualPage(metadata.fullPath, metadata.title, {
-              sections: metadata.sections,
-              authors: metadata.authors,
-              referrer: metadata.referrer,
-            });
-          } else {
-            console.warn(
-              "Chartbeat pSUPERFLY instance not properly initialized"
-            );
-          }
-
-          // Update previous path for next navigation
-          previousPathRef.current = pathname;
-        } catch (error) {
-          console.error("Error tracking Chartbeat virtualPage:", error);
-        }
-      }
-    }, debounceTimeout);
-
-    // Clean up timeout if component unmounts or effect re-runs
-    return () => clearTimeout(timeoutId);
-  }, [
-    pathname,
-    searchParams,
-    state.pSUPERFLY,
-    state.isChartbeatInitialized,
-    getPageMetadata,
-    mounted,
-  ]);
+  }, [mounted, state.isComscoreInitialized]);
 
   /* --- Lotame Initialization --- */
   useEffect(() => {
@@ -453,19 +436,16 @@ export const MultipurposeProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error initializing Lotame:", error);
     }
-
-    // Cleanup function
-    return () => {
-      // No specific cleanup needed for Lotame
-    };
   }, [mounted]);
 
   return (
     <MultipurposeContext.Provider value={state}>
-      <GoogleTagManager gtmId="GTM-M848LK5" />
-      <GoogleAnalytics gaId="G-1BXSGEDPNV" />
-      <Toaster />
-      {children}
+      <ChartbeatProvider>
+        <GoogleTagManager gtmId="GTM-M848LK5" />
+        <GoogleAnalytics gaId="G-1BXSGEDPNV" />
+        <Toaster />
+        {children}
+      </ChartbeatProvider>
     </MultipurposeContext.Provider>
   );
 };
