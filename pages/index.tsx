@@ -49,18 +49,18 @@ const dfpTargetingParams = {
 };
 
 export default function Home({
-  heroPosts,
-  highlightPosts,
-  topNewsPosts,
-  businessPosts,
-  opinionPosts,
-  worldPosts,
-  leisurePosts,
-  sportsPosts,
-  beritaPosts,
-  videoPosts,
-  columnists,
-  trendingTags,
+  heroPosts = [],
+  highlightPosts = [],
+  topNewsPosts = [],
+  businessPosts = [],
+  opinionPosts = [],
+  worldPosts = [],
+  leisurePosts = [],
+  sportsPosts = [],
+  beritaPosts = [],
+  videoPosts = [],
+  columnists = [],
+  trendingTags = [],
 }: any) {
   // useVisibilityRefresh();
   const { posts: currentBusinessPosts, loading: businessLoading } =
@@ -162,17 +162,17 @@ export default function Home({
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(
             generateCollectionPageJsonLD({
-              heroPosts,
-              highlightPosts,
-              topNewsPosts,
-              businessPosts,
-              opinionPosts,
-              worldPosts,
-              leisurePosts,
-              sportsPosts,
-              beritaPosts,
-              videoPosts,
-              columnists,
+              heroPosts: heroPosts || [],
+              highlightPosts: highlightPosts || [],
+              topNewsPosts: topNewsPosts || [],
+              businessPosts: businessPosts || [],
+              opinionPosts: opinionPosts || [],
+              worldPosts: worldPosts || [],
+              leisurePosts: leisurePosts || [],
+              sportsPosts: sportsPosts || [],
+              beritaPosts: beritaPosts || [],
+              videoPosts: videoPosts || [],
+              columnists: columnists || [],
             })
           ),
         }}

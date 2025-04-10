@@ -1,4 +1,3 @@
-// pages/category/category/[category]/[subcategory]/index.tsx
 import { GetStaticProps, GetStaticPaths } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
@@ -55,15 +54,46 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
     ],
   };
 
+  const DEFAULT_SEO_CONFIG: SeoConfig = {
+    h1Title: "Malaysia News",
+    metaTitle: "Malaysia News",
+    description: "Latest news and updates from Malaysia",
+    keywords: ["Malaysia", "News", "Free Malaysia Today"],
+  };
+
   const typedSeoSubCategories = seoSubCategories as SeoSubCategoriesType;
-  const seoData = typedSeoSubCategories[subcategorySlug];
+  // const seoData = typedSeoSubCategories[subcategorySlug];
+
+  let seoData: SeoConfig;
+
+  if (typedSeoSubCategories[subcategorySlug]) {
+    // Direct match found
+    seoData = typedSeoSubCategories[subcategorySlug];
+  } else {
+    // Try to find a match with normalized slug
+    const normalizedSlug = subcategorySlug.replace(/-/g, "").toLowerCase();
+    const matchedKey = Object.keys(typedSeoSubCategories).find(
+      (key) => key.replace(/-/g, "").toLowerCase() === normalizedSlug
+    );
+
+    seoData = matchedKey
+      ? typedSeoSubCategories[matchedKey]
+      : DEFAULT_SEO_CONFIG;
+
+    // Log for debugging that we're using a fallback
+    console.log(
+      `[SUBSEO] Using SEO fallback for subcategory: ${subcategorySlug}`
+    );
+  }
 
   const pathName = `/category/category/${category}/${subcategorySlug}`;
 
+  // console.log("seoData (subcategory):", seoData);
   const metadataConfig = {
-    title: `${seoData.metaTitle} | Free Malaysia Today (FMT)`,
-    description: seoData.description,
-    keywords: seoData.keywords,
+    title: `${seoData?.metaTitle || subcategorySlug} | Free Malaysia Today (FMT)`,
+    description:
+      seoData?.description || `Latest ${subcategorySlug} news from Malaysia`,
+    keywords: seoData?.keywords || ["Malaysia", "News", subcategorySlug],
     category,
     pathName,
   };
