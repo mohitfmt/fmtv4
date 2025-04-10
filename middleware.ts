@@ -24,90 +24,8 @@ function getMalaysiaTime(): Date {
 }
 
 /**
- * Determines the current activity level based on Malaysia time
- * @returns {'low' | 'high' | 'normal'} Activity level
- */
-function getActivityLevel(): "low" | "high" | "normal" {
-  const malaysiaTime = getMalaysiaTime();
-  const hours = malaysiaTime.getHours();
-  const minutes = malaysiaTime.getMinutes();
-
-  // Convert current time to minutes since midnight for easier comparison
-  const minutesSinceMidnight = hours * 60 + minutes;
-
-  // Define time ranges in minutes since midnight
-  const lowActivityStart = 0 * 60 + 30; // 12:30 AM
-  const lowActivityEnd = 5 * 60; // 5:00 AM
-
-  const highActivityMorningStart = 8 * 60; // 8:00 AM
-  const highActivityMorningEnd = 12 * 60 + 30; // 12:30 AM
-
-  const highActivityEveningStart = 17 * 60 + 30; // 5:30 PM
-  const highActivityEveningEnd = 23 * 60 + 30; // 11:30 PM
-
-  // Check if current time falls within low activity period
-  if (
-    minutesSinceMidnight >= lowActivityStart &&
-    minutesSinceMidnight < lowActivityEnd
-  ) {
-    return "low";
-  }
-
-  // Check if current time falls within high activity periods
-  if (
-    (minutesSinceMidnight >= highActivityMorningStart &&
-      minutesSinceMidnight <= highActivityMorningEnd) ||
-    (minutesSinceMidnight >= highActivityEveningStart &&
-      minutesSinceMidnight <= highActivityEveningEnd)
-  ) {
-    return "high";
-  }
-
-  // Default to normal activity
-  return "normal";
-}
-
-/**
- * Determine cache duration settings based on content type and activity level
- */
-function getCacheDurations(
-  pathname: string,
-  activityLevel: "low" | "high" | "normal"
-): {
-  staleDuration: number;
-  errorDuration: number;
-} {
-  // Check if it's a specific article page
-  const isArticlePage = pathname.includes("/category/");
-
-  // Set cache durations based on activity level and page type
-  switch (activityLevel) {
-    case "low":
-      // Low Activity period (12:30 AM - 5:00 AM): Very few updates
-      return {
-        staleDuration: isArticlePage ? 360 : 180, // 1 hour for articles, 30 min for homepage/categories
-        errorDuration: isArticlePage ? 720 : 360, // 2 hours for articles, 1 hour for homepage/categories
-      };
-
-    case "high":
-      // High Activity period (8:00 AM - 11:30 AM & 8:30 PM - 11:30 PM): Peak publishing
-      // Using more aggressive caching during high activity to ensure fresh content
-      return {
-        staleDuration: isArticlePage ? 60 : 30, // 1 min for articles, 30 secs for homepage/categories
-        errorDuration: isArticlePage ? 180 : 120, // 3 min for articles, 2 min for homepage/categories
-      };
-
-    default:
-      // Normal Activity period (all other times): Moderate publishing
-      return {
-        staleDuration: isArticlePage ? 300 : 180, // 5 min for articles, 3 min for homepage/categories
-        errorDuration: isArticlePage ? 600 : 360, // 10 min for articles, 6 min for homepage/categories
-      };
-  }
-}
-
-/**
- * Next.js middleware function to handle cache settings based on content type and activity period
+ * Next.js middleware function to handle cache settings and tags
+ * Optimized for Cloudflare Enterprise with Cache Tags
  */
 export function middleware(request: NextRequest) {
   // Clone the response
@@ -116,8 +34,13 @@ export function middleware(request: NextRequest) {
   // Get the pathname
   const { pathname } = request.nextUrl;
 
-  // Fix: Skip middleware caching logic for video slug pages
+  // Skip middleware caching logic for video slug pages
   if (/^\/videos\/.+/.test(pathname)) {
+    return response;
+  }
+
+  // Skip for API routes except for revalidate (which needs custom headers)
+  if (pathname.startsWith("/api/") && !pathname.includes("/api/revalidate")) {
     return response;
   }
 
@@ -132,12 +55,12 @@ export function middleware(request: NextRequest) {
       // For images that might be updated, use shorter cache with revalidation
       response.headers.set(
         "Cache-Control",
-        "public, max-age=300, stale-while-revalidate=3600"
+        "public, max-age=3600, stale-while-revalidate=86400"
       );
 
       response.headers.set(
         "Cloudflare-CDN-Cache-Control",
-        "public, max-age=300, stale-while-revalidate=3600"
+        "public, max-age=3600, stale-while-revalidate=86400"
       );
     } else {
       // Other static assets get long-term caching
@@ -155,11 +78,6 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Skip for API routes except for revalidate (which needs custom headers)
-  if (pathname.startsWith("/api/") && !pathname.includes("/api/revalidate")) {
-    return response;
-  }
-
   // Identify dynamic content pages - expanded to cover all navigation sections
   const isDynamicContent =
     pathname.includes("/category/") ||
@@ -168,18 +86,65 @@ export function middleware(request: NextRequest) {
       /^\/(news|berita|business|opinion|world|sports|lifestyle|photos|videos|accelerator)\/?$/
     );
 
-  // For dynamic content, add cache-busting headers
+  // For dynamic content, add cache-busting headers and Cache Tags
   if (isDynamicContent) {
-    // Get the current activity level based on Malaysia time
-    const activityLevel = getActivityLevel();
+    // Extract meaningful path components for tagging
+    const pathParts = pathname.split("/").filter(Boolean);
 
-    // Get appropriate cache durations based on path and activity level
-    const { staleDuration, errorDuration } = getCacheDurations(
-      pathname,
-      activityLevel
-    );
+    // Create appropriate cache tags based on the URL structure
+    const cacheTags = [];
 
-    // Set cache headers
+    // Always add page-specific tag - this is the most precise tag for targeted purging
+    cacheTags.push(`path:${pathname}`);
+
+    // Add section tag if it exists (first path segment for section pages)
+    if (pathParts.length > 0) {
+      const section = pathParts[0];
+      cacheTags.push(`section:${section}`);
+    }
+
+    // For category pages, add more specific tags
+    if (pathname.includes("/category/")) {
+      // Get the main category (usually after /category/)
+      const categoryIndex = pathParts.indexOf("category");
+      if (categoryIndex !== -1 && pathParts.length > categoryIndex + 1) {
+        const category = pathParts[categoryIndex + 1];
+        cacheTags.push(`category:${category}`);
+
+        // If there's a subcategory, add that too
+        if (pathParts.length > categoryIndex + 2) {
+          const subcategory = pathParts[categoryIndex + 2];
+          cacheTags.push(`subcategory:${subcategory}`);
+        }
+      }
+    }
+
+    // For article pages, add an article tag and date tags if available
+    const isArticlePage =
+      pathname.includes("/category/") &&
+      pathname.split("/").filter(Boolean).length > 5;
+    if (isArticlePage) {
+      cacheTags.push("content:article");
+
+      // Try to extract date components if present in the URL
+      // Format: /category/section/YYYY/MM/DD/slug/
+      const datePattern = /\/category\/[^\/]+\/(\d{4})\/(\d{2})\/(\d{2})\//;
+      const dateMatch = pathname.match(datePattern);
+      if (dateMatch) {
+        const [_, year, month, day] = dateMatch;
+        cacheTags.push(`date:${year}-${month}-${day}`);
+      }
+    }
+
+    // Join all tags and set the Cache-Tag header
+    response.headers.set("Cache-Tag", cacheTags.join(","));
+
+    // Set reasonable cache durations - simpler than before
+    // Using 10 min for articles, 5 min for categories - balancing freshness and performance
+    const isArticle = pathname.includes("/category/");
+    const staleDuration = isArticle ? 600 : 300;
+    const errorDuration = staleDuration * 2;
+
     response.headers.set(
       "Cache-Control",
       `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
@@ -190,30 +155,21 @@ export function middleware(request: NextRequest) {
       `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
     );
 
-    // Add Vary header to differentiate cached versions
-    response.headers.set("Vary", "Accept-Encoding, Cookie, x-fmt-fresh");
+    // Standard Vary header
+    response.headers.set("Vary", "Accept-Encoding, Cookie");
 
     // Add a version header for client-side detection of fresh content
     response.headers.set("x-fmt-version", Date.now().toString());
-
-    // Add debug header in non-production environments
-    if (process.env.NODE_ENV !== "production") {
-      const malaysiaTime = getMalaysiaTime();
-      response.headers.set(
-        "X-Cache-Debug",
-        `activity=${activityLevel}, stale=${staleDuration}s, error=${errorDuration}s, malaysia_time=${malaysiaTime.toISOString()}`
-      );
-    }
   } else {
     // For other pages, use default cache settings
     response.headers.set(
       "Cache-Control",
-      "public, max-age=60, s-maxage=60, stale-while-revalidate=600"
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=1800"
     );
 
     response.headers.set(
       "Cloudflare-CDN-Cache-Control",
-      "public, max-age=60, s-maxage=60, stale-while-revalidate=600"
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=1800"
     );
   }
 

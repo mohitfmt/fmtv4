@@ -28,7 +28,6 @@ const categoryMappings: Record<string, string> = {
 
 /**
  * Transforms WordPress URLs to the frontend domain
- * Used for Cloudflare cache purging which needs full URLs
  */
 function transformUrl(url: string, targetDomain: string): string {
   try {
@@ -36,7 +35,7 @@ function transformUrl(url: string, targetDomain: string): string {
     urlObj.hostname = targetDomain;
     return urlObj.toString();
   } catch (error) {
-    console.error(`[WebSub] Failed to transform URL ${url}:`, error);
+    console.error("[WebSub] Failed to transform URL ${url}:", error);
     return url;
   }
 }
@@ -116,7 +115,6 @@ function getCategorySlugsFromIds(categoryIds: number[]): string[] {
 
 /**
  * Normalize path for revalidation to ensure consistency
- * Handles all possible path formats that might come from various sources
  */
 function normalizePathForRevalidation(path: string): string {
   // Remove leading slash if present
@@ -161,7 +159,6 @@ function normalizePathForRevalidation(path: string): string {
   }
 
   // For article paths, ensure they have category/ prefix
-  // This helps maintain consistency with the revalidate.ts expectations
   return `category/${normalizedPath}`;
 }
 
@@ -172,9 +169,6 @@ function normalizePathForRevalidation(path: string): string {
 async function getRecentlyModifiedArticles(
   wpDomain: string
 ): Promise<WPPost[]> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
-
   try {
     // Get posts modified in the last 15 minutes
     const now = new Date();
@@ -185,29 +179,45 @@ async function getRecentlyModifiedArticles(
       `[WebSub] Fetching posts modified after ${modifiedAfter} (15-minute window)`
     );
 
-    const response = await fetch(
-      `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "WebSub-Subscriber/1.0",
-        },
-        signal: controller.signal,
-      }
-    );
+    // Use AbortController for timeout instead of the timeout option
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
 
-    if (!response.ok) {
-      throw new Error(
-        `WordPress API returned ${response.status}: ${response.statusText}`
+    try {
+      const response = await fetch(
+        `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
+        {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "WebSub-Subscriber/1.0",
+          },
+          signal: controller.signal,
+        }
       );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(
+          `WordPress API returned ${response.status}: ${response.statusText}`
+        );
+      }
+
+      const posts: WPPost[] = await response.json();
+      console.log(
+        `[WebSub] Found ${posts.length} recently modified posts in 15-minute window`
+      );
+
+      return posts;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === "AbortError") {
+        console.error("[WebSub] Request to WordPress API timed out after 10s");
+      } else {
+        throw error;
+      }
+      return [];
     }
-
-    const posts: WPPost[] = await response.json();
-    console.log(
-      `[WebSub] Found ${posts.length} recently modified posts in 15-minute window`
-    );
-
-    return posts;
   } catch (error) {
     console.error("[WebSub] Error fetching modified articles:", error);
     return [];
@@ -216,6 +226,7 @@ async function getRecentlyModifiedArticles(
 
 /**
  * Purge Cloudflare cache for a set of URLs
+ * This is kept for backward compatibility but is less efficient than purgeByTags
  */
 async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
@@ -231,8 +242,7 @@ async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
   try {
     console.log(`[Cache] Purging ${urls.length} URLs from Cloudflare`);
 
-    // Cloudflare has limits on how many URLs can be purged in one request
-    // Split into batches of 30 to be safe
+    // Split into batches to avoid API limits
     const batchSize = 30;
     const batches = [];
 
@@ -240,14 +250,8 @@ async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
       batches.push(urls.slice(i, i + batchSize));
     }
 
-    console.log(`[Cache] Split cache purge into ${batches.length} batches`);
-
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      console.log(
-        `[Cache] Processing batch ${i + 1}/${batches.length} with ${batch.length} URLs`
-      );
-
       const response = await fetch(
         `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
         {
@@ -263,24 +267,70 @@ async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
       const result = await response.json();
       if (!result.success) {
         console.error(
-          `[Cache] Purge batch ${i + 1} failed:`,
+          `[Cache] Batch ${i + 1} purge failed:`,
           result.errors?.[0]?.message
         );
-        // Continue with other batches even if one fails
-      } else {
-        console.log(`[Cache] Successfully purged batch ${i + 1}`);
       }
 
-      // Add a small delay between batches to prevent rate limiting
+      // Add a small delay between batches
       if (i < batches.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
-    console.log(`[Cache] Cache purge operation completed`);
+    console.log(`[Cache] Successfully purged URLs from Cloudflare`);
     return true;
   } catch (error) {
     console.error("[Cache] Purge request failed:", error);
+    return false;
+  }
+}
+
+/**
+ * Purge Cloudflare cache using Cache Tags
+ * Much more efficient and targeted than purging by URL
+ */
+async function purgeByTags(tags: string[]): Promise<boolean> {
+  if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
+    console.warn("[Cache] Cloudflare credentials not configured");
+    return false;
+  }
+
+  if (tags.length === 0) {
+    console.log("[Cache] No tags to purge");
+    return true;
+  }
+
+  try {
+    console.log(
+      `[Cache] Purging content with tags from Cloudflare: ${tags.join(", ")}`
+    );
+
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tags: tags }),
+      }
+    );
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(
+        `Cloudflare tag purge failed: ${result.errors?.[0]?.message}`
+      );
+    }
+
+    console.log(
+      `[Cache] Successfully purged content with tags: ${tags.join(", ")}`
+    );
+    return true;
+  } catch (error) {
+    console.error("[Cache] Tag purge request failed:", error);
     return false;
   }
 }
@@ -312,7 +362,7 @@ function processArticles(
     `[WebSub] Processing ${newArticles.length} new articles and ${updatedArticles.length} updated articles`
   );
 
-  // Transform URLs to frontend domain for Cloudflare cache purging
+  // Transform URLs to frontend domain
   const newArticleUrls = newArticles.map((post) =>
     transformUrl(post.link, frontendDomain)
   );
@@ -437,7 +487,6 @@ function processArticles(
       }
     } catch (error) {
       console.error(`[WebSub] Error processing article ${post.id}:`, error);
-      // Continue with other articles even if one fails
     }
   });
 
@@ -475,8 +524,7 @@ async function processRevalidation(
 
   console.log(`[WebSub] Revalidating ${items.length} items`);
 
-  // IMPORTANT: Sort items to prioritize individual posts BEFORE category pages
-  // This ensures article content is updated before category pages that reference it
+  // Sort items to prioritize individual posts BEFORE category pages
   const sortedItems = [...items].sort((a, b) => {
     if (a.type !== "category" && b.type === "category") return -1;
     if (a.type === "category" && b.type !== "category") return 1;
@@ -501,9 +549,7 @@ async function processRevalidation(
     batches.push(sortedItems.slice(i, i + batchSize));
   }
 
-  console.log(
-    `[WebSub] Split revalidation into ${batches.length} batches of up to ${batchSize} items each`
-  );
+  console.log(`[WebSub] Split revalidation into ${batches.length} batches`);
 
   const results = {
     success: 0,
@@ -550,7 +596,7 @@ async function processRevalidation(
         requestBody.categories = item.categories;
       }
 
-      // Create the revalidation promise with timeout and retry logic
+      // Create the revalidation promise with retry logic
       const revalidationPromise = (async () => {
         const maxRetries = 2;
         let attempts = 0;
@@ -701,16 +747,13 @@ export default async function handler(
 async function processWebSubNotification(req: NextApiRequest): Promise<void> {
   try {
     console.log("[WebSub] Background processing started");
-
-    // Log request details for debugging
     console.log(
       "[WebSub] Content-Type:",
       req.headers["content-type"],
-      "Host:",
       req.headers.host
     );
 
-    // Get current domains from environment variables
+    // Get current domains
     const wpDomain =
       process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com";
     const frontendDomain = `${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
@@ -744,21 +787,47 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     );
     console.log(`[WebSub] Found ${categoryPaths.size} category paths to purge`);
 
-    // Purge Cloudflare cache for updated article URLs
-    if (updatedArticleUrls.length > 0) {
-      await purgeCloudflareCache(updatedArticleUrls);
+    // Collect tags to purge
+    const tagsToPurge = new Set<string>();
+
+    // Process each revalidation item to collect appropriate tags
+    for (const item of revalidationItems) {
+      if (item.type === "post") {
+        // Add the exact path tag for precise targeting
+        tagsToPurge.add(`path:/${item.path}`);
+
+        // Extract category information
+        const categories = item.categories || [];
+        for (const category of categories) {
+          tagsToPurge.add(`category:${category}`);
+        }
+
+        // Extract date information if possible
+        const datePattern = /(\d{4})\/(\d{2})\/(\d{2})/;
+        const dateMatch = item.path.match(datePattern);
+        if (dateMatch) {
+          const [_, year, month, day] = dateMatch;
+          tagsToPurge.add(`date:${year}-${month}-${day}`);
+        }
+      } else if (item.type === "category") {
+        // For category pages, add the path and section tags
+        const path = item.path;
+        tagsToPurge.add(`path:${path}`);
+
+        // Extract section from path
+        const section = path.split("/").filter(Boolean)[0];
+        if (section) {
+          tagsToPurge.add(`section:${section}`);
+        }
+      }
     }
 
-    // Purge category pages and homepage for both new and updated articles
-    const categoryUrls = Array.from(categoryPaths).map(
-      (path) => `https://${frontendDomain}${path}`
-    );
+    // Purge by tags instead of URLs - this is the key improvement
+    console.log(`[WebSub] Purging content with ${tagsToPurge.size} tags`);
+    await purgeByTags(Array.from(tagsToPurge));
 
-    if (categoryUrls.length > 0) {
-      await purgeCloudflareCache(categoryUrls);
-    }
-
-    // Process revalidation with improved approach
+    // Continue with revalidation to update Next.js ISR cache
+    // This still runs but now is less critical for immediate user viewing
     await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
     // Revalidate API endpoints for fresh data
