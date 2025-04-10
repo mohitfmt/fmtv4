@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   FacebookShareButton,
   TwitterShareButton,
@@ -126,8 +126,14 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       name: "Email",
       Button: EmailShareButton,
       Icon: EmailIcon,
-      getProps: () => ({ subject: title }),
+      getProps: ({ url, title }) => ({
+        subject: title,
+        body: `${title}\n\n${url}`,
+        onClick: () => {},
+        openShareDialogOnClick: true,
+      }),
     },
+
     {
       name: "Pinterest",
       Button: PinterestShareButton,
