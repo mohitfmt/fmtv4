@@ -93,7 +93,7 @@ const MostViewed = ({ isFooter = false }: MostViewedProps) => {
     <div className="flex flex-col mb-8 justify-center">
       <SectionHeading sectionName="most viewed last 2 days" />
       {posts?.map((item, i) => (
-        <MostViewedItem key={item.uri} item={item} index={i} />
+        <MostViewedItem key={item.uri + i} item={item} index={i} />
       ))}
     </div>
   );

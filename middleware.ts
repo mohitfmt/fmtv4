@@ -3,27 +3,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Gets current time in Malaysia timezone (UTC+8)
- * This function handles timezone conversion properly regardless of server location
- * @returns Date object representing the current time in Malaysia
- */
-function getMalaysiaTime(): Date {
-  const now = new Date();
-
-  // Get UTC time in milliseconds
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-
-  // Malaysia timezone offset (UTC+8 = +480 minutes)
-  const malaysiaOffset = 8 * 60;
-
-  // Malaysia time in milliseconds
-  const malaysiaTime = utcTime + malaysiaOffset * 60000;
-
-  // Return Malaysia time
-  return new Date(malaysiaTime);
-}
-
-/**
  * Next.js middleware function to handle cache settings and tags
  * Optimized for Cloudflare Enterprise with Cache Tags
  */
@@ -33,6 +12,13 @@ export function middleware(request: NextRequest) {
 
   // Get the pathname
   const { pathname } = request.nextUrl;
+
+  // Special handling for social media crawlers to ensure meta tags are properly served
+  const userAgent = request.headers.get("user-agent") || "";
+  const isSocialCrawler =
+    /facebookexternalhit|LinkedInBot|WhatsApp|Twitterbot|Pinterest/i.test(
+      userAgent
+    );
 
   // Skip middleware caching logic for video slug pages
   if (/^\/videos\/.+/.test(pathname)) {
@@ -139,27 +125,48 @@ export function middleware(request: NextRequest) {
     // Join all tags and set the Cache-Tag header
     response.headers.set("Cache-Tag", cacheTags.join(","));
 
-    // Set reasonable cache durations - simpler than before
-    // Using 10 min for articles, 5 min for categories - balancing freshness and performance
+    // Set cache durations based on content type and crawler
     const isArticle = pathname.includes("/category/");
-    const staleDuration = isArticle ? 600 : 300;
-    const errorDuration = staleDuration * 2;
 
-    response.headers.set(
-      "Cache-Control",
-      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
-    );
+    // For social media crawlers and bot traffic - no caching to ensure meta tags are fresh
+    if (isSocialCrawler) {
+      response.headers.set(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      response.headers.set(
+        "Cloudflare-CDN-Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      // Add pragma for older clients
+      response.headers.set("Pragma", "no-cache");
+      // Ensure Expires is in the past
+      response.headers.set("Expires", "0");
+    } else {
+      // Regular users - use a small positive max-age to help meta tags load fully
+      // CRITICAL CHANGE: Use a small positive max-age (5-10 sec) instead of max-age=0
+      const maxAge = 10; // 10 seconds of browser caching
+      const staleDuration = isArticle ? 600 : 300;
+      const errorDuration = staleDuration * 2;
 
-    response.headers.set(
-      "Cloudflare-CDN-Cache-Control",
-      `max-age=0, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}, public`
-    );
+      response.headers.set(
+        "Cache-Control",
+        `public, max-age=${maxAge}, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}`
+      );
+
+      response.headers.set(
+        "Cloudflare-CDN-Cache-Control",
+        `public, max-age=${maxAge}, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}`
+      );
+    }
 
     // Standard Vary header
-    response.headers.set("Vary", "Accept-Encoding, Cookie");
+    response.headers.set("Vary", "Accept-Encoding, Cookie, User-Agent");
 
     // Add a version header for client-side detection of fresh content
-    response.headers.set("x-fmt-version", Date.now().toString());
+    // Only change this every minute instead of on every request to reduce churn
+    const versionTimestamp = Math.floor(Date.now() / 60000) * 60000;
+    response.headers.set("x-fmt-version", versionTimestamp.toString());
   } else {
     // For other pages, use default cache settings
     response.headers.set(
