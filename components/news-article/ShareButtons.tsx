@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@radix-ui/react-select";
 
 interface ShareComponentsProps {
   url: string;
@@ -96,7 +97,11 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       name: "Facebook",
       Button: FacebookShareButton,
       Icon: FacebookIcon,
-      getProps: () => ({ hashtag: "#FMT" }),
+      getProps: () => ({
+        hashtag: "#FMT",
+        appId: "193538481218906",
+        quote: title,
+      }),
     },
     {
       name: "Messenger",
@@ -114,13 +119,18 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       name: "WhatsApp",
       Button: WhatsappShareButton,
       Icon: WhatsappIcon,
-      getProps: () => ({}),
+      getProps: () => ({
+        separator: " - ",
+      }),
     },
     {
       name: "LinkedIn",
       Button: LinkedinShareButton,
       Icon: LinkedinIcon,
-      getProps: () => ({}),
+      getProps: () => ({
+        summary: title,
+        source: window.location.hostname,
+      }),
     },
     {
       name: "Email",
@@ -153,6 +163,10 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       getProps: () => ({}),
     },
   ];
+  const ensureHttps = (url: string) => {
+    if (!url) return "";
+    return url.startsWith("http") ? url : `https://${url}`;
+  };
 
   const getShareText = (platform: string) =>
     `Share this article "${title}" on ${platform}`;
@@ -170,7 +184,7 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
             <Button
               url={url}
               title={title}
-              {...getProps({ url, title, mediaUrl, hashs })}
+              {...getProps({ url: ensureHttps(url), title, mediaUrl, hashs })}
               className="flex items-center cursor-pointer hover:bg-accent/50 transition-colors gap-3"
               aria-label={getShareText(name)}
             >
