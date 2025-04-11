@@ -10,8 +10,6 @@ import {
   LinkedinIcon,
   PinterestShareButton,
   PinterestIcon,
-  FacebookMessengerIcon,
-  FacebookMessengerShareButton,
   RedditShareButton,
   RedditIcon,
   TelegramShareButton,
@@ -27,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@radix-ui/react-select";
 
 interface ShareComponentsProps {
   url: string;
@@ -99,15 +96,7 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       Icon: FacebookIcon,
       getProps: () => ({
         hashtag: "#FMT",
-        appId: "193538481218906",
-        quote: title,
       }),
-    },
-    {
-      name: "Messenger",
-      Button: FacebookMessengerShareButton,
-      Icon: FacebookMessengerIcon,
-      getProps: () => ({ appId: "193538481218906" }),
     },
     {
       name: "Twitter",
@@ -119,18 +108,13 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       name: "WhatsApp",
       Button: WhatsappShareButton,
       Icon: WhatsappIcon,
-      getProps: () => ({
-        separator: " - ",
-      }),
+      getProps: () => ({}),
     },
     {
       name: "LinkedIn",
       Button: LinkedinShareButton,
       Icon: LinkedinIcon,
-      getProps: () => ({
-        summary: title,
-        source: window.location.hostname,
-      }),
+      getProps: () => ({}),
     },
     {
       name: "Email",
