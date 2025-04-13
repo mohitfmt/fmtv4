@@ -13,13 +13,6 @@ export function middleware(request: NextRequest) {
   // Get the pathname
   const { pathname } = request.nextUrl;
 
-  // Special handling for social media crawlers to ensure meta tags are properly served
-  const userAgent = request.headers.get("user-agent") || "";
-  const isSocialCrawler =
-    /facebookexternalhit|LinkedInBot|WhatsApp|Twitterbot|Pinterest/i.test(
-      userAgent
-    );
-
   // Skip middleware caching logic for video slug pages
   if (/^\/videos\/.+/.test(pathname)) {
     return response;
@@ -129,23 +122,42 @@ export function middleware(request: NextRequest) {
     const isArticle = pathname.includes("/category/");
 
     // For social media crawlers and bot traffic - no caching to ensure meta tags are fresh
-    if (isSocialCrawler) {
-      response.headers.set(
-        "Cache-Control",
-        "no-store, no-cache, must-revalidate, proxy-revalidate"
-      );
-      response.headers.set(
-        "Cloudflare-CDN-Cache-Control",
-        "no-store, no-cache, must-revalidate, proxy-revalidate"
-      );
-      // Add pragma for older clients
-      response.headers.set("Pragma", "no-cache");
-      // Ensure Expires is in the past
-      response.headers.set("Expires", "0");
-    } else {
-      // Regular users - use a small positive max-age to help meta tags load fully
-      // CRITICAL CHANGE: Use a small positive max-age (5-10 sec) instead of max-age=0
-      const maxAge = 10; // 10 seconds of browser caching
+    // Special handling for social media crawlers with more precise detection
+    // const userAgent = request.headers.get("user-agent") || "";
+    // const isSocialCrawler = (function () {
+    //   // List of known social media crawler user agents with more specific patterns
+    //   const crawlerPatterns = [
+    //     /^facebookexternalhit\//i,
+    //     /^LinkedInBot\//i,
+    //     /^Twitterbot\//i,
+    //     /^Pinterest\//i,
+    //     /^WhatsApp\/\d/i,
+    //     /^Slackbot-LinkExpanding/i,
+    //     /^Discordbot\//i,
+    //     /^TelegramBot/i,
+    //     /^Facebot/i,
+    //     /^redditbot\//i,
+    //   ];
+
+    //   // Check if user agent matches any of our crawler patterns
+    //   return crawlerPatterns.some((pattern) => pattern.test(userAgent));
+    // })();
+
+    // Log for debugging (remove in production)
+    // console.log(`User-Agent: ${userAgent} | Crawler: ${isSocialCrawler}`);
+
+    // if (isSocialCrawler) {
+    //   // For social media crawlers - cache but refresh fairly frequently
+    //   // Use consistent directives that don't contradict each other
+    //   response.headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
+
+    //   response.headers.set(
+    //     "Cloudflare-CDN-Cache-Control",
+    //     "public, max-age=60, s-maxage=300"
+    //   );
+    // } else {
+      // Regular users - use stale-while-revalidate pattern
+      const maxAge = 60; // Increased from 10 to 60 seconds for better caching
       const staleDuration = isArticle ? 600 : 300;
       const errorDuration = staleDuration * 2;
 
@@ -158,7 +170,7 @@ export function middleware(request: NextRequest) {
         "Cloudflare-CDN-Cache-Control",
         `public, max-age=${maxAge}, stale-while-revalidate=${staleDuration}, stale-if-error=${errorDuration}`
       );
-    }
+    // }
 
     // Standard Vary header
     response.headers.set("Vary", "Accept-Encoding, Cookie, User-Agent");
