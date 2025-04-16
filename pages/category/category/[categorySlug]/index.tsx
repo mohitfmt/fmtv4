@@ -124,7 +124,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         categorySlug,
         posts: response.posts,
       },
-      revalidate: 300,
+      revalidate: 60,
     };
   } catch (error) {
     console.error("Error fetching posts:", error);
