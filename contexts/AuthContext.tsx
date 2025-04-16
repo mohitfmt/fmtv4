@@ -112,9 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Don't render children until auth state is initialized
-  if (!isInitialized) {
-    return null;
-  }
+  // if (!isInitialized) {
+  //   return null;
+  // }
 
   return (
     <AuthContext.Provider
