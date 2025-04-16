@@ -35,25 +35,26 @@ function isExpired(expiryTime: number): boolean {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Sync user with database when auth state changes
   useEffect(() => {
     async function syncUser() {
       if (user && isAuthenticated) {
         try {
-          const response = await fetch('/api/auth/sync-user', {
-            method: 'POST',
+          const response = await fetch("/api/auth/sync-user", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify(user),
           });
 
           if (!response.ok) {
-            throw new Error('Failed to sync user data');
+            throw new Error("Failed to sync user data");
           }
         } catch (error) {
-          console.error('Error syncing user:', error);
+          console.error("Error syncing user:", error);
         }
       }
     }
@@ -63,38 +64,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check local storage for existing session
   useEffect(() => {
-    const storedAuth = localStorage.getItem("authData");
-    if (storedAuth) {
-      const authData: StoredAuthData = JSON.parse(storedAuth);
-      
-      if (!isExpired(authData.expiry)) {
-        setUser(authData.user);
-        setIsAuthenticated(true);
-      } else {
-        localStorage.removeItem("authData");
-        setUser(null);
-        setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      const storedAuth = localStorage.getItem("authData");
+      if (storedAuth) {
+        try {
+          const authData: StoredAuthData = JSON.parse(storedAuth);
+
+          if (!isExpired(authData.expiry)) {
+            setUser(authData.user);
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem("authData");
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } catch (error) {
+          console.error("Error parsing auth data:", error);
+          localStorage.removeItem("authData");
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       }
+      setIsInitialized(true);
     }
   }, []);
 
   const login = async (userData: GoogleUser, credential?: string) => {
-    const authData: StoredAuthData = {
-      user: userData,
-      expiry: Date.now() + TWO_DAYS_MS,
-      credential,
-    };
-    
-    localStorage.setItem("authData", JSON.stringify(authData));
-    setUser(userData);
-    setIsAuthenticated(true);
+    if (typeof window !== "undefined") {
+      const authData: StoredAuthData = {
+        user: userData,
+        expiry: Date.now() + TWO_DAYS_MS,
+        credential,
+      };
+
+      localStorage.setItem("authData", JSON.stringify(authData));
+      setUser(userData);
+      setIsAuthenticated(true);
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem("authData");
-    setUser(null);
-    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("authData");
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
+
+  // Don't render children until auth state is initialized
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider
