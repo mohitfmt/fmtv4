@@ -13,6 +13,7 @@ import ContentVersionTracker from "@/components/ContentVersionTracker";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
 import Script from "next/script";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -125,30 +126,32 @@ export default function App({
       <GoogleOAuthProvider
         clientId={`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}`}
       >
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem={true}
-            value={{
-              light: "light",
-              dark: "dark",
-              system: "system",
-            }}
-          >
-            <MultipurposeProvider>
-              <GPTProvider
-                prefix="FMT"
-                networkId="1009103"
-                bodyAdSlots={{}}
-                dfpTargetingParams={{}}
-                asPath="/"
-              >
-                {content}
-              </GPTProvider>
-            </MultipurposeProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem={true}
+              value={{
+                light: "light",
+                dark: "dark",
+                system: "system",
+              }}
+            >
+              <MultipurposeProvider>
+                <GPTProvider
+                  prefix="FMT"
+                  networkId="1009103"
+                  bodyAdSlots={{}}
+                  dfpTargetingParams={{}}
+                  asPath="/"
+                >
+                  {content}
+                </GPTProvider>
+              </MultipurposeProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </GoogleOAuthProvider>
 
       {/* Meta Pixel script using Next.js Script component */}
