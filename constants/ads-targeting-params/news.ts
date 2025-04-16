@@ -114,7 +114,7 @@ export const newsLandingTargetingParams = {
     coverage: ["regional", "state"]
   };
   
-  // South East Asia News Parameters
+  // Southeast Asia News Parameters
   export const southEastAsiaNewsParams = {
     ...newsLandingTargetingParams,
     section: ["news", "south-east-asia"],

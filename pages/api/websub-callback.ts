@@ -1,8 +1,9 @@
 // pages/api/websub-callback.ts
 import { addMinutes } from "date-fns";
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 import { getAllNavigationPaths } from "../../lib/navigation-cache";
+import PQueue from "p-queue";
 
 // Define types for WordPress API responses
 interface WPPost {
@@ -25,6 +26,23 @@ const categoryMappings: Record<string, string> = {
   sports: "sports",
   world: "world",
 };
+
+// Priority levels for different types of content
+const PRIORITY = {
+  CRITICAL: 1, // Homepage and breaking news
+  HIGH: 2, // Main section pages
+  MEDIUM: 3, // Individual articles
+  LOW: 4, // Archive pages and less important content
+};
+
+// Create queues with different concurrency levels
+const criticalQueue = new PQueue({ concurrency: 2 });
+const highQueue = new PQueue({ concurrency: 3 });
+const mediumQueue = new PQueue({ concurrency: 5 });
+const lowQueue = new PQueue({ concurrency: 2 });
+
+// Track when queues are processing
+let isProcessing = false;
 
 /**
  * Transforms WordPress URLs to the frontend domain
@@ -225,70 +243,8 @@ async function getRecentlyModifiedArticles(
 }
 
 /**
- * Purge Cloudflare cache for a set of URLs
- * This is kept for backward compatibility but is less efficient than purgeByTags
- */
-async function purgeCloudflareCache(urls: string[]): Promise<boolean> {
-  if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-    console.warn("[Cache] Cloudflare credentials not configured");
-    return false;
-  }
-
-  if (urls.length === 0) {
-    console.log("[Cache] No URLs to purge");
-    return true;
-  }
-
-  try {
-    console.log(`[Cache] Purging ${urls.length} URLs from Cloudflare`);
-
-    // Split into batches to avoid API limits
-    const batchSize = 30;
-    const batches = [];
-
-    for (let i = 0; i < urls.length; i += batchSize) {
-      batches.push(urls.slice(i, i + batchSize));
-    }
-
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
-      const response = await fetch(
-        `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ files: batch }),
-        }
-      );
-
-      const result = await response.json();
-      if (!result.success) {
-        console.error(
-          `[Cache] Batch ${i + 1} purge failed:`,
-          result.errors?.[0]?.message
-        );
-      }
-
-      // Add a small delay between batches
-      if (i < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    }
-
-    console.log(`[Cache] Successfully purged URLs from Cloudflare`);
-    return true;
-  } catch (error) {
-    console.error("[Cache] Purge request failed:", error);
-    return false;
-  }
-}
-
-/**
- * Purge Cloudflare cache using Cache Tags
- * Much more efficient and targeted than purging by URL
+ * Purge Cloudflare cache by tags - much more efficient than purging by URL
+ * Aligned with the cache tag structure in middleware.ts
  */
 async function purgeByTags(tags: string[]): Promise<boolean> {
   if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
@@ -336,23 +292,31 @@ async function purgeByTags(tags: string[]): Promise<boolean> {
 }
 
 /**
- * Process articles to get URLs to purge and paths to revalidate
+ * Process articles to get cache tags to purge and paths to revalidate
+ * Aligned with the cache tag structure in middleware.ts
  */
 function processArticles(
   articles: WPPost[],
   frontendDomain: string
 ): {
-  newArticleUrls: string[];
-  updatedArticleUrls: string[];
-  categoryPaths: Set<string>;
-  revalidationItems: { path: string; type: string; categories?: string[] }[];
+  cacheTags: {
+    critical: string[];
+    high: string[];
+    medium: string[];
+    low: string[];
+  };
+  revalidationItems: {
+    path: string;
+    type: string;
+    categories?: string[];
+    priority: number;
+  }[];
 } {
   // Separate new vs updated articles
   const newArticles = articles.filter(
     (post) =>
       new Date(post.date).getTime() === new Date(post.modified).getTime()
   );
-
   const updatedArticles = articles.filter(
     (post) =>
       new Date(post.date).getTime() !== new Date(post.modified).getTime()
@@ -362,37 +326,41 @@ function processArticles(
     `[WebSub] Processing ${newArticles.length} new articles and ${updatedArticles.length} updated articles`
   );
 
-  // Transform URLs to frontend domain
-  const newArticleUrls = newArticles.map((post) =>
-    transformUrl(post.link, frontendDomain)
-  );
+  // Initialize cache tag collections by priority
+  const cacheTags = {
+    critical: new Set<string>(),
+    high: new Set<string>(),
+    medium: new Set<string>(),
+    low: new Set<string>(),
+  };
 
-  const updatedArticleUrls = updatedArticles.map((post) =>
-    transformUrl(post.link, frontendDomain)
-  );
-
-  // Collect categories for all articles
-  const categoryPaths = new Set<string>();
-  categoryPaths.add("/"); // Always include homepage
+  // Always include homepage in critical tags
+  cacheTags.critical.add("path:/");
+  cacheTags.critical.add("page:home");
 
   // Get all navigation paths for potential revalidation
   const allNavigationPaths = getAllNavigationPaths();
 
-  // Add all main navigation sections
-  allNavigationPaths.forEach((path: any) => {
-    if (!path.includes("/category/")) {
-      categoryPaths.add(path);
+  // Add main navigation sections to high priority
+  allNavigationPaths.forEach((path: string) => {
+    if (!path.includes("/category/") && path !== "/") {
+      const section = path.split("/").filter(Boolean)[0];
+      if (section) {
+        cacheTags.high.add(`section:${section}`);
+        cacheTags.high.add(`path:${path}`);
+      }
     }
   });
 
-  // Items for revalidation
+  // Items for revalidation with priority
   const revalidationItems: {
     path: string;
     type: string;
     categories?: string[];
+    priority: number;
   }[] = [];
 
-  // Process each article for revalidation
+  // Process each article for revalidation and cache tags
   [...newArticles, ...updatedArticles].forEach((post) => {
     try {
       // Get categories from the post - both from URL and API if available
@@ -408,8 +376,15 @@ function processArticles(
       allCategories.forEach((category) => {
         if (!category) return;
 
+        // Add category to medium priority cache tags
+        cacheTags.medium.add(`category:${category}`);
+
+        // Get frontend path for this category
         const frontendPath = `/${getCategoryPath(category)}`;
-        categoryPaths.add(frontendPath);
+
+        // Add section path to high priority cache tags
+        cacheTags.high.add(`path:${frontendPath}`);
+        cacheTags.high.add(`section:${getCategoryPath(category)}`);
 
         // Add category to revalidation items (only once per unique path)
         if (
@@ -420,6 +395,7 @@ function processArticles(
           revalidationItems.push({
             type: "category",
             path: frontendPath,
+            priority: PRIORITY.HIGH,
           });
         }
       });
@@ -427,6 +403,10 @@ function processArticles(
       // Extract path parts for article revalidation
       const urlObj = new URL(post.link);
       const pathParts = urlObj.pathname.split("/").filter(Boolean);
+
+      // Check if this is a new or updated article
+      const isNewArticle =
+        new Date(post.date).getTime() === new Date(post.modified).getTime();
 
       // Handle different URL patterns
       if (pathParts.length >= 3) {
@@ -454,6 +434,14 @@ function processArticles(
 
           // Add categories for comprehensive revalidation
           categoryList = ["bahasa", pathParts[relevantPathStart + 1]];
+
+          // Add subcategory tag
+          cacheTags.medium.add(
+            `subcategory:${pathParts[relevantPathStart + 1]}`
+          );
+          cacheTags.medium.add(
+            `category-path:bahasa/${pathParts[relevantPathStart + 1]}`
+          );
         } else {
           // Extract the path without double processing
           const pathWithoutDomain = urlObj.pathname.substring(1); // Remove leading slash
@@ -470,7 +458,27 @@ function processArticles(
             pathParts[relevantPathStart] !== pathParts[relevantPathStart + 1]
           ) {
             categoryList.push(pathParts[relevantPathStart + 1]);
+            cacheTags.medium.add(
+              `subcategory:${pathParts[relevantPathStart + 1]}`
+            );
+            cacheTags.medium.add(
+              `category-path:${pathParts[relevantPathStart]}/${pathParts[relevantPathStart + 1]}`
+            );
           }
+        }
+
+        // Add article-specific cache tags
+        cacheTags.medium.add(`path:/${articlePath}`);
+        cacheTags.medium.add(`type:article`);
+
+        // Extract date information if available
+        const datePattern = /\/(\d{4})\/(\d{2})\/(\d{2})\//;
+        const dateMatch = articlePath.match(datePattern);
+        if (dateMatch) {
+          const [_, year, month, day] = dateMatch;
+          cacheTags.low.add(`date:${year}-${month}-${day}`);
+          cacheTags.low.add(`year:${year}`);
+          cacheTags.low.add(`month:${year}-${month}`);
         }
 
         // Log for debugging
@@ -483,6 +491,7 @@ function processArticles(
           type: "post",
           path: articlePath,
           categories: [...new Set([...categoryList, ...allCategories])], // Combine and deduplicate
+          priority: isNewArticle ? PRIORITY.MEDIUM : PRIORITY.MEDIUM, // Same priority for now, could differentiate if needed
         });
       }
     } catch (error) {
@@ -491,7 +500,7 @@ function processArticles(
   });
 
   // Add revalidation items for all main navigation sections
-  allNavigationPaths.forEach((path: any) => {
+  allNavigationPaths.forEach((path: string) => {
     if (
       !path.includes("/category/") &&
       !revalidationItems.some((item) => item.path === path)
@@ -499,202 +508,200 @@ function processArticles(
       revalidationItems.push({
         type: "category",
         path,
+        priority: path === "/" ? PRIORITY.CRITICAL : PRIORITY.HIGH,
       });
     }
   });
 
   return {
-    newArticleUrls,
-    updatedArticleUrls,
-    categoryPaths,
+    cacheTags: {
+      critical: Array.from(cacheTags.critical),
+      high: Array.from(cacheTags.high),
+      medium: Array.from(cacheTags.medium),
+      low: Array.from(cacheTags.low),
+    },
     revalidationItems,
   };
 }
 
 /**
- * Process revalidation requests with improved error handling
- * Using article-first prioritization for best user experience
+ * Process a single revalidation request with improved error handling and retry logic
+ */
+async function processRevalidationItem(
+  baseUrl: string,
+  item: { path: string; type: string; categories?: string[]; priority: number },
+  revalidateKey: string
+): Promise<boolean> {
+  // Prepare request body with category information when applicable
+  const requestBody: any = {
+    type: item.type,
+    [item.type === "post" ? "postSlug" : "path"]: item.path,
+  };
+
+  // Include categories information for posts to enable comprehensive revalidation
+  if (item.type === "post" && item.categories && item.categories.length > 0) {
+    requestBody.categories = item.categories;
+  }
+
+  // Retry logic with exponential backoff
+  const maxRetries = item.priority <= PRIORITY.HIGH ? 3 : 2;
+  let attempts = 0;
+
+  while (attempts <= maxRetries) {
+    try {
+      const controller = new AbortController();
+      // Longer timeout for critical items
+      const timeout = item.priority <= PRIORITY.HIGH ? 30000 : 20000;
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(`${baseUrl}/api/revalidate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-revalidate-key": revalidateKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const result = await response.json();
+
+      // Consider any 2xx response as success
+      if (response.ok) {
+        console.log(
+          `[WebSub] Successfully revalidated ${item.type} ${item.path} (priority: ${item.priority})`
+        );
+        return true;
+      } else {
+        throw new Error(result.message || "Unknown error");
+      }
+    } catch (error: any) {
+      attempts++;
+      const isTimeout = error.name === "AbortError";
+
+      if (attempts <= maxRetries) {
+        // Exponential backoff with jitter and priority-based base delay
+        const baseDelay = item.priority <= PRIORITY.HIGH ? 1000 : 2000;
+        const delay = Math.floor(
+          baseDelay * Math.pow(2, attempts) * (0.9 + Math.random() * 0.2)
+        );
+
+        console.log(
+          `[WebSub] Retry ${attempts}/${maxRetries} for ${item.type} ${item.path} in ${delay}ms (${isTimeout ? "timeout" : "error"})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error(
+          `[WebSub] Failed to revalidate ${item.type} ${item.path} after ${maxRetries} attempts:`,
+          error
+        );
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Process revalidation requests with priority queuing
+ * Using PQueue for better concurrency control
  */
 async function processRevalidation(
   baseUrl: string,
-  items: { path: string; type: string; categories?: string[] }[],
+  items: {
+    path: string;
+    type: string;
+    categories?: string[];
+    priority: number;
+  }[],
   revalidateKey: string
 ): Promise<void> {
   if (items.length === 0) return;
 
-  console.log(`[WebSub] Revalidating ${items.length} items`);
-
-  // Sort items to prioritize individual posts BEFORE category pages
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.type !== "category" && b.type === "category") return -1;
-    if (a.type === "category" && b.type !== "category") return 1;
-    return 0;
-  });
-
-  const articleCount = sortedItems.filter(
-    (item) => item.type !== "category"
-  ).length;
-  const categoryCount = sortedItems.filter(
-    (item) => item.type === "category"
-  ).length;
   console.log(
-    `[WebSub] Prioritizing ${articleCount} article pages before ${categoryCount} category pages`
+    `[WebSub] Revalidating ${items.length} items with priority queuing`
   );
 
-  // Batch processing to avoid overwhelming server
-  const batchSize = 5;
-  const batches = [];
+  // Sort items by priority (lower number = higher priority)
+  const sortedItems = [...items].sort((a, b) => a.priority - b.priority);
 
-  for (let i = 0; i < sortedItems.length; i += batchSize) {
-    batches.push(sortedItems.slice(i, i + batchSize));
-  }
-
-  console.log(`[WebSub] Split revalidation into ${batches.length} batches`);
-
-  const results = {
-    success: 0,
-    failed: 0,
-    items: [] as Array<{
-      path: string;
-      type: string;
-      success: boolean;
-      error?: string;
-    }>,
-  };
-
-  // Process batches with a slight delay between them
-  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-    const batch = batches[batchIndex];
-    const pendingPromises: Promise<any>[] = [];
-
-    // Log batch type information for debugging
-    const articlesInBatch = batch.filter(
-      (item) => item.type !== "category"
-    ).length;
-    const categoriesInBatch = batch.filter(
-      (item) => item.type === "category"
-    ).length;
-
-    console.log(
-      `[WebSub] Processing batch ${batchIndex + 1}/${batches.length} with ${articlesInBatch} articles and ${categoriesInBatch} categories`
-    );
-
-    // Process all items in the current batch concurrently
-    for (const item of batch) {
-      // Prepare request body with category information when applicable
-      const requestBody: any = {
-        type: item.type,
-        [item.type === "post" ? "postSlug" : "path"]: item.path,
-      };
-
-      // Include categories information for posts to enable comprehensive revalidation
-      if (
-        item.type === "post" &&
-        item.categories &&
-        item.categories.length > 0
-      ) {
-        requestBody.categories = item.categories;
-      }
-
-      // Create the revalidation promise with retry logic
-      const revalidationPromise = (async () => {
-        const maxRetries = 2;
-        let attempts = 0;
-
-        while (attempts <= maxRetries) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
-
-            const response = await fetch(`${baseUrl}/api/revalidate`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-revalidate-key": revalidateKey,
-              },
-              body: JSON.stringify(requestBody),
-              signal: controller.signal,
-            });
-
-            clearTimeout(timeoutId);
-
-            const result = await response.json();
-
-            // Consider any 2xx response as success
-            if (response.ok) {
-              results.success++;
-              results.items.push({
-                path: item.path,
-                type: item.type,
-                success: true,
-              });
-              console.log(
-                `[WebSub] Successfully revalidated ${item.type} ${item.path}`
-              );
-              return result;
-            } else {
-              throw new Error(result.message || "Unknown error");
-            }
-          } catch (error: any) {
-            attempts++;
-            const isTimeout = error.name === "AbortError";
-
-            if (attempts <= maxRetries) {
-              // Exponential backoff with jitter
-              const delay = Math.floor(
-                1000 * Math.pow(2, attempts) * (0.9 + Math.random() * 0.2)
-              );
-              console.log(
-                `[WebSub] Retry ${attempts}/${maxRetries} for ${item.type} ${item.path} in ${delay}ms (${isTimeout ? "timeout" : "error"})`
-              );
-              await new Promise((resolve) => setTimeout(resolve, delay));
-            } else {
-              console.error(
-                `[WebSub] Failed to revalidate ${item.type} ${item.path} after ${maxRetries} attempts:`,
-                error
-              );
-
-              results.failed++;
-              results.items.push({
-                path: item.path,
-                type: item.type,
-                success: false,
-                error: error.message || "Unknown error",
-              });
-              return null;
-            }
-          }
-        }
-      })();
-
-      pendingPromises.push(revalidationPromise);
-
-      // Stagger requests slightly to reduce server load spikes
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    // Wait for all promises in this batch to complete
-    await Promise.all(pendingPromises);
-
-    // Add a short delay between batches to avoid overwhelming the server
-    if (batchIndex < batches.length - 1) {
-      console.log(`[WebSub] Pausing briefly between batches...`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-  }
+  // Group items by priority
+  const criticalItems = sortedItems.filter(
+    (item) => item.priority === PRIORITY.CRITICAL
+  );
+  const highItems = sortedItems.filter(
+    (item) => item.priority === PRIORITY.HIGH
+  );
+  const mediumItems = sortedItems.filter(
+    (item) => item.priority === PRIORITY.MEDIUM
+  );
+  const lowItems = sortedItems.filter((item) => item.priority === PRIORITY.LOW);
 
   console.log(
-    `[WebSub] Revalidation completed: ${results.success} successful, ${results.failed} failed`
+    `[WebSub] Queuing ${criticalItems.length} critical, ${highItems.length} high, ${mediumItems.length} medium, and ${lowItems.length} low priority items`
   );
 
-  // Log details of failed items for troubleshooting
-  if (results.failed > 0) {
-    const failedItems = results.items.filter((item) => !item.success);
-    console.log(
-      `[WebSub] Failed revalidation items:`,
-      failedItems.map((item) => `${item.type} ${item.path} (${item.error})`)
+  // Clear existing queues
+  criticalQueue.clear();
+  highQueue.clear();
+  mediumQueue.clear();
+  lowQueue.clear();
+
+  // Add items to their respective queues
+  for (const item of criticalItems) {
+    criticalQueue.add(() =>
+      processRevalidationItem(baseUrl, item, revalidateKey)
     );
   }
+
+  for (const item of highItems) {
+    highQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
+  }
+
+  for (const item of mediumItems) {
+    mediumQueue.add(() =>
+      processRevalidationItem(baseUrl, item, revalidateKey)
+    );
+  }
+
+  for (const item of lowItems) {
+    lowQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
+  }
+
+  // Process queues in order of priority with staggered starts
+  console.log(
+    `[WebSub] Processing critical queue (${criticalQueue.size} items)`
+  );
+  await criticalQueue.onIdle();
+
+  // Small delay before starting high priority queue
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  console.log(
+    `[WebSub] Processing high priority queue (${highQueue.size} items)`
+  );
+  await highQueue.onIdle();
+
+  // Longer delay before starting medium priority queue
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  console.log(
+    `[WebSub] Processing medium priority queue (${mediumQueue.size} items)`
+  );
+  await mediumQueue.onIdle();
+
+  // Even longer delay before starting low priority queue
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  console.log(
+    `[WebSub] Processing low priority queue (${lowQueue.size} items)`
+  );
+  await lowQueue.onIdle();
+
+  console.log(`[WebSub] All revalidation queues processed`);
 }
 
 /**
@@ -743,9 +750,19 @@ export default async function handler(
 /**
  * Process the WebSub notification in the background
  * This function runs after we've already acknowledged receipt to WordPress
+ * Optimized with priority-based processing and better concurrency control
  */
 async function processWebSubNotification(req: NextApiRequest): Promise<void> {
+  // Prevent multiple concurrent processing runs
+  if (isProcessing) {
+    console.log(
+      "[WebSub] Already processing a notification, skipping this one"
+    );
+    return;
+  }
+
   try {
+    isProcessing = true;
     console.log("[WebSub] Background processing started");
     console.log(
       "[WebSub] Content-Type:",
@@ -771,63 +788,59 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
 
     if (modifiedArticles.length === 0) {
       console.log("[WebSub] No recently modified articles found");
+      isProcessing = false;
       return;
     }
 
-    // Process articles to get URLs to purge and paths to revalidate
-    const {
-      newArticleUrls,
-      updatedArticleUrls,
-      categoryPaths,
-      revalidationItems,
-    } = processArticles(modifiedArticles, frontendDomain);
+    // Process articles to get cache tags and revalidation items
+    const { cacheTags, revalidationItems } = processArticles(
+      modifiedArticles,
+      frontendDomain
+    );
 
     console.log(
-      `[WebSub] Found ${newArticleUrls.length} new articles, ${updatedArticleUrls.length} updated articles`
+      `[WebSub] Generated ${cacheTags.critical.length + cacheTags.high.length + cacheTags.medium.length + cacheTags.low.length} cache tags for purging`
     );
-    console.log(`[WebSub] Found ${categoryPaths.size} category paths to purge`);
+    console.log(
+      `[WebSub] Prepared ${revalidationItems.length} items for revalidation`
+    );
 
-    // Collect tags to purge
-    const tagsToPurge = new Set<string>();
-
-    // Process each revalidation item to collect appropriate tags
-    for (const item of revalidationItems) {
-      if (item.type === "post") {
-        // Add the exact path tag for precise targeting
-        tagsToPurge.add(`path:/${item.path}`);
-
-        // Extract category information
-        const categories = item.categories || [];
-        for (const category of categories) {
-          tagsToPurge.add(`category:${category}`);
-        }
-
-        // Extract date information if possible
-        const datePattern = /(\d{4})\/(\d{2})\/(\d{2})/;
-        const dateMatch = item.path.match(datePattern);
-        if (dateMatch) {
-          const [_, year, month, day] = dateMatch;
-          tagsToPurge.add(`date:${year}-${month}-${day}`);
-        }
-      } else if (item.type === "category") {
-        // For category pages, add the path and section tags
-        const path = item.path;
-        tagsToPurge.add(`path:${path}`);
-
-        // Extract section from path
-        const section = path.split("/").filter(Boolean)[0];
-        if (section) {
-          tagsToPurge.add(`section:${section}`);
-        }
-      }
+    // Purge cache tags in order of priority with small delays between batches
+    if (cacheTags.critical.length > 0) {
+      console.log(
+        `[WebSub] Purging ${cacheTags.critical.length} critical cache tags`
+      );
+      await purgeByTags(cacheTags.critical);
     }
 
-    // Purge by tags instead of URLs - this is the key improvement
-    console.log(`[WebSub] Purging content with ${tagsToPurge.size} tags`);
-    await purgeByTags(Array.from(tagsToPurge));
+    if (cacheTags.high.length > 0) {
+      // Small delay before purging high priority tags
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      console.log(
+        `[WebSub] Purging ${cacheTags.high.length} high priority cache tags`
+      );
+      await purgeByTags(cacheTags.high);
+    }
 
-    // Continue with revalidation to update Next.js ISR cache
-    // This still runs but now is less critical for immediate user viewing
+    if (cacheTags.medium.length > 0) {
+      // Longer delay before purging medium priority tags
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      console.log(
+        `[WebSub] Purging ${cacheTags.medium.length} medium priority cache tags`
+      );
+      await purgeByTags(cacheTags.medium);
+    }
+
+    if (cacheTags.low.length > 0) {
+      // Even longer delay before purging low priority tags
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log(
+        `[WebSub] Purging ${cacheTags.low.length} low priority cache tags`
+      );
+      await purgeByTags(cacheTags.low);
+    }
+
+    // Process revalidation with priority queuing
     await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
     // Revalidate API endpoints for fresh data
@@ -844,5 +857,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     console.log("[WebSub] Background processing completed successfully");
   } catch (error) {
     console.error("[WebSub] Background processing error:", error);
+  } finally {
+    isProcessing = false;
   }
 }

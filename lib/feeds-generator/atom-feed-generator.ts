@@ -247,9 +247,9 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
         rssUrl:
           "https://cms.freemalaysiatoday.com/category/south-east-asia/feed/",
         link: "https://www.freemalaysiatoday.com/category/category/south-east-asia/",
-        title: "South East Asia | Asian News | International News",
+        title: "Southeast Asia | Asian News | International News",
         subtitle:
-          "Navigating the Global Pulse: Unraveling the Stories Shaping Our SEA (South East Asia)",
+          "Navigating the Global Pulse: Unraveling the Stories Shaping Our SEA (Southeast Asia)",
         selfLink:
           "https://www.freemalaysiatoday.com/feeds/atom/south-east-asia/",
         categories:

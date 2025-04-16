@@ -40,6 +40,7 @@
     "nextjs-toploader": "^3.7.15",
     "nodemailer": "^6.10.0",
     "nodemailer-sendgrid": "^1.0.3",
+    "p-queue": "^8.1.0",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-hook-form": "^7.54.0",

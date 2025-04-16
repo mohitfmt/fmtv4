@@ -12,7 +12,7 @@ import { CategoryPostsLayout } from "@/components/categories-landing-page/Catego
 import { CategoryLandingProps } from "@/types/global";
 import { newsLandingTargetingParams } from "@/constants/ads-targeting-params/news";
 
-const categoryTitle = "News: World & South East Asia";
+const categoryTitle = "News: World & Southeast Asia";
 const excludeVariables = CustomHomeWorldExcludeVariables;
 const pathName = "/world";
 const terms = "world";

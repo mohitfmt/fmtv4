@@ -13,7 +13,7 @@ export const categoriesNavigation = [
         href: "/category/category/nation/sabahsarawak/",
       },
       {
-        title: "South East Asia",
+        title: "Southeast Asia",
         slug: "south-east-asia",
         href: "/category/category/south-east-asia/",
       },
@@ -158,7 +158,7 @@ export const categoriesNavigation = [
         href: "/category/category/world/",
       },
       {
-        title: "South East Asia",
+        title: "Southeast Asia",
         slug: "south-east-asia",
         href: "/category/category/south-east-asia/",
       },

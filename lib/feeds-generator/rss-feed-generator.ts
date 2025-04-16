@@ -336,12 +336,12 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         rssUrl:
           "https://cms.freemalaysiatoday.com/category/south-east-asia/feed/",
         category: `<category>Latest SEA News</category>
-          <category>South East Asis Headlines</category>
+          <category>Southeast Asian Headlines</category>
           <category>Asian</category>
           `,
 
         title:
-          "<title>SEA | South East Asian News | International News | FMT</title>",
+          "<title>SEA | Southeast Asian News | International News | FMT</title>",
         atomLink:
           '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/south-east-asia/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
         fullPath:

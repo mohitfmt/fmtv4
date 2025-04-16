@@ -1,4 +1,4 @@
-// utils/navigation-cache.ts
+// lib/navigation-cache.ts
 import { navigation } from "../constants/navigation";
 
 /**
@@ -33,6 +33,69 @@ export function getAllNavigationPaths(): string[] {
   navigation.forEach(processItem);
 
   return paths;
+}
+
+/**
+ * Normalize a path to ensure it has the correct format
+ * This function is now aligned with the normalizePath function in middleware and revalidate
+ */
+export function normalizePath(path: string): string {
+  // Ensure path starts with a leading slash
+  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Ensure path ends with a trailing slash
+  if (!normalizedPath.endsWith("/")) {
+    normalizedPath = `${normalizedPath}/`;
+  }
+
+  // Handle special pages
+  const specialPaths = [
+    "/photos/",
+    "/videos/",
+    "/accelerator/",
+    "/contact-us/",
+    "/about/",
+    "/privacy-policy/",
+  ];
+  if (specialPaths.includes(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  // Handle main section pages without needing to add category prefix
+  const mainSections = [
+    "/news/",
+    "/berita/",
+    "/business/",
+    "/lifestyle/",
+    "/opinion/",
+    "/world/",
+    "/sports/",
+  ];
+  if (mainSections.includes(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  // Handle case where we already have double category
+  if (normalizedPath.includes("/category/category/")) {
+    return normalizedPath;
+  }
+
+  // Handle case where we have a standard article path
+  if (normalizedPath.includes("/category/")) {
+    return normalizedPath;
+  }
+
+  // If none of the above, assume it's an article path that needs the category prefix
+  if (!normalizedPath.startsWith("/category/")) {
+    // Strip leading slash first to avoid double slashes
+    const pathWithoutLeadingSlash = normalizedPath.startsWith("/")
+      ? normalizedPath.substring(1)
+      : normalizedPath;
+
+    normalizedPath = `/category/${pathWithoutLeadingSlash}`;
+  }
+
+  return normalizedPath;
 }
 
 /**
@@ -93,8 +156,46 @@ export function getFrontendPathForCategory(
 }
 
 /**
+ * Generate cache tags for a category - aligned with middleware and WebSub
+ * This ensures consistent cache invalidation across all components
+ */
+export function generateCacheTagsForCategory(
+  category: string,
+  subcategory?: string
+): string[] {
+  const cacheTags: string[] = [];
+
+  // Add category tag
+  cacheTags.push(`category:${category}`);
+
+  // Add subcategory tag if available
+  if (subcategory) {
+    cacheTags.push(`subcategory:${subcategory}`);
+    cacheTags.push(`category-path:${category}/${subcategory}`);
+  }
+
+  // Add section tag for main categories
+  const sectionMap: Record<string, string> = {
+    nation: "news",
+    bahasa: "berita",
+    business: "business",
+    opinion: "opinion",
+    world: "world",
+    sports: "sports",
+    leisure: "lifestyle",
+  };
+
+  if (sectionMap[category]) {
+    cacheTags.push(`section:${sectionMap[category]}`);
+  }
+
+  return cacheTags;
+}
+
+/**
  * Get all related paths that should be revalidated for a given category
  * This ensures we catch all places where the content might appear
+ * Now returns both paths and cache tags for more efficient invalidation
  */
 export function getRelatedPathsForCategory(
   category: string,
@@ -150,19 +251,50 @@ export function getRelatedPathsForCategory(
 }
 
 /**
+ * Get both paths and cache tags for a category
+ * This is a new function that combines path generation and cache tag generation
+ */
+export function getRelatedPathsAndTags(
+  category: string,
+  subcategory?: string
+): { paths: string[]; cacheTags: string[] } {
+  const paths = getRelatedPathsForCategory(category, subcategory);
+  const cacheTags = generateCacheTagsForCategory(category, subcategory);
+
+  // Add path tags for each path
+  paths.forEach((path) => {
+    cacheTags.push(`path:${path}`);
+  });
+
+  return {
+    paths,
+    cacheTags: [...new Set(cacheTags)], // Remove duplicates
+  };
+}
+
+/**
  * Parse the article slug to extract categories
  * This function handles the complex URL structure to identify categories
+ * Enhanced to handle more edge cases
  */
 export function extractCategoriesFromSlug(slug: string): {
   category: string;
   subcategory?: string;
 } {
-  // Parse the slug to extract categories
-  const parts = slug.split("/");
+  // Normalize the slug first
+  const normalizedSlug = slug.startsWith("/") ? slug.substring(1) : slug;
+  const parts = normalizedSlug.split("/").filter(Boolean);
 
   // Handle direct category URLs
   if (parts[0] === "category") {
     if (parts.length > 2) {
+      // Handle double category pattern
+      if (parts[1] === "category" && parts.length > 3) {
+        return {
+          category: parts[2],
+          subcategory: parts.length > 4 ? parts[3] : undefined,
+        };
+      }
       return {
         category: parts[1],
         subcategory: parts[2],
@@ -173,17 +305,28 @@ export function extractCategoriesFromSlug(slug: string): {
 
   // Handle URLs with year/month/day structure
   // Format: category/subcategory/year/month/day/title
-  if (parts.length >= 5 && !isNaN(Number(parts[2]))) {
-    if (parts[0] === "bahasa") {
-      return {
-        category: "bahasa",
-        subcategory: parts[1],
-      };
+  const datePattern = /^\d{4}$/;
+  for (let i = 0; i < parts.length; i++) {
+    if (datePattern.test(parts[i]) && i >= 1) {
+      // Found a year, so the previous parts are category/subcategory
+      if (i === 1) {
+        // Only category, no subcategory
+        return { category: parts[0] };
+      } else if (i === 2) {
+        // Category and subcategory
+        return {
+          category: parts[0],
+          subcategory: parts[1],
+        };
+      }
     }
+  }
 
+  // Special case for bahasa
+  if (parts[0] === "bahasa" && parts.length > 1) {
     return {
-      category: parts[0],
-      subcategory: parts[1] !== parts[0] ? parts[1] : undefined,
+      category: "bahasa",
+      subcategory: parts[1],
     };
   }
 

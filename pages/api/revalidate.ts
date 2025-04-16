@@ -1,5 +1,5 @@
 // pages/api/revalidate.ts
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import {
   getRelatedPathsForCategory,
   extractCategoriesFromSlug,
@@ -12,6 +12,15 @@ type RevalidateBody = {
   type?: "post" | "page" | "category";
   path?: string;
   categories?: string[];
+  priority?: number; // Added priority field to align with WebSub
+};
+
+// Priority levels for different types of content (matching WebSub)
+const PRIORITY = {
+  CRITICAL: 1, // Homepage and breaking news
+  HIGH: 2, // Main sections
+  MEDIUM: 3, // Individual articles
+  LOW: 4, // Archive pages and less important content
 };
 
 // Main sections/categories to always revalidate
@@ -104,17 +113,168 @@ function normalizePath(path: string): string {
 }
 
 /**
+ * Generate cache tags for a path - aligned with middleware and WebSub
+ * This ensures consistent cache invalidation across all components
+ */
+function generateCacheTags(path: string, categories: string[] = []): string[] {
+  const cacheTags: string[] = [];
+
+  // Always add page-specific tag for precise purging
+  cacheTags.push(`path:${path}`);
+
+  // Add hierarchical tags for more granular control
+  if (path === "/" || path === "/index/") {
+    cacheTags.push("page:home");
+  } else if (
+    path.match(
+      /^\/(news|berita|business|opinion|world|sports|lifestyle|photos|videos|accelerator)\/?$/
+    )
+  ) {
+    const section = path.split("/")[1];
+    cacheTags.push(`section:${section}`);
+    cacheTags.push("type:listing");
+  } else if (path.includes("/category/")) {
+    // Extract category information
+    const pathParts = path.split("/").filter(Boolean);
+    const categoryIndex = pathParts.indexOf("category");
+
+    if (categoryIndex !== -1 && pathParts.length > categoryIndex + 1) {
+      // Get the main category (first level after /category/)
+      const category = pathParts[categoryIndex + 1];
+      cacheTags.push(`category:${category}`);
+
+      // Check if this is an article detail page by looking for date pattern
+      const isArticlePage = /\/\d{4}\/\d{2}\/\d{2}\//.test(path);
+
+      // Find the date pattern index to determine subcategory structure
+      let datePatternIndex = -1;
+      for (let i = 0; i < pathParts.length; i++) {
+        if (
+          /^\d{4}$/.test(pathParts[i]) &&
+          i + 2 < pathParts.length &&
+          /^\d{2}$/.test(pathParts[i + 1]) &&
+          /^\d{2}$/.test(pathParts[i + 2])
+        ) {
+          datePatternIndex = i;
+          break;
+        }
+      }
+
+      // Handle subcategories - all path parts between category and date pattern
+      if (datePatternIndex > 0) {
+        // Add all subcategory levels
+        for (let i = categoryIndex + 2; i < datePatternIndex; i++) {
+          if (i < pathParts.length) {
+            cacheTags.push(`subcategory:${pathParts[i]}`);
+            // Also add combined category path for more precise targeting
+            if (i === categoryIndex + 2) {
+              cacheTags.push(`category-path:${category}/${pathParts[i]}`);
+            } else if (i === categoryIndex + 3) {
+              cacheTags.push(
+                `category-path:${category}/${pathParts[i - 1]}/${pathParts[i]}`
+              );
+            }
+          }
+        }
+      } else if (pathParts.length > categoryIndex + 2) {
+        // For collection pages with subcategories
+        cacheTags.push(`subcategory:${pathParts[categoryIndex + 2]}`);
+        cacheTags.push(
+          `category-path:${category}/${pathParts[categoryIndex + 2]}`
+        );
+      }
+
+      // Add content type tag
+      if (isArticlePage) {
+        cacheTags.push("type:article");
+
+        // Add date-based tags for article pages
+        const datePattern = /\/(\d{4})\/(\d{2})\/(\d{2})\//;
+        const dateMatch = path.match(datePattern);
+        if (dateMatch) {
+          const [_, year, month, day] = dateMatch;
+          cacheTags.push(`date:${year}-${month}-${day}`);
+          cacheTags.push(`year:${year}`);
+          cacheTags.push(`month:${year}-${month}`);
+        }
+      } else {
+        cacheTags.push("type:collection");
+      }
+    }
+  }
+
+  // Add explicit category tags from the provided categories array
+  categories.forEach((category) => {
+    if (category) {
+      cacheTags.push(`category:${category}`);
+    }
+  });
+
+  return [...new Set(cacheTags)]; // Remove duplicates
+}
+
+/**
+ * Purge Cloudflare cache by tags - aligned with WebSub implementation
+ */
+async function purgeCloudflareByTags(tags: string[]): Promise<boolean> {
+  if (!process.env.CLOUDFLARE_ZONE_ID || !process.env.CLOUDFLARE_API_TOKEN) {
+    console.warn("[Revalidate] Cloudflare credentials not configured");
+    return false;
+  }
+
+  if (tags.length === 0) {
+    console.log("[Revalidate] No tags to purge");
+    return true;
+  }
+
+  try {
+    console.log(
+      `[Revalidate] Purging content with tags from Cloudflare: ${tags.join(", ")}`
+    );
+
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/purge_cache`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tags: tags }),
+      }
+    );
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(
+        `Cloudflare tag purge failed: ${result.errors?.[0]?.message}`
+      );
+    }
+
+    console.log(
+      `[Revalidate] Successfully purged content with tags: ${tags.join(", ")}`
+    );
+    return true;
+  } catch (error) {
+    console.error("[Revalidate] Tag purge request failed:", error);
+    return false;
+  }
+}
+
+/**
  * Comprehensive revalidation for a post/article
  * Revalidates the post itself, its categories, and core site sections
  * Uses the navigation structure to ensure all related paths are revalidated
+ * Now includes cache tag purging for faster updates
  */
 async function revalidatePost(
   res: NextApiResponse,
   slug: string,
   categories: string[] = []
-) {
+): Promise<boolean> {
   const revalidatedPaths = new Set<string>();
   const failedPaths = new Set<string>();
+  const cacheTags = new Set<string>();
 
   try {
     // Log the incoming slug to help with debugging
@@ -128,9 +288,12 @@ async function revalidatePost(
         // Normalize the path to ensure consistent formatting
         const normalizedPath = normalizePath(path);
 
+        // Generate cache tags for this path
+        const pathTags = generateCacheTags(normalizedPath, categories);
+        pathTags.forEach((tag) => cacheTags.add(tag));
+
         // Add exponential backoff retry for robustness
         let retries = 0;
-
         let success = false;
 
         while (!success && retries <= maxRetries) {
@@ -222,6 +385,15 @@ async function revalidatePost(
       await revalidatePath(section);
     }
 
+    // 5. Purge Cloudflare cache by tags for immediate updates
+    if (cacheTags.size > 0) {
+      const tagArray = Array.from(cacheTags);
+      console.log(
+        `[Revalidate] Purging ${tagArray.length} cache tags for article ${slug}`
+      );
+      await purgeCloudflareByTags(tagArray);
+    }
+
     console.log(
       `[Revalidate] Article ${slug} revalidation complete. Successfully revalidated ${revalidatedPaths.size} paths.`
     );
@@ -245,6 +417,7 @@ async function revalidatePost(
 
 /**
  * Enhanced revalidate API handler with extended invalidation scope
+ * Now includes cache tag purging for faster updates
  */
 export default async function handler(
   req: NextApiRequest,
@@ -265,6 +438,15 @@ export default async function handler(
 
     const startTime = Date.now();
 
+    // Determine priority if not provided (for backward compatibility)
+    const priority =
+      body.priority ||
+      (body.type === "post"
+        ? PRIORITY.MEDIUM
+        : body.path === "/"
+          ? PRIORITY.CRITICAL
+          : PRIORITY.HIGH);
+
     switch (body.type) {
       case "post":
         if (!body.postSlug) {
@@ -278,6 +460,7 @@ export default async function handler(
           `[Revalidate] Revalidating post with slug: ${body.postSlug}`
         );
         console.log(`[Revalidate] Categories:`, categories);
+        console.log(`[Revalidate] Priority: ${priority}`);
 
         const success = await revalidatePost(res, body.postSlug, categories);
 
@@ -304,11 +487,24 @@ export default async function handler(
           return res.status(400).json({ message: "Category path is required" });
         }
 
-        console.log(`[Revalidate-API] Revalidating category ${body.path}`);
+        console.log(
+          `[Revalidate] Revalidating category ${body.path} with priority ${priority}`
+        );
 
         try {
           // Normalize the path for category revalidation
           const normalizedPath = normalizePath(body.path);
+
+          // Generate cache tags for this category
+          const categoryTags = generateCacheTags(normalizedPath);
+
+          // Purge Cloudflare cache by tags for immediate updates
+          if (categoryTags.length > 0) {
+            console.log(
+              `[Revalidate] Purging ${categoryTags.length} cache tags for category ${normalizedPath}`
+            );
+            await purgeCloudflareByTags(categoryTags);
+          }
 
           // Add retry logic for category revalidation too
           let retries = 0;
@@ -355,6 +551,9 @@ export default async function handler(
                 }
               }
             }
+
+            // Purge homepage cache tag
+            await purgeCloudflareByTags(["path:/", "page:home"]);
           }
         } catch (error) {
           console.error(
@@ -377,6 +576,9 @@ export default async function handler(
         let retriesHome = 0;
         const maxRetriesHome = 2;
         let successHome = false;
+
+        // Purge homepage cache tags
+        await purgeCloudflareByTags(["path:/", "page:home"]);
 
         while (!successHome && retriesHome <= maxRetriesHome) {
           try {
@@ -405,6 +607,7 @@ export default async function handler(
       duration: `${duration}ms`,
       type: body.type,
       path: body.path || body.postSlug,
+      priority: priority,
     });
   } catch (err) {
     console.error("[Revalidate] Unhandled error:", err);
