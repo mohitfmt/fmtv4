@@ -122,7 +122,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     return {
       props: {
         categorySlug,
-        posts: response.posts,
+        posts: response?.posts,
       },
       revalidate: 60,
     };
