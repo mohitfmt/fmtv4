@@ -5,8 +5,8 @@ import {
   WhatsappShareButton,
   LinkedinShareButton,
   FacebookIcon,
-  TwitterIcon,
   WhatsappIcon,
+  XIcon,
   LinkedinIcon,
   PinterestShareButton,
   PinterestIcon,
@@ -99,9 +99,9 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
       }),
     },
     {
-      name: "Twitter",
+      name: "X",
       Button: TwitterShareButton,
-      Icon: TwitterIcon,
+      Icon: XIcon,
       getProps: () => ({ hashtags: xHashTags }),
     },
     {

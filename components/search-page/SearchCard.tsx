@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPreferredCategory } from "@/lib/utils";
 import parse from "html-react-parser";
 import CoverImage from "../common/CoverImage";
-import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
+import { formattedDisplayDate } from "../common/display-date-formats/DateFormates";
 
 const SearchCard = ({
   title,
@@ -32,7 +32,7 @@ const SearchCard = ({
             </div>
           )}
         </figure>
-        
+
         <div className="md:w-3/5 p-2">
           <div className="flex flex-col justify-around h-full">
             <header className="flex items-center justify-between mb-3">
@@ -42,23 +42,23 @@ const SearchCard = ({
                 </span>
               )}
               <span className="text-sm font-bitter text-stone-700 dark:text-stone-300">
-                <PublishingDateTime dateString={date} size={16} />
+                {/* <PublishingDateTime dateString={date} size={16} /> */}
+                {formattedDisplayDate(date)}
               </span>
             </header>
-            
+
             <Link href={uri} title={title}>
               <h2 className="text-xl font-bitter font-semibold mb-4 leading-tight hover:text-blue-700 dark:hover:text-cyan-300 transition-colors">
                 {title}
               </h2>
             </Link>
-            
-            <div 
+
+            <div
               className="text-gray-600 dark:text-stone-200 line-clamp-3 leading-relaxed"
               title={parsedExcerpt}
               dangerouslySetInnerHTML={{ __html: excerpt }}
             />
           </div>
-          
         </div>
       </div>
     </article>
