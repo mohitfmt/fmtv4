@@ -1,3 +1,5 @@
+"use client";
+
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { ThemeProvider } from "next-themes";
@@ -9,11 +11,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
-import ContentVersionTracker from "@/components/ContentVersionTracker";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
 import Script from "next/script";
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -81,7 +81,6 @@ export default function App({
     <div
       className={`${bitter.variable} ${rhd.variable} ${roboto.variable} min-h-screen bg-background text-foreground`}
     >
-      <ContentVersionTracker />
       <NextTopLoader
         color="#FFD700"
         initialPosition={0.08}
@@ -126,32 +125,30 @@ export default function App({
       <GoogleOAuthProvider
         clientId={`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}`}
       >
-        <ErrorBoundary>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem={true}
-              value={{
-                light: "light",
-                dark: "dark",
-                system: "system",
-              }}
-            >
-              <MultipurposeProvider>
-                <GPTProvider
-                  prefix="FMT"
-                  networkId="1009103"
-                  bodyAdSlots={{}}
-                  dfpTargetingParams={{}}
-                  asPath="/"
-                >
-                  {content}
-                </GPTProvider>
-              </MultipurposeProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </ErrorBoundary>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem={true}
+            value={{
+              light: "light",
+              dark: "dark",
+              system: "system",
+            }}
+          >
+            <MultipurposeProvider>
+              <GPTProvider
+                prefix="FMT"
+                networkId="1009103"
+                bodyAdSlots={{}}
+                dfpTargetingParams={{}}
+                asPath="/"
+              >
+                {content}
+              </GPTProvider>
+            </MultipurposeProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </GoogleOAuthProvider>
 
       {/* Meta Pixel script using Next.js Script component */}
