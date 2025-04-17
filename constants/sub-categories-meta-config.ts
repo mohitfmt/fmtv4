@@ -1,7 +1,7 @@
 export const seoSubCategories = {
   automotive: {
-    h1Title: "Latest Automotive News & Trends",
-    metaTitle: "Top Car News & Automotive Trends",
+    h1Title: "News & Trends",
+    metaTitle: "News & Trends",
     description:
       "Stay updated with the latest car news, automotive industry trends, car reviews, and new model announcements globally on Free Malaysia Today (FMT).",
     keywords: [
@@ -65,8 +65,8 @@ export const seoSubCategories = {
     ],
   },
   entertainment: {
-    h1Title: "Entertainment News & Celebrity Gossip",
-    metaTitle: "Latest Entertainment News & Celebrity Updates",
+    h1Title: "Film, TV, Stage & Cultural News",
+    metaTitle: "Film, TV, Stage & Cultural News",
     description:
       "Catch up on the latest entertainment headlines, celebrity interviews, movie and TV show updates, and trending music stories on Free Malaysia Today (FMT).",
     keywords: [
@@ -80,7 +80,8 @@ export const seoSubCategories = {
   "fmt-worldviews": {
     h1Title: "FMT Worldviews",
     metaTitle: "FMT Worldviews",
-    description: "Explore in-depth analysis, expert commentary, and diverse perspectives on global affairs, international relations, and world events from distinguished writers and thought leaders on Free Malaysia Today (FMT).",
+    description:
+      "Explore in-depth analysis, expert commentary, and diverse perspectives on global affairs, international relations, and world events from distinguished writers and thought leaders on Free Malaysia Today (FMT).",
     keywords: [
       "global analysis",
       "expert commentary",
@@ -89,8 +90,8 @@ export const seoSubCategories = {
       "geopolitical insights",
       "global issues",
       "political analysis",
-      "world events"
-    ]
+      "world events",
+    ],
   },
   food: {
     h1Title: "Delicious Food News & Reviews",
@@ -119,8 +120,8 @@ export const seoSubCategories = {
     ],
   },
   health: {
-    h1Title: "Health Tips & Family Wellness",
-    metaTitle: "Latest Health News & Family Wellness Articles",
+    h1Title: "News, Wellness Tips & Family Stories",
+    metaTitle: "News, Wellness Tips & Family Stories",
     description:
       "Read the latest health news, parenting tips, diet advice, fitness articles, and mental health insights on Free Malaysia Today (FMT). Stay informed on family wellness.",
     keywords: [
@@ -170,8 +171,8 @@ export const seoSubCategories = {
     ],
   },
   money: {
-    h1Title: "Money Management & Finance Tips",
-    metaTitle: "Financial Advice & Money Management Tips",
+    h1Title: "Personal Finance & Workplace Trends",
+    metaTitle: "Personal Finance & Workplace Trends",
     description:
       "Explore useful tips and guides on money management, financial advice, budgeting, saving, and investment on Free Malaysia Today (FMT). Enhance your financial literacy for a better future.",
     keywords: [
@@ -222,8 +223,8 @@ export const seoSubCategories = {
     ],
   },
   pets: {
-    h1Title: "Pet News & Animal Stories",
-    metaTitle: "Pet Care Tips & Animal News",
+    h1Title: "Animal Tales & Nature Stories",
+    metaTitle: "Animal Tales & Nature Stories",
     description:
       "Discover pet stories, animal news, articles, information, fun facts, and pet care guides for cat and dog lovers on Free Malaysia Today (FMT).",
     keywords: [
@@ -261,8 +262,8 @@ export const seoSubCategories = {
     ],
   },
   "simple-stories": {
-    h1Title: "Inspiring Simple Stories",
-    metaTitle: "True Stories of Success & Life Experiences",
+    h1Title: "Inspiring People & Stories",
+    metaTitle: "Inspiring People & Stories",
     description:
       "Read simple yet inspiring true stories of success, life experiences, culture, and topical issues on Free Malaysia Today (FMT). Discover stories that may inspire and shape your life.",
     keywords: [
@@ -299,8 +300,8 @@ export const seoSubCategories = {
     ],
   },
   tech: {
-    h1Title: "Latest Technology News & Updates",
-    metaTitle: "Technology News: Latest Tech Trends & Innovation Updates",
+    h1Title: "Latest Innovations & Advances",
+    metaTitle: "Latest Innovations & Advances",
     description:
       "Stay updated with the latest technology news, digital trends, gadget reviews, innovation updates, and tech industry developments on Free Malaysia Today (FMT).",
     keywords: [
@@ -339,8 +340,8 @@ export const seoSubCategories = {
     ],
   },
   travel: {
-    h1Title: "Travel News & Vacation Guides",
-    metaTitle: "Latest Travel Tips & Tourism News",
+    h1Title: "Places of Interest & Vacation Guides",
+    metaTitle: "Places of Interest & Vacation Guides",
     description:
       "Explore the latest travel news, vacation tips, popular attraction guides, and tourism updates in Malaysia and around the world on Free Malaysia Today (FMT).",
     keywords: [

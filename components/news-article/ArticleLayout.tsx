@@ -123,12 +123,13 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                   />
                 </div>
               </div>
-
-              <h2
-                className="excerpt text-xl my-3"
-                itemProp="description"
-                dangerouslySetInnerHTML={{ __html: safeExcerpt }}
-              />
+              <div className="mb-6">
+                <h2
+                  className="excerpt text-xl my-3"
+                  itemProp="description"
+                  dangerouslySetInnerHTML={{ __html: safeExcerpt }}
+                />
+              </div>
             </header>
 
             <section itemProp="articleBody">{children}</section>
