@@ -121,6 +121,7 @@ const NewsArticlePost = ({
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="keywords" content={keywords || safeTags.join(", ")} />
+        <meta name="author" content={post.author?.node?.name || "FMT Reporters"} />
         <meta
           name="robots"
           content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
