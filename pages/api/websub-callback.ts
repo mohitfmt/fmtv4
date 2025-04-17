@@ -843,6 +843,29 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     // Process revalidation with priority queuing
     await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
+    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
+
+    for (const post of modifiedArticles) {
+      const url = new URL(post.link);
+      url.hostname =
+        process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com";
+
+      const pingUrl = `https://api.indexnow.org/indexnow?url=${encodeURIComponent(
+        url.toString()
+      )}&key=${indexNowKey}`;
+
+      try {
+        const response = await fetch(pingUrl);
+        if (!response.ok) {
+          console.error(`[IndexNow] Ping failed for ${url.toString()}`);
+        } else {
+          console.log(`[IndexNow] Ping successful for ${url.toString()}`);
+        }
+      } catch (err) {
+        console.error(`[IndexNow] Error pinging for ${url.toString()}:`, err);
+      }
+    }
+
     // Revalidate API endpoints for fresh data
     try {
       await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
@@ -854,6 +877,49 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       console.error(`[WebSub] Error revalidating API endpoints:`, error);
     }
 
+    const hubUrl = "https://pubsubhubbub.appspot.com/";
+    const feedUrls = [
+      "https://www.freemalaysiatoday.com/feeds/rss/nation/",
+      "https://www.freemalaysiatoday.com/feeds/rss/berita/",
+      "https://www.freemalaysiatoday.com/feeds/rss/business/",
+      "https://www.freemalaysiatoday.com/feeds/rss/headlines/",
+      "https://www.freemalaysiatoday.com/feeds/rss/lifestyle/",
+      "https://www.freemalaysiatoday.com/feeds/rss/opinion/",
+      "https://www.freemalaysiatoday.com/feeds/rss/sports/",
+      "https://www.freemalaysiatoday.com/feeds/rss/world/",
+
+      "https://www.freemalaysiatoday.com/feeds/atom/nation/",
+      "https://www.freemalaysiatoday.com/feeds/atom/berita/",
+      "https://www.freemalaysiatoday.com/feeds/atom/business/",
+      "https://www.freemalaysiatoday.com/feeds/atom/headlines/",
+      "https://www.freemalaysiatoday.com/feeds/atom/lifestyle/",
+      "https://www.freemalaysiatoday.com/feeds/atom/opinion/",
+      "https://www.freemalaysiatoday.com/feeds/atom/sports/",
+      "https://www.freemalaysiatoday.com/feeds/atom/world/",
+    ];
+
+    for (const feedUrl of feedUrls) {
+      try {
+        const pingRes = await fetch(hubUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            "hub.mode": "publish",
+            "hub.url": feedUrl,
+          }).toString(),
+        });
+
+        if (!pingRes.ok) {
+          throw new Error(
+            `Ping failed (${pingRes.status}): ${pingRes.statusText}`
+          );
+        }
+
+        console.log(`[WebSub] Successfully pinged hub for ${feedUrl}`);
+      } catch (error) {
+        console.error(`[WebSub] Error pinging hub for ${feedUrl}:`, error);
+      }
+    }
     console.log("[WebSub] Background processing completed successfully");
   } catch (error) {
     console.error("[WebSub] Background processing error:", error);
