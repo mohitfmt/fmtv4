@@ -4,7 +4,7 @@ import TopBanner from "./top-header/TopBanner";
 import Footer from "../components/footer/Footer";
 import Container from "../components/Container";
 import Head from "next/head";
-import AdSlot from "@/components/common/AdSlot"; // ✅ make sure this path is correct
+import AdSlot from "@/components/common/AdSlot";
 
 interface LayoutProps {
   preview?: boolean;
