@@ -140,14 +140,49 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
               .join("");
 
             if (hasSpecialPattern(textContent)) {
-              // Process paragraphs with special patterns
-              const processedText = processParagraph(textContent);
+              const locationPattern = /^([A-Z\s]+:)\s+/;
+              const firstChild = domNode.children[0];
+              let processedChildren = [...domNode.children];
+
+              if (
+                typeof firstChild === "object" &&
+                firstChild.type === "text" &&
+                locationPattern.test(firstChild.data || "")
+              ) {
+                const match = firstChild.data?.match(locationPattern);
+                const location = match?.[1]?.trim().slice(0, -1);
+                const restText =
+                  firstChild.data?.replace(locationPattern, "") ?? "";
+
+                processedChildren = [
+                  {
+                    type: "tag",
+                    name: "address",
+                    attribs: {
+                      class: "location-block",
+                      itemProp: "contentLocation",
+                      itemScope: true,
+                      itemType: "https://schema.org/Place",
+                    },
+                    children: [
+                      {
+                        type: "tag",
+                        name: "span",
+                        attribs: { itemProp: "name" },
+                        children: [{ type: "text", data: location }],
+                      },
+                      { type: "text", data: ":" },
+                    ],
+                  } as any,
+                  { type: "text", data: " " + restText } as any,
+                  ...domNode.children.slice(1),
+                ];
+              }
 
               return (
-                <p
-                  className="py-1.5 mb-4 text-lg"
-                  dangerouslySetInnerHTML={{ __html: processedText }}
-                />
+                <p className="py-1.5 mb-4 text-lg">
+                  {domToReact(processedChildren as DOMNode[], options)}
+                </p>
               );
             }
 
