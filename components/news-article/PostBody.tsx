@@ -20,32 +20,6 @@ interface PostBodyProps {
   };
 }
 
-const processParagraph = (text: string): string => {
-  const locationPattern = /^([A-Z\s]+:)\s+/;
-  const quotePattern = /["""](.*?)["""]/g;
-
-  // Process location if exists
-  if (locationPattern.test(text)) {
-    text = text.replace(
-      locationPattern,
-      (
-        _,
-        location
-      ) => `<address class='location-block' itemProp='contentLocation' itemScope itemType='https://schema.org/Place'>
-        <span itemProp='name'>${location?.trim().slice(0, -1)}</span>:
-      </address>`
-    );
-  }
-
-  // Process quotes if exist
-  text = text.replace(
-    quotePattern,
-    (_, quote) => `<blockquote class="quote-block"><q>${quote}</q></blockquote>`
-  );
-
-  return text;
-};
-
 // Simplified pattern detection
 const hasSpecialPattern = (text: string): boolean => {
   const locationPattern = /^([A-Z\s]+:)\s+/;

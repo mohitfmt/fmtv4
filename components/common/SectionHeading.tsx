@@ -1,57 +1,53 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 interface SectionHeadingProps {
   sectionName: string;
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ sectionName }) => {
-  const [isMobile, setIsMobile] = useState(false);
+  let content: React.ReactNode = sectionName;
 
-  useEffect(() => {
-    // Check screen size on mount and resize
-    const checkScreen = () => setIsMobile(window.innerWidth <= 500);
-    checkScreen();
-    window.addEventListener("resize", checkScreen);
-    return () => window.removeEventListener("resize", checkScreen);
-  }, []);
+  // Case 1: If sectionName includes '&', split it into two lines on mobile
+  if (sectionName.includes("&")) {
+    const [before, after] = sectionName.split("&").map((s) => s.trim());
 
-  // Line-break logic for mobile only
-  let line1 = sectionName;
-  let line2 = "";
+    content = (
+      <>
+        {/* Show as block on mobile (line break), inline on larger screens */}
+        <span className="block sm:inline">{before}</span>
+        <span className="block sm:inline">& {after}</span>
+      </>
+    );
+  }
 
-  if (isMobile) {
-    if (sectionName.includes("&")) {
-      const [before, after] = sectionName.split("&").map((part) => part.trim());
-      const wordCountBefore = before.split(" ").length;
-      if (wordCountBefore <= 3) {
-        line1 = before;
-        line2 = `& ${after}`;
-      }
-    } else if (sectionName.length > 25) {
-      const breakIndex = sectionName.lastIndexOf(" ", 25);
-      if (breakIndex !== -1) {
-        line1 = sectionName.slice(0, breakIndex);
-        line2 = sectionName.slice(breakIndex + 1);
-      }
+  // Case 2: If sectionName is too long, break it after a word boundary (~25 chars)
+  else if (sectionName.length > 25) {
+    const breakIndex = sectionName.lastIndexOf(" ", 25);
+    if (breakIndex !== -1) {
+      content = (
+        <>
+          <span className="block sm:inline">
+            {sectionName.slice(0, breakIndex)}
+          </span>
+          <span className="block sm:inline">
+            {sectionName.slice(breakIndex + 1)}
+          </span>
+        </>
+      );
     }
   }
 
   return (
     <div className="group flex items-center pb-2 mb-2">
+      {/* Left line bar */}
       <div className="w-6 border-t-4 border-stone-600 group-hover:border-stone-400 transition-all duration-2000 ease-in-out"></div>
 
+      {/* Section Title */}
       <h2 className="text-xl uppercase mx-2 text-foreground group-hover:text-accent-category transition-colors duration-500 ease-in-out leading-tight">
-        {isMobile && line2 ? (
-          <>
-            {line1}
-            <br />
-            {line2}
-          </>
-        ) : (
-          sectionName
-        )}
+        {content}
       </h2>
 
+      {/* Right gradient line */}
       <div className="flex-grow h-1 bg-gradient-to-r from-stone-400 to-stone-600 group-hover:from-stone-600 group-hover:to-stone-400 transition-all duration-2000 ease-in-out"></div>
     </div>
   );
