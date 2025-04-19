@@ -13,7 +13,7 @@ export default function Document() {
         <link rel="preconnect" href="https://imagedelivery.net" />
         <link rel="dns-prefetch" href="https://imagedelivery.net" />
 
-        <meta content="193538481218906" property="fb:app_id" />
+        <meta property="fb:app_id" content="193538481218906" />
 
         <meta
           name="google-signin-client_id"

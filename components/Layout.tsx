@@ -3,7 +3,6 @@ import TopBar from "./top-header/TopBar";
 import TopBanner from "./top-header/TopBanner";
 import Footer from "../components/footer/Footer";
 import Container from "../components/Container";
-import Head from "next/head";
 import AdSlot from "@/components/common/AdSlot";
 
 interface LayoutProps {
@@ -14,10 +13,6 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <>
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </Head>
-
       {/* Pixel AdSlot (1x1 tracking) */}
       <div
         style={{

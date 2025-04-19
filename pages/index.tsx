@@ -97,11 +97,6 @@ export default function Home({
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="robots" content="index, follow, max-image-preview:large" />
-        <meta name="referrer" content="no-referrer-when-downgrade" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-
         <title>{`${siteConfig.siteName} | ${siteConfig.tagline}`}</title>
         <meta name="description" content={siteConfig.siteDescription} />
         <meta
@@ -136,11 +131,6 @@ export default function Home({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
-
-        {/* Language alternatives for the homepage */}
-        <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
-        <link rel="alternate" hrefLang="ms" href={siteConfig.baseUrl} />
-        <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
         <link rel="canonical" href={siteConfig.baseUrl} />
         {heroPosts[0] && (
           <>
@@ -211,7 +201,6 @@ export default function Home({
           content={`${siteConfig.siteName} | ${siteConfig.siteShortName}`}
         />
         <meta name="twitter:creator" content="@fmtoday" />
-        
       </Head>
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}

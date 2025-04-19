@@ -103,13 +103,16 @@ export default function App({
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
         {/* Viewport for responsiveness */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4"
+        />
         {/* Robots directives for indexing */}
         <meta
           name="robots"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
+        <meta name="referrer" content="no-referrer-when-downgrade" />
         <meta name="googlebot-news" content="index, follow" />
         <meta name="googlebot" content="index, follow" />
 
