@@ -122,7 +122,7 @@ const NewsArticlePost = ({
     post.featuredImage?.node?.altText || `${siteConfig.siteName}`;
   const imageSize = post.featuredImage?.node?.mediaDetails;
 
-  const safeKeywords = post?.keywords?.keywords || DEFAULT_KEYWORDS;
+  const safeKeywords = post?.keywords?.keywords || safeTags;
 
   const publishedTime = post?.dateGmt;
   const modifiedTime = post?.modifiedGmt;
@@ -168,8 +168,8 @@ const NewsArticlePost = ({
         <meta
           name="apple-mobile-web-app-title"
           content={
-            safeTitle.length > 20
-              ? `${safeTitle.substring(0, 20)}...`
+            safeTitle.length > 30
+              ? `${safeTitle.substring(0, 30)}...`
               : safeTitle
           }
         />
@@ -230,7 +230,10 @@ const NewsArticlePost = ({
         {/* og */}
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`${siteConfig.baseUrl}${safeUri}`} />
-        <meta property="og:site_name" content="Free Malaysia Today | FMT" />
+        <meta
+          property="og:site_name"
+          content={`${siteConfig.siteName} | ${siteConfig.siteShortName}`}
+        />
         <meta property="og:title" content={safeTitle} />
         <meta property="og:description" content={safeExcerpt} />
         <meta property="og:locale" content={locale} />
