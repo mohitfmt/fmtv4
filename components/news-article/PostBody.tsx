@@ -154,9 +154,9 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
               }
 
               return (
-                <p className="py-1.5 mb-4 text-lg">
+                <div className="py-1.5 mb-4 text-lg font-bitter">
                   {domToReact(processedChildren as DOMNode[], options)}
-                </p>
+                </div>
               );
             }
 
