@@ -111,6 +111,7 @@ export default function Home({
           name="copyright"
           content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
         />
+        <meta name="category" content="homepage, landing"></meta>
         <meta name="subject" content={siteConfig.siteDescription} />
         <meta name="classification" content="News Media" />
         <meta name="original-source" content={siteConfig.baseUrl} />
@@ -132,6 +133,25 @@ export default function Home({
         <meta name="apple-touch-fullscreen" content="yes" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <link rel="canonical" href={siteConfig.baseUrl} />
+
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Atom Feed"
+          href={`${siteConfig.baseUrl}/feeds/atom/headlines/`}
+        />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed"
+          href={`${siteConfig.baseUrl}/feeds/rss/headlines/`}
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="JSON Feed"
+          href={`${siteConfig.baseUrl}/feeds/json/headlines/`}
+        />
         {heroPosts[0] && (
           <>
             <link
@@ -181,8 +201,6 @@ export default function Home({
         <meta property="og:image" content={siteConfig.iconPath} />
         <meta property="og:image:secure_url" content={siteConfig.iconPath} />
         <meta property="og:image:alt" content="News | Free Malaysia Today" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="en_MY" />
         <meta property="og:locale:alternate" content="ms_MY" />
 
@@ -196,9 +214,10 @@ export default function Home({
         />
         <meta name="twitter:description" content={siteConfig.siteDescription} />
         <meta name="twitter:image" content={siteConfig.iconPath} />
+        <meta name="twitter:image:secure_url" content={siteConfig.iconPath} />
         <meta
           name="twitter:image:alt"
-          content={`${siteConfig.siteName} | ${siteConfig.siteShortName}`}
+          content="Latest News | Free Malaysia Today"
         />
         <meta name="twitter:creator" content="@fmtoday" />
       </Head>
