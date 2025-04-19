@@ -14,7 +14,6 @@ import {
 } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
-import { DEFAULT_KEYWORDS } from "@/constants/default-tags";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -122,8 +121,6 @@ const NewsArticlePost = ({
     post.featuredImage?.node?.altText || `${siteConfig.siteName}`;
   const imageSize = post.featuredImage?.node?.mediaDetails;
 
-  const safeKeywords = post?.keywords?.keywords || safeTags;
-
   const publishedTime = post?.dateGmt;
   const modifiedTime = post?.modifiedGmt;
 
@@ -159,7 +156,7 @@ const NewsArticlePost = ({
         <meta name="description" content={safeExcerpt} />
         <meta name="author" content={safeAuthor} />
         <meta name="creator" content={safeAuthor} />
-        <meta name="keywords" content={safeKeywords} />
+        <meta name="keywords" content={safeTags} />
         <meta name="category" content={safeCategories} />
         <meta name="pagename" content={safeTitle} />
         <meta name="target" content="all" />
@@ -188,7 +185,7 @@ const NewsArticlePost = ({
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
-        <meta name="news_keywords" content={safeKeywords} />
+        <meta name="news_keywords" content={safeTags} />
         <link
           rel="author"
           href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
@@ -252,7 +249,7 @@ const NewsArticlePost = ({
         {/* Article type */}
         <meta property="article:author" content={safeAuthor} />
         <meta property="article:section" content={safeCategories[0]} />
-        <meta property="article:tag" content={safeKeywords} />
+        <meta property="article:tag" content={safeTags} />
         {publishedTime && (
           <meta
             property="article:published_time"
