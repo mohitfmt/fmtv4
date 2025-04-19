@@ -82,3 +82,9 @@ export const social = [
     size: 22,
   },
 ] as const;
+
+export const fbPageIds = [
+  "323440711827", // Main Page
+  "1756784177872528", // Lifestyle
+  "1555977648046719", // Berita
+];
