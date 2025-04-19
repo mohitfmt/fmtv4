@@ -353,3 +353,35 @@ export const getYouTubeVideoId = (url: string) => {
 
   return match ? match[1] : "";
 };
+
+export const getFeedUrlAppend = (slugStart: string): string => {
+  const slugMap: { [key: string]: string } = {
+    bahasa: "berita",
+    highlight: "headlines",
+    leisure: "lifestyle",
+    nation: "nation",
+    business: "business",
+    opinion: "opinion",
+    sports: "sports",
+    world: "world",
+  };
+  return slugMap[slugStart.toLowerCase()] || slugStart;
+};
+
+export const generateLanguageAlternates = (
+  isMalay: boolean,
+  fullUrl: string
+): Array<{ hrefLang: string; href: string }> => {
+  if (isMalay) {
+    return [
+      { hrefLang: "ms", href: fullUrl },
+      { hrefLang: "ms-MY", href: fullUrl },
+      { hrefLang: "id", href: fullUrl },
+    ];
+  }
+
+  return [
+    { hrefLang: "en", href: fullUrl },
+    { hrefLang: "x-default", href: fullUrl },
+  ];
+};
