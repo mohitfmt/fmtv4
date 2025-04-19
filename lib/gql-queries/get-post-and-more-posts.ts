@@ -17,19 +17,20 @@ export async function getPostAndMorePosts(
     `
       fragment AuthorFields on User {
         name
-        firstName
-        lastName
         slug
+        uri
         avatar {
           url
         }
       }
       fragment PostFields on Post {
+        id
         title
         excerpt
         slug
         date
-      
+        dateGmt
+        modifiedGmt
         databaseId
         uri
         featuredImage {
@@ -38,6 +39,10 @@ export async function getPostAndMorePosts(
             altText
             caption
             title
+            mediaDetails {
+              height
+              width
+            }
           }
         }
         author {
@@ -49,6 +54,7 @@ export async function getPostAndMorePosts(
           edges {
             node {
               name
+              slug
             }
           }
         }

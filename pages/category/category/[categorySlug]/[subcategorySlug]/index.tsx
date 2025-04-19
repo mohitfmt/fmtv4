@@ -88,7 +88,6 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
 
   const pathName = `/category/category/${category}/${subcategorySlug}`;
 
-  // console.log("seoData (subcategory):", seoData);
   const metadataConfig = {
     title: `${seoData?.metaTitle || subcategorySlug} | Free Malaysia Today (FMT)`,
     description:

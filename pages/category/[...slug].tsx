@@ -6,9 +6,15 @@ import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
-import { getSafeTags, stripHTML } from "@/lib/utils";
+import {
+  generateLanguageAlternates,
+  getFeedUrlAppend,
+  getSafeTags,
+  stripHTML,
+} from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
+import { DEFAULT_KEYWORDS } from "@/constants/default-tags";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -16,6 +22,7 @@ const REVALIDATION_INTERVAL = 1500; // 25 minutes
 
 interface ArticleProps {
   post: any;
+  params: any;
   posts: any[];
   preview?: boolean;
   relatedPosts?: any[];
@@ -48,6 +55,7 @@ const getAdTargeting = (post: any, tagNames: any) => {
 };
 
 const NewsArticlePost = ({
+  params,
   preview = false,
   post,
   posts,
@@ -91,14 +99,42 @@ const NewsArticlePost = ({
 
   // const cleanedContent = removeFeaturedImage(post.content || "");
 
-  const safeTitle = post.title || "Untitled Article";
+  const safeTitle = post?.title || `${siteConfig?.siteName}`;
 
-  const safeExcerpt = stripHTML(post.excerpt) || "No excerpt available";
+  const safeExcerpt =
+    stripHTML(post?.excerpt) || `${siteConfig?.siteDescription}`;
 
-  const safeUri = post.uri || "/";
+  const safeAuthor = post?.author?.node?.name || `${siteConfig?.siteShortName}`;
+
+  const safeUri = post?.uri || "/";
+
+  // const fullUrl = siteConfig.baseUrl + safeUri;
+
+  const fullUrl = `${siteConfig.baseUrl}${safeUri}`.replace(
+    "//category",
+    "/category"
+  );
+
   const safeFeaturedImage =
     post.featuredImage?.node?.sourceUrl || `${siteConfig.iconPath}`;
-  const keywords = post?.keywords?.keywords;
+
+  const imageAltText =
+    post.featuredImage?.node?.altText || `${siteConfig.siteName}`;
+  const imageSize = post.featuredImage?.node?.mediaDetails;
+
+  const safeKeywords = post?.keywords?.keywords || DEFAULT_KEYWORDS;
+
+  const publishedTime = post?.dateGmt;
+  const modifiedTime = post?.modifiedGmt;
+
+  const articleCategory = params?.slug[0];
+
+  const locale = articleCategory === "bahasa" ? "ms_MY" : "en_MY";
+  const alternateLocale = articleCategory === "bahasa" ? "ms" : "en";
+
+  const isMalay = articleCategory === "bahasa";
+  const feedUrlAppend = getFeedUrlAppend(articleCategory);
+  const languageAlternates = generateLanguageAlternates(isMalay, fullUrl);
 
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
@@ -118,10 +154,28 @@ const NewsArticlePost = ({
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
+
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
-        <meta name="keywords" content={keywords || safeTags.join(", ")} />
-        <meta name="author" content={post.author?.node?.name || "FMT Reporters"} />
+        <meta name="author" content={safeAuthor} />
+        <meta name="creator" content={safeAuthor} />
+        <meta name="keywords" content={safeKeywords} />
+        <meta name="category" content={safeCategories} />
+        <meta name="pagename" content={safeTitle} />
+        <meta name="target" content="all" />
+
+        {/* apple */}
+        <meta
+          name="apple-mobile-web-app-title"
+          content={
+            safeTitle.length > 20
+              ? `${safeTitle.substring(0, 20)}...`
+              : safeTitle
+          }
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-touch-fullscreen" content="yes" />
+
         <meta
           name="robots"
           content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
@@ -134,22 +188,89 @@ const NewsArticlePost = ({
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
-        <link rel="canonical" href={`${siteConfig.baseUrl}${safeUri}`} />
+        <meta name="news_keywords" content={safeKeywords} />
+        <link
+          rel="author"
+          href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
+        />
+        <link
+          rel="creator"
+          href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
+        />
+        <link rel="canonical" href={fullUrl} />
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Atom Feed"
+          href={`${siteConfig.baseUrl}/feeds/atom/${feedUrlAppend}/`}
+        />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed"
+          href={`${siteConfig.baseUrl}/feeds/rss/${feedUrlAppend}/`}
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="JSON Feed"
+          href={`${siteConfig.baseUrl}/feeds/json/${feedUrlAppend}/`}
+        />
 
+        {/* Language alternates */}
+        {languageAlternates.map((lang) => (
+          <link
+            key={lang.hrefLang}
+            rel="alternate"
+            hrefLang={lang.hrefLang}
+            href={lang.href}
+          />
+        ))}
+
+        {/* og */}
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`${siteConfig.baseUrl}${safeUri}`} />
-        <meta property="og:site_name" content={siteConfig.baseUrl} />
+        <meta property="og:site_name" content="Free Malaysia Today | FMT" />
         <meta property="og:title" content={safeTitle} />
         <meta property="og:description" content={safeExcerpt} />
+        <meta property="og:locale" content={locale} />
+        <meta property="og:locale:alternate" content={alternateLocale} />
+        {/* og:Images */}
         <meta property="og:image" content={safeFeaturedImage} />
+        <meta property="og:image:secure_url" content={safeFeaturedImage} />
+        <meta property="og:image:type" content="image/webp" />
+        <meta property="og:image:width" content={imageSize?.width || "1600"} />
+        <meta
+          property="og:image:height"
+          content={imageSize?.height || "1000"}
+        />
+        <meta property="og:image:alt" content={imageAltText} />
 
+        {/* Article type */}
+        <meta property="article:author" content={safeAuthor} />
+        <meta property="article:section" content={safeCategories[0]} />
+        <meta property="article:tag" content={safeKeywords} />
+        {publishedTime && (
+          <meta
+            property="article:published_time"
+            content={`${publishedTime}Z`}
+          />
+        )}
+        {modifiedTime && (
+          <meta property="article:modified_time" content={`${modifiedTime}Z`} />
+        )}
+
+        {/* twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
         <meta name="twitter:url" content={`${siteConfig.baseUrl}${safeUri}`} />
         <meta name="twitter:title" content={safeTitle} />
         <meta name="twitter:description" content={safeExcerpt} />
         <meta name="twitter:image" content={safeFeaturedImage} />
+        <meta name="twitter:image:alt" content={imageAltText} />
+        <meta name="twitter:creator" content={safeAuthor} />
       </Head>
+
       <ArticleJsonLD data={post} relatedData={relatedPosts} />
       <ArticleLayout
         post={post}
@@ -241,6 +362,7 @@ export const getStaticProps: GetStaticProps = async ({
 
     return {
       props: {
+        params,
         preview,
         post: data.post,
         posts:

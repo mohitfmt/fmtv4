@@ -17,3 +17,11 @@ export const DEFAULT_TAGS = [
     href: "/category/tag/updates",
   },
 ];
+export const DEFAULT_KEYWORDS = [
+  "Malaysia",
+  "News",
+  "Malaysian News",
+  "Southeast Asia",
+  "Free Malaysia Today",
+  "FMT",
+].join(", ");
