@@ -13,43 +13,31 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <>
-      {/* Pixel AdSlot (1x1 tracking) */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          backgroundColor: "red",
-          height: 0,
-        }}
-      >
-        <AdSlot id="div-gpt-ad-1661362827551-0" name="Pixel" sizes={[1, 1]} />
-      </div>
-
-      {/* OutOfPage AdSlot (e.g., interstitials, skins) */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          backgroundColor: "red",
-          height: 0,
-        }}
-      >
-        <AdSlot
-          id="div-gpt-ad-1661362765847-0"
-          name="OutOfPage"
-          sizes={[1, 1]} // Technically unused, but required by your prop
-          outOfPage={true}
-        />
-      </div>
-
       <TopBar />
       <TopBanner />
       <Container>
         <div className="min-h-screen py-2">{children}</div>
       </Container>
       <Footer />
+
+      {/* Pixel Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362827551-0"
+        name="Pixel"
+        sizes={[1, 1]}
+        additionalClass="absolute top-0 left-0 bg-muted"
+        additionalStyle={{ height: 0 }}
+      />
+
+      {/* OutOfPage Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362765847-0"
+        name="OutOfPage"
+        sizes={[1, 1]}
+        outOfPage={true}
+        additionalClass="absolute top-0 left-0 bg-muted"
+        additionalStyle={{ height: 0 }}
+      />
     </>
   );
 };

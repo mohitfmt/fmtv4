@@ -95,18 +95,23 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                 itemProp="headline"
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
               />
-              <div
-                className="flex justify-between items-center my-1"
-                itemProp="datePublished"
-              >
+              <div className="flex justify-between items-center my-1">
                 <div>
                   {post.date && (
-                    <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
-                      <FullDateDisplay
-                        dateString={post.date}
-                        tooltipPosition="right"
+                    <>
+                      <time
+                        className="sr-only"
+                        itemProp="datePublished"
+                        dateTime={post?.dateGmt + "Z" || post?.date}
                       />
-                    </span>
+
+                      <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+                        <FullDateDisplay
+                          dateString={post.date}
+                          tooltipPosition="right"
+                        />
+                      </span>
+                    </>
                   )}
                   {post.author && (
                     <div className="text-lg">

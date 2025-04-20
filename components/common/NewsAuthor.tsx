@@ -1,3 +1,4 @@
+import siteConfig from "@/constants/site-config";
 import Link from "next/link";
 import React from "react";
 
@@ -7,7 +8,7 @@ const NewsAuthor = ({ author }: any) => {
   // const name = isAuthorHaveFullName
   //   ? `${author.node.firstName} ${author.node.lastName}`
   //   : author?.node?.name || null;
-  
+
   return (
     <div
       className="tracking-wide font-rhd text-stone-700 dark:text-stone-300"
@@ -16,7 +17,7 @@ const NewsAuthor = ({ author }: any) => {
       itemScope
     >
       <Link
-        href={`/category/author/${author?.node?.slug}`}
+        href={`${siteConfig.baseUrl}/category/author/${author?.node?.slug}`}
         className="flex items-center font-bold"
         itemProp="url"
       >

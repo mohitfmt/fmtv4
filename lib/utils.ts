@@ -92,8 +92,8 @@ export const generateCollectionPageJsonLD = ({
       headline: post?.title || "Article Headline",
       section: categoryName,
       url: `${baseUrl}${post?.uri}`,
-      datePublished: post?.date
-        ? new Date(post?.date).toISOString()
+      datePublished: post?.dateGmt
+        ? post?.dateGmt + "Z"
         : new Date().toISOString(),
       author: {
         "@type": "Person",

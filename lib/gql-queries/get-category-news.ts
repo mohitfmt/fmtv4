@@ -31,6 +31,7 @@ export async function getCategoryNews(
                 slug
                 uri
                 date
+                dateGmt
                 featuredImage {
                   node {
                     sourceUrl
