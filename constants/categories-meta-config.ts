@@ -32,65 +32,8 @@ export const categoriesMetadataConfigs = {
     ],
     category:
       "News, Malaysia, East Malaysia, West Malaysia, Sabah, Sarawak, Borneo, Politics, Local News, landing",
-    alternateLocale: [
-      "en_US",
-      "en_GB",
-      "en_AU",
-      "en_CA",
-      "en_NZ",
-      "en_IE",
-      "en_IN",
-      "en_SG",
-      "en_ZA",
-      "en_PH",
-      "en_HK",
-      "en_PK",
-    ],
-    pathName: "/home-news",
-    openGraph: {
-      title: "Latest News from East & West Malaysia, Sabah & Sarawak | FMT",
-      description:
-        "Discover the latest breaking news, in-depth stories, and updates from East & West Malaysia, including Sabah and Sarawak, on Free Malaysia Today. Stay informed with comprehensive coverage of local events, politics, and more.",
-      type: "website",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "East & West Malaysia, Sabah & Sarawak | Free Malaysia Today",
-        },
-      ],
-      siteName: "East & West Malaysia, Sabah & Sarawak | Free Malaysia Today",
-      locale: "en_MY",
-    },
-    twitter: {
-      title: "Latest News from East & West Malaysia, Sabah & Sarawak | FMT",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "East & West Malaysia, Sabah & Sarawak | Free Malaysia Today",
-        },
-      ],
-      description:
-        "Discover the latest breaking news, in-depth stories, and updates from East & West Malaysia, including Sabah and Sarawak, on Free Malaysia Today. Stay informed with comprehensive coverage of local events, politics, and more.",
-      card: "summary_large_image",
-      site: "@fmtoday",
-    },
-    alternates: {
-      canonical: "https://www.freemalaysiatoday.com/news/",
-      types: {
-        "application/atom+xml": "feeds/atom/headlines/",
-        "application/rss+xml": "feeds/rss/headlines/",
-        "application/feed+json": "feeds/json/headlines/",
-      },
-    },
-    authors: [
-      {
-        name: "Free Malaysia Today (FMT)",
-      },
-    ],
+    pathName: "/news",
+    imageAlt: "East & West Malaysia, Sabah & Sarawak | Free Malaysia Today",
   },
 
   berita: {
@@ -125,52 +68,8 @@ export const categoriesMetadataConfigs = {
       "berita terkini dunia",
     ],
     category: "Berita, terkini, Malaysia, dunia, politik, berita utama",
-    alternateLocale: ["id_ID", "jv_ID", "su_ID", "ms_BN", "ms_SG"],
-    pathName: "/home-berita",
-    openGraph: {
-      title: "Berita Terkini Malaysia & Dunia | FMT Bahasa Melayu",
-      description:
-        "Dapatkan berita terkini, politik, tempatan, dan internasional dari Malaysia dengan sumber yang dipercayai di Free Malaysia Today (FMT) dalam Bahasa Melayu.",
-      type: "website",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Free Malaysia Today (FMT) Bahasa Melayu",
-        },
-      ],
-      siteName: "Free Malaysia Today (FMT)",
-      locale: "ms_MY",
-    },
-    twitter: {
-      title: "Berita Terkini Malaysia & Dunia | FMT Bahasa Melayu",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Free Malaysia Today (FMT) Bahasa Melayu",
-        },
-      ],
-      description:
-        "Dapatkan berita terkini, politik, tempatan, dan internasional dari Malaysia dengan sumber yang dipercayai di Free Malaysia Today (FMT) dalam Bahasa Melayu.",
-      card: "summary_large_image",
-      site: "@fmtoday",
-    },
-    alternates: {
-      canonical: "https://www.freemalaysiatoday.com/berita/",
-      types: {
-        "application/atom+xml": "feeds/atom/berita/",
-        "application/rss+xml": "feeds/rss/berita/",
-        "application/feed+json": "feeds/json/berita/",
-      },
-    },
-    authors: [
-      {
-        name: "Free Malaysia Today (FMT)",
-      },
-    ],
+    pathName: "/berita",
+    imageAlt: "Free Malaysia Today (FMT) Bahasa Melayu",
   },
 
   sports: {
@@ -206,21 +105,9 @@ export const categoriesMetadataConfigs = {
     ],
     category:
       "sports, landing, sports homepage, football, badminton, tennis, motorsports, sports news",
-    alternateLocale: [
-      "en_US",
-      "en_GB",
-      "en_AU",
-      "en_CA",
-      "en_NZ",
-      "en_IE",
-      "en_IN",
-      "en_SG",
-      "en_ZA",
-      "en_PH",
-      "en_HK",
-      "en_PK",
-    ],
-    pathName: "/home-sports",
+    imageAlt:
+      "Latest Football, Badminton, Tennis & Motorsports News | FMT Sports",
+    pathName: "/sports",
   },
   business: {
     title: "Latest Local & World Business News | FMT Business Insights",
@@ -254,65 +141,8 @@ export const categoriesMetadataConfigs = {
       "SME business news",
     ],
     category: "business, landing, business homepage",
-    alternateLocale: [
-      "en_US",
-      "en_GB",
-      "en_AU",
-      "en_CA",
-      "en_NZ",
-      "en_IE",
-      "en_IN",
-      "en_SG",
-      "en_ZA",
-      "en_PH",
-      "en_HK",
-      "en_PK",
-    ],
-    pathName: "/home-business",
-    openGraph: {
-      title: "Latest Local & World Business News | FMT Business Insights",
-      description:
-        "Stay updated with the latest local and global business and finance news, market analysis, stock updates, and economic headlines on Free Malaysia Today (FMT).",
-      type: "article",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "FMT Business News",
-        },
-      ],
-      siteName: "Latest Local & World Business News | FMT Business",
-      locale: "en_MY",
-    },
-    twitter: {
-      title: "Latest Local & World Business News | FMT Business Insights",
-      description:
-        "Stay updated with the latest local and global business and finance news, market analysis, stock updates, and economic headlines on Free Malaysia Today (FMT).",
-      card: "summary_large_image",
-      site: "@fmtoday",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "FMT Business News",
-        },
-      ],
-    },
-    alternates: {
-      canonical: "https://www.freemalaysiatoday.com/business/",
-      types: {
-        "application/atom+xml": "feeds/atom/business/",
-        "application/rss+xml": "feeds/rss/business/",
-        "application/feed+json": "feeds/json/business/",
-      },
-    },
-    authors: [
-      {
-        name: "Free Malaysia Today (FMT)",
-      },
-    ],
+    imageAlt: "FMT Business News",
+    pathName: "/business",
   },
 
   opinion: {
@@ -347,67 +177,10 @@ export const categoriesMetadataConfigs = {
       "civic engagement",
       "social justice opinions",
     ],
+    imageAlt: "Global Insights and Malaysian Perspectives | FMT Opinions",
     category:
       "opinion, landing, opinion homepage, columns, editorials, letters",
-    alternateLocale: [
-      "en_US",
-      "en_GB",
-      "en_AU",
-      "en_CA",
-      "en_NZ",
-      "en_IE",
-      "en_IN",
-      "en_SG",
-      "en_ZA",
-      "en_PH",
-      "en_HK",
-      "en_PK",
-    ],
-    pathName: "/home-opinion",
-    openGraph: {
-      title: "Global Insights and Malaysian Perspectives | FMT Opinions",
-      description:
-        "Dive into compelling opinions and thought-provoking analyses on FMT. Explore expert columns, editorials, and reader letters on pressing topics including politics, policy, societal trends, and international affairs.",
-      type: "article",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Global Insights and Malaysian Perspectives | FMT Opinions",
-        },
-      ],
-      siteName: "Global Insights and Malaysian Perspectives | FMT Opinions",
-      locale: "en_MY",
-    },
-    twitter: {
-      title: "Global Insights and Malaysian Perspectives | FMT Opinions",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Global Insights and Malaysian Perspectives | FMT Opinions",
-        },
-      ],
-      description:
-        "Dive into compelling opinions and thought-provoking analyses on FMT. Explore expert columns, editorials, and reader letters on pressing topics including politics, policy, societal trends, and international affairs.",
-      card: "summary_large_image",
-      site: "@fmtoday",
-    },
-    alternates: {
-      canonical: "https://www.freemalaysiatoday.com/opinion/",
-      types: {
-        "application/atom+xml": "feeds/atom/opinion/",
-        "application/rss+xml": "feeds/rss/opinion/",
-        "application/feed+json": "feeds/json/opinion/",
-      },
-    },
-    authors: [
-      {
-        name: "Free Malaysia Today (FMT)",
-      },
-    ],
+    pathName: "/opinion",
   },
 
   lifestyle: {
@@ -449,67 +222,7 @@ export const categoriesMetadataConfigs = {
       "tech trends",
     ],
     category: "lifestyle, landing, lifestyle homepage, health, tech, food",
-    alternateLocale: [
-      "en_US",
-      "en_GB",
-      "en_AU",
-      "en_CA",
-      "en_NZ",
-      "en_IE",
-      "en_IN",
-      "en_SG",
-      "en_ZA",
-      "en_PH",
-      "en_HK",
-      "en_PK",
-    ],
-    pathName: "/home-lifestyle",
-    openGraph: {
-      title:
-        "Latest Lifestyle Trends, Health Tips & Tech Innovations | FMT Lifestyle",
-      description:
-        "Discover the latest in lifestyle trends, health and wellness tips, culinary delights, tech innovations, travel destinations, and financial advice with FMT Lifestyle.",
-      type: "website",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Lifestyle | Free Malaysia Today",
-        },
-      ],
-      siteName:
-        "Latest Lifestyle Trends, Health Tips & Tech Innovations | FMT Lifestyle",
-      locale: "en_MY",
-    },
-    twitter: {
-      title:
-        "Latest Lifestyle Trends, Health Tips & Tech Innovations | FMT Lifestyle",
-      images: [
-        {
-          url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          secureUrl:
-            "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-          alt: "Lifestyle | Free Malaysia Today",
-        },
-      ],
-      description:
-        "Discover the latest in lifestyle trends, health and wellness tips, culinary delights, tech innovations, travel destinations, and financial advice with FMT Lifestyle.",
-      card: "summary_large_image",
-      site: "@fmtoday",
-    },
-    alternates: {
-      canonical: "https://www.freemalaysiatoday.com/lifestyle/",
-      types: {
-        "application/atom+xml": "feeds/atom/lifestyle/",
-        "application/rss+xml": "feeds/rss/lifestyle/",
-        "application/feed+json": "feeds/json/lifestyle/",
-      },
-    },
-    authors: [
-      {
-        name: "Free Malaysia Today (FMT)",
-      },
-    ],
+    pathName: "/lifestyle",
+    imageAlt: "Lifestyle | Free Malaysia Today",
   },
 };

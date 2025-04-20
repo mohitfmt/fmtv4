@@ -3,16 +3,15 @@ import Head from "next/head";
 import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
+import { fbPageIds } from "@/constants/social";
 
 interface MetadataConfig {
   title: string;
   description: string;
   keywords: string[];
   category: string;
-  alternateLocale?: string[];
   pathName: string;
-  author?: string;
-  ogImage?: string;
+  imageAlt: string;
 }
 
 interface CategoryMetadataProps {
@@ -34,17 +33,32 @@ const defaultAlternateLocale = [
   "en_PK",
 ];
 
+const BeritaAlternateLocale = ["id_ID", "jv_ID", "su_ID", "ms_BN", "ms_SG"];
+
 export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
-  const {
-    title,
-    description,
-    keywords,
-    category,
-    alternateLocale = defaultAlternateLocale,
-    pathName,
-    author = "Free Malaysia Today (FMT)",
-    ogImage = "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
-  } = config;
+  const { title, description, keywords, category, pathName, imageAlt } = config;
+
+  const locale = pathName === "/berita" ? "ms_MY" : "en_MY";
+
+  const alternateLocale =
+    pathName === "/berita" ? BeritaAlternateLocale : defaultAlternateLocale;
+
+  const feedPath =
+    pathName === "/news" ? "/headlines" : pathName.replace("/", "");
+
+  let fbPageId: string;
+
+  switch (pathName) {
+    case "/berita":
+      fbPageId = fbPageIds[2]; // Berita FMT
+      break;
+    case "/lifestyle":
+      fbPageId = fbPageIds[1]; // Lifestyle FMT
+      break;
+    default:
+      fbPageId = fbPageIds[0]; // Main FMT
+      break;
+  }
 
   return (
     <Head>
@@ -52,24 +66,24 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       <title>{title}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords?.join(", ")} />
-      <meta name="author" content={author} />
+      <meta name="author" content={siteConfig.siteName} />
       <meta name="category" content={category} />
-
       {/* Open Graph Tags */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:type" content="article" />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:image:secure_url" content={ogImage} />
-      <meta property="og:site_name" content={title} />
-      <meta property="og:locale" content="en_MY" />
-      {alternateLocale.map((locale) => (
+      <meta property="og:type" content="website" />
+      <meta property="og:image" content={siteConfig.iconPath} />
+      <meta property="og:image:secure_url" content={siteConfig.iconPath} />
+      <meta property="og:image:alt" content={imageAlt} />
+      <meta property="og:site_name" content={siteConfig.siteName} />
+      <meta property="og:locale" content={locale} />
+
+      <meta property="fb:pages" content={fbPageId} />
+
+      {alternateLocale?.map((locale: any) => (
         <meta key={locale} property="og:locale:alternate" content={locale} />
       ))}
-      <meta
-        property="og:url"
-        content={`https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}${pathName}`}
-      />
+      <meta property="og:url" content={siteConfig.baseUrl + pathName} />
 
       {/* Twitter Tags */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -77,29 +91,28 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       <meta name="twitter:description" content={description} />
       <meta name="twitter:site" content="@fmtoday" />
       <meta name="twitter:image" content={siteConfig.iconPath} />
-      <meta
-        name="twitter:image:alt"
-        content="Latest News | Free Malaysia Today"
-      />
+      <meta name="twitter:image:secure_url" content={siteConfig.iconPath} />
+      <meta name="twitter:image:alt" content={imageAlt} />
+      <meta name="publisher" content={siteConfig.siteName} />
       {/* Alternate Links */}
       <link
         rel="canonical"
-        href={`https://www.freemalaysiatoday.com${pathName}`}
+        href={`${siteConfig.baseUrl}/${pathName.replace("/", "")}/`}
       />
       <link
         rel="alternate"
         type="application/atom+xml"
-        href={`feeds/atom/${pathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/feeds/atom/${feedPath}/`}
       />
       <link
         rel="alternate"
         type="application/rss+xml"
-        href={`feeds/rss/${pathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/feeds/rss/${feedPath}/`}
       />
       <link
         rel="alternate"
         type="application/feed+json"
-        href={`feeds/json/${pathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/feeds/json/${feedPath}/`}
       />
     </Head>
   );

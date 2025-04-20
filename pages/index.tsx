@@ -119,7 +119,7 @@ export default function Home({
 
         {/* Primary language - set this to your site's main language */}
         <meta httpEquiv="Content-Language" content="en-MY, ms-MY" />
-        <meta name="language" content="English, Malay, Bahasa, Bahasa Melayu" />
+        <meta name="language" content="en, ms" />
         <meta name="google-news-section" content="Front Page" />
 
         <meta name="coverage" content="Malaysia, Southeast Asia, Worldwide" />
@@ -220,35 +220,37 @@ export default function Home({
           content="Latest News | Free Malaysia Today"
         />
         <meta name="twitter:creator" content="@fmtoday" />
+
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+          type="application/ld+json"
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          type="application/ld+json"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              generateCollectionPageJsonLD({
+                heroPosts: heroPosts || [],
+                highlightPosts: highlightPosts || [],
+                topNewsPosts: topNewsPosts || [],
+                businessPosts: businessPosts || [],
+                opinionPosts: opinionPosts || [],
+                worldPosts: worldPosts || [],
+                leisurePosts: leisurePosts || [],
+                sportsPosts: sportsPosts || [],
+                beritaPosts: beritaPosts || [],
+                videoPosts: videoPosts || [],
+                columnists: columnists || [],
+              })
+            ),
+          }}
+          type="application/ld+json"
+        />
       </Head>
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-        type="application/ld+json"
-      />
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
-        type="application/ld+json"
-      />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            generateCollectionPageJsonLD({
-              heroPosts: heroPosts || [],
-              highlightPosts: highlightPosts || [],
-              topNewsPosts: topNewsPosts || [],
-              businessPosts: businessPosts || [],
-              opinionPosts: opinionPosts || [],
-              worldPosts: worldPosts || [],
-              leisurePosts: leisurePosts || [],
-              sportsPosts: sportsPosts || [],
-              beritaPosts: beritaPosts || [],
-              videoPosts: videoPosts || [],
-              columnists: columnists || [],
-            })
-          ),
-        }}
-        type="application/ld+json"
-      />
+
       <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
       <main>
         <section

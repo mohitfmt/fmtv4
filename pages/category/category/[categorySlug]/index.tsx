@@ -9,6 +9,7 @@ import {
   CategoryJsonLD,
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
+import siteConfig from "@/constants/site-config";
 // import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
@@ -67,6 +68,7 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
     keywords: seoData?.keywords,
     category: categorySlug,
     pathName,
+    imageAlt: siteConfig.siteName,
   };
 
   // Find current page from categoriesNavigation
