@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
+import { fbPageIds } from "@/constants/social";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -133,6 +134,22 @@ const NewsArticlePost = ({
   const feedUrlAppend = getFeedUrlAppend(articleCategory);
   const languageAlternates = generateLanguageAlternates(isMalay, fullUrl);
 
+  // const fbPageId = articleCategory === "bahasa" ? fbPageIds[2] :
+
+  let fbPageId: string;
+
+  switch (articleCategory) {
+    case "bahasa":
+      fbPageId = fbPageIds[2]; // Berita FMT
+      break;
+    case "leisure":
+      fbPageId = fbPageIds[1]; // Lifestyle FMT
+      break;
+    default:
+      fbPageId = fbPageIds[0]; // Main FMT
+      break;
+  }
+
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
     return (
@@ -149,9 +166,6 @@ const NewsArticlePost = ({
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
-
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="author" content={safeAuthor} />
@@ -159,7 +173,8 @@ const NewsArticlePost = ({
         <meta name="keywords" content={safeTags} />
         <meta name="category" content={safeCategories} />
         <meta name="pagename" content={safeTitle} />
-        <meta name="target" content="all" />
+        <meta name="news_keywords" content={safeTags} />
+        <meta property="fb:pages" content={fbPageId} />
 
         {/* apple */}
         <meta
@@ -172,20 +187,7 @@ const NewsArticlePost = ({
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
-
-        <meta
-          name="robots"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot-news"
-          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-        />
-        <meta name="news_keywords" content={safeTags} />
+        <meta name="publisher" content={siteConfig.siteName} />
         <link
           rel="author"
           href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
