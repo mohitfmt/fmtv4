@@ -36,8 +36,6 @@ const defaultAlternateLocale = [
 const BeritaAlternateLocale = ["id_ID", "jv_ID", "su_ID", "ms_BN", "ms_SG"];
 
 export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
-  console.log("config :", config);
-
   const { title, description, keywords, category, pathName, imageAlt } = config;
 
   const locale = pathName === "/berita" ? "ms_MY" : "en_MY";
