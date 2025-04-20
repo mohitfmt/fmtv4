@@ -1,4 +1,4 @@
-import siteConfig, { getIconUrl } from "@/constants/site-config";
+import siteConfig from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
@@ -237,7 +237,7 @@ const ArticleJsonLD = ({
       url: `${siteConfig.baseUrl}`,
       logo: {
         "@type": "ImageObject",
-        url: getIconUrl(),
+        url: siteConfig.iconPath,
         width: 512,
         height: 512,
       },

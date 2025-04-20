@@ -24,7 +24,7 @@ const HomeBerita = ({
 }: CategoryLandingProps) => {
   return (
     <>
-      <CategoryMetadata config={categoriesMetadataConfigs.business} />
+      <CategoryMetadata config={categoriesMetadataConfigs.berita} />
       <CategoryJsonLD
         posts={posts}
         pathName="/berita"
@@ -43,7 +43,6 @@ const HomeBerita = ({
   );
 };
 
-
 export const getStaticProps: GetStaticProps = async () => {
   try {
     // Get super-news post
@@ -53,15 +52,17 @@ export const getStaticProps: GetStaticProps = async () => {
         where: {
           taxQuery: {
             relation: "AND",
-            taxArray: [{
-              field: "SLUG",
-              operator: "AND", 
-              taxonomy: "CATEGORY",
-              terms: ["super-bm"]
-            }]
-          }
-        }
-      }
+            taxArray: [
+              {
+                field: "SLUG",
+                operator: "AND",
+                taxonomy: "CATEGORY",
+                terms: ["super-bm"],
+              },
+            ],
+          },
+        },
+      },
     });
 
     // Get top-news posts excluding super-news
@@ -71,33 +72,39 @@ export const getStaticProps: GetStaticProps = async () => {
         where: {
           taxQuery: {
             relation: "AND",
-            taxArray: [{
-              field: "SLUG",
-              operator: "AND",
-              taxonomy: "CATEGORY", 
-              terms: ["top-bm"]
-            }]
-          },
-          excludeQuery: [{
-            first: 1,
-            status: "PUBLISH", 
-            taxQuery: {
-              relation: "AND",
-              taxArray: [{
+            taxArray: [
+              {
                 field: "SLUG",
                 operator: "AND",
                 taxonomy: "CATEGORY",
-                terms: ["super-bm"]
-              }]
-            }
-          }]
-        }
-      }
+                terms: ["top-bm"],
+              },
+            ],
+          },
+          excludeQuery: [
+            {
+              first: 1,
+              status: "PUBLISH",
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: ["super-bm"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
     });
 
     // Combine posts
     const combinedPosts = {
-      edges: [...superResponse.posts.edges, ...topResponse.posts.edges]
+      edges: [...superResponse.posts.edges, ...topResponse.posts.edges],
     };
 
     // Find current page config
@@ -115,22 +122,24 @@ export const getStaticProps: GetStaticProps = async () => {
               offsetPagination: { offset: 0, size: 6 },
               taxQuery: {
                 relation: "AND",
-                taxArray: [{
-                  field: "SLUG",
-                  operator: "AND",
-                  taxonomy: "CATEGORY",
-                  terms: [category.slug]
-                }]
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: [category.slug],
+                  },
+                ],
               },
-              excludeQuery: excludeVariables
-            }
-          }
+              excludeQuery: excludeVariables,
+            },
+          },
         });
 
         return {
           slug: category.slug,
           posts: { edges: posts.posts.edges },
-          bigImage: true
+          bigImage: true,
         };
       })
     );
@@ -139,11 +148,10 @@ export const getStaticProps: GetStaticProps = async () => {
       props: {
         posts: combinedPosts,
         currentPage: currentPage || null,
-        subCategoryPosts: initialSubCategoryPosts
+        subCategoryPosts: initialSubCategoryPosts,
       },
-      revalidate: 1500
+      revalidate: 1500,
     };
-
   } catch (error) {
     console.error("Error in getStaticProps:", error);
     return {
@@ -151,9 +159,9 @@ export const getStaticProps: GetStaticProps = async () => {
         posts: { edges: [] },
         currentPage: null,
         subCategoryPosts: [],
-        error: "Failed to load content"
+        error: "Failed to load content",
       },
-      revalidate: 10
+      revalidate: 10,
     };
   }
 };

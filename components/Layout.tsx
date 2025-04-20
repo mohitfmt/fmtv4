@@ -4,6 +4,8 @@ import TopBanner from "./top-header/TopBanner";
 import Footer from "../components/footer/Footer";
 import Container from "../components/Container";
 import AdSlot from "@/components/common/AdSlot";
+import Head from "next/head";
+import { useTheme } from "next-themes";
 
 interface LayoutProps {
   preview?: boolean;
@@ -11,8 +13,17 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { resolvedTheme } = useTheme();
+  const themeColor = resolvedTheme === "dark" ? "#000000" : "#ffffff";
   return (
     <>
+      <Head>
+        <meta name="theme-color" content={themeColor} />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content={resolvedTheme === "dark" ? "black-translucent" : "default"}
+        />
+      </Head>
       <TopBar />
       <TopBanner />
       <Container>

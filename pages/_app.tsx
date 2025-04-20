@@ -105,7 +105,7 @@ export default function App({
         {/* Viewport for responsiveness */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4 viewport-fit=cover"
         />
         {/* Robots directives for indexing */}
         <meta
@@ -117,11 +117,7 @@ export default function App({
         <meta name="googlebot" content="index, follow" />
 
         <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
-        <link
-          rel="alternate"
-          hrefLang="ms"
-          href={`${siteConfig.baseUrl}/ms/`}
-        />
+        <link rel="alternate" hrefLang="ms" href={`${siteConfig.baseUrl}`} />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
       </Head>
 
@@ -153,7 +149,7 @@ export default function App({
           </ThemeProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
-      
+
       {/* Add Kiosked script here */}
       <Script
         src="https://scripts.kiosked.com/loader/kiosked-loader.js"

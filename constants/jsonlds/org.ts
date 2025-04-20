@@ -1,4 +1,4 @@
-import siteConfig, { getIconUrl } from "../site-config";
+import siteConfig from "../site-config";
 
 export const OrgJsonLD = {
   "@context": "https://www.schema.org",
@@ -46,8 +46,8 @@ export const OrgJsonLD = {
   logo: {
     "@context": "https://schema.org",
     "@type": "ImageObject",
-    url: getIconUrl(),
-    contentUrl: getIconUrl(),
+    url: siteConfig.iconPath,
+    contentUrl: siteConfig.iconPath,
     width: 512,
     height: 512,
     creditText: "Free Malaysia Today",

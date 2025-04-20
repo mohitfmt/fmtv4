@@ -8,6 +8,7 @@ import {
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
+import siteConfig from "@/constants/site-config";
 // import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
@@ -95,6 +96,7 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
     keywords: seoData?.keywords || ["Malaysia", "News", subcategorySlug],
     category,
     pathName,
+    imageAlt: siteConfig.siteName,
   };
 
   return (
