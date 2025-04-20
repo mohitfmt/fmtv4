@@ -44,7 +44,7 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
     pathName === "/berita" ? BeritaAlternateLocale : defaultAlternateLocale;
 
   const feedPath =
-    pathName === "/news" ? "/headlines" : pathName.replace("/", "");
+    pathName === "/news" ? "headlines" : pathName.replace("/", "");
 
   let fbPageId: string;
 
