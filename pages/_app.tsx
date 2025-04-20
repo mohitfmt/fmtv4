@@ -105,7 +105,7 @@ export default function App({
         {/* Viewport for responsiveness */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4 viewport-fit=cover"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4, viewport-fit=cover"
         />
         {/* Robots directives for indexing */}
         <meta
