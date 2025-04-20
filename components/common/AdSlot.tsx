@@ -1,6 +1,5 @@
 import { GPTContext } from "@/contexts/GPTProvider";
 import React, { useEffect, useRef, useContext, useState } from "react";
-
 interface AdSlotProps {
   name: string;
   sizes: googletag.GeneralSize;
@@ -9,6 +8,8 @@ interface AdSlotProps {
   visibleOnDevices?: "onlyMobile" | "onlyDesktop" | "both";
   outOfPage?: boolean;
   isInterstitial?: boolean;
+  additionalClass?: string;
+  additionalStyle?: React.CSSProperties;
 }
 
 const AdSlot: React.FC<AdSlotProps> = ({
@@ -19,6 +20,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
   visibleOnDevices = "both",
   outOfPage = false,
   isInterstitial = false,
+  additionalClass = "",
+  additionalStyle,
 }) => {
   const adRef = useRef<HTMLDivElement>(null);
   const { definePageAdSlot, softRemovePageAdSlot, removeAdSlots } =
@@ -64,7 +67,7 @@ const AdSlot: React.FC<AdSlotProps> = ({
         const foundSlot = window.googletag
           .pubads()
           .getSlots()
-          .find((slot:any) => slot.getSlotElementId() === id);
+          .find((slot: any) => slot.getSlotElementId() === id);
 
         if (foundSlot) {
           window.googletag.pubads().refresh([foundSlot]);
@@ -172,7 +175,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
           : visibleOnDevices === "both"
             ? "flex"
             : "hidden md:flex"
-      } my-4 flex h-full flex-col items-center justify-center overflow-hidden rounded-sm`}
+      } my-4 flex h-full flex-col items-center justify-center overflow-hidden rounded-sm ${additionalClass}`}
+      style={additionalStyle}
     >
       <div
         id={id}

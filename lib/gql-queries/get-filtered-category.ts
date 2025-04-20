@@ -94,6 +94,7 @@ export const GET_FILTERED_CATEGORY = `
           excerpt
           uri
           date
+          dateGmt
           slug
           databaseId
           categories {

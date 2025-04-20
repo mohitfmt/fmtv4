@@ -153,7 +153,13 @@ export default function App({
           </ThemeProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
-
+      
+      {/* Add Kiosked script here */}
+      <Script
+        src="https://scripts.kiosked.com/loader/kiosked-loader.js"
+        strategy="lazyOnload"
+        async
+      />
       {/* Meta Pixel script using Next.js Script component */}
       <Script
         id="meta-pixel-init"

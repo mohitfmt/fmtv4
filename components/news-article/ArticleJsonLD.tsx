@@ -152,7 +152,7 @@ const ArticleJsonLD = ({
       "@type": "VideoObject",
       name: data?.title,
       description: cleanExcerpt,
-      uploadDate: data?.dateGmt,
+      uploadDate: data?.dateGmt + "Z",
       thumbnailUrl: data?.featuredImage?.node?.sourceUrl,
       contentUrl: `https://www.youtube.com/watch?v=${videoData}`,
       embedUrl: `https://www.youtube.com/embed/${videoData}`,
@@ -172,6 +172,9 @@ const ArticleJsonLD = ({
     about: `${data?.title} - ${cleanExcerpt}`,
     alternativeHeadline: cleanExcerpt,
     abstract: `${data?.title} - ${cleanExcerpt}`,
+    dateCreated: data?.dateGmt + "Z",
+    datePublished: data?.dateGmt + "Z",
+    dateModified: data?.modifiedGmt + "Z",
     articleSection:
       data?.categories?.edges?.map((category) => category?.node?.name) ??
       articleCategory,
@@ -204,18 +207,28 @@ const ArticleJsonLD = ({
       copyrightNotice: `© Free Malaysia Today, ${new Date().getFullYear()}`,
     },
     thumbnailUrl: data?.featuredImage?.node?.sourceUrl,
-    dateCreated: data?.dateGmt,
-    datePublished: data?.dateGmt,
-    dateModified: data?.modifiedGmt,
     contentLocation: {
       "@type": "Place",
       name: location,
     },
+
     author: [
       {
         "@type": "Person",
         name: data?.author.node.name,
-        url: `${siteConfig.baseUrl}${data?.author.node.uri}`,
+        url: `${siteConfig.baseUrl}${data?.author.node.uri ?? "/category/author/fmtreporters/"}`,
+        sameAs: `${siteConfig.baseUrl}${data?.author.node.uri ?? "/category/author/fmtreporters/"}`,
+        affiliation: {
+          "@type": "NewsMediaOrganization",
+          name: "Free Malaysia Today",
+          url: "https://www.freemalaysiatoday.com/",
+        },
+        jobTitle: "Reporter",
+        worksFor: {
+          "@type": "NewsMediaOrganization",
+          name: "Free Malaysia Today",
+          url: "https://www.freemalaysiatoday.com/",
+        },
       },
     ],
     publisher: {
