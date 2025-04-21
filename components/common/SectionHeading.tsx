@@ -7,22 +7,9 @@ interface SectionHeadingProps {
 const SectionHeading: React.FC<SectionHeadingProps> = ({ sectionName }) => {
   let content: React.ReactNode = sectionName;
 
-  // Case 1: If sectionName includes '&', split it into two lines on mobile
-  if (sectionName.includes("&")) {
-    const [before, after] = sectionName.split("&").map((s) => s.trim());
-
-    content = (
-      <>
-        {/* Show as block on mobile (line break), inline on larger screens */}
-        <span className="block sm:inline">{before}</span>
-        <span className="block sm:inline">& {after}</span>
-      </>
-    );
-  }
-
-  // Case 2: If sectionName is too long, break it after a word boundary (~25 chars)
-  else if (sectionName.length > 25) {
-    const breakIndex = sectionName.lastIndexOf(" ", 25);
+  // Case 1: If sectionName is too long, break it after a word boundary
+  if (sectionName.length > 25) {
+    const breakIndex = sectionName.lastIndexOf(" ", 18);
     if (breakIndex !== -1) {
       content = (
         <>
@@ -35,6 +22,18 @@ const SectionHeading: React.FC<SectionHeadingProps> = ({ sectionName }) => {
         </>
       );
     }
+  }
+  // Case 2: If sectionName includes '&', split it into two lines on mobile
+  else if (sectionName.length > 20 && sectionName.includes("&")) {
+    const [before, after] = sectionName.split("&").map((s) => s.trim());
+
+    content = (
+      <>
+        {/* Show as block on mobile (line break), inline on larger screens */}
+        <span className="block sm:inline">{before}</span>
+        <span className="block sm:inline">& {after}</span>
+      </>
+    );
   }
 
   return (
