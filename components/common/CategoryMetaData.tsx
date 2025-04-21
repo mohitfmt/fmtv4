@@ -12,6 +12,7 @@ interface MetadataConfig {
   category: string;
   pathName: string;
   imageAlt: string;
+  fullPathName?: string;
 }
 
 interface CategoryMetadataProps {
@@ -36,12 +37,23 @@ const defaultAlternateLocale = [
 const BeritaAlternateLocale = ["id_ID", "jv_ID", "su_ID", "ms_BN", "ms_SG"];
 
 export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
-  const { title, description, keywords, category, pathName, imageAlt } = config;
+  const {
+    title,
+    description,
+    keywords,
+    category,
+    pathName,
+    fullPathName = pathName,
+    imageAlt,
+  } = config;
 
-  const locale = pathName === "/berita" ? "ms_MY" : "en_MY";
+  const locale =
+    pathName === "/berita" || category === "bahasa" ? "ms_MY" : "en_MY";
 
   const alternateLocale =
-    pathName === "/berita" ? BeritaAlternateLocale : defaultAlternateLocale;
+    pathName === "/berita" || category === "bahasa"
+      ? BeritaAlternateLocale
+      : defaultAlternateLocale;
 
   const feedPath =
     pathName === "/news" ? "headlines" : pathName.replace("/", "");
@@ -58,6 +70,19 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
     default:
       fbPageId = fbPageIds[0]; // Main FMT
       break;
+  }
+  if (category === "bahasa" || category === "leisure") {
+    switch (category) {
+      case "bahasa":
+        fbPageId = fbPageIds[2]; // Berita FMT
+        break;
+      case "leisure":
+        fbPageId = fbPageIds[1]; // Lifestyle FMT
+        break;
+      default:
+        fbPageId = fbPageIds[0]; // Main FMT
+        break;
+    }
   }
 
   return (
@@ -83,7 +108,7 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       {alternateLocale?.map((locale: any) => (
         <meta key={locale} property="og:locale:alternate" content={locale} />
       ))}
-      <meta property="og:url" content={siteConfig.baseUrl + pathName} />
+      <meta property="og:url" content={siteConfig.baseUrl + fullPathName} />
 
       {/* Twitter Tags */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -97,7 +122,7 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       {/* Alternate Links */}
       <link
         rel="canonical"
-        href={`${siteConfig.baseUrl}/${pathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/${fullPathName.replace("/", "")}/`}
       />
       <link
         rel="alternate"
@@ -126,11 +151,8 @@ interface JsonLDProps {
 }
 
 export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
-  const jsonLD = generatedJsonLd(
-    posts?.edges || [],
-    `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}${pathName}`,
-    title
-  );
+  const fullpath = `${siteConfig.baseUrl}${pathName}`;
+  const jsonLD = generatedJsonLd(posts?.edges || [], fullpath, title);
 
   return (
     <section>

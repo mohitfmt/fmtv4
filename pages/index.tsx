@@ -112,26 +112,15 @@ export default function Home({
           content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
         />
         <meta name="category" content="homepage, landing"></meta>
-        <meta name="subject" content={siteConfig.siteDescription} />
-        <meta name="classification" content="News Media" />
-        <meta name="original-source" content={siteConfig.baseUrl} />
-        <meta name="syndication-source" content={siteConfig.baseUrl}></meta>
 
         {/* Primary language - set this to your site's main language */}
         <meta httpEquiv="Content-Language" content="en-MY, ms-MY" />
         <meta name="language" content="en, ms" />
         <meta name="google-news-section" content="Front Page" />
 
-        <meta name="coverage" content="Malaysia, Southeast Asia, Worldwide" />
-        <meta name="distribution" content="Global" />
         <meta name="author" content={siteConfig.siteName} />
         <meta name="publisher" content={siteConfig.siteName} />
-        <meta name="pagename" content={siteConfig.siteName} />
 
-        <meta name="apple-mobile-web-app-title" content={siteConfig.siteName} />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-touch-fullscreen" content="yes" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <link rel="canonical" href={siteConfig.baseUrl} />
 
         <link
@@ -220,36 +209,36 @@ export default function Home({
           content="Latest News | Free Malaysia Today"
         />
         <meta name="twitter:creator" content="@fmtoday" />
-
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-          type="application/ld+json"
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
-          type="application/ld+json"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              generateCollectionPageJsonLD({
-                heroPosts: heroPosts || [],
-                highlightPosts: highlightPosts || [],
-                topNewsPosts: topNewsPosts || [],
-                businessPosts: businessPosts || [],
-                opinionPosts: opinionPosts || [],
-                worldPosts: worldPosts || [],
-                leisurePosts: leisurePosts || [],
-                sportsPosts: sportsPosts || [],
-                beritaPosts: beritaPosts || [],
-                videoPosts: videoPosts || [],
-                columnists: columnists || [],
-              })
-            ),
-          }}
-          type="application/ld+json"
-        />
       </Head>
+      
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            generateCollectionPageJsonLD({
+              heroPosts: heroPosts || [],
+              highlightPosts: highlightPosts || [],
+              topNewsPosts: topNewsPosts || [],
+              businessPosts: businessPosts || [],
+              opinionPosts: opinionPosts || [],
+              worldPosts: worldPosts || [],
+              leisurePosts: leisurePosts || [],
+              sportsPosts: sportsPosts || [],
+              beritaPosts: beritaPosts || [],
+              videoPosts: videoPosts || [],
+              columnists: columnists || [],
+            })
+          ),
+        }}
+        type="application/ld+json"
+      />
 
       <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
       <main>

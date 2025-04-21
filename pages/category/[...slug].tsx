@@ -169,31 +169,13 @@ const NewsArticlePost = ({
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="author" content={safeAuthor} />
-        <meta name="creator" content={safeAuthor} />
         <meta name="keywords" content={safeTags} />
         <meta name="category" content={safeCategories} />
-        <meta name="pagename" content={safeTitle} />
         <meta name="news_keywords" content={safeTags} />
         <meta property="fb:pages" content={fbPageId} />
 
-        {/* apple */}
-        <meta
-          name="apple-mobile-web-app-title"
-          content={
-            safeTitle.length > 30
-              ? `${safeTitle.substring(0, 30)}...`
-              : safeTitle
-          }
-        />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-touch-fullscreen" content="yes" />
-        <meta name="publisher" content={siteConfig.siteName} />
         <link
           rel="author"
-          href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
-        />
-        <link
-          rel="creator"
           href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
         />
         <link rel="canonical" href={fullUrl} />

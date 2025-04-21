@@ -107,14 +107,19 @@ export default function App({
           name="viewport"
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4, viewport-fit=cover"
         />
-        {/* Robots directives for indexing */}
+        <meta name="referrer" content="no-referrer-when-downgrade" />
         <meta
           name="robots"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="googlebot"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
-        <meta name="referrer" content="no-referrer-when-downgrade" />
-        <meta name="googlebot-news" content="index, follow" />
-        <meta name="googlebot" content="index, follow" />
 
         <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
         <link rel="alternate" hrefLang="ms" href={`${siteConfig.baseUrl}`} />

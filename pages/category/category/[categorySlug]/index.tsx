@@ -60,7 +60,8 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   const typedSeoSubCategories = seoSubCategories as SeoSubCategoriesType;
   const seoData = typedSeoSubCategories[categorySlug];
 
-  const pathName = `/category/category/${categorySlug}`;
+  const pathName = `${categorySlug}`;
+  const fullPathName = `/category/category/${categorySlug}`;
 
   const metadataConfig = {
     title: `${seoData?.metaTitle} | Free Malaysia Today (FMT)` || `FMT`,
@@ -68,6 +69,7 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
     keywords: seoData?.keywords,
     category: categorySlug,
     pathName,
+    fullPathName,
     imageAlt: siteConfig.siteName,
   };
 
@@ -76,7 +78,11 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   return (
     <>
       <CategoryMetadata config={metadataConfig} />
-      <CategoryJsonLD posts={posts} pathName={pathName} title={categorySlug} />
+      <CategoryJsonLD
+        posts={posts}
+        pathName={fullPathName}
+        title={categorySlug}
+      />
       <SubCategoryPostLayout
         title={seoData?.h1Title || categorySlug}
         posts={posts}
