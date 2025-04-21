@@ -8,7 +8,6 @@ interface AdSlotProps {
   visibleOnDevices?: "onlyMobile" | "onlyDesktop" | "both";
   outOfPage?: boolean;
   isInterstitial?: boolean;
-  additionalClass?: string;
   additionalStyle?: React.CSSProperties;
 }
 
@@ -20,7 +19,6 @@ const AdSlot: React.FC<AdSlotProps> = ({
   visibleOnDevices = "both",
   outOfPage = false,
   isInterstitial = false,
-  additionalClass = "",
   additionalStyle,
 }) => {
   const adRef = useRef<HTMLDivElement>(null);
@@ -175,7 +173,7 @@ const AdSlot: React.FC<AdSlotProps> = ({
           : visibleOnDevices === "both"
             ? "flex"
             : "hidden md:flex"
-      } my-4 flex h-full flex-col items-center justify-center overflow-hidden rounded-sm ${additionalClass}`}
+      } my-4 flex h-full flex-col items-center justify-center overflow-hidden rounded-sm`}
       style={additionalStyle}
     >
       <div

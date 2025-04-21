@@ -113,9 +113,19 @@ export default function App({
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
         <meta name="referrer" content="no-referrer-when-downgrade" />
-        <meta name="googlebot-news" content="index, follow" />
-        <meta name="googlebot" content="index, follow" />
-
+        <meta
+          name="robots"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="googlebot"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="googlebot-news"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        
         <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
         <link rel="alternate" hrefLang="ms" href={`${siteConfig.baseUrl}`} />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />

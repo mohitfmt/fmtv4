@@ -19,10 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <>
       <Head>
         <meta name="theme-color" content={themeColor} />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content={resolvedTheme === "dark" ? "black-translucent" : "default"}
-        />
       </Head>
       <TopBar />
       <TopBanner />
@@ -36,8 +32,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         id="div-gpt-ad-1661362827551-0"
         name="Pixel"
         sizes={[1, 1]}
-        additionalClass="absolute top-0 left-0 bg-muted"
-        additionalStyle={{ height: 0 }}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
       />
 
       {/* OutOfPage Ad */}
@@ -46,8 +47,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         name="OutOfPage"
         sizes={[1, 1]}
         outOfPage={true}
-        additionalClass="absolute top-0 left-0 bg-muted"
-        additionalStyle={{ height: 0 }}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
       />
     </>
   );

@@ -86,8 +86,8 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
       `[SUBSEO] Using SEO fallback for subcategory: ${subcategorySlug}`
     );
   }
-
-  const pathName = `/category/category/${category}/${subcategorySlug}`;
+  const pathName = `${subcategorySlug}`;
+  const fullPathName = `/category/category/${category}/${subcategorySlug}`;
 
   const metadataConfig = {
     title: `${seoData?.metaTitle || subcategorySlug} | Free Malaysia Today (FMT)`,
@@ -95,6 +95,7 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
       seoData?.description || `Latest ${subcategorySlug} news from Malaysia`,
     keywords: seoData?.keywords || ["Malaysia", "News", subcategorySlug],
     category,
+    fullPathName,
     pathName,
     imageAlt: siteConfig.siteName,
   };
@@ -104,7 +105,7 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
       <CategoryMetadata config={metadataConfig} />
       <CategoryJsonLD
         posts={posts}
-        pathName={pathName}
+        pathName={fullPathName}
         title={metadataConfig.title}
       />
 
