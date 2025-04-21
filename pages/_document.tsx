@@ -13,6 +13,33 @@ export default function Document() {
         <link rel="preconnect" href="https://imagedelivery.net" />
         <link rel="dns-prefetch" href="https://imagedelivery.net" />
 
+        {/* Favicons */}
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="256x256"
+          href="/favicon-256x256.png"
+        />
+        <link rel="shortcut icon" href="/favicon.ico" />
+
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
+        />
+        <link rel="manifest" href="/site.webmanifest" />
         <meta property="fb:app_id" content="193538481218906" />
 
         <meta

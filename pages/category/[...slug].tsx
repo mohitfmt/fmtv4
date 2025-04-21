@@ -2,7 +2,7 @@ import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
-import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
+// import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
@@ -15,6 +15,12 @@ import {
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import { fbPageIds } from "@/constants/social";
+import dynamic from "next/dynamic";
+
+const ArticleJsonLD = dynamic(
+  () => import("@/components/news-article/ArticleJsonLD"),
+  { ssr: false }
+);
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -171,12 +177,11 @@ const NewsArticlePost = ({
         <meta name="author" content={safeAuthor} />
         <meta name="keywords" content={safeTags} />
         <meta name="category" content={safeCategories} />
-        <meta name="news_keywords" content={safeTags} />
         <meta property="fb:pages" content={fbPageId} />
 
         <link
           rel="author"
-          href={`${siteConfig.baseUrl}${post?.author?.node?.uri}`}
+          href={`${siteConfig.baseUrl}${post?.author?.node?.uri ?? "/category/author/fmtreporters"}`}
         />
         <link rel="canonical" href={fullUrl} />
         <link
@@ -253,6 +258,8 @@ const NewsArticlePost = ({
         <meta name="twitter:image" content={safeFeaturedImage} />
         <meta name="twitter:image:alt" content={imageAltText} />
         <meta name="twitter:creator" content={safeAuthor} />
+        <meta name="twitter:label1" content="Written by" />
+        <meta name="twitter:data1" content={safeAuthor} />
       </Head>
 
       <ArticleJsonLD data={post} relatedData={relatedPosts} />

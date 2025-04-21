@@ -67,7 +67,7 @@ export default function UserAuthControl() {
             aria-label="Sign Out"
           >
             <Image
-              src={user?.picture || "/icon-256x256.png"}
+              src={user?.picture || "/favicon-256x256.png"}
               width={40}
               height={40}
               className="rounded hover:opacity-70"

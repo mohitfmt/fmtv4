@@ -14,7 +14,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { resolvedTheme } = useTheme();
-  const themeColor = resolvedTheme === "dark" ? "#000000" : "#ffffff";
+  const themeColor = resolvedTheme === "dark" ? "#211c1a" : "#ffffff";
   return (
     <>
       <Head>

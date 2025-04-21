@@ -103,10 +103,7 @@ export default function Home({
           name="keywords"
           content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
         />
-        <meta
-          name="news_keywords"
-          content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
-        />
+
         <meta
           name="copyright"
           content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
@@ -116,7 +113,6 @@ export default function Home({
         {/* Primary language - set this to your site's main language */}
         <meta httpEquiv="Content-Language" content="en-MY, ms-MY" />
         <meta name="language" content="en, ms" />
-        <meta name="google-news-section" content="Front Page" />
 
         <meta name="author" content={siteConfig.siteName} />
         <meta name="publisher" content={siteConfig.siteName} />
@@ -127,19 +123,19 @@ export default function Home({
           rel="alternate"
           type="application/atom+xml"
           title="Atom Feed"
-          href={`${siteConfig.baseUrl}/feeds/atom/headlines/`}
+          href={`${siteConfig.baseUrl}/feeds/atom/headlines`}
         />
         <link
           rel="alternate"
           type="application/rss+xml"
           title="RSS Feed"
-          href={`${siteConfig.baseUrl}/feeds/rss/headlines/`}
+          href={`${siteConfig.baseUrl}/feeds/rss/headlines`}
         />
         <link
           rel="alternate"
           type="application/feed+json"
           title="JSON Feed"
-          href={`${siteConfig.baseUrl}/feeds/json/headlines/`}
+          href={`${siteConfig.baseUrl}/feeds/json/headlines`}
         />
         {heroPosts[0] && (
           <>
@@ -157,60 +153,48 @@ export default function Home({
             />
           </>
         )}
-        {/* Favicons */}
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="256x256"
-          href="/icon-256x256.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="256x256"
-          href="/favicon-256x256.png"
-        />
-        <link rel="shortcut icon" href="/favicon.ico" />
 
         {/* og */}
         {fbPageIds.map((id) => (
           <meta key={id} property="fb:pages" content={id} />
         ))}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={siteConfig.baseUrl} />
+        <meta property="og:url" content={siteConfig?.baseUrl} />
         <meta
           property="og:title"
-          content={`${siteConfig.siteName} | ${siteConfig.tagline}`}
+          content={`${siteConfig?.siteName} | ${siteConfig?.tagline}`}
         />
-        <meta
-          property="og:site_name"
-          content={`${siteConfig.siteName} | ${siteConfig.siteShortName}`}
-        />
-        <meta property="og:description" content={siteConfig.siteDescription} />
-        <meta property="og:image" content={siteConfig.iconPath} />
-        <meta property="og:image:secure_url" content={siteConfig.iconPath} />
-        <meta property="og:image:alt" content="News | Free Malaysia Today" />
+        <meta property="og:site_name" content={`${siteConfig?.siteName}`} />
+        <meta property="og:description" content={siteConfig?.siteDescription} />
+        <meta property="og:image" content={siteConfig?.iconPath} />
+        <meta property="og:image:alt" content="Free Malaysia Today | FMT" />
         <meta property="og:locale" content="en_MY" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        <meta property="og:locale:alternate" content="en_US" />
         <meta property="og:locale:alternate" content="ms_MY" />
+        <meta property="og:locale:alternate" content="id_ID" />
+        <meta property="og:locale:alternate" content="jv_ID" />
+        <meta property="og:locale:alternate" content="su_ID" />
+        <meta property="og:locale:alternate" content="ms_BN" />
+        <meta property="og:locale:alternate" content="ms_SG" />
 
         {/* twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
-        <meta name="twitter:url" content={siteConfig.baseUrl} />
+        <meta name="twitter:url" content={siteConfig?.baseUrl} />
         <meta
           name="twitter:title"
-          content={`${siteConfig.siteName} | ${siteConfig.tagline}`}
+          content={`${siteConfig?.siteName} | ${siteConfig?.tagline}`}
         />
-        <meta name="twitter:description" content={siteConfig.siteDescription} />
-        <meta name="twitter:image" content={siteConfig.iconPath} />
-        <meta name="twitter:image:secure_url" content={siteConfig.iconPath} />
         <meta
-          name="twitter:image:alt"
-          content="Latest News | Free Malaysia Today"
+          name="twitter:description"
+          content={siteConfig?.siteDescription}
         />
+        <meta name="twitter:image" content={siteConfig?.iconPath} />
+        <meta name="twitter:image:alt" content="Free Malaysia Today || FMT" />
         <meta name="twitter:creator" content="@fmtoday" />
       </Head>
-      
+
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
         type="application/ld+json"
@@ -265,7 +249,7 @@ export default function Home({
           </div>
           <div className="order-2 md:col-span-5 xl:order-3 xl:col-span-4">
             <Link href="/news">
-              <SectionHeading sectionName="Breaking" />
+              <SectionHeading sectionName="Highlights" />
             </Link>
             <div className="grid gap-2 gap-y-4 grid-cols-2">
               {highlightPosts?.map((highlightPost: any) => (

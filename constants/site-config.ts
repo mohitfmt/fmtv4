@@ -16,8 +16,7 @@ const siteConfig: SiteConfig = {
   tagline: "Current Affairs, Business, Economy, Lifestyle, News and Analysis",
   siteDescription:
     "Free Malaysia Today is an independent, bi-lingual news portal with a focus on Malaysian current affairs, business, economy, lifestyle, news and analysis.",
-  iconPath:
-    "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
+  iconPath: "https://www.freemalaysiatoday.com/PreviewLinkImage.png",
 };
 
 export default siteConfig;

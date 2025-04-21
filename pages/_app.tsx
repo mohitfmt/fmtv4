@@ -120,6 +120,8 @@ export default function App({
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
+        
+        <meta name="application-name" content="Free Malaysia Today" />
 
         <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
         <link rel="alternate" hrefLang="ms" href={`${siteConfig.baseUrl}`} />
