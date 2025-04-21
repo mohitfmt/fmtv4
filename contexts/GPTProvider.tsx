@@ -40,7 +40,8 @@ const GPTProvider: React.FC<{
 }) => {
   const pageAdSlotsRef = useRef<Record<string, any>>({});
   const [isGPTInitialized, setIsGPTInitialized] = useState(false);
-  const initializationTimer = useRef<number>();
+  const initializationTimer = useRef<NodeJS.Timeout>();
+  const scriptLoadedRef = useRef(false);
 
   const addPageAdSlot = useCallback(
     (id: string, params = {}) => {
@@ -92,7 +93,8 @@ const GPTProvider: React.FC<{
     (params: any, cb: any = null) => {
       if (!window.googletag) {
         // Queue for later if GPT not loaded yet
-        window.setTimeout(() => definePageAdSlot(params, cb), 100);
+        const retryDefine = () => definePageAdSlot(params, cb);
+        initializationTimer.current = setTimeout(retryDefine, 200);
         return;
       }
 
@@ -144,40 +146,57 @@ const GPTProvider: React.FC<{
   );
 
   useEffect(() => {
-    if (isGPTInitialized) return;
+    if (isGPTInitialized || scriptLoadedRef.current) return;
+
     const initGPT = () => {
+      if (scriptLoadedRef.current) return;
+      scriptLoadedRef.current = true;
+
       if (!window.googletag) {
         window.googletag = { cmd: [] } as unknown as typeof googletag;
       }
+
       window.googletag.cmd.push(() => {
-        const pubAdsService = window.googletag.pubads();
-        pubAdsService.enableSingleRequest();
-        // Enable lazy loading for below-fold ads
-        pubAdsService.enableLazyLoad({
-          fetchMarginPercent: 100, // Fetch ads within 1 viewport away
-          renderMarginPercent: 50, // Render ads within 0.5 viewports away
-          mobileScaling: 2.0, // Double the fetch margin on mobile
-        });
-        setIsGPTInitialized(true);
+        try {
+          const pubAdsService = window.googletag.pubads();
+          pubAdsService.enableSingleRequest();
+          pubAdsService.enableLazyLoad({
+            fetchMarginPercent: 100,
+            renderMarginPercent: 50,
+            mobileScaling: 2.0,
+          });
+          setIsGPTInitialized(true);
+        } catch (error) {
+          console.error("GPT Initialization Error:", error);
+          scriptLoadedRef.current = false;
+        }
       });
     };
 
-    // Initialize after first paint
-    initializationTimer.current = window.requestAnimationFrame(() => {
+    const loadScript = () => {
+      const script = document.createElement("script");
+      script.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+      script.async = true;
+      script.onload = initGPT;
+      script.onerror = () => {
+        console.error("Failed to load GPT script");
+        scriptLoadedRef.current = false;
+      };
+      document.head.appendChild(script);
+    };
+
+    // Use setTimeout to ensure this runs after initial render
+    initializationTimer.current = setTimeout(() => {
       if (!window.googletag) {
-        const script = document.createElement("script");
-        script.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
-        script.async = true;
-        script.onload = initGPT;
-        document.head.appendChild(script);
+        loadScript();
       } else {
         initGPT();
       }
-    });
+    }, 0);
 
     return () => {
       if (initializationTimer.current) {
-        window.cancelAnimationFrame(initializationTimer.current);
+        clearTimeout(initializationTimer.current);
       }
     };
   }, []);
