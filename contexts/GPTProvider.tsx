@@ -113,15 +113,23 @@ const GPTProvider: React.FC<{
           name,
           id,
           sizes,
+          outOfPage,
           customDfpTargetingParams,
           displayNow = false,
         } = params;
         const slotName = `/${networkId}/${prefix}_${name}`;
 
-        const slot = window.googletag
-          ?.defineSlot(slotName, sizes, id)
-          ?.addService(window.googletag.pubads());
+        let slot;
 
+        if (outOfPage) {
+          slot = window.googletag
+            .defineOutOfPageSlot(slotName, id)
+            ?.addService(window.googletag.pubads());
+        } else {
+          slot = window.googletag
+            .defineSlot(slotName, sizes, id)
+            ?.addService(window.googletag.pubads());
+        }
         if (slot) {
           Object.entries({
             ...dfpTargetingParams,
