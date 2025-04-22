@@ -16,6 +16,7 @@ import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import { fbPageIds } from "@/constants/social";
 import dynamic from "next/dynamic";
+import { defaultAlternateLocale } from "@/constants/alternate-locales";
 
 const ArticleJsonLD = dynamic(
   () => import("@/components/news-article/ArticleJsonLD"),
@@ -224,6 +225,9 @@ const NewsArticlePost = ({
         <meta property="og:description" content={safeExcerpt} />
         <meta property="og:locale" content={locale} />
         <meta property="og:locale:alternate" content={alternateLocale} />
+        {defaultAlternateLocale?.map((locale: any) => (
+          <meta key={locale} property="og:locale:alternate" content={locale} />
+        ))}
         {/* og:Images */}
         <meta property="og:image" content={safeFeaturedImage} />
         <meta property="og:image:secure_url" content={safeFeaturedImage} />
