@@ -33,7 +33,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /*/api/
 Disallow: /?*
-Disallow: /*/202[0-3]/*
+Disallow: /*/202[0-4]/*
 Disallow: /*/201[0-9]/*
 
 User-agent: Google-Extended
@@ -83,54 +83,6 @@ Allow: /
 
 User-agent: Mediapartners-Google
 Allow: /
-
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: MegaIndex.ru
-Disallow: /
-
-User-agent: Cutbot
-Disallow: /
-
-User-agent: ToutiaoSpider
-Disallow: /
-
-User-agent: Baiduspider
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: Yandex
-Disallow: /
-
-User-agent: YandexBot
-Disallow: /
-
-User-agent: YandexImages
-Disallow: /
-
-User-agent: PaperLiBot
-Disallow: /
-
-User-agent: Clickagy Intelligence Bot
-Disallow: /
-
-User-agent: sogou spider
-Disallow: /
-
-User-agent: Cliqzbot
-Disallow: /
-
-User-agent: VoluumDSP-content-bot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-User-agent: Freshbot
-Disallow: /
 
 Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
 Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml

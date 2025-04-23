@@ -120,7 +120,7 @@ export default function App({
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
-        
+
         <meta name="application-name" content="Free Malaysia Today" />
 
         <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
@@ -143,15 +143,15 @@ export default function App({
             }}
           >
             <MultipurposeProvider>
-              {/* <GPTProvider
+              <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
                 bodyAdSlots={{}}
                 dfpTargetingParams={{}}
                 asPath="/"
-              > */}
+              >
                 {content}
-              {/* </GPTProvider> */}
+              </GPTProvider>
             </MultipurposeProvider>
           </ThemeProvider>
         </AuthProvider>
