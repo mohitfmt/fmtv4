@@ -120,18 +120,7 @@ const NewsArticlePost = ({
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="keywords" content={keywords || safeTags.join(", ")} />
-        <meta
-          name="robots"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot-news"
-          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-        />
+       
         <link rel="canonical" href={`${siteConfig.baseUrl}${safeUri}`} />
 
         <meta property="og:type" content="article" />

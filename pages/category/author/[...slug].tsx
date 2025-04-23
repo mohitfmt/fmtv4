@@ -5,6 +5,9 @@ import { PostCardProps } from "@/types/global";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import AuthorLayout from "@/components/author-page/AuthorLayout";
 import { GET_AUTHOR } from "@/lib/gql-queries/get-user";
+import siteConfig from "@/constants/site-config";
+import { defaultAlternateLocale } from "@/constants/alternate-locales";
+import { WebPageJsonLD } from "@/constants/jsonlds/org";
 
 interface Author {
   name: string;
@@ -29,7 +32,7 @@ interface AuthorPageProps {
 }
 
 export default function AuthorPage({ author, posts }: AuthorPageProps) {
-  const domainUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
+  const domainUrl = siteConfig.baseUrl;
 
   const fullUrl = `${domainUrl}/category/author/${author.slug}`;
   const description =
@@ -40,6 +43,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
     "@context": "https://schema.org",
     "@graph": [
       // Breadcrumbs
+
       {
         "@type": "BreadcrumbList",
         itemListElement: [
@@ -67,10 +71,10 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
       {
         "@type": "Person",
         "@id": fullUrl,
-        name: author.name,
-        description: author.description,
+        name: author?.name,
+        description: description,
         url: fullUrl,
-        image: author.avatar?.url,
+        image: author?.avatar?.url,
         worksFor: {
           "@type": "Organization",
           name: "Free Malaysia Today",
@@ -83,26 +87,43 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
   return (
     <>
       <Head>
-        <title>{`${author.name} | Free Malaysia Today (FMT)`}</title>
+        <title>{`${author?.name} | Free Malaysia Today (FMT)`}</title>
         <meta name="description" content={description} />
         <meta
           name="keywords"
-          content={`${author.name}, author, news, articles, insights`}
+          content={`${author?.name}, author, news, articles, insights`}
         />
         <link rel="canonical" href={fullUrl} />
-        <meta
-          name="robots"
-          content="index, follow, max-snippet:350, max-image-preview:large, max-video-preview:-1"
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Atom Feed"
+          href={`${domainUrl}/feeds/atom/${author?.slug}`}
+        />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed"
+          href={`${siteConfig.baseUrl}/feeds/rss/${author?.slug}`}
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="JSON Feed"
+          href={`${siteConfig.baseUrl}/feeds/json/${author?.slug}`}
         />
         <meta
           property="og:title"
-          content={`${author.name} | Free Malaysia Today (FMT)`}
+          content={`${author?.name} | Free Malaysia Today (FMT)`}
         />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="profile" />
         <meta property="og:url" content={fullUrl} />
         <meta property="og:site_name" content="Free Malaysia Today" />
         <meta property="og:locale" content="en_MY" />
+        {defaultAlternateLocale?.map((locale: any) => (
+          <meta key={locale} property="og:locale:alternate" content={locale} />
+        ))}
         <meta
           property="profile:first_name"
           content={author.name.split(" ")[0]}
@@ -111,16 +132,21 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           property="profile:last_name"
           content={author.name.split(" ").slice(1).join(" ")}
         />
+        <meta property="profile:username" content={author?.name} />
         <meta name="twitter:card" content="summary" />
         <meta
           name="twitter:title"
-          content={`${author.name} | Free Malaysia Today`}
+          content={`${author?.name} | Free Malaysia Today`}
         />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:site" content="@fmtoday" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          type="application/ld+json"
         />
       </Head>
 
@@ -146,12 +172,12 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
 }) => {
   // For catch-all routes, params.slug will be an array
   const slugArray = params?.slug;
-  if (!slugArray || !Array.isArray(slugArray) || slugArray.length === 0) {
+  if (!slugArray || !Array.isArray(slugArray) || slugArray?.length === 0) {
     return { notFound: true };
   }
 
   // Get the last segment of the slug array
-  const authorSlug = slugArray[slugArray.length - 1];
+  const authorSlug = slugArray[slugArray?.length - 1];
 
   try {
     const userData = await gqlFetchAPI(GET_AUTHOR, {
@@ -169,15 +195,15 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
       variables: {
         first: 24,
         where: {
-          author: userData.user.databaseId,
+          author: userData?.user?.databaseId,
         },
       },
     });
 
     return {
       props: {
-        author: userData.user,
-        posts: postsData.posts,
+        author: userData?.user,
+        posts: postsData?.posts,
       },
       revalidate: 1500,
     };

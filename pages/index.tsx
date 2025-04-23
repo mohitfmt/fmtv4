@@ -23,6 +23,7 @@ import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeleton
 import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
 import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
 import { fbPageIds } from "@/constants/social";
+import { defaultAlternateLocale } from "@/constants/alternate-locales";
 // import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 const prisma = new PrismaClient();
@@ -169,14 +170,9 @@ export default function Home({
         <meta property="og:image" content={siteConfig?.iconPath} />
         <meta property="og:image:alt" content="Free Malaysia Today | FMT" />
         <meta property="og:locale" content="en_MY" />
-        <meta property="og:locale:alternate" content="en_GB" />
-        <meta property="og:locale:alternate" content="en_US" />
-        <meta property="og:locale:alternate" content="ms_MY" />
-        <meta property="og:locale:alternate" content="id_ID" />
-        <meta property="og:locale:alternate" content="jv_ID" />
-        <meta property="og:locale:alternate" content="su_ID" />
-        <meta property="og:locale:alternate" content="ms_BN" />
-        <meta property="og:locale:alternate" content="ms_SG" />
+        {defaultAlternateLocale?.map((locale: any) => (
+          <meta key={locale} property="og:locale:alternate" content={locale} />
+        ))}
 
         {/* twitter */}
         <meta name="twitter:card" content="summary_large_image" />

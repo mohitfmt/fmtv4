@@ -5,7 +5,10 @@ import { GET_TAG } from "@/lib/gql-queries/get-tag";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { PostCardProps, Tag } from "@/types/global";
 import Head from "next/head";
-import { stripHTML } from "@/lib/utils";
+import siteConfig from "@/constants/site-config";
+import { fbPageIds } from "@/constants/social";
+import { defaultAlternateLocale } from "@/constants/alternate-locales";
+import { WebPageJsonLD } from "@/constants/jsonlds/org";
 
 interface TagNode {
   uri: string;
@@ -23,9 +26,9 @@ interface TagPageProps {
   };
 }
 export default function TagPage({ tag, posts }: TagPageProps) {
-  const domainUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
+  const domainUrl = siteConfig.baseUrl;
 
-  const fullUrl = `${domainUrl}/tag/${tag.slug}`;
+  const fullUrl = `${domainUrl}/category/tag/${tag.slug}`;
   const description = `Latest ${tag.name} news and updates from Free Malaysia Today. Browse ${tag.count}+ articles about ${tag.name}. Stay informed with our comprehensive coverage of ${tag.name}-related topics.`;
 
   const structuredData = {
@@ -60,9 +63,17 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         "@type": "CollectionPage",
         "@id": fullUrl,
         name: `${tag.name} News & Articles`,
-        description: stripHTML(tag?.description || ""),
+        description: description, // Using your already defined description
         url: fullUrl,
-        numberOfItems: tag?.count,
+        // Remove numberOfItems and instead use one of these approaches:
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: posts.edges.map(({ node }, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${domainUrl}${node.uri}`,
+          })),
+        },
         publisher: {
           "@type": "Organization",
           name: "Free Malaysia Today",
@@ -78,12 +89,12 @@ export default function TagPage({ tag, posts }: TagPageProps) {
           item: {
             "@type": "Article",
             headline: node.title,
-            url: `${domainUrl}/${node.slug}`,
+            url: `${domainUrl}/category/tag/${node.slug}`,
             datePublished: `${node.dateGmt}Z`,
             author: {
               "@type": "Person",
               name: node.author?.node?.name || "FMT Reporters",
-              url: `${domainUrl}/${node.author?.node?.slug}`,
+              url: `${domainUrl}${node.author?.node?.uri}`,
             },
             image: node.featuredImage?.node?.sourceUrl || "",
             publisher: {
@@ -96,7 +107,6 @@ export default function TagPage({ tag, posts }: TagPageProps) {
       },
     ],
   };
-
   return (
     <>
       <Head>
@@ -110,13 +120,29 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         {/* Canonical URL */}
         <link rel="canonical" href={fullUrl} />
 
-        {/* Robots */}
-        <meta
-          name="robots"
-          content="index, follow, max-snippet:350, max-image-preview:large, max-video-preview:-1"
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Atom Feed"
+          href={`${domainUrl}/feeds/atom/${tag.slug}`}
+        />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed"
+          href={`${siteConfig.baseUrl}/feeds/rss/${tag.slug}`}
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="JSON Feed"
+          href={`${siteConfig.baseUrl}/feeds/json/${tag.slug}`}
         />
 
         {/* Open Graph */}
+        {fbPageIds.map((id) => (
+          <meta key={id} property="fb:pages" content={id} />
+        ))}
         <meta
           property="og:title"
           content={`${tag.name} - Latest News & Updates | Free Malaysia Today`}
@@ -126,6 +152,12 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         <meta property="og:url" content={fullUrl} />
         <meta property="og:site_name" content="Free Malaysia Today" />
         <meta property="og:locale" content="en_MY" />
+        {defaultAlternateLocale?.map((locale: any) => (
+          <meta key={locale} property="og:locale:alternate" content={locale} />
+        ))}
+        <meta property="og:image" content={siteConfig.iconPath} />
+        <meta property="og:image:secure_url" content={siteConfig.iconPath} />
+        <meta property="og:image:alt" content={siteConfig.siteName} />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary" />
@@ -133,13 +165,22 @@ export default function TagPage({ tag, posts }: TagPageProps) {
           name="twitter:title"
           content={`${tag.name} News & Updates | FMT`}
         />
+        <meta name="twitter:url" content={fullUrl} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:site" content="@fmtoday" />
+
+        <meta name="twitter:image" content={siteConfig.iconPath} />
+        <meta name="twitter:image:alt" content={siteConfig.siteName} />
+        <meta name="twitter:creator" content="@fmtoday" />
 
         {/* JSON-LD */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          type="application/ld+json"
         />
       </Head>
       <TagLayout

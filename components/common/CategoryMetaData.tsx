@@ -4,6 +4,10 @@ import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { fbPageIds } from "@/constants/social";
+import {
+  BeritaAlternateLocale,
+  defaultAlternateLocale,
+} from "@/constants/alternate-locales";
 
 interface MetadataConfig {
   title: string;
@@ -18,23 +22,6 @@ interface MetadataConfig {
 interface CategoryMetadataProps {
   config: MetadataConfig;
 }
-
-const defaultAlternateLocale = [
-  "en_US",
-  "en_GB",
-  "en_AU",
-  "en_CA",
-  "en_NZ",
-  "en_IE",
-  "en_IN",
-  "en_SG",
-  "en_ZA",
-  "en_PH",
-  "en_HK",
-  "en_PK",
-];
-
-const BeritaAlternateLocale = ["id_ID", "jv_ID", "su_ID", "ms_BN", "ms_SG"];
 
 export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
   const {

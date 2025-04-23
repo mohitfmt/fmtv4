@@ -105,7 +105,17 @@ export const GET_FILTERED_CATEGORY = `
               }
             }
           }
-           tags {
+          author {
+            node {
+              uri
+              name
+              avatar
+              {
+                url
+              }
+            }
+          }
+          tags {
             edges {
               node {
                 id

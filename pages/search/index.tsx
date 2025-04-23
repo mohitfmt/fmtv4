@@ -1,8 +1,11 @@
 import Head from "next/head";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import SearchLayout from "@/components/search-page/SearchLayout";
+import siteConfig from "@/constants/site-config";
+import { useRouter } from "next/router";
+import { defaultAlternateLocale } from "@/constants/alternate-locales";
 
-const KEYWORDS = [
+const DEFAULT_KEYWORDS = [
   "Free Malaysia Today Search",
   "FMT Search",
   "Malaysia News Search",
@@ -15,9 +18,39 @@ const KEYWORDS = [
   "Search English Malay News",
   "Malaysia News Filter",
   "Custom Malaysia News Search",
-].join(", ");
+];
 
 const Search = () => {
+  const router = useRouter();
+  const { term, category } = router.query;
+
+  const fullUrl = `${siteConfig.baseUrl}/search?term=${term}&category=${category}`;
+  const keywords = [term, category, ...DEFAULT_KEYWORDS].join(", ");
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      // Breadcrumbs
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: siteConfig.baseUrl,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Tags",
+            item: fullUrl,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
       <Head>
@@ -29,34 +62,33 @@ const Search = () => {
           name="description"
           content="Search Free Malaysia Today for the latest Malaysian news, current affairs, business updates, and in-depth analysis. Find accurate and timely information on politics, economy, lifestyle, and more."
         />
-        <meta name="keywords" content={KEYWORDS} />
+        <meta name="keywords" content={keywords} />
         <meta name="author" content="Free Malaysia Today" />
         <meta name="category" content="searchpage" />
 
         {/* Canonical URL */}
-        <link
-          rel="canonical"
-          href="https://www.freemalaysiatoday.com/search/"
-        />
-
-        {/* Feed Links */}
+        <link rel="canonical" href={fullUrl} />
         <link
           rel="alternate"
           type="application/atom+xml"
-          href="feeds/atom/search/"
+          title="Atom Feed"
+          href={`${siteConfig.baseUrl}/feeds/atom/${category}`}
         />
         <link
           rel="alternate"
           type="application/rss+xml"
-          href="feeds/rss/search/"
+          title="RSS Feed"
+          href={`${siteConfig.baseUrl}/feeds/rss/${category}`}
         />
         <link
           rel="alternate"
           type="application/feed+json"
-          href="feeds/json/search/"
+          title="JSON Feed"
+          href={`${siteConfig.baseUrl}/feeds/json/${category}`}
         />
 
         {/* OpenGraph Tags */}
+
         <meta
           property="og:title"
           content="Search Free Malaysia Today (FMT) | Find Latest News and Analysis"
@@ -65,20 +97,15 @@ const Search = () => {
           property="og:description"
           content="Search FMT for the latest Malaysian news, current affairs, business updates, and in-depth analysis. Find accurate and timely information on politics, economy, lifestyle, and more."
         />
-        <meta
-          property="og:url"
-          content="https://www.freemalaysiatoday.com/search/"
-        />
+        <meta property="og:url" content={fullUrl} />
         <meta property="og:type" content="website" />
-        <meta
-          property="og:image"
-          content="https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg"
-        />
-        <meta
-          property="og:image:secure_url"
-          content="https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg"
-        />
+        <meta property="og:image" content={siteConfig.iconPath} />
+        <meta property="og:image:secure_url" content={siteConfig.iconPath} />
         <meta property="og:image:alt" content="News | Free Malaysia Today" />
+        <meta property="og:locale" content="en_MY" />
+        {defaultAlternateLocale?.map((locale: any) => (
+          <meta key={locale} property="og:locale:alternate" content={locale} />
+        ))}
 
         {/* Twitter Cards */}
         <meta
@@ -91,31 +118,17 @@ const Search = () => {
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
-        <meta
-          name="twitter:image"
-          content="https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg"
-        />
+        <meta name="twitter:image" content={siteConfig.iconPath} />
         <meta
           name="twitter:image:alt"
           content="Latest News | Free Malaysia Today"
         />
-
-        {/* Robot Directives */}
-        <meta
-          name="robots"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot"
-          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
-        />
-        <meta
-          name="googlebot-news"
-          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-        />
-
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          type="application/ld+json"
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           type="application/ld+json"
         />
       </Head>
