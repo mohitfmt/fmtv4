@@ -143,15 +143,15 @@ export default function App({
             }}
           >
             <MultipurposeProvider>
-              <GPTProvider
+              {/* <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
                 bodyAdSlots={{}}
                 dfpTargetingParams={{}}
                 asPath="/"
-              >
+              > */}
                 {content}
-              </GPTProvider>
+              {/* </GPTProvider> */}
             </MultipurposeProvider>
           </ThemeProvider>
         </AuthProvider>
