@@ -11,8 +11,6 @@ import {
   isToday,
   isValid,
   startOfDay,
-  addMonths,
-  isSameMonth,
 } from "date-fns";
 import PopText from "../PopText";
 
@@ -50,17 +48,15 @@ const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
     const minutesDiff = differenceInMinutes(now, date);
     const hoursDiff = differenceInHours(now, date);
     const daysDiff = differenceInDays(startOfDay(now), startOfDay(date));
-    
-    // Calculate months difference more accurately
+
+    // Calculate months and years difference
     const monthsDiff = differenceInMonths(now, date);
-    const isExactlyOneMonthAgo = isSameMonth(addMonths(date, 1), now);
-    
     const yearsDiff = differenceInYears(now, date);
 
     const getRelativeTime = () => {
       // Handle very recent posts
       if (minutesDiff < 1) return "Just now";
-      
+
       // Handle today's posts
       if (isToday(date)) {
         if (minutesDiff < 60) {
@@ -75,15 +71,14 @@ const FullDateDisplay: React.FC<FullDateDisplayProps> = ({
       // Handle yesterday's posts
       if (isYesterday(date)) return "Yesterday";
 
-      // Handle posts within last 30 days
-      if (daysDiff < 30 && !isExactlyOneMonthAgo) {
-        return `${daysDiff} days ago`;
+      // For posts within the last 31 days, always show days
+      if (daysDiff <= 31) {
+        return `${daysDiff} ${daysDiff === 1 ? "day" : "days"} ago`;
       }
 
-      // Handle posts within last 12 months
+      // Handle posts older than 31 days but less than 12 months
       if (monthsDiff < 12) {
-        const monthCount = isExactlyOneMonthAgo ? 1 : monthsDiff;
-        return `${monthCount} ${monthCount === 1 ? "month" : "months"} ago`;
+        return `${monthsDiff} ${monthsDiff === 1 ? "month" : "months"} ago`;
       }
 
       // Handle posts over a year old
