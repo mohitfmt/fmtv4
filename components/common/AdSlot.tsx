@@ -21,6 +21,11 @@ const AdSlot: React.FC<AdSlotProps> = ({
   isInterstitial = false,
   additionalStyle,
 }) => {
+  const finalTargetingParams = {
+    site: "fmt",
+    ...targetingParams,
+  };
+
   const adRef = useRef<HTMLDivElement>(null);
   const { definePageAdSlot, softRemovePageAdSlot, removeAdSlots } =
     useContext(GPTContext);
@@ -84,7 +89,7 @@ const AdSlot: React.FC<AdSlotProps> = ({
       sizes,
       outOfPage,
       isInterstitial,
-      customDfpTargetingParams: targetingParams,
+      customDfpTargetingParams: finalTargetingParams,
       displayNow: false,
     };
 
@@ -102,7 +107,7 @@ const AdSlot: React.FC<AdSlotProps> = ({
           const pubads = window.googletag.pubads();
 
           // Set targeting parameters
-          Object.entries(targetingParams).forEach(([key, value]) => {
+          Object.entries(finalTargetingParams).forEach(([key, value]) => {
             slot.setTargeting(key, value);
           });
 
@@ -153,7 +158,7 @@ const AdSlot: React.FC<AdSlotProps> = ({
     name,
     sizes,
     id,
-    targetingParams,
+    finalTargetingParams,
     outOfPage,
     isInterstitial,
     definePageAdSlot,
