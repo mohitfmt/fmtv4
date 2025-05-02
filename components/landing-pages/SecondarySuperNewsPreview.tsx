@@ -25,7 +25,7 @@ const SecondarySuperNewsPreview = ({
             isBig={true}
           />
         )}
-        <div className="absolute w-full bottom-0 bg-gradient-to-b from-transparent via-40% via-black/60 to-black/95 text-white px-2 lg:px-8 flex flex-col items-end rounded-lg">
+        <div className="absolute w-full bottom-0 bg-gradient-to-b from-transparent via-40% via-black/60 to-black/95 text-white px-2 lg:px-5 flex flex-col rounded-lg">
           <Link href={uri}>
             <h3
               className="text-2xl md:text-4xl font-extrabold font-bitter my-2 text-left"
