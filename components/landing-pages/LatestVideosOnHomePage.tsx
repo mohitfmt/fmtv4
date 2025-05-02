@@ -121,7 +121,7 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
         {/* Content with improved spacing */}
-        <div className="absolute bottom-0 left-0 right-0 p-5">
+        <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-5">
           <h3
             className="text-pretty text-2xl md:text-4xl font-extrabold font-bitter mb-3 text-white"
             style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
