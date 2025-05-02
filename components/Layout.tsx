@@ -15,6 +15,28 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { resolvedTheme } = useTheme();
   const themeColor = resolvedTheme === "dark" ? "#211c1a" : "#ffffff";
+
+  const dfpTargetingParams = {
+    pos: "listing",
+    section: ["global"],
+    key: [
+      "Free Malaysia Today",
+      "Malaysia News",
+      "Latest Malaysia News",
+      "Breaking News Malaysia",
+      "Malaysia Politics News",
+      "gambling",
+      "religion",
+      "alcohol",
+      "lgbt",
+      "sex",
+      "drug abuse",
+      "get rich",
+      "match-making",
+      "dating",
+      "lottery",
+    ],
+  };
   return (
     <>
       <Head>
@@ -31,6 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <AdSlot
         id="div-gpt-ad-1661362827551-0"
         name="Pixel"
+        targetingParams={dfpTargetingParams}
         sizes={[1, 1]}
         additionalStyle={{
           position: "absolute",
@@ -47,6 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         name="OutOfPage"
         sizes={[1, 1]}
         outOfPage={true}
+        targetingParams={dfpTargetingParams}
         additionalStyle={{
           position: "absolute",
           top: 0,
