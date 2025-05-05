@@ -90,6 +90,7 @@ export const GET_FILTERED_CATEGORY = `
     ) {
       edges {
         node {
+          id
           title
           excerpt
           uri
