@@ -272,7 +272,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
 
           case "figcaption":
             return (
-              <figcaption className="mt-2 text-center text-sm md:text-md text-gray-600 dark:text-gray-100">
+              <figcaption className="mt-2 text-center text-sm lg:text-base text-gray-600 dark:text-gray-100">
                 {domToReact(domNode.children as DOMNode[], options)}
               </figcaption>
             );
