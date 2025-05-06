@@ -3,19 +3,16 @@ const API_URL =
 
 export async function gqlFetchAPI(
   query = "",
-  {
-    variables,
-    headers = {},
-  }: { variables?: any; headers?: Record<string, string> } = {}
+  { variables }: Record<string, any> = {}
 ) {
   try {
-    const baseHeaders: Record<string, string> = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate",
     };
 
     const res = await fetch(API_URL, {
-      headers: { ...baseHeaders, ...headers },
+      headers,
       method: "POST",
       body: JSON.stringify({
         query,
