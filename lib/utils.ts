@@ -1,5 +1,5 @@
 import { DEFAULT_TAGS } from "@/constants/default-tags";
-import { OrgJsonLD } from "@/constants/jsonlds/org";
+// import { OrgJsonLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -230,14 +230,14 @@ export const generateCollectionPageJsonLD = ({
               // logo: OrgJsonLD.logo,
             },
             isFamilyFriendly: true,
-            keywords: video?.node?.tags.join(", "),
+            keywords: video?.node?.tags?.join(", "),
             caption: video?.node?.title,
             genre: video?.node?.categories?.nodes
               .map((category: { name: string }) => category?.name)
               .join(", "),
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": `${baseUrl}${video.node?.uri}` || baseUrl,
+              "@id": `${baseUrl}${video?.node?.uri}` || baseUrl,
             },
           })),
         },
@@ -255,7 +255,7 @@ export const generateCollectionPageJsonLD = ({
         },
       ],
     },
-    publisher: OrgJsonLD,
+    // publisher: OrgJsonLD,
   };
 };
 
