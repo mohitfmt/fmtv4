@@ -1,6 +1,7 @@
 import Meta from "@/components/common/Meta";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/common/AdSlot";
+import { ObfuscatedEmail } from "@/components/common/ObfuscatedContacts";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -82,10 +83,10 @@ const JobListing = ({
     ))}
 
     <p className="py-2">
-      Apply: Send us your CV at{" "}
-      <a href={`mailto:${email}`} className="text-accent-blue hover:underline">
-        {email}
-      </a>
+      Apply: Send us your CV at
+      <span className="ml-2">
+        <ObfuscatedEmail email={email} />
+      </span>
     </p>
 
     <a href={`mailto:${email}`}>
@@ -137,7 +138,7 @@ const CareerPage = () => {
           visibleOnDevices="onlyMobile"
         />
       </div>
-      
+
       <div className="py-4">
         {/* Page Header */}
         <h1 className="mt-4 py-2 text-center text-4xl font-extrabold">

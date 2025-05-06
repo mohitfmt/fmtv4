@@ -47,7 +47,7 @@ ul {
 
     --accent-yellow: #f2a838;
     /* FMT-v3:yellow- #F1A838 */
-    --accent-blue: #1d5aaa;
+    --accent-blue: #1a5096;
     --accent-red: #a92c23;
     --accent-category: #da1b1b;
     --radius: 0.5rem;
@@ -74,6 +74,7 @@ ul {
     --input: rgb(179, 179, 178);
     --ring: rgba(208, 207, 204, 1);
     --accent-red: #ff0000;
+    --accent-blue: #3079e0;
     --accent-category: #aaff00;
     --fd: rgb(209 213 219);
   }
