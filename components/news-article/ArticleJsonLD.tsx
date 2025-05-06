@@ -1,6 +1,6 @@
 import siteConfig from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
-import { WebPageJsonLD } from "@/constants/jsonlds/org";
+import { OrgJsonLD, WebPageJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
 
 const extractFirstParagraph = (htmlContent: string) => {
@@ -144,18 +144,30 @@ const ArticleJsonLD = ({
   const cleanExcerpt = stripHTML(data?.excerpt ?? "excerpt not found");
 
   let videoJsonLD = null;
-  const videoData = extractYouTubeID(data?.content ?? "content not found");
+  const videoId = extractYouTubeID(data?.content ?? "content not found");
 
-  if (videoData) {
+  if (videoId) {
     videoJsonLD = {
       "@context": "https://schema.org",
       "@type": "VideoObject",
+      "@id": `https://www.youtube.com/watch?v=${videoId}`,
       name: data?.title,
       description: cleanExcerpt,
       uploadDate: data?.dateGmt + "Z",
       thumbnailUrl: data?.featuredImage?.node?.sourceUrl,
-      contentUrl: `https://www.youtube.com/watch?v=${videoData}`,
-      embedUrl: `https://www.youtube.com/embed/${videoData}`,
+      contentUrl: `https://www.youtube.com/watch?v=${videoId}`,
+      embedUrl: `https://www.youtube.com/embed/${videoId}`,
+      author: {
+        "@type": "NewsMediaOrganization",
+        name: "Free Malaysia Today",
+        url: "https://www.freemalaysiatoday.com/",
+      },
+      url: fullUrl,
+      publisher: {
+        "@type": "NewsMediaOrganization",
+        name: "Free Malaysia Today",
+        logo: OrgJsonLD.logo,
+      },
     };
   }
 

@@ -1,5 +1,6 @@
 import { DEFAULT_TAGS } from "@/constants/default-tags";
 import { OrgJsonLD } from "@/constants/jsonlds/org";
+import siteConfig from "@/constants/site-config";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -82,9 +83,7 @@ export const generateCollectionPageJsonLD = ({
   videoPosts,
   columnists,
 }: any) => {
-  const protocol = "https"; // or use your env condition
-  const host = process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = siteConfig.baseUrl;
 
   const createArticleLD = (posts: any[], categoryName: string) => {
     return posts?.map((post) => ({
@@ -202,24 +201,43 @@ export const generateCollectionPageJsonLD = ({
           about: "Latest videos on FMT News.",
           hasPart: videoPosts?.map((video: any) => ({
             "@type": "VideoObject",
-            headline: video.node?.title || "Video Title",
-            name: video.node?.title || "Video Title", // Ensures the "name" field is set
-            url: video.node?.slug
-              ? `${baseUrl}/videos/${video.node?.slug}`
-              : baseUrl,
-            contentUrl:
-              video.node?.contentUrl || `${baseUrl}/default-video.mp4`, // Replace with actual video URL if available
-            thumbnailUrl:
-              video.node?.featuredImage.node.mediaItemUrl ||
-              "https://via.placeholder.com/1600x1000?text=Video+Thumbnail+is+missing",
-            uploadDate: video.node?.dateGmt || new Date().toISOString(),
-            description: video.node?.excerpt || "Video description",
-            duration: video.node?.duration || "PT0H0M0S",
+            "@id": `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
+            headline: video.node?.title || "FMT Video",
+            name: video?.node?.title || "FMT Video",
+            description: video?.node?.excerpt?.split(
+              "Subscribe to our channel"
+            )[0],
+            thumbnailUrl: video?.node?.featuredImage?.node?.mediaItemUrl,
+            uploadDate: video?.node?.dateGmt,
+
+            contentUrl: `  https://www.youtube.com/watch?v=${video?.node?.videoId}`,
+            embedUrl: "https://www.youtube.com/embed/" + video?.node?.videoId,
+            duration: video?.node?.duration,
+            author: {
+              "@type": "NewsMediaOrganization",
+              name: "Free Malaysia Today",
+              url: "https://www.freemalaysiatoday.com/",
+            },
+            interactionStatistic: {
+              "@type": "InteractionCounter",
+              interactionType: "http://schema.org/WatchAction",
+              userInteractionCount: video?.node?.statistics?.viewCount ?? 1,
+            },
+            url: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
+            publisher: {
+              "@type": "NewsMediaOrganization",
+              name: "Free Malaysia Today",
+              // logo: OrgJsonLD.logo,
+            },
+            isFamilyFriendly: true,
+            keywords: video?.node?.tags.join(", "),
+            caption: video?.node?.title,
+            genre: video?.node?.categories?.nodes
+              .map((category: { name: string }) => category?.name)
+              .join(", "),
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": video.node?.slug
-                ? `${baseUrl}/videos/${video.node?.slug}`
-                : baseUrl,
+              "@id": `${baseUrl}${video.node?.uri}` || baseUrl,
             },
           })),
         },
