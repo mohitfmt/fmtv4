@@ -30,7 +30,6 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
     section: ["videos page"],
     key: tags,
   };
-
   return (
     <>
       {/* Head with Metadata and JSON-LD scripts */}
@@ -47,44 +46,61 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
         />
         <meta property="og:url" content={metaData.openGraph.url} />
         <meta property="og:type" content={metaData.openGraph.type} />
+        <meta
+          property="og:video"
+          content={`https://www.youtube.com/watch?v=${video?.node?.videoId}`}
+        />
+        <meta
+          property="og:video:secure_url"
+          content={`https://www.youtube.com/watch?v=${video?.node?.videoId}`}
+        />
+        <meta
+          property="og:video:height"
+          content={metaData?.openGraph?.videos[0]?.height}
+        />
+        <meta
+          property="og:video:width"
+          content={metaData?.openGraph?.videos[0]?.width}
+        />
         {metaData.openGraph.images?.map((image: any, index: any) => (
           <React.Fragment key={index}>
-            <meta property="og:image" content={image.url} />
-            <meta property="og:image:width" content={image.width.toString()} />
+            <meta property="og:image" content={image?.url} />
+            <meta
+              property="og:image:width"
+              content={image?.width?.toString()}
+            />
             <meta
               property="og:image:height"
-              content={image.height.toString()}
+              content={image?.height?.toString()}
             />
-            <meta property="og:image:alt" content={image.alt} />
+            <meta property="og:image:alt" content={image?.alt} />
           </React.Fragment>
         ))}
 
+        <link rel="canonical" href={videoArticles?.url} />
+
         {/* Twitter Card Meta Tags */}
-        <meta name="twitter:card" content={metaData.twitter.card} />
-        <meta name="twitter:site" content={metaData.twitter.site} />
-        <meta name="twitter:title" content={metaData.twitter.title} />
+        <meta name="twitter:card" content={metaData?.twitter?.card} />
+        <meta name="twitter:site" content={metaData?.twitter?.site} />
+        <meta name="twitter:title" content={metaData?.twitter?.title} />
         <meta
           name="twitter:description"
-          content={metaData.twitter.description}
-        />
-
-        {/* JSON-LD scripts */}
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(OrgJsonLD) }}
-          type="application/ld+json"
-          defer
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-          type="application/ld+json"
-          defer
-        />
-        <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoArticles) }}
-          type="application/ld+json"
-          defer
+          content={metaData?.twitter?.description}
         />
       </Head>
+      {/* JSON-LD scripts */}
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON?.stringify(OrgJsonLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON?.stringify(websiteJSONLD) }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON?.stringify(videoArticles) }}
+        type="application/ld+json"
+      />
 
       {/* Top Desktop Ad */}
       <div className="ads-dynamic-desktop">
@@ -234,32 +250,24 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       description: video?.node?.excerpt?.split("Subscribe to our channel")[0],
       thumbnailUrl: video?.node?.featuredImage?.node?.mediaItemUrl,
       uploadDate: video?.node?.dateGmt,
-      contentUrl: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
+      contentUrl: `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
       embedUrl: "https://www.youtube.com/embed/" + video?.node?.videoId,
       duration: video?.node?.duration,
       author: {
         "@type": "NewsMediaOrganization",
         name: "Free Malaysia Today",
-        url: "https://www.freemalaysiatoday.com/",
+        url: siteConfig.baseUrl,
       },
       interactionStatistic: {
         "@type": "InteractionCounter",
         interactionType: "http://schema.org/WatchAction",
         userInteractionCount: video?.node?.statistics?.viewCount ?? 1,
       },
-      url: `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
+      url: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
       publisher: {
         "@type": "NewsMediaOrganization",
         name: "Free Malaysia Today",
-        logo: {
-          "@context": "https://schema.org",
-          "@type": "ImageObject",
-          url: "https://www.freemalaysiatoday.com/icon-512x512.png",
-          contentUrl: "https://www.freemalaysiatoday.com/icon-512x512.png",
-          width: 512,
-          height: 512,
-          creditText: "Free Malaysia Today",
-        },
+        logo: OrgJsonLD.logo,
       },
       isFamilyFriendly: true,
       keywords: video?.node?.tags.join(", "),
