@@ -879,6 +879,24 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
 
     const hubUrl = "https://pubsubhubbub.appspot.com/";
     const feedUrls = [
+      "https://www.freemalaysiatoday.com/feeds/rss/nation",
+      "https://www.freemalaysiatoday.com/feeds/rss/berita",
+      "https://www.freemalaysiatoday.com/feeds/rss/business",
+      "https://www.freemalaysiatoday.com/feeds/rss/headlines",
+      "https://www.freemalaysiatoday.com/feeds/rss/lifestyle",
+      "https://www.freemalaysiatoday.com/feeds/rss/opinion",
+      "https://www.freemalaysiatoday.com/feeds/rss/sports",
+      "https://www.freemalaysiatoday.com/feeds/rss/world",
+
+      "https://www.freemalaysiatoday.com/feeds/atom/nation",
+      "https://www.freemalaysiatoday.com/feeds/atom/berita",
+      "https://www.freemalaysiatoday.com/feeds/atom/business",
+      "https://www.freemalaysiatoday.com/feeds/atom/headlines",
+      "https://www.freemalaysiatoday.com/feeds/atom/lifestyle",
+      "https://www.freemalaysiatoday.com/feeds/atom/opinion",
+      "https://www.freemalaysiatoday.com/feeds/atom/sports",
+      "https://www.freemalaysiatoday.com/feeds/atom/world",
+
       "https://www.freemalaysiatoday.com/feeds/rss/nation/",
       "https://www.freemalaysiatoday.com/feeds/rss/berita/",
       "https://www.freemalaysiatoday.com/feeds/rss/business/",

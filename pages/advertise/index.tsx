@@ -1,5 +1,6 @@
 import AdSlot from "@/components/common/AdSlot";
 import Meta from "@/components/common/Meta";
+import { ObfuscatedEmail } from "@/components/common/ObfuscatedContacts";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -46,14 +47,10 @@ const Advertise = () => {
           Advertise With Us
         </h1>
         <p className="py-4 text-center">
-          For advertising rates and queries, please email us at{" "}
-          <a
-            className="text-accent-blue"
-            href="mailto:advertise@freemalaysiatoday.com"
-            rel="noopener noreferrer"
-          >
-            advertise@freemalaysiatoday.com
-          </a>
+          For advertising rates and queries, please email us at
+          <span className="ml-2">
+            <ObfuscatedEmail email="advertise@freemalaysiatoday.com" />
+          </span>
         </p>
       </div>
     </>
