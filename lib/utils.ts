@@ -35,23 +35,7 @@ export const getPreferredCategory = (
     return defaultCategory;
   }
 
-  // First, check if any categories are named "letters" or "column" and change them to "analysis"
-  const processedCategories = categories.map(category => {
-    if (category?.node?.name?.toLowerCase() === "letters" || 
-        category?.node?.name?.toLowerCase() === "column") {
-      return {
-        ...category,
-        node: {
-          ...category.node,
-          name: "ANALYSIS",
-          slug: category?.node?.name?.toLowerCase()
-        }
-      };
-    }
-    return category;
-  });
-
-  const filteredCategories = processedCategories.filter((category) => {
+  const filteredCategories = categories.filter((category) => {
     const categoryName = category?.node?.name?.toLowerCase();
     return !(
       categoryName?.startsWith("top") ||
