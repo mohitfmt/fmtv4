@@ -2,10 +2,12 @@ import Meta from "@/components/common/Meta";
 import ContactDetails from "@/components/contact/contact-details";
 import AdSlot from "@/components/common/AdSlot";
 import ContactUsForm from "@/components/contact/contact-us-form";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 
 const dfpTargetingParams = {
   pos: "listing",
   section: ["contact us page"],
+  key: gerneralTargetingKeys,
 };
 
 const embedUrl =
@@ -51,7 +53,7 @@ const ContactUsPage = () => (
         visibleOnDevices="onlyMobile"
       />
     </div>
-    
+
     <div className="my-4">
       {/* Page Title */}
       <h1 className="my-10 text-center text-2xl font-extrabold md:text-3xl lg:text-4xl">
@@ -77,6 +79,37 @@ const ContactUsPage = () => (
           <ContactDetails />
         </div>
       </div>
+
+      {/* Pixel Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362827551-0"
+        name="Pixel"
+        targetingParams={dfpTargetingParams}
+        sizes={[1, 1]}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
+
+      {/* OutOfPage Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362765847-0"
+        name="OutOfPage"
+        sizes={[1, 1]}
+        outOfPage={true}
+        targetingParams={dfpTargetingParams}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
     </div>
   </>
 );

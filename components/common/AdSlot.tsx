@@ -105,7 +105,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
       if (slot) {
         window.googletag.cmd.push(() => {
           const pubads = window.googletag.pubads();
-
+          // Clear old targeting
+          slot.clearTargeting();
           // Set targeting parameters
           Object.entries(finalTargetingParams).forEach(([key, value]) => {
             slot.setTargeting(key, value);

@@ -5,7 +5,7 @@ import AdSlot from "@/components/common/AdSlot";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import TrendingNSubCategoriesList from "../common/TrendingNSubCategoriesList";
 import { AdsTargetingParams } from "@/types/global";
-import { GeneralTargetingParams } from "@/constants/ads-targeting-params/general";
+import { generalTargetingParams } from "@/constants/ads-targeting-params/general";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ export default function MainLayout({
 
   const dfpTargetingParams =
     adsTargetingParams ||
-    GeneralTargetingParams({
+    generalTargetingParams({
       section: [
         isCategoryPage ? "category-landing-page" : "subcategory-landing-page",
         "landing-page",
@@ -103,6 +103,37 @@ export default function MainLayout({
           targetingParams={dfpTargetingParams}
         />
       </div>
+
+      {/* Pixel Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362827551-0"
+        name="Pixel"
+        targetingParams={dfpTargetingParams}
+        sizes={[1, 1]}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
+
+      {/* OutOfPage Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362765847-0"
+        name="OutOfPage"
+        sizes={[1, 1]}
+        outOfPage={true}
+        targetingParams={dfpTargetingParams}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
     </div>
   );
 }

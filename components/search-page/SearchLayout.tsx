@@ -4,15 +4,21 @@ import SearchForm from "./SearchForm";
 import SearchWithLoadMore from "./SearchWithLoadMore";
 import CategorySidebar from "../common/CategorySidebar";
 import { useRouter } from "next/router";
+import AdSlot from "../common/AdSlot";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 // import AdSlot from "../common/AdSlot";
 
 export default function SearchLayout() {
   const router = useRouter();
   const { term, category } = router.query;
 
+  const dfpTargetingParams = {
+    pos: "listing",
+    section: ["search", term],
+    key: [term, category, ...gerneralTargetingKeys],
+  };
   return (
     <>
-  
       {/* Top Desktop Ad */}
       {/* <div className="ads-dynamic-desktop">
         <AdSlot
@@ -49,6 +55,37 @@ export default function SearchLayout() {
         <aside className="lg:w-1/3">
           <CategorySidebar pageName="categoryHome" />
         </aside>
+
+        {/* Pixel Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362827551-0"
+          name="Pixel"
+          targetingParams={dfpTargetingParams}
+          sizes={[1, 1]}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
+
+        {/* OutOfPage Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362765847-0"
+          name="OutOfPage"
+          sizes={[1, 1]}
+          outOfPage={true}
+          targetingParams={dfpTargetingParams}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
       </section>
     </>
   );

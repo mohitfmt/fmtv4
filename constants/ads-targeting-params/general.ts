@@ -2,10 +2,26 @@ interface TargetingParamsProps {
   section: string[];
 }
 
-export const GeneralTargetingParams = ({ section }: TargetingParamsProps) => ({
+export const generalTargetingParams = ({ section }: TargetingParamsProps) => ({
   pos: "listing",
   section: section || ["category-landing-page", "landing-page"],
   key: [
+    "Free Malaysia Today",
+    "Malaysia News",
+    "Latest Malaysia News",
+    "Breaking News Malaysia",
+    "Malaysia Politics News",
+    "gambling",
+    "religion",
+    "alcohol",
+    "lgbt",
+    "sex",
+    "drug abuse",
+    "get rich",
+    "match-making",
+    "dating",
+    "lottery",
+
     // News keywords
     "breaking-news",
     "current-affairs",
@@ -228,3 +244,20 @@ export const GeneralTargetingParams = ({ section }: TargetingParamsProps) => ({
   ],
 });
 
+export const gerneralTargetingKeys = [
+  "Free Malaysia Today",
+  "Malaysia News",
+  "Latest Malaysia News",
+  "Breaking News Malaysia",
+  "Malaysia Politics News",
+  "gambling",
+  "religion",
+  "alcohol",
+  "lgbt",
+  "sex",
+  "drug abuse",
+  "get rich",
+  "match-making",
+  "dating",
+  "lottery",
+];
