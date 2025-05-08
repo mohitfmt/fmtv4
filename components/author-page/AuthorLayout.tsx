@@ -4,6 +4,8 @@ import TTBNewsPreview from "../common/news-preview-cards/TTBNewsPreview";
 import AuthorPostsWithLoadMore from "./AuthorWithLoadMore";
 import Image from "next/image";
 import { Suspense } from "react";
+import AdSlot from "../common/AdSlot";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 
 interface Author {
   name: string;
@@ -41,6 +43,12 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
 
   const hasDescription = Boolean(author.description);
   const hasTopPosts = topPosts.length > 0;
+
+  const dfpTargetingParams = {
+    pos: "listing",
+    section: ["author"],
+    key: gerneralTargetingKeys,
+  };
 
   return (
     <>
@@ -122,6 +130,37 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
             </Suspense>
           </aside>
         </div>
+
+        {/* Pixel Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362827551-0"
+          name="Pixel"
+          targetingParams={dfpTargetingParams}
+          sizes={[1, 1]}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
+
+        {/* OutOfPage Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362765847-0"
+          name="OutOfPage"
+          sizes={[1, 1]}
+          outOfPage={true}
+          targetingParams={dfpTargetingParams}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
       </div>
     </>
   );

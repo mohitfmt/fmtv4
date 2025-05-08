@@ -2,10 +2,12 @@ import Meta from "@/components/common/Meta";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/common/AdSlot";
 import { ObfuscatedEmail } from "@/components/common/ObfuscatedContacts";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 
 const dfpTargetingParams = {
   pos: "listing",
   section: ["career page"],
+  key: ["career", ...gerneralTargetingKeys],
 };
 
 // Job listings data
@@ -152,6 +154,37 @@ const CareerPage = () => {
           ))}
         </div>
       </div>
+
+      {/* Pixel Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362827551-0"
+        name="Pixel"
+        targetingParams={dfpTargetingParams}
+        sizes={[1, 1]}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
+
+      {/* OutOfPage Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362765847-0"
+        name="OutOfPage"
+        sizes={[1, 1]}
+        outOfPage={true}
+        targetingParams={dfpTargetingParams}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
     </>
   );
 };

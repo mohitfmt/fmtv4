@@ -8,21 +8,22 @@ import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPreview";
 import { PostsResponse } from "@/types/global";
 import Meta from "@/components/common/Meta";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 
 interface AcceleratorPageProps {
   posts: PostsResponse["posts"];
 }
 
 const dfpTargetingParams = {
-  key: ["Accelerator"],
   section: ["Accelerator"],
   pos: "accelerator",
+  key: ["Accelerator", ...gerneralTargetingKeys],
 };
 
 // Constants for cache and revalidation times
 const CACHE_MAXAGE = 3600; // 1 hour
 const STALE_REVALIDATE = 60; // 1 minute
-const ISR_REVALIDATE = 30*24*60*60; // 30 days
+const ISR_REVALIDATE = 30 * 24 * 60 * 60; // 30 days
 const ERROR_REVALIDATE = 60; // 1 minute
 
 async function fetchAcceleratorData() {
@@ -228,6 +229,37 @@ const AcceleratorPage: React.FC<AcceleratorPageProps> = ({ posts }) => {
             videoid="y0-9U833K2k"
           />
         </div>
+
+        {/* Pixel Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362827551-0"
+          name="Pixel"
+          targetingParams={dfpTargetingParams}
+          sizes={[1, 1]}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
+
+        {/* OutOfPage Ad */}
+        <AdSlot
+          id="div-gpt-ad-1661362765847-0"
+          name="OutOfPage"
+          sizes={[1, 1]}
+          outOfPage={true}
+          targetingParams={dfpTargetingParams}
+          additionalStyle={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            backgroundColor: "var(--muted)",
+            height: 0,
+          }}
+        />
       </div>
     </>
   );

@@ -11,6 +11,7 @@ import { getPlaylist } from "@/lib/api";
 import { LatestVideosSidebar } from "@/components/videos/LatestVideosSideBar";
 import VideoDetailedContent from "@/components/videos/VideoDetailedContent";
 import siteConfig from "@/constants/site-config";
+import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 
 const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
   video,
@@ -27,8 +28,8 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
 
   const dfpTargetingParams = {
     pos: "listing",
-    section: ["videos page"],
-    key: tags,
+    section: ["video-summary page"],
+    key: [tags, ...gerneralTargetingKeys],
   };
   return (
     <>
@@ -148,6 +149,37 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
           <LatestVideosSidebar videos={videos} playlistId={playlistId} />
         </Suspense>
       </div>
+
+      {/* Pixel Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362827551-0"
+        name="Pixel"
+        targetingParams={dfpTargetingParams}
+        sizes={[1, 1]}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
+
+      {/* OutOfPage Ad */}
+      <AdSlot
+        id="div-gpt-ad-1661362765847-0"
+        name="OutOfPage"
+        sizes={[1, 1]}
+        outOfPage={true}
+        targetingParams={dfpTargetingParams}
+        additionalStyle={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--muted)",
+          height: 0,
+        }}
+      />
     </>
   );
 };
