@@ -40,7 +40,6 @@ const bitter = Bitter({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
   variable: "--font-bitter",
-  preload: true,
   display: "swap",
   fallback: ["system-ui", "arial"],
 });
@@ -49,7 +48,6 @@ const rhd = Red_Hat_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-rhd",
-  preload: true,
   display: "swap",
   fallback: ["system-ui", "arial"],
 });
@@ -58,7 +56,6 @@ const roboto = Roboto_Slab({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-roboto",
-  preload: true,
   display: "swap",
   fallback: ["system-ui", "arial"],
 });
@@ -162,6 +159,7 @@ export default function App({
         src="https://scripts.kiosked.com/loader/kiosked-loader.js"
         strategy="lazyOnload"
         async
+        defer
       />
       {/* Meta Pixel script using Next.js Script component */}
       <Script
@@ -181,6 +179,8 @@ export default function App({
       fbq('track', 'PageView');
     `,
         }}
+        defer
+        async
       />
 
       {/* NoScript fallback as a proper React component */}

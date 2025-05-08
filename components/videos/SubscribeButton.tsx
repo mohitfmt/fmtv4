@@ -13,7 +13,9 @@ const SubscribeButton = ({ channelId }: SubscribeButtonProps) => {
     if (typeof window === "undefined") return;
 
     const tryRender = () => {
-      const container = document.getElementById(`subscribe-container-${channelId}`);
+      const container = document.getElementById(
+        `subscribe-container-${channelId}`
+      );
       if (!container) return;
 
       try {
@@ -82,7 +84,7 @@ const SubscribeButton = ({ channelId }: SubscribeButtonProps) => {
 
     const handleRouteChange = () => renderYouTubeButton();
     window.addEventListener("popstate", handleRouteChange);
-    
+
     return () => {
       window.removeEventListener("popstate", handleRouteChange);
     };
@@ -107,6 +109,8 @@ const SubscribeButton = ({ channelId }: SubscribeButtonProps) => {
           console.error("YouTube script load error:", e);
           setIsScriptLoaded(false);
         }}
+        async
+        defer
       />
     </div>
   );

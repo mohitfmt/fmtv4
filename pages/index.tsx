@@ -194,10 +194,14 @@ export default function Home({
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
         type="application/ld+json"
+        async
+        defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
+        async
+        defer
       />
       <script
         dangerouslySetInnerHTML={{
@@ -218,6 +222,8 @@ export default function Home({
           ),
         }}
         type="application/ld+json"
+        async
+        defer
       />
 
       <TrendingNSubCategoriesList items={trendingTags} variant="trending" />

@@ -120,7 +120,7 @@ const NewsArticlePost = ({
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="keywords" content={keywords || safeTags.join(", ")} />
-       
+
         <link rel="canonical" href={`${siteConfig.baseUrl}${safeUri}`} />
 
         <meta property="og:type" content="article" />
@@ -138,6 +138,8 @@ const NewsArticlePost = ({
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
           type="application/ld+json"
+          async
+          defer
         />
       </Head>
       <ArticleJsonLD data={post} relatedData={relatedPosts} />
