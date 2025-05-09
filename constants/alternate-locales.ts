@@ -7,16 +7,25 @@ export const defaultAlternateLocale = [
   "en_IE",
   "en_IN",
   "en_SG",
-  "en_ZA",
+  "en_MY",
   "en_PH",
   "en_HK",
   "en_PK",
+  "en_BD",
+  "en_ZA",
+  "en_KE",
+  "en_NG",
+  "en_TH",
+  "en_VN",
+  "en_ID",
+  "en_JP",
 ];
 
 export const BeritaAlternateLocale = [
+  "ms_MY",
+  "ms_SG",
+  "ms_BN",
   "id_ID",
   "jv_ID",
   "su_ID",
-  "ms_BN",
-  "ms_SG",
 ];
