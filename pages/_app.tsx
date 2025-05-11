@@ -5,36 +5,36 @@ import type { AppProps } from "next/app";
 import { ThemeProvider } from "next-themes";
 import { Bitter, Red_Hat_Display, Roboto_Slab } from "next/font/google";
 import Layout from "@/components/Layout";
-// import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
+import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
-// import dynamic from "next/dynamic";
-import { useRef } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef } from "react";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
-// import Script from "next/script";
+import Script from "next/script";
 
-// const preloadGPTScript = () => {
-//   const link = document.createElement("link");
-//   link.rel = "preload";
-//   link.as = "script";
-//   link.href = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
-//   document.head.appendChild(link);
-// };
+const preloadGPTScript = () => {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "script";
+  link.href = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+  document.head.appendChild(link);
+};
 
-// const GPTProvider =
-//   process.env.NODE_ENV === "development"
-//     ? dynamic(
-//         () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
-//         {
-//           ssr: false,
-//           loading: () => null,
-//         }
-//       )
-//     : dynamic(() =>
-//         import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider)
-//       );
+const GPTProvider =
+  process.env.NODE_ENV === "development"
+    ? dynamic(
+        () => import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider),
+        {
+          ssr: false,
+          loading: () => null,
+        }
+      )
+    : dynamic(() =>
+        import("@/contexts/GPTProvider").then((mod) => mod.GPTProvider)
+      );
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -66,13 +66,13 @@ export default function App({
 }: AppProps) {
   const isAdInitialized = useRef(false);
 
-  // useEffect(() => {
-  //   if (!isAdInitialized.current) {
-  //     // Preload GPT script early but initialize later
-  //     preloadGPTScript();
-  //     isAdInitialized.current = true;
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (!isAdInitialized.current) {
+      // Preload GPT script early but initialize later
+      preloadGPTScript();
+      isAdInitialized.current = true;
+    }
+  }, []);
 
   const content = (
     <div
@@ -139,20 +139,60 @@ export default function App({
               system: "system",
             }}
           >
-            {/* <MultipurposeProvider> */}
-              {/* <GPTProvider
+            <MultipurposeProvider>
+              <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
                 bodyAdSlots={{}}
                 dfpTargetingParams={{}}
                 asPath="/"
-              > */}
+              >
                 {content}
-              {/* </GPTProvider> */}
-            {/* </MultipurposeProvider> */}
+              </GPTProvider>
+            </MultipurposeProvider>
           </ThemeProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
+
+      {/* Add Kiosked script here */}
+      <Script
+        src="https://scripts.kiosked.com/loader/kiosked-loader.js"
+        strategy="lazyOnload"
+        async
+        defer
+      />
+      {/* Meta Pixel script using Next.js Script component */}
+      <Script
+        id="meta-pixel-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1700117030393255');
+      fbq('track', 'PageView');
+    `,
+        }}
+        defer
+        async
+      />
+
+      {/* NoScript fallback as a proper React component */}
+      <noscript>
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src="https://www.facebook.com/tr?id=1700117030393255&ev=PageView&noscript=1"
+          alt=""
+        />
+      </noscript>
     </>
   );
 }
