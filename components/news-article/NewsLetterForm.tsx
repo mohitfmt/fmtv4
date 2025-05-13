@@ -43,9 +43,9 @@ const NewsletterForm = () => {
     <div className="flex flex-col justify-center gap-2 lg:flex-row lg:gap-8 my-16">
       <LogoSVG className="h-20 md:h-24" />
       <div>
-        <h3 className="text-center font-roboto text-lg lg:text-left">
+        <p className="text-center font-roboto text-lg lg:text-left">
           Subscribe to our newsletter and get news delivered to your mailbox.
-        </h3>
+        </p>
         <form
           className="flex gap-4 py-4 justify-center lg:justify-start"
           onSubmit={handleSubscribe}

@@ -65,7 +65,7 @@ const CategoryHeroPost = ({
 
         {/* Bottom - Excerpt */}
         <summary className="list-none font-bitter text-foreground mt-auto">
-          {parsedExcerpt}
+          <h2>{parsedExcerpt}</h2>
         </summary>
       </div>
     </div>

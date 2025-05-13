@@ -9,9 +9,9 @@ const FollowPlatforms = () => {
       aria-label="Social Media Follow Links"
     >
       <div className="my-2 flex flex-col items-center justify-center rounded-lg bg-blue-100  px-4 py-2.5">
-        <h3 className="text-center font-roboto text-sm text-black italic md:text-base">
+        <p className="text-center font-roboto text-sm text-black italic md:text-base">
           Stay current - Follow FMT on WhatsApp, Google news and Telegram
-        </h3>
+        </p>
         <div className="mt-4 flex w-full items-center justify-center gap-8 px-4 md:gap-12">
           <Link
             className="flex items-center justify-center gap-2 rounded-lg bg-[#25d366] px-5 py-3.5 text-white md:px-4 md:py-2"
@@ -25,9 +25,9 @@ const FollowPlatforms = () => {
               aria-hidden="true"
               role="img"
             />
-            <h4 className="hidden text-black font-heading font-bold md:flex">
+            <span className="hidden text-black font-heading font-bold md:flex">
               WhatsApp
-            </h4>
+            </span>
           </Link>
 
           <Link
@@ -42,9 +42,9 @@ const FollowPlatforms = () => {
               aria-hidden="true"
               role="img"
             />
-            <h4 className="hidden font-heading font-bold md:flex">
+            <span className="hidden font-heading font-bold md:flex">
               Google News
-            </h4>
+            </span>
           </Link>
 
           <Link
@@ -59,9 +59,9 @@ const FollowPlatforms = () => {
               aria-hidden="true"
               role="img"
             />
-            <h4 className="hidden font-heading font-bold md:flex text-black">
+            <span className="hidden font-heading font-bold md:flex text-black">
               Telegram
-            </h4>
+            </span>
           </Link>
         </div>
       </div>

@@ -46,7 +46,11 @@ export default function TagLayout({ title, posts, tagId }: TagLayoutProps) {
             className="w-full grid grid-cols-2 gap-4 sm:mt-4 md:grid-cols-4"
           >
             {topPosts.map(({ node }) => (
-              <TTBNewsPreview {...node} key={`${title}-${node.id}`} />
+              <TTBNewsPreview
+                {...node}
+                key={`${title}-${node.id}`}
+                isSpecialPage
+              />
             ))}
           </div>
 

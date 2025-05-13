@@ -22,9 +22,9 @@ const NewsAuthor = ({ author }: any) => {
         itemProp="url"
       >
         {/* <span className="mr-1">By:</span> */}
-        <h2 className="underline underline-offset-4" itemProp="name">
+        <span className="underline underline-offset-4" itemProp="name">
           {author?.node?.name}
-        </h2>
+        </span>
       </Link>
     </div>
   );

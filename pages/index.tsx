@@ -226,8 +226,8 @@ export default function Home({
         defer
       />
 
-      <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
       <main>
+        <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
         <section
           id="TopSection"
           className="my-4 grid grid-cols-1 gap-4 md:grid-cols-12"
