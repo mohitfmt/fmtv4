@@ -45,9 +45,9 @@ const JumpSlider: React.FC<JumpSliderProps> = ({ title, children }) => {
             >
               <VscChromeClose className="h-4 w-4" />
             </button>
-            <h4 className="flex-1 text-center text-xl font-extrabold text-foreground">
+            <h2 className="flex-1 text-center text-xl font-extrabold text-foreground">
               {title}
-            </h4>
+            </h2>
           </div>
           <div>{children}</div>
         </div>

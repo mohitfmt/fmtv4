@@ -61,9 +61,9 @@ const PrivacyPolicyPage = () => {
           or subscription to, or purchase of any products and/or services
           offered by FMT.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           1. Information Collected by Free Malaysia Today
-        </h3>
+        </h2>
         <p className="py-2">
           Our website servers do not automatically recognize specific
           information about individual users on our websites. In addition, our
@@ -86,9 +86,9 @@ const PrivacyPolicyPage = () => {
           purposes. It is not shared with other organizations for commercial
           purposes unless specifically stated herein.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           2. Purpose of Personal Data Collected
-        </h3>
+        </h2>
         <p className="py-2">
           Personal Data that you provide to us voluntarily on our websites and
           the other related channels may be processed for the following purposes
@@ -141,7 +141,7 @@ const PrivacyPolicyPage = () => {
           <li>Gender</li>
           <li>Identity card number or passport number</li>
         </ul>
-        <h3 className="mt-4 text-2xl font-extrabold">3. Use and Disclosure</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">3. Use and Disclosure</h2>
         <p className="py-2">
           We may disclose your Personal Data within FMT for the Purposes set
           forth hereinabove in accordance with the terms and conditions set out
@@ -168,9 +168,9 @@ const PrivacyPolicyPage = () => {
           process of constantly improving this Website, and the products and
           services offered by FMT.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           4. Impact of Non-Provision of Personal Data
-        </h3>
+        </h2>
         <p className="py-2">
           Please note that in the event that sufficient Personal Data is not
           supplied, or is not satisfactory to us, then your application or
@@ -179,9 +179,9 @@ const PrivacyPolicyPage = () => {
           the use of, or subscription to, or purchase of any products and/or
           services offered by FMT may be denied or affected.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           5. Storage and Retention of Personal Data
-        </h3>
+        </h2>
         <p className="py-2">
           Your Personal Data shall be stored either in hard copies in our
           offices or in servers located in Malaysia. It may be necessary to
@@ -199,9 +199,9 @@ const PrivacyPolicyPage = () => {
           Save and except as provided in paragraph (15) hereof, we do not offer
           any online facilities for you to delete your Personal Data held by us.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           6. How email and &apos;Contact Us&apos; Messages are being handeled
-        </h3>
+        </h2>
         <p className="py-2">
           We may preserve the content of any email or “Contact Us” or other
           electronic message that we receive.
@@ -215,9 +215,9 @@ const PrivacyPolicyPage = () => {
           employees for purposes including but not limited to compliance,
           auditing and maintenance or where email abuse is suspected.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           7. Communication or Utilisation Data
-        </h3>
+        </h2>
         <p className="py-2">
           Through your use of telecommunications services to access this Website
           and/or any other sites operated and/or managed by FMT, your
@@ -232,9 +232,9 @@ const PrivacyPolicyPage = () => {
           occur and will be performed in accordance with the applicable data
           privacy protection legal framework.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           8. Automatic Collection of Non-Personal Data
-        </h3>
+        </h2>
         <p className="py-2">
           When you access this Website and/or use of any product/services
           offered by FMT, we may automatically (i.e., not by registration)
@@ -271,9 +271,9 @@ const PrivacyPolicyPage = () => {
             be transmitted to us when you use certain Services.
           </li>
         </ul>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           9. Online Tracking and Advertising
-        </h3>
+        </h2>
         <p className="py-2">
           How We Use Cookies, Web Beacons, and Similar Technologies and How to
           Disable These Technologies
@@ -355,7 +355,7 @@ const PrivacyPolicyPage = () => {
             marketplace.
           </li>
         </ul>
-        <h3 className="mt-4 text-2xl font-extrabold">10. Public Forums</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">10. Public Forums</h2>
         <p className="py-2">
           This Website makes information sharing, feedback, forums, and/or
           message boards available to its users. Please remember that any
@@ -364,7 +364,7 @@ const PrivacyPolicyPage = () => {
           your Personal Data. We request that users treat each other with
           courtesy and mutual respect.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">11. Job Applicants</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">11. Job Applicants</h2>
         <p className="py-2">
           Personal Data provided in connection with an application for
           employment will be used to determine your suitability for a position
@@ -378,7 +378,7 @@ const PrivacyPolicyPage = () => {
           Unsuccessful applications may be retained to match your skills to
           future job opportunities.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">12. Confidentiality</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">12. Confidentiality</h2>
         <p className="py-2">
           Personal Data held by us will be kept confidential in accordance with
           this Privacy Policy pursuant to any applicable law that may from time
@@ -395,7 +395,7 @@ const PrivacyPolicyPage = () => {
           broadcast and/or post elsewhere such information freely without
           further reference to you.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">13. Security</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">13. Security</h2>
         <p className="py-2">
           For the internet, unfortunately, no data transmission over the
           internet can be guaranteed as completely secure. While we strive to
@@ -410,7 +410,7 @@ const PrivacyPolicyPage = () => {
           of this Website. For your own protection, we require you to keep these
           confidential and to change your password regularly (if required).
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">14. Links</h3>
+        <h2 className="mt-4 text-2xl font-extrabold">14. Links</h2>
         <p className="py-2">
           This Website contains links to other sites. We are not responsible for
           the privacy practices or the content of such sites. We have
@@ -423,9 +423,9 @@ const PrivacyPolicyPage = () => {
           other than the Website may then opt out of completing the
           registration.
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           15. Right of Access to Personal Data
-        </h3>
+        </h2>
         <p className="py-2">
           Under the Act, you have the right of access to your Personal Data held
           by us on payment of a prescribed fee and to request correction of the
@@ -444,13 +444,16 @@ const PrivacyPolicyPage = () => {
         <p className="py-2">Selangor, Malaysia.</p>
         <p className="py-2">
           Or email:{" "}
-          <a href="mailto:editor@freemalaysiatoday.com">
+          <a
+            className="text-accent-blue"
+            href="mailto:editor@freemalaysiatoday.com"
+          >
             editor@freemalaysiatoday.com
           </a>
         </p>
-        <h3 className="mt-4 text-2xl font-extrabold">
+        <h2 className="mt-4 text-2xl font-extrabold">
           16. Changes to Privacy Policy
-        </h3>
+        </h2>
         <p className="py-2">
           We reserve the right to amend this Privacy Policy from time to time
           without prior notice. Any changes to the Privacy Policy will be

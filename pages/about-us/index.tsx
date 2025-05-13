@@ -37,7 +37,7 @@ const PARSER_OPTIONS = {
         ol: "list-decimal pl-6 mb-4 space-y-2",
         li: "mb-1",
         hr: "mt-4 bg-gray-200 border-1",
-        a: "text-blue-600 hover:underline dark:text-blue-400 disable",
+        a: "text-blue-600 hover:underline disable",
         section: "mb-8",
         div: "mb-8",
       };

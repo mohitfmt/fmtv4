@@ -41,10 +41,13 @@ const SearchCard = ({
                   {preferredCategory?.node?.name.toUpperCase()}
                 </span>
               )}
-              <span className="text-sm font-bitter text-stone-700 dark:text-stone-300">
+              <time
+                dateTime={date}
+                className="text-sm font-bitter text-stone-700 dark:text-stone-300"
+              >
                 {/* <PublishingDateTime dateString={date} size={16} /> */}
                 {formattedDisplayDate(date)}
-              </span>
+              </time>
             </header>
 
             <Link href={uri} title={title}>

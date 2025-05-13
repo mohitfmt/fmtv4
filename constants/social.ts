@@ -13,7 +13,7 @@ import { SiX, SiGooglenews } from "react-icons/si";
 export const social = [
   {
     name: "Facebook",
-    url: "https://www.facebook.com/profile.php?id=100064467980422",
+    url: "https://www.facebook.com/freemalaysiatoday/",
     icon: FaFacebookF,
     color: "#1877F2",
     size: 18,

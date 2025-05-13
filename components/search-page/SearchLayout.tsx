@@ -45,9 +45,9 @@ export default function SearchLayout() {
         />
       </div> */}
 
-      <section className="flex flex-col gap-10 lg:flex-row mt-6">
+      <section className="flex flex-col gap-10 lg:flex-row my-6">
         <main className="lg:w-2/3">
-          <SectionHeading sectionName="Search Results" />
+          <SectionHeading sectionName="Search Results" specialPage />
           <SearchForm />
           <SearchWithLoadMore term={term} category={category} />
         </main>

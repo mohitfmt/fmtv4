@@ -60,7 +60,7 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
             aria-labelledby="author-details"
           >
             {/* Author Header */}
-            <header
+            <div
               className="flex items-center gap-4"
               aria-label="author-information"
             >
@@ -91,7 +91,7 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
                   </p>
                 )}
               </div>
-            </header>
+            </div>
 
             {/* Top Posts Grid */}
             {hasTopPosts && (
@@ -102,7 +102,11 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
                 >
                   <Suspense fallback={<div>Loading recent posts...</div>}>
                     {topPosts.map(({ node }) => (
-                      <div key={`${author.name}-${node.id}`} role="listitem">
+                      <div
+                        key={`${author.name}-${node.id}`}
+                        className="grid"
+                        role="listitem"
+                      >
                         <TTBNewsPreview {...node} />
                       </div>
                     ))}

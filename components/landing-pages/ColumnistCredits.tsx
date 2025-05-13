@@ -98,9 +98,9 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
             className="border-accent-yellow my-10 h-60 w-60 rounded-full border-4 lg:my-4"
           />
           <div className="pointer-events-none  absolute inset-0 flex items-center justify-center">
-            <h2 className="z-10 max-w-[75%] text-center  text-2xl font-semibold tracking-wider">
+            <h3 className="z-10 max-w-[75%] text-center  text-2xl font-semibold tracking-wider">
               {columnists[currentIndex]?.name}
-            </h2>
+            </h3>
           </div>
         </Link>
         <p className="font-bitter mt-[40px] sm:mt-[170px] text-lg font-extralight">

@@ -173,7 +173,7 @@ const ShareComponents: React.FC<ShareComponentsProps> = ({
               aria-label={getShareText(name)}
             >
               <Icon size={32} round />
-              <span>{name}</span>
+              <h4>{name}</h4>
             </Button>
           </DropdownMenuItem>
         ))}

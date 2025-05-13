@@ -73,10 +73,10 @@ const ChannelInfoSection = ({ info }: { info: any }) => {
 
       {/* Only show subscriber count if we have live data */}
       {isLive && info.statistics && (
-        <p className="text-xs md:text-sm font-medium">
+        <h3 className="text-xs md:text-sm font-medium">
           {Math.floor(parseInt(info.statistics.subscriberCount) / 1000)}K
           Subscribers
-        </p>
+        </h3>
       )}
 
       <p className="mx-auto max-w-2xl text-center text-xs md:text-sm font-medium line-clamp-3">

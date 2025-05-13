@@ -29,30 +29,27 @@ const LTRNewsPreview = ({
             />
           )}
         </figure>
-        <div className="flex-1">
-          <h2 className="text-sm text-accent-category flex gap-2 items-center justify-between">
+        <div className="flex-1 font-bitter">
+          <div className="text-sm text-accent-category flex gap-2 items-center justify-between">
             {preferredCategory && (
-              <span
-                key={preferredCategory?.node?.id}
-                className="tracking-wide font-robotoSlab"
-              >
+              <span key={preferredCategory?.node?.id} className="tracking-wide">
                 {preferredCategory?.node?.name.toUpperCase()}
               </span>
             )}
             <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
               <PublishingDateTime dateString={date} size={16} />
             </span>
-          </h2>
+          </div>
           <Link href={uri} title={title}>
-            <h1 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+            <h2 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
               {title}
-            </h1>
+            </h2>
           </Link>
         </div>
       </div>
 
       <div className="flex justify-between items-center mt-1 mb-3">
-        <footer
+        <p
           className="text-gray-600 dark:text-stone-200 transition-all duration-150 hover:text-gray-900 leading-tight line-clamp-2"
           title={plainTextExcerpt}
           dangerouslySetInnerHTML={{ __html: excerpt || "" }}

@@ -122,13 +122,13 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
 
         {/* Content with improved spacing */}
         <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-5">
-          <h3
+          <h2
             className="text-pretty text-2xl md:text-4xl font-extrabold font-bitter mb-3 text-white"
             style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
             title={title}
           >
             {title}
-          </h3>
+          </h2>
           <p
             className="line-clamp-2 mb-3 text-gray-100"
             style={{ textShadow: "1px 1px 2px rgba(0, 0, 0, 0.5)" }}
