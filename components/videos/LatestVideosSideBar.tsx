@@ -51,9 +51,9 @@ export const LatestVideosSidebar: React.FC<RelatedVideosSidebarProps> = ({
               </div>
 
               <div className="w-3/4">
-                <h1 className="text-sm font-semibold line-clamp-2 hover:text-accent-blue">
+                <h2 className="text-sm font-semibold line-clamp-2 hover:text-accent-blue">
                   {node?.title || "Untitled video"}
-                </h1>
+                </h2>
 
                 {date && (
                   <FullDateDisplay

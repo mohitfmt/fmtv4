@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { PostCardProps } from "@/types/global";
-import { Button } from "@/components/ui/button";
 import SearchLoadingSkeleton from "../skeletons/SearchSkeleton";
 import LargeImageNewsPreview from "./SearchCard";
+import LoadMoreButton from "../common/LoadMoreButton";
 
 interface SearchWithLoadMoreProps {
   term?: string | string[];
@@ -136,8 +136,12 @@ const SearchWithLoadMore = ({ term, category }: SearchWithLoadMoreProps) => {
 
       {/* Only show "View More" when there's more content and not loading */}
       {hasMore && !loading && !initialLoad && posts.length > 0 && (
-        <div className="flex justify-center py-4">
-          <Button onClick={loadMore}>View More</Button>
+        <div className="flex justify-center mt-8">
+          <LoadMoreButton
+            text="View More"
+            isLoading={loading}
+            onClick={loadMore}
+          />
         </div>
       )}
     </>

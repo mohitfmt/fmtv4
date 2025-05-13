@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { formattedDisplayDate } from "../common/display-date-formats/DateFormates";
+import { parseISO } from "date-fns";
 
 interface VideoCardProps {
   node: {
@@ -68,9 +69,9 @@ const VideoCard = ({ node }: VideoCardProps) => {
             <span>•</span>
             <span>{formatStats(statistics.commentCount)} Comments</span>
           </div>
-          <div>
+          <time dateTime={parseISO(node.dateGmt).toISOString()}>
             {formattedDisplayDate(node?.dateGmt)}
-          </div>
+          </time>
         </div>
       </div>
     </div>

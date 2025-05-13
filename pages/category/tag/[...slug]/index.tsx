@@ -107,6 +107,7 @@ export default function TagPage({ tag, posts }: TagPageProps) {
       },
     ],
   };
+  
   return (
     <>
       <Head>

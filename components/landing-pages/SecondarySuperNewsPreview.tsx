@@ -27,14 +27,14 @@ const SecondarySuperNewsPreview = ({
         )}
         <div className="absolute w-full bottom-0 bg-gradient-to-b from-transparent via-40% via-black/60 to-black/95 text-white px-2 lg:px-5 flex flex-col rounded-lg">
           <Link href={uri}>
-            <h3
+            <h2
               className="text-2xl md:text-4xl font-extrabold font-bitter my-2 text-left"
               style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
               title={title}
             >
               {title}
-            </h3>
-            <div
+            </h2>
+            <p
               className="my-2 font-thin hidden lg:block"
               title={updatedExcerpt}
               dangerouslySetInnerHTML={{ __html: excerpt }}

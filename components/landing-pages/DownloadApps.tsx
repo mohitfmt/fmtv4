@@ -12,9 +12,9 @@ const DownloadApp = () => {
 
       <div className="relative flex gap-2 rounded-lg bg-stone-100 dark:bg-stone-500 dark:text-white p-4">
         <div>
-          <h2 className="text-center font-heading text-lg font-bold">
+          <h3 className="text-center font-heading text-lg font-bold">
             Stay up to date with FMT News anywhere
-          </h2>
+          </h3>
           <div className="flex items-center gap-2">
             <div className="relative h-12 w-1/2 transition-transform hover:scale-95">
               <Link

@@ -74,9 +74,9 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
               </h3>
 
               {renderDescription && (
-                <div className="mt-2 text-center text-sm font-bitter font-medium italic line-clamp-3">
+                <p className="mt-2 text-center text-sm font-bitter font-medium italic line-clamp-3">
                   {renderDescription(post)}
-                </div>
+                </p>
               )}
             </CarouselItem>
           );

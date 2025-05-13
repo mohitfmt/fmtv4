@@ -33,7 +33,7 @@ export const OrgJsonLD = {
   },
   isAccessibleForFree: true,
   sameAs: [
-    "https://www.facebook.com/profile.php?id=100064467980422",
+    "https://www.facebook.com/freemalaysiatoday/",
     "https://www.instagram.com/freemalaysiatoday",
     "https://x.com/fmtoday",
     "https://t.me/FreeMalaysiaToday",

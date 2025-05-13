@@ -74,23 +74,23 @@ const MoreStories: React.FC<MoreStoriesProps> = ({ moreStories }) => {
               </div>
 
               <div className="col-span-8">
-                <h2 className="text-xs text-accent-category flex gap-2 items-center justify-between">
+                <div className="text-xs text-accent-category flex gap-2 items-center justify-between">
                   {preferredCategory && (
-                    <span
+                    <h3
                       key={preferredCategory.node.id}
                       className="tracking-wider"
                     >
                       {preferredCategory.node.name.toUpperCase()}
-                    </span>
+                    </h3>
                   )}
                   <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
                     <PublishingDateTime dateString={node.date} size={16} />
                   </span>
-                </h2>
+                </div>
                 <Link href={node.uri} prefetch={false} className="block">
-                  <h3 className="mb-2 font-semibold hover:text-accent-blue">
+                  <h2 className="mb-2 font-semibold hover:text-accent-blue">
                     {node.title}
-                  </h3>
+                  </h2>
                 </Link>
               </div>
             </div>

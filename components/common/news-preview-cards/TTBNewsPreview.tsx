@@ -38,8 +38,8 @@ const TTBNewsPreview = ({
         )}
       </figure>
 
-      <Link href={uri} title={updatedExcerpt} className="my-2 text-sm">
-        <h2 className="text-accent-category flex gap-2 items-center justify-between">
+      <Link href={uri} title={updatedExcerpt} className="my-2 text-sm font-bitter">
+        <div className="text-accent-category flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span key={preferredCategory?.node?.id} className="tracking-wider">
               {preferredCategory?.node?.name.toUpperCase()}
@@ -48,10 +48,10 @@ const TTBNewsPreview = ({
           <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
             <PublishingDateTime dateString={date} />
           </span>
-        </h2>
-        <h1 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+        </div>
+        <h2 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
           {title}
-        </h1>
+        </h2>
       </Link>
     </article>
   );

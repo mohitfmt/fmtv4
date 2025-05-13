@@ -58,11 +58,11 @@ const VideoDetailedContent: React.FC<VideoContentProps> = ({
           </div>
         </div>
 
-        <div className="overflow-hidden text-wrap py-8 font-roboto">
+        <p className="overflow-hidden text-wrap py-8 font-roboto">
           <Linkify options={{ nl2br: true, rel: "nofollow", target: "_blank" }}>
             {video?.node?.excerpt || ""}
           </Linkify>
-        </div>
+        </p>
       </div>
     </main>
   );
