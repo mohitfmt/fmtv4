@@ -107,7 +107,7 @@ export default function AuthorLayout({ author, posts }: AuthorLayoutProps) {
                         className="grid"
                         role="listitem"
                       >
-                        <TTBNewsPreview {...node} />
+                        <TTBNewsPreview {...node} isSpecialPage />
                       </div>
                     ))}
                   </Suspense>

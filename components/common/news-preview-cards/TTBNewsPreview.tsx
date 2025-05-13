@@ -13,6 +13,7 @@ const TTBNewsPreview = ({
   categories,
   uri,
   isBig = false,
+  isSpecialPage = false,
 }: any) => {
   const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
   const preferredCategory = getPreferredCategory(categories?.edges);
@@ -38,7 +39,11 @@ const TTBNewsPreview = ({
         )}
       </figure>
 
-      <Link href={uri} title={updatedExcerpt} className="my-2 text-sm font-bitter">
+      <Link
+        href={uri}
+        title={updatedExcerpt}
+        className="my-2 text-sm font-bitter"
+      >
         <div className="text-accent-category flex gap-2 items-center justify-between">
           {preferredCategory && (
             <span key={preferredCategory?.node?.id} className="tracking-wider">
@@ -49,9 +54,16 @@ const TTBNewsPreview = ({
             <PublishingDateTime dateString={date} />
           </span>
         </div>
-        <h2 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
-          {title}
-        </h2>
+
+        {isSpecialPage ? (
+          <h2 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+            {title}
+          </h2>
+        ) : (
+          <h3 className="text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+            {title}
+          </h3>
+        )}
       </Link>
     </article>
   );

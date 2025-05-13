@@ -41,9 +41,9 @@ const LTRNewsPreview = ({
             </span>
           </div>
           <Link href={uri} title={title}>
-            <h2 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+            <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
               {title}
-            </h2>
+            </h3>
           </Link>
         </div>
       </div>

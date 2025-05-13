@@ -116,7 +116,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
               href={columnists[currentIndex]?.posts.nodes[0]?.uri}
               className="font-bitter text-pretty text-lg font-normal text-yellow-500 dark:text-yellow-300"
             >
-              {columnists[currentIndex]?.posts.nodes[0]?.title}
+              <p>{columnists[currentIndex]?.posts.nodes[0]?.title}</p>
             </Link>
           </div>
         )}

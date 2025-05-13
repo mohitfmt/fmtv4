@@ -23,7 +23,6 @@ const TrendingNSubCategoriesList = ({
   variant,
   className = "",
 }: SubcategoryListProps) => {
-
   const getIcon = () => {
     switch (variant) {
       case "trending":
@@ -66,7 +65,7 @@ const TrendingNSubCategoriesList = ({
             className="px-2.5 py-1 font-semibold rounded-lg font-rhd text-xs uppercase tracking-widest border-[0.5px] border-stone-400 hover:bg-accent-yellow dark:hover:bg-accent-blue transition-colors ease-in-out"
           >
             <Link href={item.uri || item.href || "#"}>
-              {item.title || item.name}
+              <h4>{item.title || item.name}</h4>
             </Link>
           </li>
         ))}

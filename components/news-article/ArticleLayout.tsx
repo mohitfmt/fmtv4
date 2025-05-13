@@ -90,7 +90,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
         <div className="overflow-x-hidden flex flex-col my-5 gap-10 lg:flex-row">
           <main className="lg:w-2/3">
             <header>
-              <p
+              <h1
                 className="sr-only"
                 itemProp="headline"
                 dangerouslySetInnerHTML={{ __html: safeTitle }}
