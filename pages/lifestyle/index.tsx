@@ -158,7 +158,7 @@ export const getStaticProps: GetStaticProps = async () => {
         subCategoryPosts: [],
         error: "Failed to load content",
       },
-      revalidate: 10,
+      revalidate: 110,
     };
   }
 };

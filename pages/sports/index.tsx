@@ -125,7 +125,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
         error: "Failed to load content",
       },
-      revalidate: 10,
+      revalidate: 110,
     };
   }
 };

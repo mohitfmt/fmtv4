@@ -542,7 +542,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     console.error("[HomePage] Error fetching data:", error);
     return {
       notFound: true,
-      revalidate: 10, // Try again sooner if there was an error
+      revalidate: 110, // Try again sooner if there was an error
     };
   }
 };

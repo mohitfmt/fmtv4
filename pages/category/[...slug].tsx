@@ -359,7 +359,7 @@ export const getStaticProps: GetStaticProps = async ({
       props: {
         params,
         preview,
-        post: data.post,
+        post: data?.post,
         posts:
           data?.posts?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
           [],
@@ -374,7 +374,10 @@ export const getStaticProps: GetStaticProps = async ({
     };
   } catch (error) {
     console.error("Error in getStaticProps:", error);
-    return { notFound: true };
+    return {
+      revalidate: 110,
+      notFound: true,
+    };
   }
 };
 export default NewsArticlePost;
