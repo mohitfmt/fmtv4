@@ -87,7 +87,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
   return (
     <>
       <Head>
-        <title>{`${author?.name} | Free Malaysia Today (FMT)`}</title>
+        <title>{`${author?.name ?? "Author"} | Free Malaysia Today (FMT)`}</title>
         <meta name="description" content={description} />
         <meta
           name="keywords"
@@ -114,7 +114,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
         />
         <meta
           property="og:title"
-          content={`${author?.name} | Free Malaysia Today (FMT)`}
+          content={`${author?.name ?? "Author"} | Free Malaysia Today (FMT)`}
         />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="profile" />
@@ -144,13 +144,13 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           async
-          defer
+          // defer
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
           type="application/ld+json"
           async
-          defer
+          // defer
         />
       </Head>
 

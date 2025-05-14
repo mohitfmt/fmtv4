@@ -94,19 +94,19 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(OrgJsonLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(websiteJSONLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(videoArticles) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
 
       {/* Top Desktop Ad */}

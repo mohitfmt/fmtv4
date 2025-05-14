@@ -147,7 +147,7 @@ export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{
@@ -155,7 +155,7 @@ export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
         }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
     </section>
   );

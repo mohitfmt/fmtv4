@@ -195,13 +195,13 @@ export default function Home({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{
@@ -223,7 +223,7 @@ export default function Home({
         }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
 
       <main>

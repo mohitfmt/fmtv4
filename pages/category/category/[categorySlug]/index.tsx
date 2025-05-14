@@ -64,7 +64,7 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   const fullPathName = `/category/category/${categorySlug}`;
 
   const metadataConfig = {
-    title: `${seoData?.metaTitle} | Free Malaysia Today (FMT)` || `FMT`,
+    title: `${seoData?.metaTitle ?? pathName?.replace(/\b\w/g, (c) => c.toUpperCase())} | Free Malaysia Today (FMT)`,
     description: seoData?.description,
     keywords: seoData?.keywords,
     category: categorySlug,

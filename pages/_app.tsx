@@ -179,7 +179,7 @@ export default function App({
       fbq('track', 'PageView');
     `,
         }}
-        defer
+        // defer
         async
       />
 

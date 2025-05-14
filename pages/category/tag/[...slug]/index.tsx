@@ -107,11 +107,11 @@ export default function TagPage({ tag, posts }: TagPageProps) {
       },
     ],
   };
-  
+
   return (
     <>
       <Head>
-        <title>{`${tag.name} News (${tag.count}+ Articles) | Free Malaysia Today`}</title>
+        <title>{`${tag.name.replace(/\b\w/g, (c) => c.toUpperCase())} News (${tag.count}+ Articles) | Free Malaysia Today`}</title>
         <meta name="description" content={description} />
         <meta
           name="keywords"

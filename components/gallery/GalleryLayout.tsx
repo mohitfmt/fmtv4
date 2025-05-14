@@ -84,12 +84,12 @@ const GalleryLayout: React.FC<GalleryLayoutProps> = ({
               <div className="flex justify-between items-center my-1">
                 <div>
                   {post.date && (
-                    <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+                    <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
                       <FullDateDisplay
                         dateString={post.date}
                         tooltipPosition="right"
                       />
-                    </span>
+                    </div>
                   )}
                   {post.author && <NewsAuthor author={post.author} />}
                 </div>
