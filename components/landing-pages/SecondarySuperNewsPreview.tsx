@@ -44,9 +44,9 @@ const SecondarySuperNewsPreview = ({
       </article>
       <div className="flex w-full text-md justify-between items-center lg:px-2 -mt-4 lg:-mt-8">
         <NewsAuthor author={author} />
-        <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+        <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
           <FullDateDisplay dateString={date} />
-        </span>
+        </div>
       </div>
     </>
   );

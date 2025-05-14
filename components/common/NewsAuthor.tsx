@@ -12,9 +12,9 @@ const NewsAuthor = ({ author }: any) => {
   return (
     <div
       className="tracking-wide font-rhd text-stone-700 dark:text-stone-300"
+      itemScope
       itemProp="author"
       itemType="https://schema.org/Person"
-      itemScope
     >
       <Link
         href={`${siteConfig.baseUrl}/category/author/${author?.node?.slug}`}

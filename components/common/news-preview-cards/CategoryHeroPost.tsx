@@ -51,9 +51,9 @@ const CategoryHeroPost = ({
               {preferredCategory?.node?.name.toUpperCase()}
             </span>
           )}
-          <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+          <div className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
             <PublishingDateTime dateString={post?.date} size={16} />
-          </span>
+          </div>
         </div>
 
         {/* Middle - Title */}

@@ -36,9 +36,9 @@ const LTRNewsPreview = ({
                 {preferredCategory?.node?.name.toUpperCase()}
               </span>
             )}
-            <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+            <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
               <PublishingDateTime dateString={date} size={16} />
-            </span>
+            </div>
           </div>
           <Link href={uri} title={title}>
             <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">

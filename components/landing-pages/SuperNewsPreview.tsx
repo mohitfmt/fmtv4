@@ -29,9 +29,9 @@ const SuperNewsPreview = ({
       </header>
       <div className="flex justify-between items-center my-2 text-md">
         <NewsAuthor author={author} />
-        <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+        <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
           <PublishingDateTime dateString={date} />
-        </span>
+        </div>
       </div>
       <Link href={uri}>
         <h1

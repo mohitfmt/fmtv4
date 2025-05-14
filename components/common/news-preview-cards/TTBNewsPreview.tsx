@@ -50,9 +50,9 @@ const TTBNewsPreview = ({
               {preferredCategory?.node?.name.toUpperCase()}
             </span>
           )}
-          <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+          <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
             <PublishingDateTime dateString={date} />
-          </span>
+          </div>
         </div>
 
         {isSpecialPage ? (

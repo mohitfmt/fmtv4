@@ -83,9 +83,9 @@ const MoreStories: React.FC<MoreStoriesProps> = ({ moreStories }) => {
                       {preferredCategory.node.name.toUpperCase()}
                     </span>
                   )}
-                  <span className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+                  <div className="text-sm font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
                     <PublishingDateTime dateString={node.date} size={16} />
-                  </span>
+                  </div>
                 </div>
                 <Link href={node.uri} prefetch={false} className="block">
                   <h3 className="mb-2 font-semibold hover:text-accent-blue">

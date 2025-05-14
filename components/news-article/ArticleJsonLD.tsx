@@ -283,7 +283,7 @@ const ArticleJsonLD = ({
           id="video-json-ld"
           type="application/ld+json"
           async
-          defer
+          // defer
         />
       )}
       <script
@@ -293,26 +293,26 @@ const ArticleJsonLD = ({
         id="article-json-ld"
         type="application/ld+json"
         async
-        defer
+        // defer
       />
 
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(relatedNewsJsonLd) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
         async
-        defer
+        // defer
       />
     </>
   );

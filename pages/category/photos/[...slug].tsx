@@ -139,7 +139,7 @@ const NewsArticlePost = ({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
           type="application/ld+json"
           async
-          defer
+          // defer
         />
       </Head>
       <ArticleJsonLD data={post} relatedData={relatedPosts} />

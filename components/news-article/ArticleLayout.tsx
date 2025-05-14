@@ -105,12 +105,12 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                         dateTime={post?.dateGmt + "Z" || post?.date}
                       />
 
-                      <span className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
+                      <div className="font-bitter font-semibold text-stone-700 dark:text-stone-300 tracking-wider">
                         <FullDateDisplay
                           dateString={post.date}
                           tooltipPosition="right"
                         />
-                      </span>
+                      </div>
                     </>
                   )}
                   {post.author && (
