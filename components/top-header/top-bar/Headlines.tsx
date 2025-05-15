@@ -38,11 +38,10 @@ const Headlines = () => {
     mutate,
   } = useSWR<Post[]>("/api/top-news", fetcher, {
     fallbackData: [],
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-    revalidateIfStale: true,
-    refreshInterval: 60000,
-    dedupingInterval: 30000, // Prevent duplicate requests
+    refreshInterval: 0, // Set to 0 to disable automatic revalidation
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
   });
 
   // Memoized category name function

@@ -11,6 +11,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /_next/static/
 Disallow: /_next/chunks/
+Disallow: /_next/data/
 Disallow: /static/js/
 Disallow: /static/css/
 Disallow: /?*
@@ -30,6 +31,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /_next/static/
 Disallow: /_next/chunks/
+Disallow: /_next/data/
 Disallow: /static/js/
 Disallow: /static/css/
 Disallow: /?*
@@ -50,6 +52,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /_next/static/
 Disallow: /_next/chunks/
+Disallow: /_next/data/
 Disallow: /static/js/
 Disallow: /static/css/
 Disallow: /?*
@@ -70,6 +73,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /_next/static/
 Disallow: /_next/chunks/
+Disallow: /_next/data/
 Disallow: /static/js/
 Disallow: /static/css/
 Disallow: /?*
@@ -90,6 +94,7 @@ Disallow: /_next/image/
 Disallow: /_next/static/media/
 Disallow: /_next/static/
 Disallow: /_next/chunks/
+Disallow: /_next/data/
 Disallow: /static/js/
 Disallow: /static/css/
 Disallow: /?*
