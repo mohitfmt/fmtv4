@@ -5,7 +5,7 @@ import { ThemeToggle } from "../top-bar/ThemeToggle";
 import { SocialIcons } from "../top-bar/SocialIcons";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+// import { useAuth } from "@/contexts/AuthContext";
 import UserAuthControl from "../top-bar/UserAuthControl";
 
 interface NavItem {
@@ -27,7 +27,7 @@ const MobileNavbar = ({ navigation }: Props) => {
     [key: number]: boolean;
   }>({});
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -90,9 +90,9 @@ const MobileNavbar = ({ navigation }: Props) => {
             {/* Authentication Section */}
             <div className="ml-3 flex gap-2 capitalize items-center">
               <UserAuthControl />
-              <span className="text-sm">
+              {/* <span className="text-sm">
                 {isAuthenticated ? "Sign Out" : "Sign In"}
-              </span>
+              </span> */}
             </div>
           </div>
 
