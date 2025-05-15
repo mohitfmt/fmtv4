@@ -5,10 +5,17 @@ Disallow: /wp-includes/
 Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /*/api/
+Disallow: /*.api$
 Disallow: /_next/image/
 Disallow: /_next/static/media/
-Disallow: /*/api/
+Disallow: /_next/static/
+Disallow: /_next/chunks/
+Disallow: /static/js/
+Disallow: /static/css/
 Disallow: /?*
+Disallow: /*.json$
+Disallow: /*/*.json*
 
 User-agent: Googlebot
 Allow: /
@@ -17,10 +24,18 @@ Disallow: /wp-includes/
 Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /*/api/
+Disallow: /*.api$
 Disallow: /_next/image/
 Disallow: /_next/static/media/
-Disallow: /*/api/
+Disallow: /_next/static/
+Disallow: /_next/chunks/
+Disallow: /static/js/
+Disallow: /static/css/
 Disallow: /?*
+Disallow: /*.json$
+Disallow: /*/*.json*
+
 
 User-agent: Googlebot-News
 Allow: /
@@ -29,12 +44,18 @@ Disallow: /wp-includes/
 Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /*/api/
+Disallow: /*.api$
 Disallow: /_next/image/
 Disallow: /_next/static/media/
-Disallow: /*/api/
+Disallow: /_next/static/
+Disallow: /_next/chunks/
+Disallow: /static/js/
+Disallow: /static/css/
 Disallow: /?*
-Disallow: /*/202[0-4]/*
-Disallow: /*/201[0-9]/*
+Disallow: /*.json$
+Disallow: /*/*.json*
+
 
 User-agent: Google-Extended
 Allow: /
@@ -43,10 +64,18 @@ Disallow: /wp-includes/
 Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /*/api/
+Disallow: /*.api$
 Disallow: /_next/image/
 Disallow: /_next/static/media/
-Disallow: /*/api/
+Disallow: /_next/static/
+Disallow: /_next/chunks/
+Disallow: /static/js/
+Disallow: /static/css/
 Disallow: /?*
+Disallow: /*.json$
+Disallow: /*/*.json*
+
 
 User-agent: GoogleOther
 Allow: /
@@ -55,21 +84,27 @@ Disallow: /wp-includes/
 Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /*/api/
+Disallow: /*.api$
 Disallow: /_next/image/
 Disallow: /_next/static/media/
-Disallow: /*/api/
+Disallow: /_next/static/
+Disallow: /_next/chunks/
+Disallow: /static/js/
+Disallow: /static/css/
 Disallow: /?*
+Disallow: /*.json$
+Disallow: /*/*.json*
+
 
 User-agent: FeedFetcher-Google
-Allow: /feeds/
-Allow: /feed/
-Allow: /websub/
+Allow: /*/feeds/
+Allow: /*/feed/
 Disallow: /
 
 User-agent: GoogleProducer
-Allow: /feeds/
-Allow: /feed/
-Allow: /websub/
+Allow: /*/feeds/
+Allow: /*/feed/
 Disallow: /
 
 User-agent: Google-Read-Aloud
