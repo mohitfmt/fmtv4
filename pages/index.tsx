@@ -11,7 +11,6 @@ import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { getColumnists } from "@/lib/gql-queries/get-columnists";
 import { generateCollectionPageJsonLD } from "@/lib/utils";
-import { PrismaClient } from "@prisma/client";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -24,9 +23,8 @@ import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
 import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
-// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
 const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
 const dfpTargetingParams = {
   pos: "listing",
