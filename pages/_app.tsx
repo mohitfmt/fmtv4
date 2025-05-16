@@ -1,13 +1,11 @@
-"use client";
-
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { ThemeProvider } from "next-themes";
 import { Bitter, Red_Hat_Display, Roboto_Slab } from "next/font/google";
 import Layout from "@/components/Layout";
 import { MultipurposeProvider } from "@/contexts/MultipurposeProvider";
-// import { GoogleOAuthProvider } from "@react-oauth/google";
-// import { AuthProvider } from "@/contexts/AuthContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { AuthProvider } from "@/contexts/AuthContext";
 import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
@@ -125,10 +123,10 @@ export default function App({
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
       </Head>
 
-      {/* <GoogleOAuthProvider
+      <GoogleOAuthProvider
         clientId={`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}`}
-      > */}
-        {/* <AuthProvider> */}
+      >
+        <AuthProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -151,8 +149,8 @@ export default function App({
               </GPTProvider>
             </MultipurposeProvider>
           </ThemeProvider>
-        {/* </AuthProvider> */}
-      {/* </GoogleOAuthProvider> */}
+        </AuthProvider>
+      </GoogleOAuthProvider>
 
       {/* Add Kiosked script here */}
       <Script
