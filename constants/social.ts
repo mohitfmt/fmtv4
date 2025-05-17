@@ -26,7 +26,7 @@ export const social = [
     size: 20,
   },
   {
-    name: "Twitter",
+    name: "X",
     url: "https://x.com/fmtoday",
     icon: SiX,
     color: "#1DA1F2",

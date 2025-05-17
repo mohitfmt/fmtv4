@@ -6,7 +6,7 @@ export default function FooterOtherLinks() {
     <div className="flex flex-wrap justify-center gap-4 py-2 text-sm text-gray-300">
       {[
         "contact-us",
-        "about-us",
+        "about",
         "advertise",
         "career",
         "disclaimers-copyright",
