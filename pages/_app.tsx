@@ -66,7 +66,7 @@ export default function App({
 
   useEffect(() => {
     if (!isAdInitialized.current) {
-      // Preload GPT script early but initialize later
+      // Preload GPT script early but initialize later.
       preloadGPTScript();
       isAdInitialized.current = true;
     }
