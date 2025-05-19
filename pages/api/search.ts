@@ -1,48 +1,70 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { gqlFetchAPI } from '@/lib/gql-queries/gql-fetch-api';
-import { GET_SEARCH_POSTS } from '@/lib/gql-queries/get-search-posts';
-import { SearchVariables } from '@/types/global';
+import type { NextApiRequest, NextApiResponse } from "next";
+import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
+import { GET_SEARCH_POSTS } from "@/lib/gql-queries/get-search-posts";
+import { SearchVariables } from "@/types/global";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // Security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+
+  // Method validation
+  if (req.method !== "GET") {
+    return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { term, category, page = '0' } = req.query;
-  const pageNum = parseInt(page as string);
+  const { term, category, page = "0" } = req.query;
+
+  // Input validation
+  if (!term || typeof term !== "string" || term.trim().length === 0) {
+    return res.status(400).json({ message: "Missing or invalid search term" });
+  }
+
+  const pageNum = parseInt(page as string, 10);
+  if (isNaN(pageNum) || pageNum < 0) {
+    return res.status(400).json({ message: "Invalid page number" });
+  }
 
   try {
     const queryVariables: SearchVariables = {
       where: {
-        search: term as string,
+        search: term,
         offsetPagination: {
           offset: 10 * pageNum,
           size: 10,
-        }
-      }
+        },
+      },
     };
 
-    if (category && category !== 'all' && category !== '') {
+    if (category && category !== "all" && category !== "") {
       queryVariables.where.taxQuery = {
-        relation: 'AND',
+        relation: "AND",
         taxArray: [
           {
-            field: 'SLUG',
-            operator: 'IN',
-            taxonomy: 'CATEGORY',
-            terms: (category as string).split(','),
+            field: "SLUG",
+            operator: "IN",
+            taxonomy: "CATEGORY",
+            terms: (category as string).split(","),
           },
         ],
       };
     }
 
     const response = await gqlFetchAPI(GET_SEARCH_POSTS, {
-      variables: queryVariables
+      variables: queryVariables,
     });
 
+    // Cloudflare + browser caching
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
+    );
+
     return res.status(200).json(response);
-  } catch (error) {
-    console.error('Search API error:', error);
-    return res.status(500).json({ message: 'Error fetching search results' });
+  } catch {
+    return res.status(500).json({ message: "Error fetching search results" });
   }
 }

@@ -1,10 +1,7 @@
 // pages/api/yt-playlist.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
@@ -17,12 +14,7 @@ export default async function handler(
 
   try {
     const response = await fetch(
-      `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`,
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      }
+      `https://storage.googleapis.com/origin-s3feed.freemalaysiatoday.com/json/youtube-playlist/${playlistId}.json`
     );
 
     if (!response.ok) {
@@ -30,6 +22,11 @@ export default async function handler(
     }
 
     const data = await response.json();
+
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
     res.status(200).json(data);
   } catch (error) {
     console.error("Error fetching playlist:", error);
