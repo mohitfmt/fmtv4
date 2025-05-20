@@ -6,10 +6,11 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    res.setHeader(
-      "Cache-Control",
-      `s-maxage=3600, stale-while-revalidate=60`
-    );
+    res.setHeader("Cache-Control", `s-maxage=3600, stale-while-revalidate=60`);
+
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
     const [specialFeaturesPosts, galleryPosts] = await Promise.all([
       getCategoryNews("sponsored-content", 6, false),
       getCategoryNews("photos", 5, false),
@@ -32,4 +33,3 @@ export default async function handler(
     });
   }
 }
-

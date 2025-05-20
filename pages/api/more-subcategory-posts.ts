@@ -1,6 +1,7 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
+
 import {
   CustomHomeNewsExcludeVariables,
   CustomHomeBusinessExcludeVariables,
@@ -22,25 +23,35 @@ const CATEGORY_EXCLUDE_VARIABLES: Record<string, any> = {
   world: CustomHomeWorldExcludeVariables,
 };
 
-// Function to find parent category based on subcategory slug
+const POSTS_PER_PAGE = 6;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { page = 1, slug, parentCategory } = req.query;
-  const postsPerPage = 6;
-  const offset = Number(page) * postsPerPage;
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  //Security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
 
-  if (!slug) {
-    return res.status(400).json({ error: "Slug is required" });
+  // Method validation
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Find parent category for the subcategory
+  const { page = 1, slug, parentCategory } = req.query;
+
+  // Input validation
+  const numericPage = Number(page);
+  if (!slug || typeof slug !== "string") {
+    return res.status(400).json({ error: "Missing or invalid 'slug'" });
+  }
+  if (isNaN(numericPage) || numericPage < 1 || numericPage > 1000) {
+    return res.status(400).json({ error: "Invalid page number" });
+  }
+
+  const offset = numericPage * POSTS_PER_PAGE;
 
   const categoryPath = Array.isArray(parentCategory)
     ? parentCategory[0]
     : parentCategory;
+
   const excludeVariables = categoryPath
     ? CATEGORY_EXCLUDE_VARIABLES[categoryPath]
     : undefined;
@@ -48,11 +59,11 @@ export default async function handler(
   try {
     const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
       variables: {
-        first: postsPerPage,
+        first: POSTS_PER_PAGE,
         where: {
           offsetPagination: {
             offset,
-            size: postsPerPage,
+            size: POSTS_PER_PAGE,
           },
           taxQuery: {
             relation: "AND",
@@ -70,13 +81,16 @@ export default async function handler(
       },
     });
 
-    res.status(200).json({
+    //Caching (Cloudflare-friendly)
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+
+    return res.status(200).json({
       posts: posts.posts.edges,
-      hasMore: posts.posts.edges.length === postsPerPage,
+      hasMore: posts.posts.edges.length === POSTS_PER_PAGE,
     });
   } catch (error) {
-    console.error("API Error Details:", error);
-    res.status(500).json({
+    console.error(`[API_ERROR] /${slug}/subcategory-posts page=${numericPage}:`, error);
+    return res.status(500).json({
       error: "Failed to fetch posts",
       details: error instanceof Error ? error.message : "Unknown error",
     });
