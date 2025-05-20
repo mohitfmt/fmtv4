@@ -99,6 +99,8 @@ const NewsArticlePost = ({
 
   const keywords = post?.keywords?.keywords;
 
+  const fullUrl = siteConfig.baseUrl + safeUri;
+
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
     return (
@@ -121,8 +123,8 @@ const NewsArticlePost = ({
         <meta name="description" content={safeExcerpt} />
         <meta name="keywords" content={keywords || safeTags.join(", ")} />
 
-        <link rel="canonical" href={`${siteConfig.baseUrl}${safeUri}`} />
-
+        <link rel="canonical" href={fullUrl} />
+        <link rel="alternate" hrefLang="x-default" href={fullUrl} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`${siteConfig.baseUrl}${safeUri}`} />
         <meta property="og:title" content={safeTitle} />

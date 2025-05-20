@@ -225,4 +225,38 @@ export const categoriesMetadataConfigs = {
     pathName: "/lifestyle",
     imageAlt: "Lifestyle | Free Malaysia Today",
   },
+  world: {
+    title:
+      "Latest World News & International Headlines | Free Malaysia Today (FMT)",
+    description:
+      "Get the latest international news and global updates, including breaking news, headlines, and opinions on Free Malaysia Today (FMT). Stay informed on world events.",
+    keywords: [
+      "world news",
+      "international news",
+      "southeast asia",
+      "global updates",
+      "breaking news",
+      "international headlines",
+      "global politics",
+      "foreign affairs",
+      "world economy",
+      "southeast asia news",
+      "global conflicts",
+      "UN news",
+      "international diplomacy",
+      "world leaders",
+      "geopolitical updates",
+      "international relations",
+      "global issues",
+      "global current events",
+      "international affairs",
+      "foreign policy",
+      "world analysis",
+      "cross-border news",
+    ],
+    category:
+      "world, international, breaking news, global,southeast asia, world news",
+    pathName: "/world",
+    imageAlt: "World News | Free Malaysia Today",
+  },
 };

@@ -78,7 +78,16 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
           </React.Fragment>
         ))}
 
-        <link rel="canonical" href={videoArticles?.url} />
+        <link
+          rel="canonical"
+          href={`${videoArticles?.url.replace("/", "")}/`}
+        />
+
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${videoArticles?.url.replace("/", "")}/`}
+        />
 
         {/* Twitter Card Meta Tags */}
         <meta name="twitter:card" content={metaData?.twitter?.card} />

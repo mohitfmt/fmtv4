@@ -102,7 +102,11 @@ export default function Home({
           name="keywords"
           content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
         />
-
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={siteConfig.canonicalBaseUrl}
+        />
         <meta
           name="copyright"
           content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
@@ -116,7 +120,7 @@ export default function Home({
         <meta name="author" content={siteConfig.siteName} />
         <meta name="publisher" content={siteConfig.siteName} />
 
-        <link rel="canonical" href={siteConfig.baseUrl} />
+        <link rel="canonical" href={siteConfig.canonicalBaseUrl} />
 
         <link
           rel="alternate"

@@ -67,7 +67,14 @@ const Search = () => {
         <meta name="category" content="searchpage" />
 
         {/* Canonical URL */}
-        <link rel="canonical" href={fullUrl} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${fullUrl.replace("/", "")}/`}
+        />
+
         <link
           rel="alternate"
           type="application/atom+xml"
@@ -126,13 +133,13 @@ const Search = () => {
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
           type="application/ld+json"
-          async
+          // async
           // defer
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           type="application/ld+json"
-          async
+          // async
           // defer
         />
       </Head>

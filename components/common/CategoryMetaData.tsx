@@ -113,6 +113,11 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       />
       <link
         rel="alternate"
+        hrefLang="x-default"
+        href={`${siteConfig.baseUrl}/${fullPathName.replace("/", "")}/`}
+      />
+      <link
+        rel="alternate"
         type="application/atom+xml"
         href={`${siteConfig.baseUrl}/feeds/atom/${feedPath}/`}
       />
@@ -146,7 +151,7 @@ export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
         type="application/ld+json"
-        async
+        // async
         // defer
       />
       <script
@@ -154,7 +159,7 @@ export const CategoryJsonLD = ({ posts, pathName, title }: JsonLDProps) => {
           __html: JSON.stringify(jsonLD),
         }}
         type="application/ld+json"
-        async
+        // async
         // defer
       />
     </section>

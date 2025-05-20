@@ -24,11 +24,11 @@ const HomeWorld = ({
 }: CategoryLandingProps) => {
   return (
     <>
-      <CategoryMetadata config={categoriesMetadataConfigs.news} />
+      <CategoryMetadata config={categoriesMetadataConfigs.world} />
       <CategoryJsonLD
         posts={posts}
-        pathName="/news"
-        title={categoriesMetadataConfigs.news.title}
+        pathName="/world"
+        title={categoriesMetadataConfigs.world.title}
       />
 
       <CategoryPostsLayout

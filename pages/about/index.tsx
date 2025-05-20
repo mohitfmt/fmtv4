@@ -104,7 +104,7 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
   return (
     <>
       <Meta
-        title="About Us"
+        title="About Us | Free Malaysia Today (FMT)"
         description="Learn more about our team, mission, and vision."
         canonical="about"
       />

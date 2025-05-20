@@ -6,12 +6,14 @@ interface SiteConfig {
   tagline: string;
   siteDescription: string;
   iconPath?: string;
+  canonicalBaseUrl?: string;
 }
 
 const siteConfig: SiteConfig = {
   siteName: "Free Malaysia Today",
   siteShortName: "FMT",
   baseUrl: `https://${process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com"}`,
+  canonicalBaseUrl: "https://www.freemalaysiatoday.com/",
   nonCanonicalBaseUrl: "https://freemalaysiatoday.com",
   tagline: "Current Affairs, Business, Economy, Lifestyle, News and Analysis",
   siteDescription:

@@ -119,7 +119,7 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         />
 
         {/* Canonical URL */}
-        <link rel="canonical" href={fullUrl} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}/}`} />
 
         <link
           rel="alternate"
@@ -138,6 +138,12 @@ export default function TagPage({ tag, posts }: TagPageProps) {
           type="application/feed+json"
           title="JSON Feed"
           href={`${siteConfig.baseUrl}/feeds/json/${tag.slug}`}
+        />
+
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${fullUrl.replace("/", "")}/`}
         />
 
         {/* Open Graph */}
