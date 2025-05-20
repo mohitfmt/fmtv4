@@ -1,9 +1,11 @@
-// pages/api/more-author-posts.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
+import { apiErrorResponse } from "@/lib/utils";
 
-// Handler
+const CONTEXT = "/api/more-author-posts";
+const POSTS_PER_PAGE = 20;
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -12,18 +14,41 @@ export default async function handler(
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Fail-fast for invalid method
+  // Method check
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+    return apiErrorResponse({
+      res,
+      status: 405,
+      context: CONTEXT,
+      message: "Method not allowed. Use POST.",
+    });
   }
 
   const { authorId, offset = 0 } = req.body;
 
-  // 6. Input validation
-  if (!authorId || isNaN(Number(authorId))) {
-    return res.status(400).json({ error: "Invalid or missing authorId" });
+  // Input validation
+  const parsedAuthorId = Number(authorId);
+  const parsedOffset = Number(offset);
+
+  if (!authorId || isNaN(parsedAuthorId) || parsedAuthorId <= 0) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'authorId' is required and must be a valid number. (received: ${authorId})`,
+    });
   }
 
+  if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'offset' must be a non-negative integer. (received: ${offset})`,
+    });
+  }
+
+  // CDN-friendly caching
   res.setHeader(
     "Cache-Control",
     "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
@@ -32,24 +57,26 @@ export default async function handler(
   try {
     const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
       variables: {
-        first: 20,
+        first: POSTS_PER_PAGE,
         where: {
-          offsetPagination: { offset: Number(offset), size: 20 },
-          authorIn: [parseInt(authorId, 10)],
+          offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
+          authorIn: [parsedAuthorId],
           status: "PUBLISH",
         },
       },
     });
 
-    const payload = {
-      posts: response.posts,
-      total: response.posts?.edges?.length ?? 0,
-    };
-
-    return res.status(200).json(payload);
+    return res.status(200).json({
+      posts: response?.posts,
+      total: response?.posts?.edges?.length ?? 0,
+    });
   } catch (error) {
-    // Observability
-    console.error(`[API_ERROR] Fetch failed for api/more-auhtor-post:`, error);
-    return res.status(500).json({ error: "Failed to load more posts" });
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: "Internal Server Error while fetching author posts.",
+      error,
+    });
   }
 }

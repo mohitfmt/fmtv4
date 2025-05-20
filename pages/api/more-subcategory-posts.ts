@@ -11,8 +11,8 @@ import {
   CustomHomeLifestyleExcludeVariables,
   CustomHomeWorldExcludeVariables,
 } from "@/constants/categories-custom-variables";
+import { apiErrorResponse } from "@/lib/utils";
 
-// Map of parent categories to their exclude variables
 const CATEGORY_EXCLUDE_VARIABLES: Record<string, any> = {
   news: CustomHomeNewsExcludeVariables,
   business: CustomHomeBusinessExcludeVariables,
@@ -24,47 +24,90 @@ const CATEGORY_EXCLUDE_VARIABLES: Record<string, any> = {
 };
 
 const POSTS_PER_PAGE = 6;
+const CONTEXT = "/api/more-subcategory-posts";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  //Security headers
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Method validation
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiErrorResponse({
+      res,
+      status: 405,
+      context: CONTEXT,
+      message: "Method not allowed. Use GET.",
+    });
   }
 
   const { page = 1, slug, parentCategory } = req.query;
 
-  // Input validation
-  const numericPage = Number(page);
-  if (!slug || typeof slug !== "string") {
-    return res.status(400).json({ error: "Missing or invalid 'slug'" });
+  if (!slug) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "Missing param: 'slug' is required.",
+    });
   }
-  if (isNaN(numericPage) || numericPage < 1 || numericPage > 1000) {
-    return res.status(400).json({ error: "Invalid page number" });
+
+  if (!page) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "Missing param: 'page' is required.",
+    });
+  }
+
+  if (!parentCategory) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "Missing param: 'parentCategory' is required.",
+    });
+  }
+
+  if (typeof slug !== "string" || slug.trim().length === 0) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'slug' must be a non-empty string (received: ${slug}).`,
+    });
+  }
+
+  const numericPage = Number(page);
+  if (!Number.isInteger(numericPage) || numericPage < 1 || numericPage > 1000) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'page' must be an integer between 1 and 1000 (received: ${page}).`,
+    });
+  }
+
+  if (typeof parentCategory !== "string") {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'parentCategory' must be a string (received: ${parentCategory}).`,
+    });
   }
 
   const offset = numericPage * POSTS_PER_PAGE;
-
-  const categoryPath = Array.isArray(parentCategory)
-    ? parentCategory[0]
-    : parentCategory;
-
-  const excludeVariables = categoryPath
-    ? CATEGORY_EXCLUDE_VARIABLES[categoryPath]
-    : undefined;
+  const excludeVariables = CATEGORY_EXCLUDE_VARIABLES[parentCategory];
 
   try {
     const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
       variables: {
         first: POSTS_PER_PAGE,
         where: {
-          offsetPagination: {
-            offset,
-            size: POSTS_PER_PAGE,
-          },
+          offsetPagination: { offset, size: POSTS_PER_PAGE },
           taxQuery: {
             relation: "AND",
             taxArray: [
@@ -81,18 +124,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    //Caching (Cloudflare-friendly)
-    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
+    );
 
     return res.status(200).json({
-      posts: posts.posts.edges,
-      hasMore: posts.posts.edges.length === POSTS_PER_PAGE,
+      posts: posts?.posts?.edges,
+      hasMore: posts?.posts?.edges?.length === POSTS_PER_PAGE,
     });
   } catch (error) {
-    console.error(`[API_ERROR] /${slug}/subcategory-posts page=${numericPage}:`, error);
-    return res.status(500).json({
-      error: "Failed to fetch posts",
-      details: error instanceof Error ? error.message : "Unknown error",
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: `Internal Server Error while fetching posts for category '${slug}' and page '${page}'`,
+      error,
     });
   }
 }

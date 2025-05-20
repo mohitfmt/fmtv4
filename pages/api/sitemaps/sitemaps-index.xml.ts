@@ -1,6 +1,9 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
     <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -22,11 +25,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       </sitemap>
     </sitemapindex>`;
 
-    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader("Content-Type", "application/xml");
     res.write(sitemapIndex);
     res.end();
   } catch (error) {
-    console.error('Error generating sitemap index:', error);
-    res.status(500).send('Error generating sitemap index');
+    console.error(
+      "[SITEMAP_API_ERROR] Sitemap-Index Internal Server Error:",
+      error
+    );
+    res
+      .status(500)
+      .send(
+        `[SITEMAP_API_ERROR] Sitemap-Index Internal Server Error : ${error}`
+      );
   }
 }

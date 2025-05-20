@@ -58,7 +58,14 @@ export default async function handler(
     res.setHeader("Content-Type", "application/json");
     res.status(200).json(jsonFeed);
   } catch (error) {
-    console.error("Failed to fetch or parse RSS feed:", error);
-    res.status(500).json({ error: "Failed to fetch or parse RSS feed" });
+    console.error(
+      "[FEEDS_API_ERROR] Failed to fetch or parse JSON feed:",
+      error
+    );
+    res
+      .status(500)
+      .json({
+        error: `[FEEDS_API_ERROR] Failed to fetch or parse JSON feed : ${error}`,
+      });
   }
 }

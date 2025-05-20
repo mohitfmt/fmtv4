@@ -287,12 +287,6 @@ export const calculateCacheDuration = () => {
   return duration;
 };
 
-export async function fetchLastUpdateTime() {
-  const response = await fetch("/api/last-update");
-  if (!response.ok) throw new Error("Failed to fetch last update time");
-  return response.json();
-}
-
 export const stripHTML = (htmlString: string) => {
   if (!htmlString) return "";
 
@@ -403,3 +397,49 @@ export const generateLanguageAlternates = (
     { hrefLang: "x-default", href: fullUrl },
   ];
 };
+
+export function apiErrorResponse({
+  res,
+  status,
+  message,
+  context,
+  error,
+}: {
+  res: any;
+  status: number;
+  message: string;
+  context: string;
+  error?: any;
+}) {
+  const logMessage = `[API_ERROR] (${context}) ${message}`;
+  if (error) {
+    console.error(logMessage, error);
+  } else {
+    console.error(logMessage);
+  }
+
+  return res.status(status).json({
+    error: logMessage,
+    ...(error && {
+      details: error instanceof Error ? error.message : String(error),
+    }),
+  });
+}
+
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error("Operation timed out")),
+      ms
+    );
+    promise
+      .then((result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+  });
+}

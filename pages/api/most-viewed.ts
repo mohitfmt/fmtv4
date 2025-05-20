@@ -1,16 +1,30 @@
-import { calculateCacheDuration } from "@/lib/utils";
+import { calculateCacheDuration, withTimeout } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-export async function fetchMostViewed() {
+const CONTEXT = "/api/most-viewed";
+const CACHE_SECONDS = calculateCacheDuration();
+const POSTS_TIMEOUT_MS = 5000;
+
+function logError(context: string, error: unknown) {
+  console.error(
+    `[API_ERROR] ${context}:`,
+    error instanceof Error ? error.stack || error.message : error
+  );
+}
+
+async function fetchMostViewed(): Promise<any[]> {
   try {
-    const mostViewedData = await prisma.mostViewed.findMany();
-    return mostViewedData.map((item: any) => ({
+    const results = await withTimeout(
+      prisma.mostViewed.findMany(),
+      POSTS_TIMEOUT_MS
+    );
+    return results.map((item) => ({
       ...item,
       date: item.date.toISOString(),
     }));
   } catch (error) {
-    console.error("Error fetching most viewed data:", error);
+    logError(`${CONTEXT} > fetchMostViewed`, error);
     throw error;
   }
 }
@@ -19,25 +33,33 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+
+  // Method check
   if (req.method !== "GET") {
+    logError(`${CONTEXT}`, "Invalid method");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const cacheDuration = calculateCacheDuration();
     const mostViewedData = await fetchMostViewed();
 
     res.setHeader(
       "Cache-Control",
-      `s-maxage=${cacheDuration}, stale-while-revalidate=60`
+      `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=60`
     );
 
     return res.status(200).json(mostViewedData);
   } catch (error) {
-    console.error("Error in most viewed API:", error);
+    logError(`${CONTEXT}`, error);
     return res.status(500).json({
       error: "Failed to fetch most viewed data",
-      details: process.env.NODE_ENV === "development" ? error : undefined,
+      details:
+        process.env.NODE_ENV === "development" ? String(error) : undefined,
     });
+  } finally {
+    await prisma.$disconnect();
   }
 }

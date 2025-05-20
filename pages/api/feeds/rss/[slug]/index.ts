@@ -33,7 +33,11 @@ export default async function handler(
     res.setHeader("Content-Type", "application/rss+xml");
     res.status(200).send(updatedFeed);
   } catch (err) {
-    console.error("RSS fetching error:", err);
-    res.status(500).send("Internal Server Error: RSS fetching error");
+    console.error(`[FEEDS_API_ERROR] RSS fetching error :`, err);
+    res
+      .status(500)
+      .send(
+        `[FEEDS_API_ERROR] Internal Server Error: RSS fetching error : ${err}`
+      );
   }
 }
