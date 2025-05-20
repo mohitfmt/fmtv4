@@ -74,7 +74,7 @@ export default async function handler(
           message: ${message}
         `,
       }),
-      8000 // 8-second timeout
+      5000 // 5-second timeout
     );
 
     return res.status(200).json({ message: "Email sent successfully" });

@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 const CONTEXT = "/api/most-viewed";
 const CACHE_SECONDS = calculateCacheDuration();
-const POSTS_TIMEOUT_MS = 5000;
+const POSTS_TIMEOUT_MS = 5000;// 5-second timeout
 
 function logError(context: string, error: unknown) {
   console.error(
