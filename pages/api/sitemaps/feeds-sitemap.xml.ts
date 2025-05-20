@@ -88,11 +88,18 @@ ${sitemapIndexEntries}
 </sitemapindex>`;
 
     res.setHeader("Content-Type", "application/xml");
-    res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate"
+    );
+
     res.write(sitemapIndex.trim());
     res.end();
   } catch (err) {
-    console.error("Sitemap fetching error:", err);
-    res.status(500).send("Internal Server Error: Sitemap fetching error");
+    console.error("[SITEMAP_API_ERROR] Sitemap fetching error:", err);
+    res
+      .status(500)
+      .send(`[SITEMAP_API_ERROR] Feeds sitemap Internal Server Error : ${err}`);
   }
 }

@@ -1,36 +1,45 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 import {
   format,
   isWithinInterval,
   parseISO,
   subDays,
   subMonths,
-} from 'date-fns';
-import keyword_extractor from 'keyword-extractor';
+} from "date-fns";
+import keyword_extractor from "keyword-extractor";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const [currentYearMonth, previousYearMonth] = getCurrentAndPreviousYearMonth();
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const [currentYearMonth, previousYearMonth] =
+    getCurrentAndPreviousYearMonth();
   const sitemapUrls = [
     `https://cms.freemalaysiatoday.com/sitemap-posttype-post.${currentYearMonth}.xml`,
   ];
 
   try {
     const combinedSitemap = await fetchAndCombineSitemaps(sitemapUrls);
-    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader("Content-Type", "application/xml");
     res.write(combinedSitemap);
     res.end();
   } catch (err) {
-    console.error('Sitemap fetching error:', err);
-    res.status(500).send('Internal Server Error: Sitemap fetching error');
+    console.error(
+      "[SITEMAP_API_ERROR] News Sitemap Internal Server Error : ",
+      err
+    );
+    res
+      .status(500)
+      .send(`[SITEMAP_API_ERROR] News Sitemap Internal Server Error : ${err}`);
   }
 }
 
 const fetchAndCombineSitemaps = async (urls: string[]) => {
-  let urlSetContent = '';
+  let urlSetContent = "";
   const twoDaysAgo = subDays(new Date(), 3);
 
   for (const url of urls) {
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, { cache: "no-store" });
     const sitemapContent = await response.text();
     const urlMatches = sitemapContent.match(/<url>[\s\S]*?<\/url>/g) || [];
 
@@ -43,63 +52,65 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
         urlDate &&
         isWithinInterval(urlDate, { start: twoDaysAgo, end: new Date() })
       ) {
-        let genresTag = '';
+        let genresTag = "";
         const locMatch = urlMatch.match(/<loc>(.*?)<\/loc>/);
-        const urlPath = locMatch ? locMatch[1] : '';
-        const isBahasa = urlPath.includes('bahasa');
-        const language = isBahasa ? 'ms' : 'en';
-        let keywords = '';
-        const urlSegments = urlPath.split('/');
+        const urlPath = locMatch ? locMatch[1] : "";
+        const isBahasa = urlPath.includes("bahasa");
+        const language = isBahasa ? "ms" : "en";
+        let keywords = "";
+        const urlSegments = urlPath.split("/");
         const categoryIndex = urlSegments.findIndex(
-          (part) => part === 'category',
+          (part) => part === "category"
         );
         const f_genre =
-          categoryIndex !== -1 ? urlSegments[categoryIndex + 1] : '';
+          categoryIndex !== -1 ? urlSegments[categoryIndex + 1] : "";
         const lastSegment = urlSegments[urlSegments.length - 2];
         const titleFromURL = lastSegment
-          ?.split('-')
+          ?.split("-")
           ?.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+          .join(" ");
         const extraction_result = keyword_extractor.extract(titleFromURL, {
-          language: 'english',
+          language: "english",
           remove_digits: true,
           return_changed_case: true,
           remove_duplicates: true,
         });
-        const publicationDateMatch = urlMatch.match(/<lastmod>(.*?)<\/lastmod>/);
+        const publicationDateMatch = urlMatch.match(
+          /<lastmod>(.*?)<\/lastmod>/
+        );
         const publicationDate = publicationDateMatch
           ? publicationDateMatch[1]
-          : '';
+          : "";
 
         const genreMappings: { [key: string]: string } = {
-          nation: 'PressRelease',
-          bahasa: 'PressRelease',
-          opinion: 'Opinion',
-          world: 'PressRelease',
-          business: 'PressRelease',
-          sports: 'PressRelease',
-          leisure: 'Blog',
-          default: 'UserGenerated',
+          nation: "PressRelease",
+          bahasa: "PressRelease",
+          opinion: "Opinion",
+          world: "PressRelease",
+          business: "PressRelease",
+          sports: "PressRelease",
+          leisure: "Blog",
+          default: "UserGenerated",
         };
 
         const extractedKeywords = Array.isArray(extraction_result)
-          ? extraction_result.join(', ')
-          : '';
+          ? extraction_result.join(", ")
+          : "";
 
         const baseKeywords =
-          language === 'ms'
+          language === "ms"
             ? `malaysia berita, berita, Malaysia, tempatan, local, news, malaysia news, local news, local malaysian news, bahasa, Berita Utama`
             : `${f_genre} news`;
         keywords = `${baseKeywords}, ${extractedKeywords}`;
 
         const genreKey = f_genre.toLowerCase();
-        genresTag = `<news:genres>${genreMappings[genreKey] || genreMappings['default']}</news:genres>`;
+        genresTag = `<news:genres>${genreMappings[genreKey] || genreMappings["default"]}</news:genres>`;
 
         const regLastMod = /<lastmod>(.*?)<\/lastmod>/;
 
         urlSetContent += urlMatch
           .replace(
-            '<priority>0.9</priority>',
+            "<priority>0.9</priority>",
             `<news:news>
               <news:publication>
                 <news:name>Free Malaysia Today</news:name>
@@ -109,9 +120,9 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
               <news:title>${titleFromURL}</news:title>
               <news:keywords>${keywords}</news:keywords>
               ${genresTag}
-            </news:news>`,
+            </news:news>`
           )
-          .replace(regLastMod, '');
+          .replace(regLastMod, "");
       }
     }
   }
@@ -138,5 +149,5 @@ ${urlSetContent}
 const getCurrentAndPreviousYearMonth = () => {
   const currentDate = new Date();
   const previousDate = subMonths(currentDate, 1);
-  return [format(currentDate, 'yyyyMM'), format(previousDate, 'yyyyMM')];
+  return [format(currentDate, "yyyyMM"), format(previousDate, "yyyyMM")];
 };

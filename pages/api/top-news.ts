@@ -8,7 +8,10 @@ async function fetchWithRetry(category: string, retries = 3, delay = 1000) {
       return posts[0] ? { ...posts[0], categoryName: category } : null;
     } catch (error) {
       if (i === retries - 1) throw error;
-      console.error(`Retry ${i + 1} failed for ${category}:`, error);
+      console.error(
+        `[API_ERROR] (/top-news) Retry ${i + 1} failed for ${category}:`,
+        error
+      );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -42,12 +45,15 @@ export default async function handler(
 
     // Process categories in smaller batches
     const batchSize = 3;
-    for (let i = 0; i < categories.length; i += batchSize) {
-      const batch = categories.slice(i, i + batchSize);
+    for (let i = 0; i < categories?.length; i += batchSize) {
+      const batch = categories?.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map((category) =>
           fetchWithRetry(category).catch((error) => {
-            console.error(`Error fetching ${category}:`, error);
+            console.error(
+              `[API_ERROR] (/top-news) Error fetching ${category}:`,
+              error
+            );
             return null;
           })
         )
@@ -58,9 +64,9 @@ export default async function handler(
     // Send complete results at once
     return res.status(200).json(results);
   } catch (error) {
-    console.error("Top news API error:", error);
+    console.error("[API_ERROR] /top-news:", error);
     return res.status(500).json({
-      error: "Failed to fetch top news",
+      error: "[API_ERROR]Failed to fetch top news",
       message: error instanceof Error ? error.message : "Unknown error",
     });
   }

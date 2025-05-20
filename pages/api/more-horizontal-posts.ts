@@ -1,32 +1,51 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
+import { apiErrorResponse } from "@/lib/utils";
 
 const POSTS_PER_PAGE = 4;
+const CONTEXT = "/api/more-horizontal-posts";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   // Security headers
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Fail-fast method check
+  // Method check
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiErrorResponse({
+      res,
+      status: 405,
+      context: CONTEXT,
+      message: "Method not allowed. Use GET.",
+    });
   }
 
   const { page = 1, category } = req.query;
+  const numericPage = Number(page);
 
   // Input validation
-  const numericPage = Number(page);
-  if (!category || typeof category !== "string") {
-    return res.status(400).json({ error: "Missing or invalid category" });
+  if (!category || typeof category !== "string" || category.trim() === "") {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'category' is required and must be a non-empty string.`,
+    });
   }
 
-  if (isNaN(numericPage) || numericPage < 1 || numericPage > 1000) {
-    return res.status(400).json({ error: "Invalid page number" });
+  if (!Number.isInteger(numericPage) || numericPage < 1 || numericPage > 1000) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'page' must be an integer between 1 and 1000 (received: ${page}).`,
+    });
   }
 
-  // Pagination offset (skip initial 5 posts)
   const offset = (numericPage - 1) * POSTS_PER_PAGE + 5;
 
   try {
@@ -53,15 +72,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // Cloudflare-compatible caching
-    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+    // CDN caching
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
+    );
 
     return res.status(200).json({
-      posts: posts.posts.edges,
-      hasMore: posts.posts.edges.length === POSTS_PER_PAGE,
+      posts: posts?.posts?.edges,
+      hasMore: posts?.posts?.edges?.length === POSTS_PER_PAGE,
     });
   } catch (error) {
-    console.error(`[API_ERROR] /${category}/posts page=${numericPage}:`, error);
-    return res.status(500).json({ error: "Failed to fetch posts" });
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: `Internal Server Error while fetching posts for category '${category}' and page '${page}'`,
+      error,
+    });
   }
 }

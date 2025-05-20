@@ -1,16 +1,24 @@
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { NextApiRequest, NextApiResponse } from "next";
+import { apiErrorResponse } from "@/lib/utils";
+
+const CONTEXT = "/api/gallery-features-content";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+
+  // Cloudflare + browser caching
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=300, s-maxage=3600, stale-while-revalidate=60"
+  );
+
   try {
-    res.setHeader("Cache-Control", `s-maxage=3600, stale-while-revalidate=60`);
-
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "DENY");
-
     const [specialFeaturesPosts, galleryPosts] = await Promise.all([
       getCategoryNews("sponsored-content", 6, false),
       getCategoryNews("photos", 5, false),
@@ -18,18 +26,21 @@ export default async function handler(
 
     const sharedData = {
       specialFeaturesPosts: {
-        edges: specialFeaturesPosts.map((post: any) => ({ node: post })),
+        edges: specialFeaturesPosts?.map((post: any) => ({ node: post })),
       },
       galleryPosts: {
-        edges: galleryPosts.map((post: any) => ({ node: post })),
+        edges: galleryPosts?.map((post: any) => ({ node: post })),
       },
     };
 
-    res.status(200).json(sharedData);
+    return res.status(200).json(sharedData);
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch shared data",
-      details: error instanceof Error ? error.message : "Unknown error",
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: "Internal Server Error while fetching gallery/features content.",
+      error,
     });
   }
 }

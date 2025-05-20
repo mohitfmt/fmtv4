@@ -36,7 +36,9 @@ export default async function handler(
     res.setHeader("Content-Type", "application/atom+xml");
     res.status(200).send(atomFeed);
   } catch (err) {
-    console.error("RSS fetching error:", err);
-    res.status(500).send("Internal Server Error: RSS fetching error");
+    console.error("[FEEDS_API_ERROR] Atom feeds fetching error:", err);
+    res
+      .status(500)
+      .send(`[FEEDS_API_ERROR] Atom feeds Internal Server Error : ${err}`);
   }
 }

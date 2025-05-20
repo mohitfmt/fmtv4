@@ -2,6 +2,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { GET_SEARCH_POSTS } from "@/lib/gql-queries/get-search-posts";
 import { SearchVariables } from "@/types/global";
+import { apiErrorResponse } from "@/lib/utils";
+
+const CONTEXT = "/api/search";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,21 +14,36 @@ export default async function handler(
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Method validation
+  // Method check
   if (req.method !== "GET") {
-    return res.status(405).json({ message: "Method not allowed" });
+    return apiErrorResponse({
+      res,
+      status: 405,
+      context: CONTEXT,
+      message: "Method not allowed. Use GET.",
+    });
   }
 
-  const { term, category, page = "0" } = req.query;
+  const { term, category, page = 0 } = req.query;
 
   // Input validation
   if (!term || typeof term !== "string" || term.trim().length === 0) {
-    return res.status(400).json({ message: "Missing or invalid search term" });
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "'term' is required and must be a non-empty string.",
+    });
   }
 
   const pageNum = parseInt(page as string, 10);
-  if (isNaN(pageNum) || pageNum < 0) {
-    return res.status(400).json({ message: "Invalid page number" });
+  if (!Number.isInteger(pageNum) || pageNum < 0) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: `'page' must be a non-negative integer (received: ${page}).`,
+    });
   }
 
   try {
@@ -33,7 +51,7 @@ export default async function handler(
       where: {
         search: term,
         offsetPagination: {
-          offset: 10 * pageNum,
+          offset: pageNum * 10,
           size: 10,
         },
       },
@@ -64,7 +82,13 @@ export default async function handler(
     );
 
     return res.status(200).json(response);
-  } catch {
-    return res.status(500).json({ message: "Error fetching search results" });
+  } catch (error) {
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: "Internal Server Error while fetching search results.",
+      error,
+    });
   }
 }

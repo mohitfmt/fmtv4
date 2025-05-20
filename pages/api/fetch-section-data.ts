@@ -1,8 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { ParsedUrlQuery } from "querystring";
+import { apiErrorResponse } from "@/lib/utils";
 
-// Deduplication cache per category-limit key
+const CONTEXT = "/api/fetch-section-data";
+
+// Deduplication setup
 const recentlyRequestedKeys = new Map<string, number>();
 const DEDUPE_TTL_MS = 30_000; // 30 seconds
 
@@ -10,58 +13,81 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Security headers
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
+  // Method check
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return apiErrorResponse({
+      res,
+      status: 405,
+      context: CONTEXT,
+      message: "Method Not Allowed. Use GET.",
+    });
   }
 
   const { category, limit } = req.query as ParsedUrlQuery;
 
-  if (!category || typeof category !== "string") {
-    return res
-      .status(400)
-      .json({ error: "Missing or invalid 'category' parameter." });
+  // Input validation
+  if (
+    !category ||
+    typeof category !== "string" ||
+    category.trim().length === 0
+  ) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "Missing or invalid 'category' parameter.",
+    });
   }
 
   const parsedLimit = Number(limit || 5);
-  if (isNaN(parsedLimit) || parsedLimit <= 0 || parsedLimit > 7) {
-    return res
-      .status(400)
-      .json({ error: "'limit' must be a number between 1 and 7." });
+  if (!Number.isInteger(parsedLimit) || parsedLimit <= 0 || parsedLimit > 7) {
+    return apiErrorResponse({
+      res,
+      status: 400,
+      context: CONTEXT,
+      message: "'limit' must be a number between 1 and 7.",
+    });
   }
 
-  // Generates a unique key for the request (e.g., top-news-6).
-  // Checks when this key was last requested.
+  // Deduplication check
   const key = `${category}-${parsedLimit}`;
   const now = Date.now();
   const lastCalled = recentlyRequestedKeys.get(key) || 0;
 
-  // If this section (category-limit) was requested within the last 30 seconds,
-  // it rejects the call to avoid a flood of requests (especially during hydration glitches or network retries).
   if (now - lastCalled < DEDUPE_TTL_MS) {
-    return res
-      .status(429)
-      .json({ error: "Please wait before retrying this section." });
+    return apiErrorResponse({
+      res,
+      status: 429,
+      context: CONTEXT,
+      message: `Too many requests for '${key}'. Please wait before retrying.`,
+    });
   }
 
-  // Otherwise, it records this request as "recently triggered" and schedules its expiry after 30 seconds.
-
+  // Store the timestamp and auto-expire after TTL
   recentlyRequestedKeys.set(key, now);
   setTimeout(() => recentlyRequestedKeys.delete(key), DEDUPE_TTL_MS);
 
   try {
     const posts = await getCategoryNews(category, parsedLimit, false);
 
+    // CDN + browser caching
     res.setHeader(
       "Cache-Control",
       "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
     );
+
     return res.status(200).json(posts);
-  } catch {
-    return res
-      .status(500)
-      .json({ error: "[API_ERROR] Failed to fetch posts section." });
+  } catch (error) {
+    return apiErrorResponse({
+      res,
+      status: 500,
+      context: CONTEXT,
+      message: "Internal Server Error while fetching hoem section posts.",
+      error,
+    });
   }
 }

@@ -170,7 +170,6 @@ function normalizePathForRevalidation(path: string): string {
   if (normalizedPath.startsWith("category/category/")) {
     return normalizedPath;
   }
-
   // Handle single category paths, preserving them
   if (normalizedPath.startsWith("category/")) {
     return normalizedPath;
@@ -191,7 +190,7 @@ async function getRecentlyModifiedArticles(
     // Get posts modified in the last 15 minutes
     const now = new Date();
     const fifteenMinsAgo = addMinutes(now, -15);
-    const modifiedAfter = fifteenMinsAgo.toISOString();
+    const modifiedAfter = fifteenMinsAgo?.toISOString();
 
     console.log(
       `[WebSub] Fetching posts modified after ${modifiedAfter} (15-minute window)`
@@ -199,7 +198,7 @@ async function getRecentlyModifiedArticles(
 
     // Use AbortController for timeout instead of the timeout option
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const timeoutId = setTimeout(() => controller?.abort(), 10000); // 10-second timeout
 
     try {
       const response = await fetch(
@@ -209,7 +208,7 @@ async function getRecentlyModifiedArticles(
             Accept: "application/json",
             "User-Agent": "WebSub-Subscriber/1.0",
           },
-          signal: controller.signal,
+          signal: controller?.signal,
         }
       );
 
@@ -217,13 +216,13 @@ async function getRecentlyModifiedArticles(
 
       if (!response.ok) {
         throw new Error(
-          `WordPress API returned ${response.status}: ${response.statusText}`
+          `WordPress API returned ${response?.status}: ${response?.statusText}`
         );
       }
 
       const posts: WPPost[] = await response.json();
       console.log(
-        `[WebSub] Found ${posts.length} recently modified posts in 15-minute window`
+        `[WebSub] Found ${posts?.length} recently modified posts in 15-minute window`
       );
 
       return posts;
@@ -274,10 +273,10 @@ async function purgeByTags(tags: string[]): Promise<boolean> {
       }
     );
 
-    const result = await response.json();
-    if (!result.success) {
+    const result = await response?.json();
+    if (!result?.success) {
       throw new Error(
-        `Cloudflare tag purge failed: ${result.errors?.[0]?.message}`
+        `Cloudflare tag purge failed: ${result?.errors?.[0]?.message}`
       );
     }
 
@@ -315,11 +314,11 @@ function processArticles(
   // Separate new vs updated articles
   const newArticles = articles.filter(
     (post) =>
-      new Date(post.date).getTime() === new Date(post.modified).getTime()
+      new Date(post?.date).getTime() === new Date(post?.modified).getTime()
   );
   const updatedArticles = articles.filter(
     (post) =>
-      new Date(post.date).getTime() !== new Date(post.modified).getTime()
+      new Date(post?.date).getTime() !== new Date(post?.modified).getTime()
   );
 
   console.log(
@@ -335,19 +334,19 @@ function processArticles(
   };
 
   // Always include homepage in critical tags
-  cacheTags.critical.add("path:/");
-  cacheTags.critical.add("page:home");
+  cacheTags?.critical?.add("path:/");
+  cacheTags?.critical?.add("page:home");
 
   // Get all navigation paths for potential revalidation
   const allNavigationPaths = getAllNavigationPaths();
 
   // Add main navigation sections to high priority
-  allNavigationPaths.forEach((path: string) => {
-    if (!path.includes("/category/") && path !== "/") {
-      const section = path.split("/").filter(Boolean)[0];
+  allNavigationPaths?.forEach((path: string) => {
+    if (!path?.includes("/category/") && path !== "/") {
+      const section = path?.split("/")?.filter(Boolean)[0];
       if (section) {
-        cacheTags.high.add(`section:${section}`);
-        cacheTags.high.add(`path:${path}`);
+        cacheTags?.high?.add(`section:${section}`);
+        cacheTags?.high?.add(`path:${path}`);
       }
     }
   });
@@ -361,12 +360,12 @@ function processArticles(
   }[] = [];
 
   // Process each article for revalidation and cache tags
-  [...newArticles, ...updatedArticles].forEach((post) => {
+  [...newArticles, ...updatedArticles]?.forEach((post) => {
     try {
       // Get categories from the post - both from URL and API if available
-      const urlCategories = extractCategoryFromUrl(post.link);
-      const apiCategories = post.categories
-        ? getCategorySlugsFromIds(post.categories)
+      const urlCategories = extractCategoryFromUrl(post?.link);
+      const apiCategories = post?.categories
+        ? getCategorySlugsFromIds(post?.categories)
         : [];
 
       // Combine all categories (remove duplicates)
@@ -388,28 +387,28 @@ function processArticles(
 
         // Add category to revalidation items (only once per unique path)
         if (
-          !revalidationItems.some(
-            (item) => item.type === "category" && item.path === frontendPath
+          !revalidationItems?.some(
+            (item) => item?.type === "category" && item?.path === frontendPath
           )
         ) {
-          revalidationItems.push({
+          revalidationItems?.push({
             type: "category",
             path: frontendPath,
-            priority: PRIORITY.HIGH,
+            priority: PRIORITY?.HIGH,
           });
         }
       });
 
       // Extract path parts for article revalidation
       const urlObj = new URL(post.link);
-      const pathParts = urlObj.pathname.split("/").filter(Boolean);
+      const pathParts = urlObj?.pathname.split("/").filter(Boolean);
 
       // Check if this is a new or updated article
       const isNewArticle =
-        new Date(post.date).getTime() === new Date(post.modified).getTime();
+        new Date(post?.date)?.getTime() === new Date(post?.modified)?.getTime();
 
       // Handle different URL patterns
-      if (pathParts.length >= 3) {
+      if (pathParts?.length >= 3) {
         let articlePath = "";
         let categoryList: string[] = [];
 
@@ -424,10 +423,10 @@ function processArticles(
         // Handle bahasa with subcategory (special case)
         if (
           pathParts[relevantPathStart] === "bahasa" &&
-          pathParts.length >= relevantPathStart + 2
+          pathParts?.length >= relevantPathStart + 2
         ) {
           // Extract the path without double processing
-          const pathWithoutDomain = urlObj.pathname.substring(1); // Remove leading slash
+          const pathWithoutDomain = urlObj?.pathname?.substring(1); // Remove leading slash
 
           // Use the normalized path format for consistent revalidation
           articlePath = normalizePathForRevalidation(pathWithoutDomain);
@@ -436,15 +435,15 @@ function processArticles(
           categoryList = ["bahasa", pathParts[relevantPathStart + 1]];
 
           // Add subcategory tag
-          cacheTags.medium.add(
+          cacheTags?.medium?.add(
             `subcategory:${pathParts[relevantPathStart + 1]}`
           );
-          cacheTags.medium.add(
+          cacheTags?.medium?.add(
             `category-path:bahasa/${pathParts[relevantPathStart + 1]}`
           );
         } else {
           // Extract the path without double processing
-          const pathWithoutDomain = urlObj.pathname.substring(1); // Remove leading slash
+          const pathWithoutDomain = urlObj?.pathname?.substring(1); // Remove leading slash
 
           // Use the normalized path format for consistent revalidation
           articlePath = normalizePathForRevalidation(pathWithoutDomain);
@@ -454,22 +453,22 @@ function processArticles(
 
           // If there's a subcategory, add it
           if (
-            pathParts.length > relevantPathStart + 1 &&
+            pathParts?.length > relevantPathStart + 1 &&
             pathParts[relevantPathStart] !== pathParts[relevantPathStart + 1]
           ) {
-            categoryList.push(pathParts[relevantPathStart + 1]);
-            cacheTags.medium.add(
+            categoryList?.push(pathParts[relevantPathStart + 1]);
+            cacheTags?.medium?.add(
               `subcategory:${pathParts[relevantPathStart + 1]}`
             );
-            cacheTags.medium.add(
+            cacheTags?.medium?.add(
               `category-path:${pathParts[relevantPathStart]}/${pathParts[relevantPathStart + 1]}`
             );
           }
         }
 
         // Add article-specific cache tags
-        cacheTags.medium.add(`path:/${articlePath}`);
-        cacheTags.medium.add(`type:article`);
+        cacheTags?.medium?.add(`path:/${articlePath}`);
+        cacheTags?.medium?.add(`type:article`);
 
         // Extract date information if available
         const datePattern = /\/(\d{4})\/(\d{2})\/(\d{2})\//;
@@ -495,7 +494,7 @@ function processArticles(
         });
       }
     } catch (error) {
-      console.error(`[WebSub] Error processing article ${post.id}:`, error);
+      console.error(`[WebSub] Error processing article ${post?.id}:`, error);
     }
   });
 
@@ -503,7 +502,7 @@ function processArticles(
   allNavigationPaths.forEach((path: string) => {
     if (
       !path.includes("/category/") &&
-      !revalidationItems.some((item) => item.path === path)
+      !revalidationItems.some((item) => item?.path === path)
     ) {
       revalidationItems.push({
         type: "category",
@@ -515,10 +514,10 @@ function processArticles(
 
   return {
     cacheTags: {
-      critical: Array.from(cacheTags.critical),
-      high: Array.from(cacheTags.high),
-      medium: Array.from(cacheTags.medium),
-      low: Array.from(cacheTags.low),
+      critical: Array.from(cacheTags?.critical),
+      high: Array.from(cacheTags?.high),
+      medium: Array.from(cacheTags?.medium),
+      low: Array.from(cacheTags?.low),
     },
     revalidationItems,
   };
@@ -534,24 +533,24 @@ async function processRevalidationItem(
 ): Promise<boolean> {
   // Prepare request body with category information when applicable
   const requestBody: any = {
-    type: item.type,
-    [item.type === "post" ? "postSlug" : "path"]: item.path,
+    type: item?.type,
+    [item?.type === "post" ? "postSlug" : "path"]: item?.path,
   };
 
   // Include categories information for posts to enable comprehensive revalidation
-  if (item.type === "post" && item.categories && item.categories.length > 0) {
-    requestBody.categories = item.categories;
+  if (item?.type === "post" && item?.categories && item?.categories?.length > 0) {
+    requestBody.categories = item?.categories;
   }
 
   // Retry logic with exponential backoff
-  const maxRetries = item.priority <= PRIORITY.HIGH ? 3 : 2;
+  const maxRetries = item?.priority <= PRIORITY.HIGH ? 3 : 2;
   let attempts = 0;
 
   while (attempts <= maxRetries) {
     try {
       const controller = new AbortController();
       // Longer timeout for critical items
-      const timeout = item.priority <= PRIORITY.HIGH ? 30000 : 20000;
+      const timeout = item?.priority <= PRIORITY.HIGH ? 30000 : 20000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(`${baseUrl}/api/revalidate`, {
@@ -571,11 +570,11 @@ async function processRevalidationItem(
       // Consider any 2xx response as success
       if (response.ok) {
         console.log(
-          `[WebSub] Successfully revalidated ${item.type} ${item.path} (priority: ${item.priority})`
+          `[WebSub] Successfully revalidated ${item?.type} ${item?.path} (priority: ${item?.priority})`
         );
         return true;
       } else {
-        throw new Error(result.message || "Unknown error");
+        throw new Error(result?.message || "Unknown error");
       }
     } catch (error: any) {
       attempts++;
@@ -594,7 +593,7 @@ async function processRevalidationItem(
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         console.error(
-          `[WebSub] Failed to revalidate ${item.type} ${item.path} after ${maxRetries} attempts:`,
+          `[WebSub] Failed to revalidate ${item?.type} ${item?.path} after ${maxRetries} attempts:`,
           error
         );
         return false;
@@ -630,13 +629,13 @@ async function processRevalidation(
 
   // Group items by priority
   const criticalItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.CRITICAL
+    (item) => item?.priority === PRIORITY.CRITICAL
   );
   const highItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.HIGH
+    (item) => item?.priority === PRIORITY.HIGH
   );
   const mediumItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.MEDIUM
+    (item) => item?.priority === PRIORITY.MEDIUM
   );
   const lowItems = sortedItems.filter((item) => item.priority === PRIORITY.LOW);
 
@@ -869,9 +868,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     // Revalidate API endpoints for fresh data
     try {
       await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
-      await fetch(`${baseUrl}/api/last-update`, { method: "POST" });
       mutate("/api/top-news");
-      mutate("/api/last-update");
       console.log(`[WebSub] API endpoints revalidated`);
     } catch (error) {
       console.error(`[WebSub] Error revalidating API endpoints:`, error);
