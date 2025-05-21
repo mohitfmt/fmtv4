@@ -166,3 +166,33 @@ export const WebPageJsonLD = {
     ],
   },
 };
+
+export const socialChannelsJsonLD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Official Channels - Free Malaysia Today",
+  url: "https://www.freemalaysiatoday.com/channels",
+  description:
+    "Explore the official social media channels of Free Malaysia Today including Facebook, Instagram, YouTube, WhatsApp, Telegram, and more.",
+  publisher: {
+    "@type": "Organization",
+    name: "Free Malaysia Today",
+    url: "https://www.freemalaysiatoday.com",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg",
+    },
+    sameAs: [
+      "https://www.facebook.com/freemalaysiatoday/",
+      "https://www.instagram.com/freemalaysiatoday",
+      "https://x.com/fmtoday",
+      "https://www.youtube.com/user/FreeMalaysiaToday",
+      "https://www.whatsapp.com/channel/0029Va78sJa96H4VaQu6580F",
+      "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
+      "https://t.me/FreeMalaysiaToday",
+      "https://www.linkedin.com/company/fmt-news/",
+      "https://www.tiktok.com/@freemalaysiatoday?_t=8UsJzt8DCWP&_r=1",
+      "https://news.google.com/publications/CAAqBwgKMJ6DqAwwsIu2BA?hl=en-MY&gl=MY&ceid=MY%3Aen",
+    ],
+  },
+};

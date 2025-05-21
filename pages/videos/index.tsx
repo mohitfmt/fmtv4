@@ -16,6 +16,7 @@ interface VideosProps {
   info: any;
 }
 
+const fullUrl = siteConfig.baseUrl + "/videos";
 const DEFAULT_CHANNEL_INFO = {
   snippet: {
     title: "Free Malaysia Today",
@@ -102,6 +103,13 @@ const Videos = ({ info }: VideosProps) => {
         <meta
           name="description"
           content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
+        />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${fullUrl.replace("/", "")}/`}
         />
         <meta property="og:title" content="Videos" />
         {/* Open Graph / Facebook */}

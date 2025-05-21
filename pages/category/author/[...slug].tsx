@@ -93,7 +93,12 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           name="keywords"
           content={`${author?.name}, author, news, articles, insights`}
         />
-        <link rel="canonical" href={fullUrl} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+        <link
+          rel="alternate"
+          hrefLang="x-default"
+          href={`${fullUrl.replace("/", "")}/`}
+        />
         <link
           rel="alternate"
           type="application/atom+xml"

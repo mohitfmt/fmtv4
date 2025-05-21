@@ -10,7 +10,7 @@ import NextTopLoader from "nextjs-toploader";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import Head from "next/head";
-import siteConfig from "@/constants/site-config";
+// import siteConfig from "@/constants/site-config";
 import Script from "next/script";
 
 const preloadGPTScript = () => {
@@ -117,10 +117,6 @@ export default function App({
         />
 
         <meta name="application-name" content="Free Malaysia Today" />
-
-        <link rel="alternate" hrefLang="en" href={siteConfig.baseUrl} />
-        <link rel="alternate" hrefLang="ms" href={`${siteConfig.baseUrl}`} />
-        <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
       </Head>
 
       <GoogleOAuthProvider
