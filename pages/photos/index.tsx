@@ -32,7 +32,7 @@ const PhotosPage = ({ posts }: Props) => {
     title: "Photo Gallery | Free Malaysia Today (FMT)",
     description:
       "Special feature of latest news photos and images selected by photographers and journalists from Free Malaysia Today (FMT).",
-    canonical: "photos/",
+    canonical: "photos",
   };
 
   return (

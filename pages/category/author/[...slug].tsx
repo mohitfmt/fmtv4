@@ -93,29 +93,29 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           name="keywords"
           content={`${author?.name}, author, news, articles, insights`}
         />
-        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}`} />
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={`${fullUrl.replace("/", "")}/`}
+          href={`${fullUrl.replace(/^\/|\/$/g, "")}`}
         />
         <link
           rel="alternate"
           type="application/atom+xml"
           title="Atom Feed"
-          href={`${domainUrl}/feeds/atom/${author?.slug}`}
+          href={`${domainUrl}/feeds/atom/${author?.slug.replace(/^\/|\/$/g, "")}`}
         />
         <link
           rel="alternate"
           type="application/rss+xml"
           title="RSS Feed"
-          href={`${siteConfig.baseUrl}/feeds/rss/${author?.slug}`}
+          href={`${siteConfig.baseUrl}/feeds/rss/${author?.slug.replace(/^\/|\/$/g, "")}`}
         />
         <link
           rel="alternate"
           type="application/feed+json"
           title="JSON Feed"
-          href={`${siteConfig.baseUrl}/feeds/json/${author?.slug}`}
+          href={`${siteConfig.baseUrl}/feeds/json/${author?.slug.replace(/^\/|\/$/g, "")}`}
         />
         <meta
           property="og:title"

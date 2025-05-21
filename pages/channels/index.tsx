@@ -2,7 +2,6 @@ import React from "react";
 import Link from "next/link";
 import { social } from "@/constants/social";
 import Head from "next/head";
-import { socialChannelsJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 
 interface SocialIconsProps {
   className?: string;
@@ -66,18 +65,7 @@ const Channels: React.FC<SocialIconsProps> = ({
           content="https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg"
         />
       </Head>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(socialChannelsJsonLD),
-        }}
-        type="application/ld+json"
-      />
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
-        type="application/ld+json"
-        async
-        // defer
-      />
+
       <div>
         <h1 className="mt-4 mb-8 text-center text-4xl font-extrabold">
           Channels

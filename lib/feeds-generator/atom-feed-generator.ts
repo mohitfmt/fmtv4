@@ -118,154 +118,154 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
     case "nation":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/nation/feed/",
-        link: "https://www.freemalaysiatoday.com/news/",
+        link: "https://www.freemalaysiatoday.com/news",
         title:
           "Nation | Politics | Economy | Social | Crime | Education | Environment",
         subtitle:
           "Breaking News, In-Depth Analysis, and Unmissable Stories from Malaysia",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/nation/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/nation",
         categories: `
-        <category term="Nation" scheme="https://www.freemalaysiatoday.com/news/" label="Malaysia and Sabah Sarawak"/>
-        <category term="MalaysiaEastWest" scheme="https://www.freemalaysiatoday.com/category/category/nation/" label="Malaysia: East and West"/>
-        <category term="Borneo+" scheme="https://www.freemalaysiatoday.com/category/category/nation/sabahsarawak/" label="Borneo News: Sabah and Sarawak News"/>
+        <category term="Nation" scheme="https://www.freemalaysiatoday.com/news" label="Malaysia and Sabah Sarawak"/>
+        <category term="MalaysiaEastWest" scheme="https://www.freemalaysiatoday.com/category/category/nation" label="Malaysia: East and West"/>
+        <category term="Borneo+" scheme="https://www.freemalaysiatoday.com/category/category/nation/sabahsarawak" label="Borneo News: Sabah and Sarawak News"/>
         `,
       };
       break;
     case "berita":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
-        link: "https://www.freemalaysiatoday.com/berita/",
+        link: "https://www.freemalaysiatoday.com/berita",
         title:
           "Berita | Tempatan | Pandangan | Dunia | Politik, Ekonomi, Sukan, Teknologi",
         subtitle:
           "Bahasa Melayu, Berita Tempatan, Berita Dunia, Berita Politik, Berita Ekonomi, Berita Sukan, Berita Teknologi",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/berita/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/berita",
         categories: `
-        <category term="Berita" scheme="https://www.freemalaysiatoday.com/berita/" label="Berita"/>
-        <category term="Tempatan" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/tempatan/" label="Tempatan"/>
-        <category term="Pandangan" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/pandangan/" label="Pandangan"/>
-        <category term="Dunia" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/dunia/" label="Dunia"/>
+        <category term="Berita" scheme="https://www.freemalaysiatoday.com/berita" label="Berita"/>
+        <category term="Tempatan" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/tempatan" label="Tempatan"/>
+        <category term="Pandangan" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/pandangan" label="Pandangan"/>
+        <category term="Dunia" scheme="https://www.freemalaysiatoday.com/category/category/bahasa/dunia" label="Dunia"/>
         `,
       };
       break;
     case "business":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/business/feed/",
-        link: "https://www.freemalaysiatoday.com/business/",
+        link: "https://www.freemalaysiatoday.com/business",
         title: "Business | Local Business | World Business | Malaysia | FMT",
         subtitle:
           "Empowering Insights: Navigating the Dynamics of Malaysian and Global Markets",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/business/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/business",
         categories: `
-        <category term="BusinessNews" scheme="https://www.freemalaysiatoday.com/business/" label="Business News"/>
-        <category term="LocalBusiness" scheme="https://www.freemalaysiatoday.com/category/category/business/local-business/" label="Local Business"/>
-        <category term="WorldBusiness" scheme="https://www.freemalaysiatoday.com/category/category/business/world-business/" label="World Business"/>
+        <category term="BusinessNews" scheme="https://www.freemalaysiatoday.com/business" label="Business News"/>
+        <category term="LocalBusiness" scheme="https://www.freemalaysiatoday.com/category/category/business/local-business" label="Local Business"/>
+        <category term="WorldBusiness" scheme="https://www.freemalaysiatoday.com/category/category/business/world-business" label="World Business"/>
         `,
       };
       break;
     case "headlines":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/highlight/feed/",
-        link: "https://www.freemalaysiatoday.com/",
+        link: "https://www.freemalaysiatoday.com",
         title: "Headlines | Latest | Malaysia | Top Stories | Local News",
         subtitle:
           "Your Pulse on Malaysia: Breaking News, In-Depth Analysis, and Unmissable Stories",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/headlines/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/headlines",
         categories:
-          '<category term="LatestHeadlines" scheme="https://www.freemalaysiatoday.com/" label="Latest Headlines"/>',
+          '<category term="LatestHeadlines" scheme="https://www.freemalaysiatoday.com" label="Latest Headlines"/>',
       };
       break;
     case "lifestyle":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/leisure/feed/",
-        link: "https://www.freemalaysiatoday.com/lifestyle/",
+        link: "https://www.freemalaysiatoday.com/lifestyle",
         title:
           "Lifestyle | Food | Entertainment | Health | Family | Money | Travel | Tech | Pets",
         subtitle:
           "Enriching Every Moment: From Culinary Delights to Tech Trends and Beyond",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/lifestyle/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/lifestyle",
         categories: `
-        <category term="Lifestyle" scheme="https://www.freemalaysiatoday.com/lifestyle/" label="Lifestyle"/>
-        <category term="SimpleStories" scheme="https://www.freemalaysiatoday.com/category/category/leisure/simple-stories/" label="Simple Stories"/>
-        <category term="Food" scheme="https://www.freemalaysiatoday.com/category/category/leisure/food/" label="Food"/>
-        <category term="Entertainment" scheme="https://www.freemalaysiatoday.com/category/category/leisure/entertainment/" label="Entertainment"/>
-        <category term="HealthFamily" scheme="https://www.freemalaysiatoday.com/category/category/leisure/health/" label="Health and Family"/>
-        <category term="Money" scheme="https://www.freemalaysiatoday.com/category/category/leisure/money/" label="Money"/>
-        <category term="Travel" scheme="https://www.freemalaysiatoday.com/category/category/leisure/travel/" label="Travel"/>
-        <category term="Tech" scheme="https://www.freemalaysiatoday.com/category/category/leisure/tech/" label="Tech"/>
-        <category term="Pets" scheme="https://www.freemalaysiatoday.com/category/category/leisure/pets/" label="Pets"/>
+        <category term="Lifestyle" scheme="https://www.freemalaysiatoday.com/lifestyle" label="Lifestyle"/>
+        <category term="SimpleStories" scheme="https://www.freemalaysiatoday.com/category/category/leisure/simple-stories" label="Simple Stories"/>
+        <category term="Food" scheme="https://www.freemalaysiatoday.com/category/category/leisure/food" label="Food"/>
+        <category term="Entertainment" scheme="https://www.freemalaysiatoday.com/category/category/leisure/entertainment" label="Entertainment"/>
+        <category term="HealthFamily" scheme="https://www.freemalaysiatoday.com/category/category/leisure/health" label="Health and Family"/>
+        <category term="Money" scheme="https://www.freemalaysiatoday.com/category/category/leisure/money" label="Money"/>
+        <category term="Travel" scheme="https://www.freemalaysiatoday.com/category/category/leisure/travel" label="Travel"/>
+        <category term="Tech" scheme="https://www.freemalaysiatoday.com/category/category/leisure/tech" label="Tech"/>
+        <category term="Pets" scheme="https://www.freemalaysiatoday.com/category/category/leisure/pets" label="Pets"/>
         `,
       };
       break;
     case "opinion":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/opinion/feed/",
-        link: "https://www.freemalaysiatoday.com/opinion/",
+        link: "https://www.freemalaysiatoday.com/opinion",
         title: "Opinion | Editorial | Column | Letters",
         subtitle:
           "Voices That Matter: Exploring Diverse Perspectives on Todays Issues",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/opinion/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/opinion",
         categories: `
-        <category term="Opinion" scheme="https://www.freemalaysiatoday.com/opinion/" label="Opinion"/>
-        <category term="EditorialInsights" scheme="https://www.freemalaysiatoday.com/category/category/opinion/editorial/" label="Editorial Insights"/>
-        <category term="OpinionColumns" scheme="https://www.freemalaysiatoday.com/category/category/opinion/column/" label="Opinion Columns"/>
-        <category term="ReaderLetters" scheme="https://www.freemalaysiatoday.com/category/category/opinion/letters/" label="Reader Letters"/>
+        <category term="Opinion" scheme="https://www.freemalaysiatoday.com/opinion" label="Opinion"/>
+        <category term="EditorialInsights" scheme="https://www.freemalaysiatoday.com/category/category/opinion/editorial" label="Editorial Insights"/>
+        <category term="OpinionColumns" scheme="https://www.freemalaysiatoday.com/category/category/opinion/column" label="Opinion Columns"/>
+        <category term="ReaderLetters" scheme="https://www.freemalaysiatoday.com/category/category/opinion/letters" label="Reader Letters"/>
         `,
       };
       break;
     case "sports":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/sports/feed/",
-        link: "https://www.freemalaysiatoday.com/sports/",
+        link: "https://www.freemalaysiatoday.com/sports",
         title: "Sports | Football | Badminton | Tennis | Motorsports",
         subtitle:
           "The Thrill of the Game: Capturing Every Victory, Every Heartbeat",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/sports/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/sports",
         categories: `
-        <category term="SportsNews" scheme="https://www.freemalaysiatoday.com/sports/" label="Sports News"/>
-        <category term="Football" scheme="https://www.freemalaysiatoday.com/category/category/sports/football/" label="Football"/>
-        <category term="Badminton" scheme="https://www.freemalaysiatoday.com/category/category/sports/badminton/" label="Badminton"/>
-        <category term="Tennis" scheme="https://www.freemalaysiatoday.com/category/category/sports/tennis/" label="Tennis"/>
-        <category term="Motorsports" scheme="https://www.freemalaysiatoday.com/category/category/sports/motorsports/" label="Motorsports"/>
+        <category term="SportsNews" scheme="https://www.freemalaysiatoday.com/sports" label="Sports News"/>
+        <category term="Football" scheme="https://www.freemalaysiatoday.com/category/category/sports/football" label="Football"/>
+        <category term="Badminton" scheme="https://www.freemalaysiatoday.com/category/category/sports/badminton" label="Badminton"/>
+        <category term="Tennis" scheme="https://www.freemalaysiatoday.com/category/category/sports/tennis" label="Tennis"/>
+        <category term="Motorsports" scheme="https://www.freemalaysiatoday.com/category/category/sports/motorsports" label="Motorsports"/>
         `,
       };
       break;
     case "world":
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/category/world/feed/",
-        link: "https://www.freemalaysiatoday.com/category/category/world/",
+        link: "https://www.freemalaysiatoday.com/category/category/world",
         title: "World | Global News | International News",
         subtitle:
           "Navigating the Global Pulse: Unraveling the Stories Shaping Our World",
-        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/world/",
+        selfLink: "https://www.freemalaysiatoday.com/feeds/atom/world",
         categories:
-          '<category term="WorldNews" scheme="https://www.freemalaysiatoday.com/category/category/world/" label="World News"/>',
+          '<category term="WorldNews" scheme="https://www.freemalaysiatoday.com/category/category/world" label="World News"/>',
       };
       break;
     case "sea":
       payloadObj = {
         rssUrl:
           "https://cms.freemalaysiatoday.com/category/south-east-asia/feed/",
-        link: "https://www.freemalaysiatoday.com/category/category/south-east-asia/",
+        link: "https://www.freemalaysiatoday.com/category/category/south-east-asia",
         title: "Southeast Asia | Asian News | International News",
         subtitle:
           "Navigating the Global Pulse: Unraveling the Stories Shaping Our SEA (Southeast Asia)",
         selfLink:
-          "https://www.freemalaysiatoday.com/feeds/atom/south-east-asia/",
+          "https://www.freemalaysiatoday.com/feeds/atom/south-east-asia",
         categories:
-          '<category term="south-east-asiaNews" scheme="https://www.freemalaysiatoday.com/category/category/south-east-asia/" label="south-east-asia News"/>',
+          '<category term="south-east-asiaNews" scheme="https://www.freemalaysiatoday.com/category/category/south-east-asia" label="south-east-asia News"/>',
       };
       break;
     default:
       payloadObj = {
         rssUrl: "https://cms.freemalaysiatoday.com/feed/",
-        link: "https://www.freemalaysiatoday.com/",
+        link: "https://www.freemalaysiatoday.com",
         title: "Free Malaysia Today",
         subtitle:
           "Free Malaysia Today (FMT) | Current Affairs, Business, Economy, Lifestyle, News and Analysis",
-        selfLink: `https://www.freemalaysiatoday.com/feeds/atom/${slugStr}/`,
+        selfLink: `https://www.freemalaysiatoday.com/feeds/atom/${slugStr}`,
         categories:
-          '<category term="FMT" scheme="https://www.freemalaysiatoday.com/" label="Free Malaysia Today"/>',
+          '<category term="FMT" scheme="https://www.freemalaysiatoday.com" label="Free Malaysia Today"/>',
       };
   }
   return payloadObj;

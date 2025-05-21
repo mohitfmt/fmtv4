@@ -119,31 +119,31 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         />
 
         {/* Canonical URL */}
-        <link rel="canonical" href={`${fullUrl.replace("/", "")}/}`} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}`} />
 
         <link
           rel="alternate"
           type="application/atom+xml"
           title="Atom Feed"
-          href={`${domainUrl}/feeds/atom/${tag.slug}`}
+          href={`${domainUrl}/feeds/atom/${tag.slug.replace(/^\/|\/$/g, "")}`}
         />
         <link
           rel="alternate"
           type="application/rss+xml"
           title="RSS Feed"
-          href={`${siteConfig.baseUrl}/feeds/rss/${tag.slug}`}
+          href={`${siteConfig.baseUrl}/feeds/rss/${tag.slug.replace(/^\/|\/$/g, "")}`}
         />
         <link
           rel="alternate"
           type="application/feed+json"
           title="JSON Feed"
-          href={`${siteConfig.baseUrl}/feeds/json/${tag.slug}`}
+          href={`${siteConfig.baseUrl}/feeds/json/${tag.slug.replace(/^\/|\/$/g, "")}`}
         />
 
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={`${fullUrl.replace("/", "")}/`}
+          href={`${fullUrl.replace("/", "")}`}
         />
 
         {/* Open Graph */}

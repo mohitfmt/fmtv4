@@ -67,12 +67,12 @@ const Search = () => {
         <meta name="category" content="searchpage" />
 
         {/* Canonical URL */}
-        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}`} />
 
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={`${fullUrl.replace("/", "")}/`}
+          href={`${fullUrl.replace("/", "")}`}
         />
 
         <link

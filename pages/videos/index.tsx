@@ -104,12 +104,12 @@ const Videos = ({ info }: VideosProps) => {
           name="description"
           content="Watch the breaking news videos, popular videos, FMT special report and exclusive original videos on Free Malaysia Today (FMT)."
         />
-        <link rel="canonical" href={`${fullUrl.replace("/", "")}/`} />
+        <link rel="canonical" href={`${fullUrl.replace("/", "")}`} />
 
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={`${fullUrl.replace("/", "")}/`}
+          href={`${fullUrl.replace("/", "")}`}
         />
         <meta property="og:title" content="Videos" />
         {/* Open Graph / Facebook */}

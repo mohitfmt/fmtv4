@@ -161,8 +161,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         <category>Military</category>`,
         title:
           "<title>Nation | Malaysia | Politics | Economy | Society | Culture</title>",
-        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/nation/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
-        fullPath: "<link>https://www.freemalaysiatoday.com/news/</link>",
+        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/nation" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
+        fullPath: "<link>https://www.freemalaysiatoday.com/news</link>",
       };
       break;
     case "berita":
@@ -184,8 +184,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         `,
         title:
           "<title>Berita | Tempatan | Pandangan | Dunia | Politik, Ekonomi, Sukan, Teknologi</title>",
-        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/berita/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
-        fullPath: "<link>https://www.freemalaysiatoday.com/berita/</link>",
+        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/berita" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
+        fullPath: "<link>https://www.freemalaysiatoday.com/berita</link>",
       };
       break;
     case "business":
@@ -210,8 +210,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>Business | Local Business | World Business | Malaysia | FMT</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/business/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
-        fullPath: "<link>https://www.freemalaysiatoday.com/business/</link>",
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/business" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+        fullPath: "<link>https://www.freemalaysiatoday.com/business</link>",
       };
       break;
     case "headlines":
@@ -225,8 +225,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>Headlines | Latest | Malaysia | Top Stories | Local News</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/headlines/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
-        fullPath: "<link>https://www.freemalaysiatoday.com/news/</link>",
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/headlines" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+        fullPath: "<link>https://www.freemalaysiatoday.com/news</link>",
       };
       break;
     case "lifestyle":
@@ -257,8 +257,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>Lifestyle | Food | Entertainment | Health | Family | Money | Travel | Tech | Pets</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/lifestyle/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
-        fullPath: "<link>https://www.freemalaysiatoday.com/lifestyle/</link>",
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/lifestyle" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+        fullPath: "<link>https://www.freemalaysiatoday.com/lifestyle</link>",
       };
       break;
     case "opinion":
@@ -285,8 +285,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>Opinion | Editorial | Column | Letters | Malaysia | FMT</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/opinion/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
-        fullPath: "<link>https://www.freemalaysiatoday.com/opinion/</link>",
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/opinion" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+        fullPath: "<link>https://www.freemalaysiatoday.com/opinion</link>",
       };
       break;
     case "sports":
@@ -308,8 +308,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>Sports | Football | Badminton | Tennis | Motorsports</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/sports/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
-        fullPath: "<link>https://www.freemalaysiatoday.com/sports/</link>",
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/sports" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+        fullPath: "<link>https://www.freemalaysiatoday.com/sports</link>",
       };
       break;
     case "world":
@@ -326,9 +326,9 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
 
         title: "<title>World | Global News | International News | FMT</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/world/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/world" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
         fullPath:
-          "<link>https://www.freemalaysiatoday.com/category/category/world/</link>",
+          "<link>https://www.freemalaysiatoday.com/category/category/world</link>",
       };
       break;
     case "sea":
@@ -343,9 +343,9 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         title:
           "<title>SEA | Southeast Asian News | International News | FMT</title>",
         atomLink:
-          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/south-east-asia/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
+          '<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/south-east-asia" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />',
         fullPath:
-          "<link>https://www.freemalaysiatoday.com/category/category/south-east-asia/</link>",
+          "<link>https://www.freemalaysiatoday.com/category/category/south-east-asia</link>",
       };
       break;
     default:
@@ -357,8 +357,8 @@ export const fetchRSSFeedPayloads = async (slug: string) => {
         <category>Headlines</category>
         `,
         title: "<title>Free Malaysia Today | FMT</title>",
-        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/${slug}/" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
-        fullPath: "<link>https://www.freemalaysiatoday.com/</link>",
+        atomLink: `<atom:link href="https://www.freemalaysiatoday.com/feeds/rss/${slug}" rel="self" type="application/rss+xml" /> <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />`,
+        fullPath: "<link>https://www.freemalaysiatoday.com</link>",
       };
   }
   return payload;
