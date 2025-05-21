@@ -19,8 +19,8 @@ const Meta = ({
   type = "website",
 }: MetaProps) => {
   const fullCanonical = canonical
-    ? `https://www.freemalaysiatoday.com/${canonical.replace(/^\/|\/$/g, "")}/`
-    : "https://www.freemalaysiatoday.com/";
+    ? `https://www.freemalaysiatoday.com/${canonical.replace(/^\/|\/$/g, "")}`
+    : "https://www.freemalaysiatoday.com";
 
   return (
     <NextSeo

@@ -10,7 +10,7 @@ export const transformItemToJSON = (item: any) => {
 
   return {
     id: item?.id || item?.link,
-    url: item?.link,
+    url: item?.link.replace(/^\/|\/$/g, ""),
     title: item?.title,
     summary: item?.contentSnippet,
     content_html: contentEncoded,

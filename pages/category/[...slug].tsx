@@ -117,10 +117,9 @@ const NewsArticlePost = ({
 
   // const fullUrl = siteConfig.baseUrl + safeUri;
 
-  const fullUrl = `${siteConfig.baseUrl}${safeUri}`.replace(
-    "//category",
-    "/category"
-  );
+  const fullUrl = `${siteConfig.baseUrl}${safeUri}`
+    .replace("//category", "/category")
+    .replace(/^\/|\/$/g, "");
 
   const safeFeaturedImage =
     post.featuredImage?.node?.sourceUrl || `${siteConfig.iconPath}`;
@@ -189,19 +188,19 @@ const NewsArticlePost = ({
           rel="alternate"
           type="application/atom+xml"
           title="Atom Feed"
-          href={`${siteConfig.baseUrl}/feeds/atom/${feedUrlAppend}/`}
+          href={`${siteConfig.baseUrl}/feeds/atom/${feedUrlAppend}`}
         />
         <link
           rel="alternate"
           type="application/rss+xml"
           title="RSS Feed"
-          href={`${siteConfig.baseUrl}/feeds/rss/${feedUrlAppend}/`}
+          href={`${siteConfig.baseUrl}/feeds/rss/${feedUrlAppend}`}
         />
         <link
           rel="alternate"
           type="application/feed+json"
           title="JSON Feed"
-          href={`${siteConfig.baseUrl}/feeds/json/${feedUrlAppend}/`}
+          href={`${siteConfig.baseUrl}/feeds/json/${feedUrlAppend}`}
         />
 
         {/* Language alternates */}

@@ -80,13 +80,13 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
 
         <link
           rel="canonical"
-          href={`${videoArticles?.url.replace("/", "")}/`}
+          href={`${videoArticles?.url.replace("/", "")}`}
         />
 
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={`${videoArticles?.url.replace("/", "")}/`}
+          href={`${videoArticles?.url.replace("/", "")}`}
         />
 
         {/* Twitter Card Meta Tags */}

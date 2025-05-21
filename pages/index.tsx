@@ -105,7 +105,7 @@ export default function Home({
         <link
           rel="alternate"
           hrefLang="x-default"
-          href={siteConfig.canonicalBaseUrl}
+          href={siteConfig.baseUrl}
         />
         <meta
           name="copyright"
@@ -120,7 +120,7 @@ export default function Home({
         <meta name="author" content={siteConfig.siteName} />
         <meta name="publisher" content={siteConfig.siteName} />
 
-        <link rel="canonical" href={siteConfig.canonicalBaseUrl} />
+        <link rel="canonical" href={siteConfig.baseUrl} />
 
         <link
           rel="alternate"

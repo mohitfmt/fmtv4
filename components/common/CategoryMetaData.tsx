@@ -109,27 +109,27 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       {/* Alternate Links */}
       <link
         rel="canonical"
-        href={`${siteConfig.baseUrl}/${fullPathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/${fullPathName.replace(/^\/|\/$/g, "")}`}
       />
       <link
         rel="alternate"
         hrefLang="x-default"
-        href={`${siteConfig.baseUrl}/${fullPathName.replace("/", "")}/`}
+        href={`${siteConfig.baseUrl}/${fullPathName.replace(/^\/|\/$/g, "")}`}
       />
       <link
         rel="alternate"
         type="application/atom+xml"
-        href={`${siteConfig.baseUrl}/feeds/atom/${feedPath}/`}
+        href={`${siteConfig.baseUrl}/feeds/atom/${feedPath}`}
       />
       <link
         rel="alternate"
         type="application/rss+xml"
-        href={`${siteConfig.baseUrl}/feeds/rss/${feedPath}/`}
+        href={`${siteConfig.baseUrl}/feeds/rss/${feedPath}`}
       />
       <link
         rel="alternate"
         type="application/feed+json"
-        href={`${siteConfig.baseUrl}/feeds/json/${feedPath}/`}
+        href={`${siteConfig.baseUrl}/feeds/json/${feedPath}`}
       />
     </Head>
   );

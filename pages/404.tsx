@@ -9,22 +9,7 @@ const NotFound = () => {
     <>
       <Head>
         <title>We are sorry, Page not found! | Free Malaysia Today (FMT)</title>
-        <link rel="canonical" href={`${siteUrl}/404/`} />
-        <link
-          rel="alternate"
-          type="application/atom+xml"
-          href="feeds/atom/headlines/"
-        />
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          href="feeds/rss/headlines/"
-        />
-        <link
-          rel="alternate"
-          type="application/feed+json"
-          href="feeds/json/headlines/"
-        />
+
         <meta
           name="description"
           content="Explore 24/7 news on politics, economy, and more with Free Malaysia Today. Your source for unbiased Malaysian news in English & Malay since 2009."
@@ -33,7 +18,7 @@ const NotFound = () => {
           name="keywords"
           content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
         />
-
+        <link rel="canonical" href={`${siteUrl}/404`} />
         {/* Open Graph */}
         <meta
           property="og:title"

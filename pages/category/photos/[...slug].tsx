@@ -99,7 +99,7 @@ const NewsArticlePost = ({
 
   const keywords = post?.keywords?.keywords;
 
-  const fullUrl = siteConfig.baseUrl + safeUri;
+  const fullUrl = siteConfig.baseUrl + safeUri.replace(/^\/|\/$/g, "");
 
   //use safeCategories somewhere or remove it
   if (safeCategories.includes("Premium")) {
