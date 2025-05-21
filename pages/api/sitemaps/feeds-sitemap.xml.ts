@@ -88,11 +88,7 @@ ${sitemapIndexEntries}
 </sitemapindex>`;
 
     res.setHeader("Content-Type", "application/xml");
-
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=300, stale-while-revalidate"
-    );
+    res.setHeader("Cache-Control", "no-store");
 
     res.write(sitemapIndex.trim());
     res.end();

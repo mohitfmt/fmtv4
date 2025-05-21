@@ -89,8 +89,8 @@ export default function TagPage({ tag, posts }: TagPageProps) {
           item: {
             "@type": "Article",
             headline: node.title,
-            url: `${domainUrl}/category/tag/${node.slug}`,
-            datePublished: `${node.dateGmt}Z`,
+            url: `${domainUrl}${node?.uri}`,
+            datePublished: `${node?.dateGmt}Z`,
             author: {
               "@type": "Person",
               name: node.author?.node?.name || "FMT Reporters",
