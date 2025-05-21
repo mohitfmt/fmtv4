@@ -2,7 +2,7 @@ import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
-// import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
+import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
@@ -15,13 +15,7 @@ import {
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import { fbPageIds } from "@/constants/social";
-import dynamic from "next/dynamic";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
-
-const ArticleJsonLD = dynamic(
-  () => import("@/components/news-article/ArticleJsonLD"),
-  { ssr: false }
-);
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
