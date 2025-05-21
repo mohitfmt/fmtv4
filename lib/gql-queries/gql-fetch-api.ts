@@ -11,7 +11,8 @@ export async function gqlFetchAPI(
   try {
     const baseHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+
     };
 
     const res = await fetch(API_URL, {
