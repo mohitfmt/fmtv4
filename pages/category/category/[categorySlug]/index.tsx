@@ -1,7 +1,5 @@
 // pages/category/category/[categorySlug]/index.tsx
 import { GetStaticProps, GetStaticPaths } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
@@ -10,6 +8,7 @@ import {
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import siteConfig from "@/constants/site-config";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 // import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
@@ -118,14 +117,13 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     };
 
     // Fetch exactly 3 posts using gqlFetchAPI
-    const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 25,
-        where: {
-          taxQuery,
-        },
+    const variables = {
+      first: 25,
+      where: {
+        taxQuery,
       },
-    });
+    };
+    const response = await getFilteredCategoryPosts(variables);
 
     return {
       props: {

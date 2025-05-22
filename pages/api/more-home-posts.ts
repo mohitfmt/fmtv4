@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_MORE_HOME_POSTS_QUERY } from "@/lib/gql-queries/get-more-home-posts";
+import { getMoreHomePosts } from "@/lib/gql-queries/get-more-home-posts";
 import { apiErrorResponse } from "@/lib/utils";
 
 const CONTEXT = "/api/more-home-posts";
@@ -73,12 +72,10 @@ export default async function handler(
   const size = config?.pageSize;
 
   try {
-    const data = await gqlFetchAPI(GET_MORE_HOME_POSTS_QUERY, {
-      variables: {
-        category: categoryKey,
-        offset,
-        size,
-      },
+    const data = await getMoreHomePosts({
+      category: categoryKey,
+      offset,
+      size,
     });
 
     const total = data?.posts?.pageInfo?.offsetPagination?.total ?? 0;

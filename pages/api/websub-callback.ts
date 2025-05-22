@@ -538,7 +538,11 @@ async function processRevalidationItem(
   };
 
   // Include categories information for posts to enable comprehensive revalidation
-  if (item?.type === "post" && item?.categories && item?.categories?.length > 0) {
+  if (
+    item?.type === "post" &&
+    item?.categories &&
+    item?.categories?.length > 0
+  ) {
     requestBody.categories = item?.categories;
   }
 
@@ -894,23 +898,15 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       "https://www.freemalaysiatoday.com/feeds/atom/sports",
       "https://www.freemalaysiatoday.com/feeds/atom/world",
 
-      "https://www.freemalaysiatoday.com/feeds/rss/nation/",
-      "https://www.freemalaysiatoday.com/feeds/rss/berita/",
-      "https://www.freemalaysiatoday.com/feeds/rss/business/",
-      "https://www.freemalaysiatoday.com/feeds/rss/headlines/",
-      "https://www.freemalaysiatoday.com/feeds/rss/lifestyle/",
-      "https://www.freemalaysiatoday.com/feeds/rss/opinion/",
-      "https://www.freemalaysiatoday.com/feeds/rss/sports/",
-      "https://www.freemalaysiatoday.com/feeds/rss/world/",
-
-      "https://www.freemalaysiatoday.com/feeds/atom/nation/",
-      "https://www.freemalaysiatoday.com/feeds/atom/berita/",
-      "https://www.freemalaysiatoday.com/feeds/atom/business/",
-      "https://www.freemalaysiatoday.com/feeds/atom/headlines/",
-      "https://www.freemalaysiatoday.com/feeds/atom/lifestyle/",
-      "https://www.freemalaysiatoday.com/feeds/atom/opinion/",
-      "https://www.freemalaysiatoday.com/feeds/atom/sports/",
-      "https://www.freemalaysiatoday.com/feeds/atom/world/",
+      "https://cms.freemalaysiatoday.com/category/nation/feed/",
+      "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
+      "https://cms.freemalaysiatoday.com/category/business/feed/",
+      "https://cms.freemalaysiatoday.com/category/highlight/feed/",
+      "https://cms.freemalaysiatoday.com/category/leisure/feed/",
+      "https://cms.freemalaysiatoday.com/category/opinion/feed/",
+      "https://cms.freemalaysiatoday.com/category/sports/feed/",
+      "https://cms.freemalaysiatoday.com/category/world/feed/",
+      "https://cms.freemalaysiatoday.com/feed/",
     ];
 
     for (const feedUrl of feedUrls) {

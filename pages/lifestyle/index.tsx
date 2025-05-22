@@ -1,5 +1,4 @@
 import { GetStaticProps } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { CustomHomeLifestyleExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
@@ -7,10 +6,10 @@ import {
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { lifestyleLandingTargetingParams } from "@/constants/ads-targeting-params/lifestyle";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 const categoryTitle = "Lifestyle";
 const excludeVariables = CustomHomeLifestyleExcludeVariables;
@@ -45,62 +44,57 @@ const HomeLifestyle = ({
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    // Get top-lifestyle post
-    const topResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 1,
-        where: {
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: ["top-lifestyle"],
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    // Get leisure posts excluding top-lifestyle
-    const leisureResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 4,
-        where: {
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: [`${terms}`],
-              },
-            ],
-          },
-          excludeQuery: [
+    const variablesTopResponse = {
+      first: 1,
+      where: {
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
             {
-              first: 1,
-              status: "PUBLISH",
-              taxQuery: {
-                relation: "AND",
-                taxArray: [
-                  {
-                    field: "SLUG",
-                    operator: "AND",
-                    taxonomy: "CATEGORY",
-                    terms: ["top-lifestyle"],
-                  },
-                ],
-              },
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: ["top-lifestyle"],
             },
           ],
         },
       },
-    });
+    };
+    const variables4Posts = {
+      first: 4,
+      where: {
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: [`${terms}`],
+            },
+          ],
+        },
+        excludeQuery: [
+          {
+            first: 1,
+            status: "PUBLISH",
+            taxQuery: {
+              relation: "AND",
+              taxArray: [
+                {
+                  field: "SLUG",
+                  operator: "AND",
+                  taxonomy: "CATEGORY",
+                  terms: ["top-lifestyle"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    const topResponse = await getFilteredCategoryPosts(variablesTopResponse);
+    const leisureResponse = await getFilteredCategoryPosts(variables4Posts);
 
     const combinedPosts = {
       edges: [...topResponse.posts.edges, ...leisureResponse.posts.edges],
@@ -112,26 +106,25 @@ export const getStaticProps: GetStaticProps = async () => {
 
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-          variables: {
-            first: 6,
-            where: {
-              offsetPagination: { offset: 0, size: 6 },
-              taxQuery: {
-                relation: "AND",
-                taxArray: [
-                  {
-                    field: "SLUG",
-                    operator: "AND",
-                    taxonomy: "CATEGORY",
-                    terms: [category.slug],
-                  },
-                ],
-              },
-              excludeQuery: excludeVariables,
+        const variables = {
+          first: 6,
+          where: {
+            offsetPagination: { offset: 0, size: 6 },
+            taxQuery: {
+              relation: "AND",
+              taxArray: [
+                {
+                  field: "SLUG",
+                  operator: "AND",
+                  taxonomy: "CATEGORY",
+                  terms: [category.slug],
+                },
+              ],
             },
+            excludeQuery: excludeVariables,
           },
-        });
+        };
+        const posts = await getFilteredCategoryPosts(variables);
 
         return {
           slug: category.slug,

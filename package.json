@@ -32,6 +32,7 @@
     "keyword-extractor": "^0.0.28",
     "linkify-react": "^4.2.0",
     "linkifyjs": "^4.2.0",
+    "lru-cache": "^10.4.3",
     "lucide-react": "^0.477.0",
     "nanoid": "^5.1.2",
     "next": "^15.2.1",

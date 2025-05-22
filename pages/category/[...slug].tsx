@@ -12,10 +12,10 @@ import {
   getSafeTags,
   stripHTML,
 } from "@/lib/utils";
-import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
+import { loadPostContext } from "@/lib/loadPostContext";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -345,8 +345,9 @@ export const getStaticProps: GetStaticProps = async ({
     }
 
     // Fetch related posts
-    const relatedPosts = await getRelatedPosts(slug);
-    const moreStories = await getMoreStories(slug);
+    // const relatedPosts = await getRelatedPosts(slug);
+    // const moreStories = await getMoreStories(slug);
+    const { relatedPosts, moreStories } = await loadPostContext(slug);
 
     return {
       props: {
@@ -357,10 +358,10 @@ export const getStaticProps: GetStaticProps = async ({
           data?.posts?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
           [],
         relatedPosts:
-          relatedPosts?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
+          relatedPosts?.map((post: any) => post?.node).filter(Boolean) ||
           [],
         moreStories:
-          moreStories?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
+          moreStories?.map((story: any) => story?.node).filter(Boolean) ||
           [],
       },
       revalidate: REVALIDATION_INTERVAL,

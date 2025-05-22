@@ -1,13 +1,12 @@
 import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { PostCardProps } from "@/types/global";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import AuthorLayout from "@/components/author-page/AuthorLayout";
-import { GET_AUTHOR } from "@/lib/gql-queries/get-user";
+import { getAuthor } from "@/lib/gql-queries/get-user";
 import siteConfig from "@/constants/site-config";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 interface Author {
   name: string;
@@ -179,40 +178,32 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
   params,
 }) => {
-  // For catch-all routes, params.slug will be an array
   const slugArray = params?.slug;
-  if (!slugArray || !Array.isArray(slugArray) || slugArray?.length === 0) {
+  if (!slugArray || !Array.isArray(slugArray) || slugArray.length === 0) {
     return { notFound: true };
   }
 
-  // Get the last segment of the slug array
-  const authorSlug = slugArray[slugArray?.length - 1];
+  const authorSlug = slugArray[slugArray.length - 1];
 
   try {
-    const userData = await gqlFetchAPI(GET_AUTHOR, {
-      variables: {
-        userId: authorSlug,
-        idType: "SLUG",
-      },
-    });
+    const userData = await getAuthor({ userId: authorSlug, idType: "SLUG" });
 
     if (!userData?.user) {
       return { notFound: true };
     }
 
-    const postsData = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 24,
-        where: {
-          author: userData?.user?.databaseId,
-        },
+    const variables = {
+      first: 24,
+      where: {
+        author: userData.user.databaseId,
       },
-    });
+    };
+    const postsData = await getFilteredCategoryPosts(variables);
 
     return {
       props: {
-        author: userData?.user,
-        posts: postsData?.posts,
+        author: userData.user,
+        posts: postsData.posts,
       },
       revalidate: 1500,
     };

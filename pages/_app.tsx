@@ -73,22 +73,22 @@ export default function App({
   }, []);
 
   const content = (
-    <div
-      className={`${bitter.variable} ${rhd.variable} ${roboto.variable} min-h-screen bg-background text-foreground`}
-    >
-      <NextTopLoader
-        color="#FFD700"
-        initialPosition={0.08}
-        crawlSpeed={500}
-        height={3}
-        crawl={true}
-        showSpinner={false}
-        easing="easeInOutCubic"
-        speed={500}
-      />
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
+    <div className={`${bitter.variable} ${rhd.variable} ${roboto.variable}`}>
+      <div className="min-h-screen bg-background text-foreground">
+        <NextTopLoader
+          color="#FFD700"
+          initialPosition={0.08}
+          crawlSpeed={500}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="easeInOutCubic"
+          speed={500}
+        />
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </div>
     </div>
   );
 

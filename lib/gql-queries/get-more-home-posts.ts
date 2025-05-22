@@ -1,3 +1,43 @@
+import { gqlFetchAPI } from "./gql-fetch-api";
+import { withLRUCache } from "@/lib/cache/withLRU";
+import { LRUCache } from "lru-cache";
+
+export const moreHomePostsCache = new LRUCache<string, any>({
+  max: 500,
+  ttl: 1000 * 60, // 1 minute
+  allowStale: false,
+  updateAgeOnGet: false,
+});
+
+async function rawGetMoreHomePosts({
+  category,
+  offset,
+  size,
+}: {
+  category: string;
+  offset: number;
+  size: number;
+}) {
+  try {
+    const data = await gqlFetchAPI(GET_MORE_HOME_POSTS_QUERY, {
+      variables: { category, offset, size },
+    });
+    return data;
+  } catch (error) {
+    console.error(
+      `[getMoreHomePosts] Error for ${category} @ page offset ${offset}:`,
+      error
+    );
+    return null;
+  }
+}
+
+export const getMoreHomePosts = withLRUCache(
+  ({ category, offset, size }) => `moreHomePosts:${category}:${offset}:${size}`,
+  rawGetMoreHomePosts,
+  moreHomePostsCache
+);
+
 export const GET_MORE_HOME_POSTS_QUERY = `
   query GetPosts($category: String!, $offset: Int!, $size: Int!) {
     posts(

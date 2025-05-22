@@ -1,6 +1,4 @@
 import { GetStaticProps, GetStaticPaths } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import {
@@ -9,6 +7,7 @@ import {
 } from "@/components/common/CategoryMetaData";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
 import siteConfig from "@/constants/site-config";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 // import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
 
 interface Props {
@@ -143,15 +142,13 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         },
       ],
     };
-
-    const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 25,
-        where: {
-          taxQuery,
-        },
+    const variables = {
+      first: 25,
+      where: {
+        taxQuery,
       },
-    });
+    };
+    const response = await getFilteredCategoryPosts(variables);
 
     // Get subcategory title from navigation
 

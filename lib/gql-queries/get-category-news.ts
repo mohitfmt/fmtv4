@@ -1,3 +1,4 @@
+import { categoryCache } from "../categoryCache";
 import { gqlFetchAPI } from "./gql-fetch-api";
 
 export async function getCategoryNews(
@@ -5,6 +6,12 @@ export async function getCategoryNews(
   limit: number,
   preview: boolean
 ) {
+  const cacheKey = JSON.stringify({ categoryName, limit, preview });
+
+  if (categoryCache.has(cacheKey)) {
+    return categoryCache.get(cacheKey)!;
+  }
+
   try {
     const data = await gqlFetchAPI(
       `
@@ -68,10 +75,13 @@ export async function getCategoryNews(
           limit,
           preview,
         },
+        cacheSeconds: 30,
       }
     );
 
-    return data?.posts?.edges.map((edge: any) => edge.node) || [];
+    const result = data?.posts?.edges.map((edge: any) => edge.node) || [];
+    categoryCache.set(cacheKey, result);
+    return result;
   } catch (error) {
     console.error(`Error fetching posts for category ${categoryName}:`, error);
     return [];

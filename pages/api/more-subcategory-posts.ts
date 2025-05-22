@@ -1,6 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 
 import {
   CustomHomeNewsExcludeVariables,
@@ -12,6 +10,7 @@ import {
   CustomHomeWorldExcludeVariables,
 } from "@/constants/categories-custom-variables";
 import { apiErrorResponse } from "@/lib/utils";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 const CATEGORY_EXCLUDE_VARIABLES: Record<string, any> = {
   news: CustomHomeNewsExcludeVariables,
@@ -103,31 +102,25 @@ export default async function handler(
   const excludeVariables = CATEGORY_EXCLUDE_VARIABLES[parentCategory];
 
   try {
-    const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: POSTS_PER_PAGE,
-        where: {
-          offsetPagination: { offset, size: POSTS_PER_PAGE },
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: [slug],
-              },
-            ],
-          },
-          ...(excludeVariables && { excludeQuery: excludeVariables }),
+    const variables = {
+      first: POSTS_PER_PAGE,
+      where: {
+        offsetPagination: { offset, size: POSTS_PER_PAGE },
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: [slug],
+            },
+          ],
         },
+        ...(excludeVariables && { excludeQuery: excludeVariables }),
       },
-    });
-
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
-    );
+    };
+    const posts = await getFilteredCategoryPosts(variables);
 
     return res.status(200).json({
       posts: posts?.posts?.edges,

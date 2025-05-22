@@ -1,18 +1,28 @@
 import { gqlFetchAPI } from "./gql-fetch-api";
+import { withLRUCache } from "@/lib/cache/withLRU";
+import { LRUCache } from "lru-cache";
 
-export async function getPostAndMorePosts(
+export const postPageCache = new LRUCache<string, any>({
+  max: 500,
+  ttl: 1000 * 60 * 3, // 3 minutes
+  allowStale: false,
+  updateAgeOnGet: false,
+});
+
+async function rawGetPostAndMorePosts(
   slug: string,
   preview: boolean,
   previewData: any
 ) {
   const postPreview = preview && previewData?.post;
-  // The slug may be the id of an unpublished post
   const isId = Number.isInteger(Number(slug));
   const isSamePost = isId
-    ? Number(slug) === postPreview.id
-    : slug === postPreview.slug;
+    ? Number(slug) === postPreview?.id
+    : slug === postPreview?.slug;
+
   const isDraft = isSamePost && postPreview?.status === "draft";
   const isRevision = isSamePost && postPreview?.status === "publish";
+
   const data = await gqlFetchAPI(
     `
       fragment AuthorFields on User {
@@ -67,12 +77,12 @@ export async function getPostAndMorePosts(
           }
         }
       }
+
       query PostBySlug($id: ID!, $idType: PostIdType!) {
         post(id: $id, idType: $idType) {
           ...PostFields
           content
           ${
-            // Only some of the fields of a revision are considered as there are some inconsistencies
             isRevision
               ? `
           revisions(first: 1, where: { orderby: { field: MODIFIED, order: DESC } }) {
@@ -93,6 +103,7 @@ export async function getPostAndMorePosts(
               : ""
           }
         }
+
         posts(first: 3, where: { orderby: { field: DATE, order: DESC } }) {
           edges {
             node {
@@ -110,22 +121,23 @@ export async function getPostAndMorePosts(
     }
   );
 
-  // Draft posts may not have an slug
   if (isDraft) data.post.slug = postPreview.id;
-  // Apply a revision (changes in a published post)
   if (isRevision && data.post.revisions) {
     const revision = data.post.revisions.edges[0]?.node;
-
     if (revision) Object.assign(data.post, revision);
     delete data.post.revisions;
   }
 
-  // Filter out the main post
   data.posts.edges = data.posts.edges.filter(
     ({ node }: any) => node.slug !== slug
   );
-  // If there are still 3 posts, remove the last one
   if (data.posts.edges.length > 2) data.posts.edges.pop();
 
   return data;
 }
+
+export const getPostAndMorePosts = withLRUCache(
+  (slug, preview, previewData) => `post:${slug}:${preview ? "p" : "np"}`,
+  rawGetPostAndMorePosts,
+  postPageCache
+);

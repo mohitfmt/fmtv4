@@ -1,6 +1,16 @@
 import { gqlFetchAPI } from "./gql-fetch-api";
+import { withLRUCache } from "@/lib/cache/withLRU";
+import { LRUCache } from "lru-cache";
 
-export async function getAboutPage() {
+// 🔑 Named export so it can be cleared manually
+export const aboutPageCache = new LRUCache<string, any>({
+  max: 10,
+  ttl: 1000 * 60 * 10, // 10 minutes
+  allowStale: false,
+  updateAgeOnGet: false,
+});
+
+async function rawGetAboutPage() {
   const query = `
     query GetPage {
       page(id: "about", idType: URI) {
@@ -22,3 +32,9 @@ export async function getAboutPage() {
     return null;
   }
 }
+
+export const getAboutPage = withLRUCache(
+  () => "page:about",
+  rawGetAboutPage,
+  aboutPageCache
+);

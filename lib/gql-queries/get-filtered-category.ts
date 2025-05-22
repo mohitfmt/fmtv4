@@ -76,6 +76,7 @@ export interface PostsVariables {
   where?: {
     taxQuery?: TaxQuery;
     status?: string;
+    [key: string]: any;
   };
 }
 

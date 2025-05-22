@@ -1,11 +1,10 @@
 import { GetStaticProps } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { PostCardProps } from "@/types/global";
 import Meta from "@/components/common/Meta";
 import PhotoGrid from "@/components/gallery/PhotoGrid";
 import AdSlot from "@/components/common/AdSlot";
 import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 interface Props {
   posts: {
@@ -85,24 +84,23 @@ const PhotosPage = ({ posts }: Props) => {
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 12,
-        where: {
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: ["photos"],
-              },
-            ],
-          },
+    const variables = {
+      first: 12,
+      where: {
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: ["photos"],
+            },
+          ],
         },
       },
-    });
+    };
+    const response = await getFilteredCategoryPosts(variables);
 
     return {
       props: {

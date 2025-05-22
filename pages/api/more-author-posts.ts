@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 import { apiErrorResponse } from "@/lib/utils";
 
 const CONTEXT = "/api/more-author-posts";
@@ -55,16 +54,15 @@ export default async function handler(
   );
 
   try {
-    const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: POSTS_PER_PAGE,
-        where: {
-          offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
-          authorIn: [parsedAuthorId],
-          status: "PUBLISH",
-        },
+    const variables = {
+      first: POSTS_PER_PAGE,
+      where: {
+        offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
+        authorIn: [parsedAuthorId],
+        status: "PUBLISH",
       },
-    });
+    };
+    const response = await getFilteredCategoryPosts(variables);
 
     return res.status(200).json({
       posts: response?.posts,

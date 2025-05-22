@@ -1,10 +1,9 @@
 import { YouTubeEmbed } from "@next/third-parties/google";
 import Image from "next/image";
 import { GetStaticProps } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/common/AdSlot";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPreview";
 import { PostsResponse } from "@/types/global";
 import Meta from "@/components/common/Meta";
@@ -20,9 +19,7 @@ const dfpTargetingParams = {
   key: ["Accelerator", ...gerneralTargetingKeys],
 };
 
-// Constants for cache and revalidation times
-const CACHE_MAXAGE = 3600; // 1 hour
-const STALE_REVALIDATE = 60; // 1 minute
+
 const ISR_REVALIDATE = 30 * 24 * 60 * 60; // 30 days
 const ERROR_REVALIDATE = 60; // 1 minute
 
@@ -43,17 +40,8 @@ async function fetchAcceleratorData() {
     },
   };
 
-  // Add cache headers to the request
-  const requestHeaders = {
-    "Cache-Control": `s-maxage=${CACHE_MAXAGE}, stale-while-revalidate=${STALE_REVALIDATE}`,
-  };
-
   try {
-    const data = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables,
-      headers: requestHeaders,
-    });
-
+    const data = await getFilteredCategoryPosts(variables);
     return data;
   } catch (error) {
     console.error("Error fetching data:", error);

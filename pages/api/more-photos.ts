@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { apiErrorResponse } from "@/lib/utils"; // your renamed centralized error helper
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 const CONTEXT = "/api/more-photos";
 const POSTS_PER_PAGE = 12;
@@ -50,25 +49,24 @@ export default async function handler(
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=60");
 
   try {
-    const response = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: POSTS_PER_PAGE,
-        where: {
-          offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: [categorySlug],
-              },
-            ],
-          },
+    const variables = {
+      first: POSTS_PER_PAGE,
+      where: {
+        offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: [categorySlug],
+            },
+          ],
         },
       },
-    });
+    };
+    const response = await getFilteredCategoryPosts(variables);
 
     return res.status(200).json({ posts: response?.posts });
   } catch (error) {

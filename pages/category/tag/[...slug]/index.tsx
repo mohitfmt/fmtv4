@@ -1,7 +1,6 @@
 import { GetStaticProps, GetStaticPaths } from "next";
 import TagLayout from "@/components/tags-page/TagLayout";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
-import { GET_TAG } from "@/lib/gql-queries/get-tag";
+import { getTag } from "@/lib/gql-queries/get-tag";
 import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { PostCardProps, Tag } from "@/types/global";
 import Head from "next/head";
@@ -9,6 +8,7 @@ import siteConfig from "@/constants/site-config";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { WebPageJsonLD } from "@/constants/jsonlds/org";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 interface TagNode {
   uri: string;
@@ -207,7 +207,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   try {
     const tagsData = await gqlFetchAPI(
       `query GetAllTagsWithUri {
-        tags(first: 15) {
+        tags(first: 100) {
           edges {
             node {
               id
@@ -245,7 +245,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps<TagPageProps> = async ({
   params,
 }) => {
-  // Ensure params exists and slug is either a string or array
   const slug = params?.slug;
   const tagSlug = Array.isArray(slug) ? slug[0] : slug;
 
@@ -254,48 +253,40 @@ export const getStaticProps: GetStaticProps<TagPageProps> = async ({
   }
 
   try {
-    // Fetch tag data
-    const tagData = await gqlFetchAPI(GET_TAG, {
-      variables: {
-        tagId: tagSlug,
-        idType: "SLUG",
-      },
-    });
+    const tagData = await getTag(tagSlug); // ✅ Uses LRU cached fetch
 
     if (!tagData?.tag) {
       return { notFound: true };
     }
 
-    // Modify the posts query to use taxQuery for filtering by tag
-    const postsData = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 24, // Increased to ensure we have enough posts
-        where: {
-          taxQuery: {
-            taxArray: [
-              {
-                taxonomy: "TAG",
-                field: "SLUG",
-                terms: [tagSlug],
-                operator: "IN",
-              },
-            ],
-            relation: "AND",
-          },
-          status: "PUBLISH",
+    const variables = {
+      first: 24,
+      where: {
+        taxQuery: {
+          taxArray: [
+            {
+              taxonomy: "TAG",
+              field: "SLUG",
+              terms: [tagSlug],
+              operator: "IN",
+            },
+          ],
+          relation: "AND",
         },
+        status: "PUBLISH",
       },
-    });
+    };
+    const postsData = await getFilteredCategoryPosts(variables); // ✅ Uses LRU cached fetch
 
     return {
       props: {
         tag: tagData.tag,
         posts: postsData.posts,
       },
-      revalidate: 300,
+      revalidate: 300, // 5 minutes
     };
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching tag or posts:", error);
     return { notFound: true };
   }
 };

@@ -1,5 +1,4 @@
 import { GetStaticProps } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { CustomHomeOpinionExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
@@ -7,10 +6,10 @@ import {
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { opinionLandingTargetingParams } from "@/constants/ads-targeting-params/opinion";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 const categoryTitle = "Opinion";
 const excludeVariables = CustomHomeOpinionExcludeVariables;
@@ -45,26 +44,24 @@ const HomeOpinion = ({
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    // Initial fetch for main category
-    const initialPosts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 5,
-        where: {
-          offsetPagination: { offset: 0, size: 5 },
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: [`${terms}`],
-              },
-            ],
-          },
+    const variablesInitialPosts = {
+      first: 5,
+      where: {
+        offsetPagination: { offset: 0, size: 5 },
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: [`${terms}`],
+            },
+          ],
         },
       },
-    });
+    };
+    const initialPosts = await getFilteredCategoryPosts(variablesInitialPosts);
 
     // Find current page config
     const currentPage = categoriesNavigation.find(
@@ -74,26 +71,25 @@ export const getStaticProps: GetStaticProps = async () => {
     // Fetch initial posts for each subcategory
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-          variables: {
-            first: 6,
-            where: {
-              offsetPagination: { offset: 0, size: 6 },
-              taxQuery: {
-                relation: "AND",
-                taxArray: [
-                  {
-                    field: "SLUG",
-                    operator: "AND",
-                    taxonomy: "CATEGORY",
-                    terms: [category.slug],
-                  },
-                ],
-              },
-              excludeQuery: excludeVariables,
+        const variables = {
+          first: 6,
+          where: {
+            offsetPagination: { offset: 0, size: 6 },
+            taxQuery: {
+              relation: "AND",
+              taxArray: [
+                {
+                  field: "SLUG",
+                  operator: "AND",
+                  taxonomy: "CATEGORY",
+                  terms: [category.slug],
+                },
+              ],
             },
+            excludeQuery: excludeVariables,
           },
-        });
+        };
+        const posts = await getFilteredCategoryPosts(variables);
 
         return {
           slug: category.slug,

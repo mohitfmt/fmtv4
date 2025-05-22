@@ -1,16 +1,15 @@
 import { GetStaticProps } from "next";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
   CategoryJsonLD,
   CategoryMetadata,
 } from "@/components/common/CategoryMetaData";
 import { categoriesMetadataConfigs } from "@/constants/categories-meta-config";
-import { GET_FILTERED_CATEGORY } from "@/lib/gql-queries/get-filtered-category";
 import { CategoryPostsLayout } from "@/components/categories-landing-page/CategoryPostsLayout";
 import { CategoryLandingProps } from "@/types/global";
 import { CustomHomeBeritaExcludeVariables } from "@/constants/categories-custom-variables";
 import { beritaLandingTargetingParams } from "@/constants/ads-targeting-params/berita";
+import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 
 const categoryTitle = "Berita Malaysia & Dunia Terkini";
 const excludeVariables = CustomHomeBeritaExcludeVariables;
@@ -46,61 +45,57 @@ const HomeBerita = ({
 export const getStaticProps: GetStaticProps = async () => {
   try {
     // Get super-news post
-    const superResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 1,
-        where: {
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: ["super-bm"],
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    // Get top-news posts excluding super-news
-    const topResponse = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-      variables: {
-        first: 4,
-        where: {
-          taxQuery: {
-            relation: "AND",
-            taxArray: [
-              {
-                field: "SLUG",
-                operator: "AND",
-                taxonomy: "CATEGORY",
-                terms: ["top-bm"],
-              },
-            ],
-          },
-          excludeQuery: [
+    const variables = {
+      first: 1,
+      where: {
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
             {
-              first: 1,
-              status: "PUBLISH",
-              taxQuery: {
-                relation: "AND",
-                taxArray: [
-                  {
-                    field: "SLUG",
-                    operator: "AND",
-                    taxonomy: "CATEGORY",
-                    terms: ["super-bm"],
-                  },
-                ],
-              },
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: ["super-bm"],
             },
           ],
         },
       },
-    });
+    };
+    const variablesTopResponse = {
+      first: 4,
+      where: {
+        taxQuery: {
+          relation: "AND",
+          taxArray: [
+            {
+              field: "SLUG",
+              operator: "AND",
+              taxonomy: "CATEGORY",
+              terms: ["top-bm"],
+            },
+          ],
+        },
+        excludeQuery: [
+          {
+            first: 1,
+            status: "PUBLISH",
+            taxQuery: {
+              relation: "AND",
+              taxArray: [
+                {
+                  field: "SLUG",
+                  operator: "AND",
+                  taxonomy: "CATEGORY",
+                  terms: ["super-bm"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    const superResponse = await getFilteredCategoryPosts(variables);
+    const topResponse = await getFilteredCategoryPosts(variablesTopResponse);
 
     // Combine posts
     const combinedPosts = {
@@ -115,26 +110,25 @@ export const getStaticProps: GetStaticProps = async () => {
     // Get subcategory posts with exclude variables
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const posts = await gqlFetchAPI(GET_FILTERED_CATEGORY, {
-          variables: {
-            first: 6,
-            where: {
-              offsetPagination: { offset: 0, size: 6 },
-              taxQuery: {
-                relation: "AND",
-                taxArray: [
-                  {
-                    field: "SLUG",
-                    operator: "AND",
-                    taxonomy: "CATEGORY",
-                    terms: [category.slug],
-                  },
-                ],
-              },
-              excludeQuery: excludeVariables,
+        const variables4Posts = {
+          first: 6,
+          where: {
+            offsetPagination: { offset: 0, size: 6 },
+            taxQuery: {
+              relation: "AND",
+              taxArray: [
+                {
+                  field: "SLUG",
+                  operator: "AND",
+                  taxonomy: "CATEGORY",
+                  terms: [category.slug],
+                },
+              ],
             },
+            excludeQuery: excludeVariables,
           },
-        });
+        };
+        const posts = await getFilteredCategoryPosts(variables4Posts);
 
         return {
           slug: category.slug,
