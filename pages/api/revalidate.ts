@@ -1,4 +1,3 @@
-// pages/api/revalidate.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
 import { playlistCache, postDataCache } from "@/lib/api";
@@ -27,8 +26,8 @@ function extractSectionFromSlug(slug: string): string | null {
 
 function normalizeSlugPath(path?: string): string | undefined {
   return path
-    ?.replace(/^\/+/, "")
-    .replace(/^(category\/)+/, "")
+    ?.replace(/^\/+/g, "")
+    .replace(/^(category\/)+/g, "")
     .replace(/^\/+|\/+$/g, "");
 }
 
@@ -41,16 +40,19 @@ export default async function handler(
   }
 
   const { type, slug: rawSlug, path, postSlug, id, retryCount = 0 } = req.body;
-  const slug = rawSlug || postSlug || normalizeSlugPath(path);
+  const slug =
+    (rawSlug && rawSlug.trim()) ||
+    (postSlug && postSlug.trim()) ||
+    normalizeSlugPath(path);
 
-  if (!type || (!slug && !id)) {
+  if (!type || (!slug && slug !== "" && !id)) {
     return res.status(400).json({ message: "Missing required parameters" });
   }
 
   try {
     const tagsToPurge: string[] = [];
     const pathsToRevalidate: string[] = [];
-
+    pathsToRevalidate.push("/");
     switch (type) {
       case "about": {
         aboutPageCache.delete("page:about");
@@ -140,9 +142,12 @@ export default async function handler(
       console.warn(
         `[Retrying] Attempt ${retryCount + 1}/3 for type=${type}, slug=${slug}`
       );
+      const baseUrl =
+        process.env.NEXT_PUBLIC_BASE_URL ||
+        "https://dev-v4.freemalaysiatoday.com";
       setTimeout(
         () => {
-          fetch("/api/revalidate", {
+          fetch(`${baseUrl}/api/revalidate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
