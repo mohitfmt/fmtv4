@@ -1,3 +1,4 @@
+// pages/api/revalidate.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
 import { playlistCache, postDataCache } from "@/lib/api";
@@ -27,7 +28,7 @@ function extractSectionFromSlug(slug: string): string | null {
 function normalizeSlugPath(path?: string): string | undefined {
   return path
     ?.replace(/^\/+/g, "")
-    .replace(/^(category\/)+/g, "")
+    .replace(/^(category\/)+/g, "") // handles "category/category"
     .replace(/^\/+|\/+$/g, "");
 }
 
@@ -40,19 +41,17 @@ export default async function handler(
   }
 
   const { type, slug: rawSlug, path, postSlug, id, retryCount = 0 } = req.body;
-  const slug =
-    (rawSlug && rawSlug.trim()) ||
-    (postSlug && postSlug.trim()) ||
-    normalizeSlugPath(path);
+  const slug = rawSlug || postSlug || normalizeSlugPath(path);
 
   if (!type || (!slug && slug !== "" && !id)) {
+    console.error("[Validation Error]", { type, slug, id });
     return res.status(400).json({ message: "Missing required parameters" });
   }
 
+  const tagsToPurge: string[] = [];
+  const pathsToRevalidate: string[] = [];
+
   try {
-    const tagsToPurge: string[] = [];
-    const pathsToRevalidate: string[] = [];
-    pathsToRevalidate.push("/");
     switch (type) {
       case "about": {
         aboutPageCache.delete("page:about");
@@ -80,6 +79,7 @@ export default async function handler(
           tagsToPurge.push(`path:${sectionPath}`);
         }
 
+        // Always revalidate homepage for any article
         filteredCategoryCache.clear();
         pathsToRevalidate.push("/");
         tagsToPurge.push("path:/");
@@ -89,21 +89,28 @@ export default async function handler(
       case "author": {
         filteredCategoryCache.clear();
         pathsToRevalidate.push(`/category/author/${slug}`);
-        tagsToPurge.push(`author:${slug}`, `path:/category/author/${slug}`);
+        pathsToRevalidate.push("/");
+        tagsToPurge.push(
+          `author:${slug}`,
+          `path:/category/author/${slug}`,
+          "path:/"
+        );
         break;
       }
 
       case "tag": {
         filteredCategoryCache.clear();
         pathsToRevalidate.push(`/category/tag/${slug}`);
-        tagsToPurge.push(`tag:${slug}`, `path:/category/tag/${slug}`);
+        pathsToRevalidate.push("/");
+        tagsToPurge.push(`tag:${slug}`, `path:/category/tag/${slug}`, "path:/");
         break;
       }
 
       case "video": {
         playlistCache.delete(`playlist:${id}`);
         pathsToRevalidate.push(`/videos/${slug}`);
-        tagsToPurge.push(`playlist:${id}`, `path:/videos/${slug}`);
+        pathsToRevalidate.push("/");
+        tagsToPurge.push(`playlist:${id}`, `path:/videos/${slug}`, "path:/");
         break;
       }
 
@@ -118,25 +125,38 @@ export default async function handler(
       case "category": {
         const sectionPath = resolveSectionPath(slug);
         filteredCategoryCache.clear();
-        pathsToRevalidate.push(`/${sectionPath}`);
-        tagsToPurge.push(`path:/${sectionPath}`);
+        pathsToRevalidate.push(`/${sectionPath}`, "/");
+        tagsToPurge.push(`path:/${sectionPath}`, "path:/");
         break;
       }
 
       default:
+        console.error(`[Unsupported Type]`, type);
         return res.status(400).json({ message: `Unsupported type: ${type}` });
     }
 
     for (const path of pathsToRevalidate) {
-      await res.revalidate(path);
+      try {
+        await res.revalidate(path);
+      } catch (err) {
+        console.error("[Revalidate Fail]", { path, error: err });
+      }
     }
 
-    await purgeCloudflareByTags(tagsToPurge);
+    try {
+      await purgeCloudflareByTags(tagsToPurge);
+    } catch (err) {
+      console.error("[Cloudflare Purge Fail]", {
+        tags: tagsToPurge,
+        error: err,
+      });
+    }
+
     return res
       .status(200)
       .json({ revalidated: true, type, slugOrId: slug || id });
   } catch (error: any) {
-    console.error("[Revalidate Error]", error);
+    console.error("[Revalidate Error]", { type, slug, id, error });
 
     if (retryCount < 2) {
       console.warn(
@@ -145,6 +165,7 @@ export default async function handler(
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL ||
         "https://dev-v4.freemalaysiatoday.com";
+
       setTimeout(
         () => {
           fetch(`${baseUrl}/api/revalidate`, {
