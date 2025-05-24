@@ -1,5 +1,5 @@
 # Dependency stage
-FROM node:20.12-bullseye-slim AS deps
+FROM node:20.12-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY prisma ./prisma
 RUN npm ci --legacy-peer-deps --ignore-optional
 
 # Builder stage
-FROM node:20.12-bullseye-slim AS builder
+FROM node:20.12-alpine AS builder
 WORKDIR /app
 
 # Environment Variables for build time
@@ -139,7 +139,7 @@ RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next
 
 # Copy necessary files
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/ ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/prisma ./prisma
