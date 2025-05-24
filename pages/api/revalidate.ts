@@ -162,6 +162,7 @@ export default async function handler(
       console.warn(
         `[Retrying] Attempt ${retryCount + 1}/3 for type=${type}, slug=${slug}`
       );
+      // const baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com"}`;
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL ||
         "https://dev-v4.freemalaysiatoday.com";

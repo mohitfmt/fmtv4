@@ -1,4 +1,16 @@
-interface Window {
+// types/global.d.ts
+export {};
+declare namespace NodeJS {
+  interface Global {
+    /** Exposed when you run Node with --expose-gc */
+    gc?: () => void;
+  }
+}
+
+// 2) Also make `gc()` itself callable at top-level
+declare let gc: (() => void) | undefined;
+
+export interface Window {
   google?: {
     accounts: {
       id: {
@@ -30,7 +42,7 @@ interface Window {
   gtag: (...args: any[]) => void;
 }
 
-interface PromptMomentNotification {
+export interface PromptMomentNotification {
   isDisplayed: () => boolean;
   isSkippedMoment: () => boolean;
   getSkippedReason: () => string;
@@ -38,7 +50,7 @@ interface PromptMomentNotification {
   getDismissedReason: () => string;
   getMomentType: () => string;
 }
-interface MostViewedItemType {
+export interface MostViewedItemType {
   uri: string;
   title: string;
   date: string;
@@ -46,21 +58,21 @@ interface MostViewedItemType {
   slug: string;
 }
 
-interface CategoryNode {
+export interface CategoryNode {
   id: string;
   name: string;
   slug: string;
 }
 
-interface CategoryEdge {
+export interface CategoryEdge {
   node: CategoryNode;
 }
 
-interface Categories {
+export interface Categories {
   edges: CategoryEdge[];
 }
 
-interface Author {
+export interface Author {
   uri: string;
   slug: string;
   name: string;
@@ -71,13 +83,13 @@ interface Author {
   };
 }
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
   slug: string;
 }
 
-interface Tag {
+export interface Tag {
   id: string;
   name: string;
   slug: string;
@@ -86,7 +98,7 @@ interface Tag {
   databaseId: number;
 }
 
-interface FeaturedImage {
+export interface FeaturedImage {
   sourceUrl: string;
   mediaItemUrl: string;
 }
@@ -122,7 +134,7 @@ export interface PostCardProps {
   };
 }
 
-interface PostsResponse {
+export interface PostsResponse {
   posts: {
     edges: Array<{
       node: PostCardProps;
@@ -130,7 +142,7 @@ interface PostsResponse {
   };
 }
 
-interface AdsTargetingParams {
+export interface AdsTargetingParams {
   pos: string;
   section: string[];
   key?: string[];
@@ -139,7 +151,7 @@ interface AdsTargetingParams {
   sponsored?: string;
 }
 
-interface SubCategoryPost {
+export interface SubCategoryPost {
   slug: string;
   posts: {
     edges: PostsResponse["posts"]["edges"];
@@ -147,7 +159,7 @@ interface SubCategoryPost {
   bigImage: boolean;
 }
 
-interface CategoryLandingProps {
+export interface CategoryLandingProps {
   posts: {
     edges: PostsResponse["posts"]["edges"];
   };
@@ -160,7 +172,7 @@ interface CategoryLandingProps {
   };
 }
 
-interface TaxQuery {
+export interface TaxQuery {
   taxArray: Array<{
     terms: string[];
     taxonomy: string;
@@ -170,7 +182,7 @@ interface TaxQuery {
   relation: string;
 }
 
-interface PostsVariables {
+export interface PostsVariables {
   first: number;
   where?: {
     taxQuery?: TaxQuery;
@@ -178,7 +190,7 @@ interface PostsVariables {
   };
 }
 
-interface VideoDetailPageProps {
+export interface VideoDetailPageProps {
   video: any;
   videos: any[];
   videoId: string;
@@ -194,7 +206,7 @@ interface VideoDetailPageProps {
   };
   videoArticles: any;
 }
-interface VideoContentProps {
+export interface VideoContentProps {
   video: any;
   videoId: string;
   shareUrl: string;
@@ -242,7 +254,7 @@ export interface YouTubeChannelInfo {
   id?: string;
 }
 
-interface TaxQuery {
+export interface TaxQuery {
   relation: "AND" | "OR";
   taxArray: {
     field: string;
@@ -252,22 +264,22 @@ interface TaxQuery {
   }[];
 }
 
-interface OffsetPagination {
+export interface OffsetPagination {
   offset: number;
   size: number;
 }
 
-interface SearchWhereClause {
+export interface SearchWhereClause {
   search: string | undefined;
   offsetPagination: OffsetPagination;
   taxQuery?: TaxQuery;
 }
 
-interface SearchVariables {
+export interface SearchVariables {
   where: SearchWhereClause;
 }
 
-interface ArticleData {
+export interface ArticleData {
   tags?: { edges?: { node?: { name?: string } }[] };
   uri?: string;
   content?: string;
@@ -289,7 +301,7 @@ interface ArticleData {
   categories?: { edges?: { node?: { name?: string } }[] };
 }
 
-interface HomePost {
+export interface HomePost {
   title: string;
   excerpt: string;
   slug: string;

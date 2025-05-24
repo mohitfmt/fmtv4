@@ -1,0 +1,18 @@
+User-agent: *
+Disallow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+
+User-agent: Mediapartners-Google
+Allow: /
+
+Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
+Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/news-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/landing-page-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/video-sitemap.xml
+Sitemap: https://www.freemalaysiatoday.com/feeds-sitemap.xml

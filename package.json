@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "node --expose-gc .output/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -27,6 +27,7 @@
     "embla-carousel": "^8.5.2",
     "embla-carousel-autoplay": "^8.5.2",
     "embla-carousel-react": "^8.5.2",
+    "heapdump": "^0.3.15",
     "html-react-parser": "^5.2.0",
     "jwt-decode": "^4.0.0",
     "keyword-extractor": "^0.0.28",
@@ -70,6 +71,7 @@
     "prettier": "^3.4.1",
     "prisma": "^6.0.1",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "why-is-node-running": "^3.2.2"
   }
 }

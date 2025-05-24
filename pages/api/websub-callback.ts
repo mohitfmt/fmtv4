@@ -1,4 +1,29 @@
 // pages/api/websub-callback.ts
+
+if (process.env.NODE_ENV !== "production") {
+  ;(async () => {
+    const { startMemoryDebugger, track } = await import(
+      "@/lib/debug/memoryDebugger"
+    );
+    const { postDataCache, playlistCache } = await import("@/lib/api");
+    const { filteredCategoryCache } = await import(
+      "@/lib/gql-queries/get-filtered-category-posts"
+    );
+
+    startMemoryDebugger({
+      label: "WebSub",
+      interval: 30_000,
+      enableGC: true,
+      enableHandlesDump: true,
+      heapDumpInterval: 30 * 60 * 1_000,
+    });
+
+    track("postDataCache.size", () => postDataCache.size);
+    track("playlistCache.size", () => playlistCache.size);
+    track("filteredCategoryCache.size", () => filteredCategoryCache.size);
+  })();
+}
+
 import { addMinutes } from "date-fns";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
