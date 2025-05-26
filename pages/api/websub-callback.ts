@@ -1,7 +1,7 @@
 // pages/api/websub-callback.ts
 
-if (process.env.NODE_ENV !== "production") {
-  ;(async () => {
+if (process.env.DEBUG_MEMORY === "true") {
+  (async () => {
     const { startMemoryDebugger, track } = await import(
       "@/lib/debug/memoryDebugger"
     );

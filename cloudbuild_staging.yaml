@@ -194,47 +194,17 @@ steps:
           --region=${_REGION} \
           --quiet
 
-        if [ $? -eq 0 ]; then
-          echo "✨ Deployment completed successfully!"
-          
-          # Optional: Remove old revision after successful deployment
-          echo "🧹 Scheduling cleanup of old revisions..."
-          gcloud run revisions list \
-            --service=${_SERVICE_NAME} \
-            --region=${_REGION} \
-            --filter="status.conditions.status=False" \
-            --format="value(name)" | \
-            xargs -I {} gcloud run revisions delete {} \
-            --region=${_REGION} --quiet || true
-            
-          # Optional: Clear Cloudflare cache
-          # echo "🧹 Purging Cloudflare cache..."
-          # curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
-          #   -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
-          #   -H "Content-Type: application/json" \
-          #   --data '{"purge_everything":true}'
-        else
-          echo "❌ Traffic switch failed!"
-          exit 1
-        fi
 
 # Substitution variables
 substitutions:
   _REGION: asia-southeast1
   _SERVICE_NAME: fmt-v4
-  _SERVICE_ACCOUNT: fmt-v4-sa@${PROJECT_ID}.iam.gserviceaccount.com
 
 # Build configuration
 options:
-  # Use a high-CPU machine for faster builds
   machineType: "E2_HIGHCPU_8"
-  # Enable dynamic substitutions for environment variables
   dynamic_substitutions: true
-  # Log to Cloud Logging
   logging: CLOUD_LOGGING_ONLY
-  # Use kaniko for better caching (optional)
-  # pool:
-  #   name: 'projects/${PROJECT_ID}/locations/${_REGION}/workerPools/build-pool'
 
 # Build timeout (30 minutes)
 timeout: 1800s
