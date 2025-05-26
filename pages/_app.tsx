@@ -13,6 +13,31 @@ import Head from "next/head";
 // import siteConfig from "@/constants/site-config";
 import Script from "next/script";
 
+
+if (process.env.DEBUG_MEMORY === "true") {
+  ;(async () => {
+    const { startMemoryDebugger, track } = await import(
+      "@/lib/debug/memoryDebugger"
+    );
+    const { postDataCache, playlistCache } = await import("@/lib/api");
+    const { filteredCategoryCache } = await import(
+      "@/lib/gql-queries/get-filtered-category-posts"
+    );
+
+    startMemoryDebugger({
+      label: "app.tsx - Memory Debugger",
+      interval: 30_000,
+      enableGC: true,
+      enableHandlesDump: true,
+      heapDumpInterval: 30 * 60 * 1_000,
+    });
+
+    track("postDataCache.size", () => postDataCache.size);
+    track("playlistCache.size", () => playlistCache.size);
+    track("filteredCategoryCache.size", () => filteredCategoryCache.size);
+  })();
+}
+
 const preloadGPTScript = () => {
   const link = document.createElement("link");
   link.rel = "preload";

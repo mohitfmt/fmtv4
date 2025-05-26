@@ -226,6 +226,18 @@ const nextConfig: NextConfig = {
         "path",
         "url",
       ];
+    } else {
+      // client‐only: stub them out so Webpack doesn't try to load them
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        path: false,
+        url: false,
+        async_hooks: false,
+        "node:async_hooks": false,
+        heapdump: false,
+        "why-is-node-running": false,
+      };
     }
     return config;
   },

@@ -1,7 +1,7 @@
 // pages/api/websub-callback.ts
 
 if (process.env.DEBUG_MEMORY === "true") {
-  (async () => {
+  ;(async () => {
     const { startMemoryDebugger, track } = await import(
       "@/lib/debug/memoryDebugger"
     );
@@ -11,7 +11,7 @@ if (process.env.DEBUG_MEMORY === "true") {
     );
 
     startMemoryDebugger({
-      label: "WebSub",
+      label: "WebSub-Memory",
       interval: 30_000,
       enableGC: true,
       enableHandlesDump: true,
@@ -69,9 +69,7 @@ const lowQueue = new PQueue({ concurrency: 2 });
 // Track when queues are processing
 let isProcessing = false;
 
-/**
- * Transforms WordPress URLs to the frontend domain
- */
+
 function transformUrl(url: string, targetDomain: string): string {
   try {
     const urlObj = new URL(url);
