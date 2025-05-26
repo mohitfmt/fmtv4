@@ -13,35 +13,6 @@ import Head from "next/head";
 // import siteConfig from "@/constants/site-config";
 import Script from "next/script";
 
-// Only run memory debugging on the server side
-if (typeof window === "undefined" && process.env.DEBUG_MEMORY === "true") {
-  ;(async () => {
-    try {
-      const { startMemoryDebugger, track } = await import(
-        "@/lib/debug/memoryDebugger"
-      );
-      const { postDataCache, playlistCache } = await import("@/lib/api");
-      const { filteredCategoryCache } = await import(
-        "@/lib/gql-queries/get-filtered-category-posts"
-      );
-
-      startMemoryDebugger({
-        label: "app.tsx - Memory Debugger",
-        interval: 30_000,
-        enableGC: true,
-        enableHandlesDump: true,
-        heapDumpInterval: 30 * 60 * 1_000,
-      });
-
-      track("postDataCache.size", () => postDataCache.size);
-      track("playlistCache.size", () => playlistCache.size);
-      track("filteredCategoryCache.size", () => filteredCategoryCache.size);
-    } catch (error) {
-      console.error("Failed to initialize memory debugger:", error);
-    }
-  })();
-}
-
 const preloadGPTScript = () => {
   const link = document.createElement("link");
   link.rel = "preload";

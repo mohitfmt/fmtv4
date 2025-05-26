@@ -1,16 +1,6 @@
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
-
-const COLUMNISTS_CACHE_TTL = 1000 * 60 * 10; // 10 minutes
-
-// Setup cache
-export const columnistCache = new LRUCache<string, any[]>({
-  max: 50,
-  ttl: COLUMNISTS_CACHE_TTL,
-  allowStale: false,
-  updateAgeOnGet: false,
-});
+import { withSmartLRUCache } from "../cache/withSmartLRU";
+import { columnistCache } from "../cache/smart-cache-registry";
 
 async function rawGetColumnists(
   ids: string[],
@@ -78,7 +68,7 @@ async function rawGetColumnists(
   }
 }
 
-export const getColumnists = withLRUCache(
+export const getColumnists = withSmartLRUCache(
   (ids, preview) => `columnists:${ids?.join(",")}:${preview ? "p" : "np"}`,
   rawGetColumnists,
   columnistCache

@@ -1,16 +1,11 @@
-// lib/gql-queries/get-filtered-category-posts.ts
+// lib/gql-queries/get-filtered-category-posts.ts - UPDATED VERSION
 import { gqlFetchAPI } from "./gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "./get-filtered-category";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
+import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
+import { filteredCategoryCache } from "@/lib/cache/smart-cache-registry";
 import type { PostsResponse, PostsVariables } from "./get-filtered-category";
 
-export const filteredCategoryCache = new LRUCache<string, PostsResponse>({
-  max: 300,
-  ttl: 1000 * 60 * 3, // 3 minutes
-  allowStale: false,
-  updateAgeOnGet: false,
-});
+// Remove old cache creation - now using smart cache from registry
 
 function generateCacheKey(variables: PostsVariables): string {
   const keyParts: string[] = [];
@@ -43,7 +38,8 @@ async function rawGetFilteredCategoryPosts(
   }
 }
 
-export const getFilteredCategoryPosts = withLRUCache(
+// Use withSmartLRUCache instead of withLRUCache
+export const getFilteredCategoryPosts = withSmartLRUCache(
   generateCacheKey,
   rawGetFilteredCategoryPosts,
   filteredCategoryCache

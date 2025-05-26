@@ -1,14 +1,6 @@
+import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
-
-// LRU cache setup
-export const headlineNewsCache = new LRUCache<string, any[]>({
-  max: 100,
-  ttl: 1000 * 60, // 1 minute
-  allowStale: false,
-  updateAgeOnGet: false,
-});
+import { headlineNewsCache } from "../cache/smart-cache-registry";
 
 async function rawGetHeadlineNews(
   categoryName: string,
@@ -69,7 +61,7 @@ async function rawGetHeadlineNews(
   }
 }
 
-export const getHeadlineNews = withLRUCache(
+export const getHeadlineNews = withSmartLRUCache(
   (categoryName: string, limit: number, preview: boolean) =>
     `headline:${categoryName}:${limit}:${preview ? "p" : "np"}`,
   rawGetHeadlineNews,

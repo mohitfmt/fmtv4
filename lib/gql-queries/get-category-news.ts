@@ -1,4 +1,4 @@
-import { categoryCache } from "../categoryCache";
+import { categoryCache } from "../cache/smart-cache-registry";
 import { gqlFetchAPI } from "./gql-fetch-api";
 
 export async function getCategoryNews(
@@ -6,10 +6,13 @@ export async function getCategoryNews(
   limit: number,
   preview: boolean
 ) {
+  // Generate a unique cache key for this specific query
   const cacheKey = JSON.stringify({ categoryName, limit, preview });
 
-  if (categoryCache.has(cacheKey)) {
-    return categoryCache.get(cacheKey)!;
+  // Check smart cache first
+  const cached = categoryCache.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   try {
@@ -39,6 +42,7 @@ export async function getCategoryNews(
                 uri
                 date
                 dateGmt
+                databaseId
                 featuredImage {
                   node {
                     sourceUrl
@@ -79,8 +83,20 @@ export async function getCategoryNews(
       }
     );
 
+    // Transform the response to extract just the nodes
     const result = data?.posts?.edges.map((edge: any) => edge.node) || [];
-    categoryCache.set(cacheKey, result);
+
+    // Extract dependencies - these are the article IDs this cache entry depends on
+    const dependencies = result
+      .map((post: any) => post.databaseId?.toString())
+      .filter(Boolean); // Remove any undefined values
+
+    // Store in smart cache with dependencies
+    // When any of these articles update, this cache entry will be automatically invalidated
+    if (result.length > 0) {
+      categoryCache.setWithDependencies(cacheKey, result, dependencies);
+    }
+
     return result;
   } catch (error) {
     console.error(`Error fetching posts for category ${categoryName}:`, error);

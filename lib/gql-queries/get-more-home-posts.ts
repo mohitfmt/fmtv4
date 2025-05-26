@@ -1,13 +1,9 @@
+// lib/gql-queries/get-more-home-posts.ts - UPDATED VERSION
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
+import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
+import { moreHomePostsCache } from "@/lib/cache/smart-cache-registry";
 
-export const moreHomePostsCache = new LRUCache<string, any>({
-  max: 500,
-  ttl: 1000 * 60, // 1 minute
-  allowStale: false,
-  updateAgeOnGet: false,
-});
+// Remove old cache creation
 
 async function rawGetMoreHomePosts({
   category,
@@ -32,7 +28,7 @@ async function rawGetMoreHomePosts({
   }
 }
 
-export const getMoreHomePosts = withLRUCache(
+export const getMoreHomePosts = withSmartLRUCache(
   ({ category, offset, size }) => `moreHomePosts:${category}:${offset}:${size}`,
   rawGetMoreHomePosts,
   moreHomePostsCache

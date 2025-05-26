@@ -1,13 +1,6 @@
+import { postPageCache } from "../cache/smart-cache-registry";
+import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
-
-export const postPageCache = new LRUCache<string, any>({
-  max: 500,
-  ttl: 1000 * 60 * 3, // 3 minutes
-  allowStale: false,
-  updateAgeOnGet: false,
-});
 
 async function rawGetPostAndMorePosts(
   slug: string,
@@ -136,7 +129,7 @@ async function rawGetPostAndMorePosts(
   return data;
 }
 
-export const getPostAndMorePosts = withLRUCache(
+export const getPostAndMorePosts = withSmartLRUCache(
   (slug, preview, previewData) => `post:${slug}:${preview ? "p" : "np"}`,
   rawGetPostAndMorePosts,
   postPageCache

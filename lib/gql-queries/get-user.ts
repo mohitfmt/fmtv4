@@ -1,7 +1,7 @@
 // lib/gql-queries/get-user.ts
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
+import { withSmartLRUCache } from "../cache/withSmartLRU";
+import { authorCache } from "../cache/smart-cache-registry";
 
 export const GET_AUTHOR = `
   query GetUser($userId: ID!, $idType: UserNodeIdTypeEnum) {
@@ -20,12 +20,6 @@ export const GET_AUTHOR = `
   }
 `;
 
-const authorCache = new LRUCache<string, any>({
-  max: 200,
-  ttl: 1000 * 60 * 5, // 5 minutes
-  allowStale: false,
-});
-
 function generateAuthorCacheKey(variables: { userId: string; idType: string }) {
   return `author:${variables.idType}:${variables.userId}`;
 }
@@ -43,7 +37,7 @@ async function rawGetAuthor(variables: {
   }
 }
 
-export const getAuthor = withLRUCache(
+export const getAuthor = withSmartLRUCache(
   generateAuthorCacheKey,
   rawGetAuthor,
   authorCache

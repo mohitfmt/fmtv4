@@ -1,9 +1,15 @@
 // pages/api/revalidate.ts
+/**
+ * Revalidation API with Smart Cache Integration
+ * This version removes all cache clearing and relies on smart invalidation
+ */
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
-import { playlistCache, postDataCache } from "@/lib/api";
-import { filteredCategoryCache } from "@/lib/gql-queries/get-filtered-category-posts";
+import { getPostData, playlistCache } from "@/lib/api";
 import { purgeCloudflareByTags } from "@/lib/cache/purge";
+import { extractCategoriesFromSlug } from "@/lib/navigation-cache";
+import { changeManager } from "@/lib/cache/smart-cache-registry";
 
 const SECTION_PATH_MAP: Record<string, string> = {
   nation: "news",
@@ -28,7 +34,7 @@ function extractSectionFromSlug(slug: string): string | null {
 function normalizeSlugPath(path?: string): string | undefined {
   return path
     ?.replace(/^\/+/g, "")
-    .replace(/^(category\/)+/g, "") // handles "category/category"
+    .replace(/^(category\/)+/g, "")
     .replace(/^\/+|\/+$/g, "");
 }
 
@@ -44,7 +50,7 @@ export default async function handler(
   const slug = rawSlug || postSlug || normalizeSlugPath(path);
 
   if (!type || (!slug && slug !== "" && !id)) {
-    console.error("[Validation Error]", { type, slug, id });
+    console.error("[Revalidate] Validation Error", { type, slug, id });
     return res.status(400).json({ message: "Missing required parameters" });
   }
 
@@ -54,6 +60,7 @@ export default async function handler(
   try {
     switch (type) {
       case "about": {
+        // About page is special - it doesn't use smart cache, so we handle it manually
         aboutPageCache.delete("page:about");
         pathsToRevalidate.push("/about");
         tagsToPurge.push("path:/about", "page:about");
@@ -62,8 +69,35 @@ export default async function handler(
 
       case "article":
       case "post": {
-        postDataCache.delete(`post:${slug}`);
-        postDataCache.delete(`related:${slug}`);
+        // For articles, we trigger smart invalidation if we can get the article ID
+        try {
+          const postData = await getPostData(slug);
+          if (postData?.post?.databaseId) {
+            // Create a content change event for the smart cache system
+            const event = {
+              type: "update" as const,
+              articleId: postData.post.databaseId.toString(),
+              slug: slug,
+              categories: extractCategoriesFromSlug(slug) || [],
+              timestamp: new Date(),
+              priority: "normal" as const,
+            };
+
+            // This single call will invalidate all cache entries that depend on this article
+            changeManager.handleContentChange(event as any);
+
+            console.log(
+              `[Revalidate] Smart invalidation triggered for article ${postData.post.databaseId}`
+            );
+          }
+        } catch (e) {
+          // If we can't get the article ID, we still continue with path revalidation
+          console.log(
+            `[Revalidate] Could not fetch article ID for ${slug}, continuing with path revalidation`
+          );
+        }
+
+        // Continue with path-based revalidation for Next.js ISR
         pathsToRevalidate.push(`/category/${slug}`);
         tagsToPurge.push(
           `post:${slug}`,
@@ -74,20 +108,18 @@ export default async function handler(
         const section = extractSectionFromSlug(slug);
         if (section) {
           const sectionPath = `/${section}`;
-          filteredCategoryCache.clear();
           pathsToRevalidate.push(sectionPath);
           tagsToPurge.push(`path:${sectionPath}`);
         }
 
         // Always revalidate homepage for any article
-        filteredCategoryCache.clear();
         pathsToRevalidate.push("/");
         tagsToPurge.push("path:/");
         break;
       }
 
       case "author": {
-        filteredCategoryCache.clear();
+        // Author pages don't need cache clearing - smart cache handles it
         pathsToRevalidate.push(`/category/author/${slug}`);
         pathsToRevalidate.push("/");
         tagsToPurge.push(
@@ -99,7 +131,7 @@ export default async function handler(
       }
 
       case "tag": {
-        filteredCategoryCache.clear();
+        // Tag pages don't need cache clearing - smart cache handles it
         pathsToRevalidate.push(`/category/tag/${slug}`);
         pathsToRevalidate.push("/");
         tagsToPurge.push(`tag:${slug}`, `path:/category/tag/${slug}`, "path:/");
@@ -107,6 +139,7 @@ export default async function handler(
       }
 
       case "video": {
+        // Videos use a separate cache that's not article-based
         playlistCache.delete(`playlist:${id}`);
         pathsToRevalidate.push(`/videos/${slug}`);
         pathsToRevalidate.push("/");
@@ -115,54 +148,75 @@ export default async function handler(
       }
 
       case "homepage": {
-        filteredCategoryCache.clear();
+        // Homepage revalidation - no cache clearing needed
         pathsToRevalidate.push("/");
-        tagsToPurge.push("path:/");
+        tagsToPurge.push("path:/", "homepage");
         break;
       }
 
       case "section":
       case "category": {
+        // Section/category revalidation - no cache clearing needed
         const sectionPath = resolveSectionPath(slug);
-        filteredCategoryCache.clear();
         pathsToRevalidate.push(`/${sectionPath}`, "/");
-        tagsToPurge.push(`path:/${sectionPath}`, "path:/");
+        tagsToPurge.push(
+          `path:/${sectionPath}`,
+          `section:${sectionPath}`,
+          "path:/"
+        );
         break;
       }
 
       default:
-        console.error(`[Unsupported Type]`, type);
+        console.error(`[Revalidate] Unsupported Type`, type);
         return res.status(400).json({ message: `Unsupported type: ${type}` });
     }
 
+    // Revalidate Next.js paths (ISR)
+    console.log(`[Revalidate] Revalidating ${pathsToRevalidate.length} paths`);
     for (const path of pathsToRevalidate) {
       try {
         await res.revalidate(path);
+        console.log(`[Revalidate] Successfully revalidated: ${path}`);
       } catch (err) {
-        console.error("[Revalidate Fail]", { path, error: err });
+        console.error("[Revalidate] Failed to revalidate path", {
+          path,
+          error: err,
+        });
       }
     }
 
-    try {
-      await purgeCloudflareByTags(tagsToPurge);
-    } catch (err) {
-      console.error("[Cloudflare Purge Fail]", {
-        tags: tagsToPurge,
-        error: err,
-      });
+    // Purge Cloudflare cache by tags
+    if (tagsToPurge.length > 0) {
+      try {
+        await purgeCloudflareByTags(tagsToPurge);
+        console.log(
+          `[Revalidate] Cloudflare tags purged: ${tagsToPurge.join(", ")}`
+        );
+      } catch (err) {
+        console.error("[Revalidate] Cloudflare purge failed", {
+          tags: tagsToPurge,
+          error: err,
+        });
+      }
     }
 
-    return res
-      .status(200)
-      .json({ revalidated: true, type, slugOrId: slug || id });
+    return res.status(200).json({
+      revalidated: true,
+      type,
+      slugOrId: slug || id,
+      pathsRevalidated: pathsToRevalidate.length,
+      tagsPurged: tagsToPurge.length,
+    });
   } catch (error: any) {
-    console.error("[Revalidate Error]", { type, slug, id, error });
+    console.error("[Revalidate] Error", { type, slug, id, error });
 
+    // Retry logic for resilience
     if (retryCount < 2) {
       console.warn(
-        `[Retrying] Attempt ${retryCount + 1}/3 for type=${type}, slug=${slug}`
+        `[Revalidate] Retrying... Attempt ${retryCount + 1}/3 for type=${type}, slug=${slug}`
       );
-      // const baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com"}`;
+
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL ||
         "https://dev-v4.freemalaysiatoday.com";
@@ -178,14 +232,15 @@ export default async function handler(
               id,
               retryCount: retryCount + 1,
             }),
-          }).catch((e) => console.error("[Retry Failed]", e));
+          }).catch((e) => console.error("[Revalidate] Retry failed", e));
         },
         (retryCount + 1) * 3000
-      );
+      ); // Exponential backoff
     }
 
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 }

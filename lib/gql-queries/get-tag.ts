@@ -1,7 +1,7 @@
 // lib/gql-queries/get-tag.ts
+import { tagCache } from "../cache/smart-cache-registry";
+import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
 
 export const GET_TAG = `
   query GetTag($tagId: ID!, $idType: TagIdType) {
@@ -17,14 +17,8 @@ export const GET_TAG = `
   }
 `;
 
-// Cache instance: stores 100 tags, each for 1 hour
-const tagCache = new LRUCache<string, any>({
-  max: 100,
-  ttl: 1000 * 60 * 60, // 1 hour
-});
-
 // Cached getTag function
-export const getTag = withLRUCache(
+export const getTag = withSmartLRUCache(
   (slug: string) => `tag:${slug}`,
   (slug: string) =>
     gqlFetchAPI(GET_TAG, {

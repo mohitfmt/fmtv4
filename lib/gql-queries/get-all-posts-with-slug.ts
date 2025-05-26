@@ -1,13 +1,6 @@
+import { allPostSlugsCache } from "../cache/smart-cache-registry";
+import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withLRUCache } from "@/lib/cache/withLRU";
-import { LRUCache } from "lru-cache";
-
-export const allPostSlugsCache = new LRUCache<string, any>({
-  max: 1,
-  ttl: 1000 * 60, // 1 minute
-  allowStale: false,
-  updateAgeOnGet: false,
-});
 
 async function rawGetAllPostsWithSlug() {
   try {
@@ -39,7 +32,7 @@ async function rawGetAllPostsWithSlug() {
   }
 }
 
-export const getAllPostsWithSlug = withLRUCache(
+export const getAllPostsWithSlug = withSmartLRUCache(
   () => "post:all-slugs",
   rawGetAllPostsWithSlug,
   allPostSlugsCache
