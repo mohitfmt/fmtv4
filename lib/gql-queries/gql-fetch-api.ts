@@ -32,11 +32,14 @@ export async function gqlFetchAPI(
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Network response error:", {
-        status: res.status,
-        statusText: res.statusText,
-        body: errorText,
-      });
+      console.error(
+        "[Network response error]",
+        JSON.stringify({
+          status: res.status,
+          statusText: res.statusText,
+          body: errorText,
+        })
+      );
       throw new Error(`Network response was not ok: ${res.status}`);
     }
 
@@ -49,11 +52,14 @@ export async function gqlFetchAPI(
 
     return json.data;
   } catch (error) {
-    console.error("API Call Error:", {
-      error,
-      query,
-      variables,
-    });
+    console.error(
+      "[API Call Error]",
+      JSON.stringify({
+        error,
+        query,
+        variables,
+      })
+    );
     throw error;
   }
 }

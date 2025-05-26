@@ -1,24 +1,29 @@
 steps:
-  # Install and generate Prisma client
-  - name: "node:20-bullseye-slim"
-    id: Generate Prisma
+  # Step 1: Install dependencies and generate Prisma client
+  - name: "node:22.16-bullseye-slim"
+    id: "Generate Prisma"
     entrypoint: "bash"
     args:
       - "-c"
       - |
         echo "📦 Installing dependencies..."
         npm ci --legacy-peer-deps --ignore-optional
+
         echo "🔧 Generating Prisma client..."
         npx prisma generate
 
-  # Build container image with caching
+        echo "✅ Dependencies installed and Prisma client generated"
+
+  # Step 2: Build container image with Docker layer caching
   - name: "gcr.io/cloud-builders/docker"
-    id: Build Container
+    id: "Build Container"
     args:
       - "build"
       - "--progress=plain"
+      # Use cached layers from previous builds
       - "--cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
       - "--target=runner"
+      # Pass all build arguments
       - "--build-arg"
       - "NODE_ENV=production"
       - "--build-arg"
@@ -77,49 +82,54 @@ steps:
       - "CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}"
       - "--build-arg"
       - "SENDGRID_API_KEY=${_SENDGRID_API_KEY}"
+      # Tag with commit SHA and latest
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
       - "."
 
-  # Push container images
+  # Step 3: Push versioned container image
   - name: "gcr.io/cloud-builders/docker"
-    id: Push Container
+    id: "Push Versioned Image"
     args:
       - "push"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
 
-  # Push latest tag
+  # Step 4: Push latest tag for cache
   - name: "gcr.io/cloud-builders/docker"
-    id: Push Latest
+    id: "Push Latest Tag"
     args:
       - "push"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
 
-  # Blue/Green Deployment
+  # Step 5: Blue/Green Deployment to Cloud Run
   - name: "gcr.io/cloud-builders/gcloud"
-    id: Deploy
+    id: "Deploy Blue/Green"
     entrypoint: "bash"
     args:
       - "-c"
       - |
-        # Get current active environment
-        echo "🔍 Getting current deployment status..."
+        # Determine current active environment
+        echo "🔍 Checking current deployment status..."
         activeEnv=$(gcloud run services describe ${_SERVICE_NAME} \
           --region=${_REGION} \
-          --format='value(status.traffic.tags)' || echo "blue")
+          --format='value(status.traffic[].tags)' 2>/dev/null || echo "")
 
-        # Set next environment
-        nextEnv="green"
-        if [[ "$activeEnv" == *"green"* ]]; then
+        # Default to blue if no active environment found
+        if [[ -z "$activeEnv" ]]; then
+          activeEnv="blue"
+          nextEnv="green"
+        elif [[ "$activeEnv" == *"green"* ]]; then
           nextEnv="blue"
+        else
+          nextEnv="green"
         fi
 
-        echo "🚀 Current active: $activeEnv, Deploying to: $nextEnv"
+        echo "🚀 Current active: ${activeEnv:-none}, Deploying to: $nextEnv"
 
-        # Deploy new version with runtime environment variables
-        echo "📦 Deploying new version..."
+        # Deploy new version without traffic
+        echo "📦 Deploying new version to $nextEnv..."
         gcloud run deploy ${_SERVICE_NAME} \
           --image=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA \
           --no-traffic \
@@ -130,8 +140,12 @@ steps:
           --cpu=2 \
           --min-instances=0 \
           --max-instances=10 \
+          --concurrency=10 \
+          --platform=managed \
+          --allow-unauthenticated \
           --set-env-vars="NODE_ENV=production" \
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
+          --set-env-vars="NODE_OPTIONS=--expose-gc" \
           --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
           --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
           --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \
@@ -160,40 +174,67 @@ steps:
           --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
           --set-env-vars="CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}" \
           --set-env-vars="SENDGRID_API_KEY=${_SENDGRID_API_KEY}" \
+          --timeout=300 \
+          --service-account=${_SERVICE_ACCOUNT} \
           --quiet
 
-        # Verify deployment
-        echo "🔍 Verifying deployment..."
-        sleep 10
+        # Health check - wait for new deployment to be ready
+        echo "🔍 Waiting for deployment to be ready..."
+        sleep 30
 
-        # Switch traffic
-        echo "🔄 Switching traffic..."
+        # Get the URL of the new deployment
+        NEW_URL=$(gcloud run services describe ${_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.traffic[?tags='$nextEnv'].url)')
+
+        # Switch traffic to new deployment
+        echo "🔄 Switching traffic to $nextEnv..."
         gcloud run services update-traffic ${_SERVICE_NAME} \
-          --to-tags $nextEnv=100 \
+          --to-tags=$nextEnv=100 \
           --region=${_REGION} \
           --quiet
 
         if [ $? -eq 0 ]; then
-          # Purge Cloudflare cache only if deployment successful
+          echo "✨ Deployment completed successfully!"
+          
+          # Optional: Remove old revision after successful deployment
+          echo "🧹 Scheduling cleanup of old revisions..."
+          gcloud run revisions list \
+            --service=${_SERVICE_NAME} \
+            --region=${_REGION} \
+            --filter="status.conditions.status=False" \
+            --format="value(name)" | \
+            xargs -I {} gcloud run revisions delete {} \
+            --region=${_REGION} --quiet || true
+            
+          # Optional: Clear Cloudflare cache
           # echo "🧹 Purging Cloudflare cache..."
           # curl -X POST "https://api.cloudflare.com/client/v4/zones/${_CLOUDFLARE_ZONE_ID}/purge_cache" \
           #   -H "Authorization: Bearer ${_CLOUDFLARE_API_TOKEN}" \
           #   -H "Content-Type: application/json" \
           #   --data '{"purge_everything":true}'
-          
-          echo "✨ Deployment completed successfully!"
         else
-          echo "❌ Deployment failed"
+          echo "❌ Traffic switch failed!"
           exit 1
         fi
 
+# Substitution variables
 substitutions:
   _REGION: asia-southeast1
   _SERVICE_NAME: fmt-v4
+  _SERVICE_ACCOUNT: fmt-v4-sa@${PROJECT_ID}.iam.gserviceaccount.com
 
+# Build configuration
 options:
+  # Use a high-CPU machine for faster builds
   machineType: "E2_HIGHCPU_8"
+  # Enable dynamic substitutions for environment variables
   dynamic_substitutions: true
+  # Log to Cloud Logging
   logging: CLOUD_LOGGING_ONLY
+  # Use kaniko for better caching (optional)
+  # pool:
+  #   name: 'projects/${PROJECT_ID}/locations/${_REGION}/workerPools/build-pool'
 
+# Build timeout (30 minutes)
 timeout: 1800s

@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   env: {
+    DEBUG_MEMORY: process.env.DEBUG_MEMORY ?? "false",
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com",
   },
@@ -212,6 +213,21 @@ const nextConfig: NextConfig = {
         destination: "/api/feeds/json/:slug",
       },
     ];
+  },
+  webpack(config, { isServer }) {
+    if (isServer) {
+      // don’t try to bundle these native modules into the client
+      config.externals = [
+        ...(config.externals as any[]),
+        "heapdump",
+        "why-is-node-running",
+        "async_hooks",
+        "fs",
+        "path",
+        "url",
+      ];
+    }
+    return config;
   },
 };
 
