@@ -715,8 +715,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
     // Ping IndexNow for SEO
-    const indexNowKey =
-      process.env.INDEXNOW_KEY || "fmt-news-indexnow-2025-mht-9f7b24a1a6";
+    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
 
     // Batch IndexNow pings
     const indexNowUrls = modifiedArticles.map((post) => {

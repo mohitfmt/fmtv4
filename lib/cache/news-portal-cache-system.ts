@@ -343,13 +343,13 @@ export class CacheHealthMonitor {
       this.triggerMemoryRelief();
     }
 
-    Object.entries(metrics.hitRates).forEach(([cache, rate]) => {
-      if ((rate as number) < 0.5) {
-        console.warn(
-          `[CacheHealth] Low hit rate for ${cache}: ${((rate as number) * 100).toFixed(1)}%`
-        );
-      }
-    });
+    // Object.entries(metrics.hitRates).forEach(([cache, rate]) => {
+    //   if ((rate as number) < 0.5) {
+    //     console.warn(
+    //       `[CacheHealth] Low hit rate for ${cache}: ${((rate as number) * 100).toFixed(1)}%`
+    //     );
+    //   }
+    // });
   }
 
   private triggerMemoryRelief(): void {
