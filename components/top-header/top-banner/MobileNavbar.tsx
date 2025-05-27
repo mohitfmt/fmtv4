@@ -115,6 +115,7 @@ const MobileNavbar = ({ navigation }: Props) => {
                 <div className="flex justify-between items-center">
                   <Link
                     href={item.href}
+                    prefetch={false}
                     className={`block p-1 text-xl font-semibold ${
                       isParentActive(item)
                         ? "bg-accent-blue text-white rounded"
@@ -146,6 +147,7 @@ const MobileNavbar = ({ navigation }: Props) => {
                       <li key={subItem.id}>
                         <Link
                           href={subItem.href}
+                          prefetch={false}
                           className={`block p-1 text-md md:text-base ${
                             isActive(subItem.href)
                               ? "bg-accent-blue text-white rounded"

@@ -1,6 +1,9 @@
+// pages/api/more-home-posts.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getMoreHomePosts } from "@/lib/gql-queries/get-more-home-posts";
 import { apiErrorResponse } from "@/lib/utils";
+import { moreHomePostsCache } from "@/lib/cache/smart-cache-registry";
+import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-home-posts";
 
@@ -21,6 +24,21 @@ const CATEGORY_CONFIGS = {
     getOffset: (page: number) => 5 + (page - 1) * 4,
   },
 } as const;
+
+// Create cached version using SmartNewsCache
+const getCachedMoreHomePosts = withSmartLRUCache(
+  ({
+    category,
+    offset,
+    size,
+  }: {
+    category: string;
+    offset: number;
+    size: number;
+  }) => `cat:${category}:offset:${offset}:size:${size}`,
+  getMoreHomePosts,
+  moreHomePostsCache
+);
 
 export default async function handler(
   req: NextApiRequest,
@@ -55,7 +73,7 @@ export default async function handler(
     });
   }
 
-  if (!Number.isInteger(numericPage) || numericPage < 0 || numericPage > 1000) {
+  if (!Number.isInteger(numericPage) || numericPage < 1 || numericPage > 1000) {
     return apiErrorResponse({
       res,
       status: 400,
@@ -72,23 +90,27 @@ export default async function handler(
   const size = config?.pageSize;
 
   try {
-    const data = await getMoreHomePosts({
+    // Use SmartNewsCache - automatically tracks dependencies!
+    const data = await getCachedMoreHomePosts({
       category: categoryKey,
       offset,
       size,
     });
 
+    if (!data || !data.posts) {
+      return apiErrorResponse({
+        res,
+        status: 500,
+        context: CONTEXT,
+        message: "Failed to fetch posts data.",
+      });
+    }
+
     const total = data?.posts?.pageInfo?.offsetPagination?.total ?? 0;
     const adjustedTotal = total - config?.baseOffset;
     const hasMore = offset + size < adjustedTotal;
 
-    // Cache control
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=300, s-maxage=300, stale-while-revalidate=60"
-    );
-
-    return res.status(200).json({
+    const response = {
       posts: data.posts,
       hasMore,
       total: adjustedTotal,
@@ -100,8 +122,24 @@ export default async function handler(
         baseOffset: config?.baseOffset,
         pageSize: config?.pageSize,
       },
-    });
+    };
+
+    // Cache control for CDN
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=60, s-maxage=300, stale-while-revalidate=60"
+    );
+
+    return res.status(200).json(response);
   } catch (error) {
+    console.error(`[${CONTEXT}] Error fetching posts:`, {
+      category: categoryKey,
+      page: numericPage,
+      offset,
+      size,
+      error,
+    });
+
     return apiErrorResponse({
       res,
       status: 500,

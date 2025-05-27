@@ -37,6 +37,49 @@ export const caches = {
     sizeCalculation: (value) => JSON.stringify(value).length * 2,
   }),
 
+  // NEW: Pagination caches for different endpoints
+  moreHorizontalPosts: new SmartNewsCache<any>("moreHorizontalPosts", {
+    max: 200,
+    maxSize: 30 * 1024 * 1024, // 30MB
+    ttl: 1000 * 60, // 1 minute
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
+  moreVerticalPosts: new SmartNewsCache<any>("moreVerticalPosts", {
+    max: 200,
+    maxSize: 40 * 1024 * 1024, // 40MB
+    ttl: 1000 * 60, // 1 minute
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
+  moreSubcategoryPosts: new SmartNewsCache<any>("moreSubcategoryPosts", {
+    max: 300,
+    maxSize: 40 * 1024 * 1024, // 40MB
+    ttl: 1000 * 60, // 1 minute
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
+  moreAuthorPosts: new SmartNewsCache<any>("moreAuthorPosts", {
+    max: 150,
+    maxSize: 20 * 1024 * 1024, // 20MB
+    ttl: 1000 * 60 * 2, // 2 minutes
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
+  moreTagPosts: new SmartNewsCache<any>("moreTagPosts", {
+    max: 150,
+    maxSize: 20 * 1024 * 1024, // 20MB
+    ttl: 1000 * 60 * 2, // 2 minutes
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
+  morePhotos: new SmartNewsCache<any>("morePhotos", {
+    max: 100,
+    maxSize: 30 * 1024 * 1024, // 30MB
+    ttl: 1000 * 60 * 5, // 5 minutes
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
+
   // Author cache
   author: new SmartNewsCache<any>("author", {
     max: 200,
@@ -108,3 +151,11 @@ export const postPageCache = caches.postPage;
 export const allPostSlugsCache = caches.allPostSlugs;
 export const tagCache = caches.tag;
 export const columnistCache = caches.columnist;
+
+// NEW: Export pagination caches
+export const moreHorizontalPostsCache = caches.moreHorizontalPosts;
+export const moreVerticalPostsCache = caches.moreVerticalPosts;
+export const moreSubcategoryPostsCache = caches.moreSubcategoryPosts;
+export const moreAuthorPostsCache = caches.moreAuthorPosts;
+export const moreTagPostsCache = caches.moreTagPosts;
+export const morePhotosCache = caches.morePhotos;

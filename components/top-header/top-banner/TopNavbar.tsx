@@ -45,6 +45,7 @@ const TopNavbar = ({ navigation }: Props) => {
             <div className="flex items-center">
               <Link
                 href={item.href}
+                prefetch={false}
                 className={`py-1 px-2.5 rounded-md font-semibold flex items-center ${
                   isParentActive(item)
                     ? "bg-accent-blue text-white"
@@ -60,6 +61,7 @@ const TopNavbar = ({ navigation }: Props) => {
                   <li key={subItem.id}>
                     <Link
                       href={subItem.href}
+                      prefetch={false}
                       className={`p-2 block whitespace-nowrap px-5 py-2 rounded-md text-stone-800 dark:text-stone-100 ${
                         isActive(subItem.href)
                           ? "bg-accent-blue text-white"

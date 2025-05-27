@@ -1,9 +1,24 @@
+// pages/api/more-photos.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { apiErrorResponse } from "@/lib/utils"; // your renamed centralized error helper
+import { apiErrorResponse } from "@/lib/utils";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
+import { morePhotosCache } from "@/lib/cache/smart-cache-registry";
+import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-photos";
 const POSTS_PER_PAGE = 12;
+
+// Create cached version using SmartNewsCache
+const getCachedPhotos = withSmartLRUCache(
+  (variables: any) => {
+    const category =
+      variables.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "photos";
+    const offset = variables.where?.offsetPagination?.offset || 0;
+    return `cat:${category}:offset:${offset}:size:${POSTS_PER_PAGE}`;
+  },
+  getFilteredCategoryPosts,
+  morePhotosCache
+);
 
 export default async function handler(
   req: NextApiRequest,
@@ -45,14 +60,14 @@ export default async function handler(
     });
   }
 
-  // Cache control for Cloudflare or similar CDN
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=60");
-
   try {
     const variables = {
       first: POSTS_PER_PAGE,
       where: {
-        offsetPagination: { offset: parsedOffset, size: POSTS_PER_PAGE },
+        offsetPagination: {
+          offset: parsedOffset,
+          size: POSTS_PER_PAGE,
+        },
         taxQuery: {
           relation: "AND",
           taxArray: [
@@ -66,10 +81,41 @@ export default async function handler(
         },
       },
     };
-    const response = await getFilteredCategoryPosts(variables);
 
-    return res.status(200).json({ posts: response?.posts });
+    // Use SmartNewsCache
+    const response = await getCachedPhotos(variables);
+
+    if (!response || !response.posts) {
+      return apiErrorResponse({
+        res,
+        status: 500,
+        context: CONTEXT,
+        message: `Failed to fetch photos for category '${categorySlug}'.`,
+      });
+    }
+
+    const result = {
+      posts: response.posts,
+      meta: {
+        category: categorySlug,
+        offset: parsedOffset,
+        size: POSTS_PER_PAGE,
+        hasMore: response.posts?.edges?.length === POSTS_PER_PAGE,
+        totalReturned: response.posts?.edges?.length || 0,
+      },
+    };
+
+    // Cache control for Cloudflare or similar CDN
+    res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=60");
+
+    return res.status(200).json(result);
   } catch (error) {
+    console.error(`[${CONTEXT}] Error loading photo posts:`, {
+      categorySlug,
+      offset: parsedOffset,
+      error,
+    });
+
     return apiErrorResponse({
       res,
       status: 500,

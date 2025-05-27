@@ -1,7 +1,7 @@
 // pages/api/revalidate.ts
 /**
  * Revalidation API with Smart Cache Integration
- * This version removes all cache clearing and relies on smart invalidation
+ * Updated to work with SmartNewsCache dependency tracking
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -84,6 +84,7 @@ export default async function handler(
             };
 
             // This single call will invalidate all cache entries that depend on this article
+            // This includes all pagination caches that contain this article!
             changeManager.handleContentChange(event as any);
 
             console.log(
@@ -119,7 +120,18 @@ export default async function handler(
       }
 
       case "author": {
-        // Author pages don't need cache clearing - smart cache handles it
+        // For author updates, trigger a generic content change event
+        const event = {
+          type: "update" as const,
+          articleId: `author-${id || slug}`,
+          slug: `author/${slug}`,
+          categories: ["author"],
+          timestamp: new Date(),
+          priority: "normal" as const,
+        };
+
+        changeManager.handleContentChange(event);
+
         pathsToRevalidate.push(`/category/author/${slug}`);
         pathsToRevalidate.push("/");
         tagsToPurge.push(
@@ -131,7 +143,18 @@ export default async function handler(
       }
 
       case "tag": {
-        // Tag pages don't need cache clearing - smart cache handles it
+        // For tag updates, trigger a generic content change event
+        const event = {
+          type: "update" as const,
+          articleId: `tag-${id || slug}`,
+          slug: `tag/${slug}`,
+          categories: ["tag"],
+          timestamp: new Date(),
+          priority: "normal" as const,
+        };
+
+        changeManager.handleContentChange(event);
+
         pathsToRevalidate.push(`/category/tag/${slug}`);
         pathsToRevalidate.push("/");
         tagsToPurge.push(`tag:${slug}`, `path:/category/tag/${slug}`, "path:/");
@@ -148,7 +171,18 @@ export default async function handler(
       }
 
       case "homepage": {
-        // Homepage revalidation - no cache clearing needed
+        // Homepage revalidation - trigger a generic update
+        const event = {
+          type: "update" as const,
+          articleId: "homepage-manual",
+          slug: "homepage",
+          categories: ["homepage", "top-news", "highlight"],
+          timestamp: new Date(),
+          priority: "normal" as const,
+        };
+
+        changeManager.handleContentChange(event);
+
         pathsToRevalidate.push("/");
         tagsToPurge.push("path:/", "homepage");
         break;
@@ -156,7 +190,18 @@ export default async function handler(
 
       case "section":
       case "category": {
-        // Section/category revalidation - no cache clearing needed
+        // Section/category revalidation - trigger update for all articles in category
+        const event = {
+          type: "update" as const,
+          articleId: `category-${slug}`,
+          slug: slug,
+          categories: [slug, resolveSectionPath(slug)],
+          timestamp: new Date(),
+          priority: "normal" as const,
+        };
+
+        changeManager.handleContentChange(event);
+
         const sectionPath = resolveSectionPath(slug);
         pathsToRevalidate.push(`/${sectionPath}`, "/");
         tagsToPurge.push(
@@ -207,6 +252,7 @@ export default async function handler(
       slugOrId: slug || id,
       pathsRevalidated: pathsToRevalidate.length,
       tagsPurged: tagsToPurge.length,
+      smartCacheInvalidated: true,
     });
   } catch (error: any) {
     console.error("[Revalidate] Error", { type, slug, id, error });

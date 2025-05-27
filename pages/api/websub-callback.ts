@@ -1,7 +1,7 @@
 // pages/api/websub-callback.ts
 /**
  * Complete WebSub Handler with Smart Cache Integration
- * This version maintains all necessary functionality while adding smart invalidation
+ * Updated with correct category mappings and optimizations
  */
 
 import { addMinutes } from "date-fns";
@@ -23,9 +23,9 @@ interface WPPost {
   categories: number[];
 }
 
-// CRITICAL: Category mapping for frontend routes
-// This maps CMS category names to frontend URL paths
+// UPDATED: Category mapping based on your navigation structure
 const categoryMappings: Record<string, string> = {
+  // Main categories
   bahasa: "berita", // CMS "bahasa" → Frontend "/berita"
   leisure: "lifestyle", // CMS "leisure" → Frontend "/lifestyle"
   nation: "news", // CMS "nation" → Frontend "/news"
@@ -33,6 +33,37 @@ const categoryMappings: Record<string, string> = {
   opinion: "opinion",
   sports: "sports",
   world: "world",
+
+  // Subcategory mappings (if needed)
+  tempatan: "berita",
+  pandangan: "berita",
+  dunia: "berita",
+  "local-business": "business",
+  "world-business": "business",
+  column: "opinion",
+  editorial: "opinion",
+  letters: "opinion",
+  football: "sports",
+  badminton: "sports",
+  motorsports: "sports",
+  tennis: "sports",
+  "south-east-asia": "world",
+
+  // Lifestyle subcategories
+  "simple-stories": "lifestyle",
+  travel: "lifestyle",
+  food: "lifestyle",
+  entertainment: "lifestyle",
+  money: "lifestyle",
+  health: "lifestyle",
+  pets: "lifestyle",
+  tech: "lifestyle",
+  automotive: "lifestyle",
+  property: "lifestyle",
+
+  // Special mappings
+  sabahsarawak: "news", // Borneo+ is under news
+  "fmt-worldviews": "opinion",
 };
 
 // Priority levels for different types of content
@@ -44,7 +75,6 @@ const PRIORITY = {
 };
 
 // Create queues with different concurrency levels
-// We keep these for controlled revalidation to avoid overwhelming Next.js
 const criticalQueue = new PQueue({ concurrency: 2 });
 const highQueue = new PQueue({ concurrency: 3 });
 const mediumQueue = new PQueue({ concurrency: 5 });
@@ -53,26 +83,38 @@ const lowQueue = new PQueue({ concurrency: 2 });
 // Track when queues are processing
 let isProcessing = false;
 
+// UPDATED: Complete category ID mapping
 const categoryIdToSlugMap: Record<number, string> = {
+  // Homepage/Highlights
   127940: "super-highlight",
   45: "highlight",
+
+  // News
   123704: "top-news",
   1: "nation",
   1099: "sabahsarawak",
+
+  // Berita
   187155: "super-bm",
   183: "bahasa",
   118582: "tempatan",
   118583: "dunia",
   118584: "pandangan",
   123705: "top-bm",
+
+  // Opinion
   13: "opinion",
   118585: "column",
   205: "letters",
   313: "editorial",
   311905: "analysis",
   124473: "top-opinion",
+
+  // World
   195: "world",
   127852: "top-world",
+
+  // Lifestyle
   15: "leisure",
   118596: "property",
   130532: "travel",
@@ -85,10 +127,14 @@ const categoryIdToSlugMap: Record<number, string> = {
   188599: "simple-stories",
   222994: "tech",
   127849: "top-lifestyle",
+
+  // Business
   187: "business",
   118602: "world-business",
   118603: "local-business",
   127850: "top-business",
+
+  // Sports
   196: "sports",
   118604: "football",
   150965: "badminton",
@@ -96,6 +142,20 @@ const categoryIdToSlugMap: Record<number, string> = {
   118605: "tennis",
   127851: "top-sports",
 };
+
+// Priority categories that should trigger homepage updates
+const HOMEPAGE_TRIGGER_CATEGORIES = [
+  "super-highlight",
+  "highlight",
+  "top-news",
+  "super-bm",
+  "top-bm",
+  "top-opinion",
+  "top-world",
+  "top-lifestyle",
+  "top-business",
+  "top-sports",
+];
 
 /**
  * Extract category from article URL
@@ -106,7 +166,7 @@ function extractCategoryFromUrl(url: string): string[] {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split("/").filter(Boolean);
 
-    // Handle URL pattern with category/category/ prefix (from sitemap)
+    // Handle URL pattern with category/category/ prefix
     if (
       pathParts.length >= 3 &&
       pathParts[0] === "category" &&
@@ -114,9 +174,9 @@ function extractCategoryFromUrl(url: string): string[] {
     ) {
       const category = pathParts[2];
 
-      // Special case for bahasa (has subcategories)
-      if (category === "bahasa" && pathParts.length >= 4) {
-        return ["bahasa", pathParts[3]];
+      // Check for subcategory
+      if (pathParts.length >= 4) {
+        return [category, pathParts[3]];
       }
 
       return [category];
@@ -125,8 +185,8 @@ function extractCategoryFromUrl(url: string): string[] {
     else if (pathParts.length >= 2 && pathParts[0] === "category") {
       const category = pathParts[1];
 
-      if (category === "bahasa" && pathParts.length >= 3) {
-        return ["bahasa", pathParts[2]];
+      if (pathParts.length >= 3) {
+        return [category, pathParts[2]];
       }
 
       return [category];
@@ -141,10 +201,9 @@ function extractCategoryFromUrl(url: string): string[] {
 
 /**
  * Get frontend category path from WordPress category
- * This uses the categoryMappings to convert CMS names to frontend paths
  */
 function getCategoryPath(category: string): string {
-  return categoryMappings[category] || "news";
+  return categoryMappings[category] || category;
 }
 
 /**
@@ -152,6 +211,15 @@ function getCategoryPath(category: string): string {
  */
 function getCategorySlugsFromIds(categoryIds: number[]): string[] {
   return categoryIds.map((id) => categoryIdToSlugMap[id]).filter(Boolean);
+}
+
+/**
+ * Check if any category should trigger homepage update
+ */
+function shouldTriggerHomepageUpdate(categorySlugs: string[]): boolean {
+  return categorySlugs.some((slug) =>
+    HOMEPAGE_TRIGGER_CATEGORIES.includes(slug)
+  );
 }
 
 /**
@@ -169,6 +237,7 @@ function normalizePathForRevalidation(path: string): string {
     "sports",
     "lifestyle",
   ];
+
   if (mainSections.includes(normalizedPath)) {
     return normalizedPath;
   }
@@ -181,7 +250,11 @@ function normalizePathForRevalidation(path: string): string {
     "about",
     "advertise",
     "privacy-policy",
+    "property", // Added from navigation
+    "education", // Added from navigation
+    "carzilla", // Added from navigation
   ];
+
   if (specialPages.some((page) => normalizedPath === page)) {
     return normalizedPath;
   }
@@ -189,6 +262,7 @@ function normalizePathForRevalidation(path: string): string {
   if (normalizedPath.startsWith("category/category/")) {
     return normalizedPath;
   }
+
   if (normalizedPath.startsWith("category/")) {
     return normalizedPath;
   }
@@ -216,7 +290,7 @@ async function getRecentlyModifiedArticles(
 
     try {
       const response = await fetch(
-        `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50`,
+        `${wpDomain}/wp-json/wp/v2/posts?modified_after=${modifiedAfter}&per_page=50&_fields=id,date,modified,link,slug,title,categories`,
         {
           headers: {
             Accept: "application/json",
@@ -257,7 +331,6 @@ async function getRecentlyModifiedArticles(
 
 /**
  * Process articles to get cache tags and revalidation items
- * We keep this for Cloudflare purging and Next.js revalidation
  */
 function processArticlesForRevalidation(
   articles: WPPost[],
@@ -270,13 +343,11 @@ function processArticlesForRevalidation(
     categories?: string[];
     priority: number;
   }[];
+  shouldUpdateHomepage: boolean;
 } {
   const cacheTags = new Set<string>();
   const revalidationItems: any[] = [];
-
-  // Always include homepage
-  cacheTags.add("path:/");
-  cacheTags.add("page:home");
+  let shouldUpdateHomepage = false;
 
   // Get all navigation paths
   const allNavigationPaths = getAllNavigationPaths();
@@ -291,6 +362,13 @@ function processArticlesForRevalidation(
         : [];
 
       const allCategories = [...new Set([...urlCategories, ...apiCategories])];
+
+      // Check if homepage should be updated
+      if (!shouldUpdateHomepage && shouldTriggerHomepageUpdate(allCategories)) {
+        shouldUpdateHomepage = true;
+        cacheTags.add("path:/");
+        cacheTags.add("page:home");
+      }
 
       // Add category-related cache tags
       allCategories.forEach((category) => {
@@ -336,6 +414,15 @@ function processArticlesForRevalidation(
     }
   });
 
+  // Add homepage if needed
+  if (shouldUpdateHomepage) {
+    revalidationItems.push({
+      type: "homepage",
+      path: "/",
+      priority: PRIORITY.CRITICAL,
+    });
+  }
+
   // Add main navigation sections
   allNavigationPaths.forEach((path: string) => {
     if (
@@ -345,7 +432,7 @@ function processArticlesForRevalidation(
       revalidationItems.push({
         type: "category",
         path,
-        priority: path === "/" ? PRIORITY.CRITICAL : PRIORITY.HIGH,
+        priority: PRIORITY.HIGH,
       });
     }
   });
@@ -353,6 +440,7 @@ function processArticlesForRevalidation(
   return {
     cacheTags: Array.from(cacheTags),
     revalidationItems,
+    shouldUpdateHomepage,
   };
 }
 
@@ -572,7 +660,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       return;
     }
 
-    // SMART CACHE INVALIDATION - This is the key addition!
+    // SMART CACHE INVALIDATION
     const changeEvents = modifiedArticles.map((article) => ({
       type:
         new Date(article.date).getTime() ===
@@ -591,55 +679,88 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     console.log(
       `[WebSub] Processing ${changeEvents.length} content changes through smart cache`
     );
-    changeEvents.forEach((event) => changeManager.handleContentChange(event));
 
-    // Give batch processor time to work
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Process in batches to avoid overwhelming the system
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < changeEvents.length; i += BATCH_SIZE) {
+      const batch = changeEvents.slice(i, i + BATCH_SIZE);
+      batch.forEach((event) => changeManager.handleContentChange(event));
+
+      // Give batch processor time to work
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
 
     // Process for Cloudflare and Next.js revalidation
-    const { cacheTags, revalidationItems } = processArticlesForRevalidation(
-      modifiedArticles,
-      frontendDomain
-    );
+    const { cacheTags, revalidationItems, shouldUpdateHomepage } =
+      processArticlesForRevalidation(modifiedArticles, frontendDomain);
 
     // Purge Cloudflare cache
     if (cacheTags.length > 0) {
       console.log(`[WebSub] Purging ${cacheTags.length} Cloudflare cache tags`);
-      await purgeCloudflareByTags(cacheTags);
+
+      // Cloudflare has a limit of 30 tags per request
+      const TAG_BATCH_SIZE = 30;
+      for (let i = 0; i < cacheTags.length; i += TAG_BATCH_SIZE) {
+        const batch = cacheTags.slice(i, i + TAG_BATCH_SIZE);
+        await purgeCloudflareByTags(batch);
+
+        // Small delay between batches
+        if (i + TAG_BATCH_SIZE < cacheTags.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
     }
 
     // Process Next.js revalidation with queuing
     await processRevalidation(baseUrl, revalidationItems, revalidateKey);
 
     // Ping IndexNow for SEO
-    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
-    for (const post of modifiedArticles) {
+    const indexNowKey =
+      process.env.INDEXNOW_KEY || "fmt-news-indexnow-2025-mht-9f7b24a1a6";
+
+    // Batch IndexNow pings
+    const indexNowUrls = modifiedArticles.map((post) => {
       const url = new URL(post.link);
       url.hostname = frontendDomain;
+      return url.toString();
+    });
 
-      const pingUrl = `https://api.indexnow.org/indexnow?url=${encodeURIComponent(
-        url.toString()
-      )}&key=${indexNowKey}`;
-
+    // IndexNow accepts up to 10,000 URLs per request
+    if (indexNowUrls.length > 0) {
       try {
-        const response = await fetch(pingUrl);
+        const response = await fetch("https://api.indexnow.org/indexnow", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            host: frontendDomain,
+            key: indexNowKey,
+            urlList: indexNowUrls,
+          }),
+        });
+
         if (!response.ok) {
-          console.error(`[IndexNow] Ping failed for ${url.toString()}`);
+          console.error(`[IndexNow] Batch ping failed: ${response.status}`);
         } else {
-          console.log(`[IndexNow] Ping successful for ${url.toString()}`);
+          console.log(
+            `[IndexNow] Successfully pinged ${indexNowUrls.length} URLs`
+          );
         }
       } catch (err) {
-        console.error(`[IndexNow] Error pinging for ${url.toString()}:`, err);
+        console.error("[IndexNow] Error with batch ping:", err);
       }
     }
 
-    // Revalidate API endpoints
-    try {
-      await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
-      mutate("/api/top-news");
-      console.log(`[WebSub] API endpoints revalidated`);
-    } catch (error) {
-      console.error(`[WebSub] Error revalidating API endpoints:`, error);
+    // Revalidate API endpoints only if necessary
+    if (shouldUpdateHomepage) {
+      try {
+        await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
+        mutate("/api/top-news");
+        console.log(`[WebSub] API endpoints revalidated`);
+      } catch (error) {
+        console.error(`[WebSub] Error revalidating API endpoints:`, error);
+      }
     }
 
     // CRITICAL: Ping all your feed URLs
@@ -657,33 +778,46 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       "world",
     ];
 
+    // Batch feed pings
+    const feedPingPromises = [];
+
     for (const category of frontendFeeds) {
-      try {
-        // RSS feed
-        await fetch(hubUrl, {
+      // RSS feed
+      feedPingPromises.push(
+        fetch(hubUrl, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             "hub.mode": "publish",
             "hub.url": `https://${frontendDomain}/feeds/rss/${category}`,
           }).toString(),
-        });
+        }).catch((error) =>
+          console.error(
+            `[WebSub] Error pinging RSS hub for ${category}:`,
+            error
+          )
+        )
+      );
 
-        // Atom feed
-        await fetch(hubUrl, {
+      // Atom feed
+      feedPingPromises.push(
+        fetch(hubUrl, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             "hub.mode": "publish",
             "hub.url": `https://${frontendDomain}/feeds/atom/${category}`,
           }).toString(),
-        });
-      } catch (error) {
-        console.error(`[WebSub] Error pinging hub for ${category}:`, error);
-      }
+        }).catch((error) =>
+          console.error(
+            `[WebSub] Error pinging Atom hub for ${category}:`,
+            error
+          )
+        )
+      );
     }
 
-    // CMS feed URLs - These are critical as you mentioned!
+    // CMS feed URLs
     const cmsFeeds = [
       "https://cms.freemalaysiatoday.com/category/nation/feed/",
       "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
@@ -697,21 +831,23 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     ];
 
     for (const feedUrl of cmsFeeds) {
-      try {
-        await fetch(hubUrl, {
+      feedPingPromises.push(
+        fetch(hubUrl, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             "hub.mode": "publish",
             "hub.url": feedUrl,
           }).toString(),
-        });
-
-        console.log(`[WebSub] Successfully pinged hub for ${feedUrl}`);
-      } catch (error) {
-        console.error(`[WebSub] Error pinging hub for ${feedUrl}:`, error);
-      }
+        }).catch((error) =>
+          console.error(`[WebSub] Error pinging hub for ${feedUrl}:`, error)
+        )
+      );
     }
+
+    // Wait for all feed pings to complete
+    await Promise.all(feedPingPromises);
+    console.log("[WebSub] All feed pings completed");
 
     console.log("[WebSub] Background processing completed successfully");
   } catch (error) {

@@ -168,7 +168,7 @@ export class ContentChangeManager extends EventEmitter {
 
   registerCache(name: string, cache: SmartNewsCache<any>): void {
     this.caches.set(name, cache);
-    console.log(`[ContentChangeManager] Registered cache: ${name}`);
+    // console.log(`[ContentChangeManager] Registered cache: ${name}`);
   }
 
   handleContentChange(event: ContentChangeEvent): void {
