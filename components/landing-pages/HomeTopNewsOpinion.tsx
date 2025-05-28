@@ -47,7 +47,7 @@ const HorizontalNewsContent = ({
     if (isLoadingNext || !hasMore) return false;
 
     try {
-      const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
+      const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE) + 1;
       const response = await fetch(
         `/api/more-home-posts?page=${nextPage}&category=${categoryName}`
       );
