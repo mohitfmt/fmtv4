@@ -123,7 +123,7 @@ const HomeCommonSections = ({
     try {
       // Calculate the next page number
       // Page 1 = first batch after initial posts
-      const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE) + 1;
+      const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
 
       console.log(
         `[LoadMore] Loading page ${nextPage} for category ${categoryName}`

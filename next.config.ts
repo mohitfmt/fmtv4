@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizeCss: true,
-  },
+    instrumentationHook: true,
+  } as any,
   images: {
     remotePatterns: [
       {
