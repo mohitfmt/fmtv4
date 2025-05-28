@@ -81,9 +81,9 @@ const SubCategoryPage = ({ subcategorySlug, category, posts }: Props) => {
       : DEFAULT_SEO_CONFIG;
 
     // Log for debugging that we're using a fallback
-    console.log(
-      `[SUBSEO] Using SEO fallback for subcategory: ${subcategorySlug}`
-    );
+    // console.log(
+    //   `[SUBSEO] Using SEO fallback for subcategory: ${subcategorySlug}`
+    // );
   }
   const pathName = `${subcategorySlug}`;
   const fullPathName = `/category/category/${category}/${subcategorySlug}`;
