@@ -67,9 +67,9 @@ const HomeCommonSections = ({
 
       prefetchingPages.current.add(pageNumber);
       try {
-        console.log(
-          `[Prefetch] Fetching page ${pageNumber} for category ${categoryName}`
-        );
+        // console.log(
+        //   `[Prefetch] Fetching page ${pageNumber} for category ${categoryName}`
+        // );
 
         const response = await fetch(
           `/api/more-home-posts?page=${pageNumber}&category=${categoryName}`
@@ -98,10 +98,10 @@ const HomeCommonSections = ({
         }
 
         const data = await response.json();
-        console.log(`[Prefetch] Success for page ${pageNumber}:`, {
-          postsCount: data.posts?.edges?.length || 0,
-          hasMore: data.hasMore,
-        });
+        // console.log(`[Prefetch] Success for page ${pageNumber}:`, {
+        //   postsCount: data.posts?.edges?.length || 0,
+        //   hasMore: data.hasMore,
+        // });
 
         if (data.posts?.edges?.length > 0) {
           const processedPosts = data.posts.edges.map((edge: any) => edge.node);
@@ -125,13 +125,13 @@ const HomeCommonSections = ({
       // Page 1 = first batch after initial posts
       const nextPage = Math.floor(allPosts.length / POSTS_PER_PAGE);
 
-      console.log(
-        `[LoadMore] Loading page ${nextPage} for category ${categoryName}`
-      );
+      // console.log(
+      //   `[LoadMore] Loading page ${nextPage} for category ${categoryName}`
+      // );
 
       // Check cache first
       if (pageCache.current[nextPage]) {
-        console.log(`[LoadMore] Using cached data for page ${nextPage}`);
+        // console.log(`[LoadMore] Using cached data for page ${nextPage}`);
         setAllPosts((prev) => [...prev, ...pageCache.current[nextPage]]);
         setHasMore(pageCache.current[nextPage].length === POSTS_PER_PAGE);
         return true;
@@ -165,10 +165,10 @@ const HomeCommonSections = ({
       }
 
       const data = await response.json();
-      console.log(`[LoadMore] Success:`, {
-        postsCount: data.posts?.edges?.length || 0,
-        hasMore: data.hasMore,
-      });
+      // console.log(`[LoadMore] Success:`, {
+      //   postsCount: data.posts?.edges?.length || 0,
+      //   hasMore: data.hasMore,
+      // });
 
       if (data.posts?.edges?.length > 0) {
         const processedPosts = data.posts.edges.map((edge: any) => edge.node);
@@ -244,9 +244,9 @@ const HomeCommonSections = ({
 
     if (hasMore && isNearEnd) {
       const nextPageToFetch = Math.floor(allPosts.length / POSTS_PER_PAGE) + 1;
-      console.log(
-        `[Effect] Prefetching page ${nextPageToFetch} (current: ${currentPage}, total loaded: ${totalLoadedPages})`
-      );
+      // console.log(
+      //   `[Effect] Prefetching page ${nextPageToFetch} (current: ${currentPage}, total loaded: ${totalLoadedPages})`
+      // );
       prefetchNextPage(nextPageToFetch);
     }
   }, [currentPage, allPosts.length, hasMore, prefetchNextPage]);
