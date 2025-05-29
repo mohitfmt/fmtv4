@@ -77,6 +77,7 @@ export const GET_MORE_HOME_POSTS_QUERY = `
       edges {
         node {
           databaseId
+          id
           title
           excerpt
           slug

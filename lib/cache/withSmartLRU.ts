@@ -11,20 +11,35 @@ export function withSmartLRUCache<T extends (...args: any[]) => Promise<any>>(
 
     // Check cache first
     const cached = cache.get(key);
-    if (cached) return cached;
+    if (cached) {
+      if (process.env.DEBUG_CACHE === "true") {
+        console.log(`[Cache HIT] - ${key}`);
+      }
+      return cached;
+    }
 
     // Fetch data
     const result = await fetchFn(...args);
 
-    // Extract dependencies based on the result structure
+    // Extract dependencies
     const dependencies = extractDependencies(result);
 
     // Store with dependencies
     if (result && dependencies.length > 0) {
       cache.setWithDependencies(key, result, dependencies);
+      if (process.env.DEBUG_CACHE === "true") {
+        console.log(
+          `[Cache MISS] - ${key} - Tracking ${dependencies.length} dependencies`
+        );
+      }
     } else if (result) {
-      // If no dependencies found, still cache but without dependencies
-      cache.setWithDependencies(key, result, []);
+      // Still cache even without dependencies
+      cache.set(key, result);
+      if (process.env.DEBUG_CACHE === "true") {
+        console.log(
+          `[Cache MISS] - ${key} - No dependencies found`
+        );
+      }
     }
 
     return result;

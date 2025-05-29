@@ -18,6 +18,7 @@ async function rawGetColumnists(
         edges {
           node {
             id
+            databaseId
             name
             uri
             avatar {

@@ -28,6 +28,7 @@ async function rawGetPostAndMorePosts(
       }
       fragment PostFields on Post {
         id
+        databaseId
         title
         excerpt
         slug

@@ -92,6 +92,7 @@ export const GET_FILTERED_CATEGORY = `
       edges {
         node {
           id
+          databaseId
           title
           excerpt
           uri

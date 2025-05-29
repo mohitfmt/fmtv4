@@ -211,6 +211,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
           edges {
             node {
               id
+              databaseId
               uri
               slug
             }

@@ -104,7 +104,7 @@ export class SmartNewsCache<
 
     this.emit("set", { key, dependencies });
   }
-  
+
   set(key: string, value: T): void {
     // When no dependencies are provided, just set in cache without tracking
     this.cache.set(key, value);
@@ -122,9 +122,17 @@ export class SmartNewsCache<
       }
     });
 
-    console.log(
-      `[${this.name}] Invalidated ${invalidated} entries for article ${articleId}`
-    );
+    // Only log if something was invalidated or in debug mode
+    if (invalidated > 0) {
+      console.log(
+        `[${this.name}] Invalidated ${invalidated} entries for article ${articleId}`
+      );
+    } else if (process.env.DEBUG_CACHE === "true") {
+      console.log(
+        `[${this.name}] No entries to invalidate for article ${articleId}`
+      );
+    }
+
     this.emit("invalidate", { articleId, invalidated });
 
     return invalidated;
@@ -197,12 +205,9 @@ export class ContentChangeManager extends EventEmitter {
     const batch = [...this.updateQueue];
     this.updateQueue = [];
 
-    console.log(
-      `[ContentChangeManager] Processing batch of ${batch.length} changes`
-    );
-
     const startTime = Date.now();
     const invalidationStats = new Map<string, number>();
+    let totalInvalidated = 0;
 
     const changesByArticle = new Map<string, ContentChangeEvent>();
     batch.forEach((event) => {
@@ -213,8 +218,11 @@ export class ContentChangeManager extends EventEmitter {
       for (const [cacheName, cache] of this.caches) {
         const invalidated = cache.invalidateArticle(articleId);
 
-        const currentCount = invalidationStats.get(cacheName) || 0;
-        invalidationStats.set(cacheName, currentCount + invalidated);
+        if (invalidated > 0) {
+          const currentCount = invalidationStats.get(cacheName) || 0;
+          invalidationStats.set(cacheName, currentCount + invalidated);
+          totalInvalidated += invalidated;
+        }
       }
 
       this.emit("processed", event);
@@ -222,10 +230,19 @@ export class ContentChangeManager extends EventEmitter {
 
     const duration = Date.now() - startTime;
 
-    console.log(`[ContentChangeManager] Batch processed in ${duration}ms:`, {
-      articlesProcessed: changesByArticle.size,
-      invalidationStats: Object.fromEntries(invalidationStats),
-    });
+    // Only log if something was actually invalidated
+    if (totalInvalidated > 0 || process.env.DEBUG_CACHE === "true") {
+      console.log(`[ContentChangeManager] Batch processed in ${duration}ms:`, {
+        articlesProcessed: changesByArticle.size,
+        totalInvalidated,
+        // Only show caches that had invalidations
+        cacheStats: Object.fromEntries(
+          Array.from(invalidationStats.entries()).filter(
+            ([_, count]) => count > 0
+          )
+        ),
+      });
+    }
 
     this.isProcessing = false;
   }

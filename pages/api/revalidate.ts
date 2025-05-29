@@ -203,7 +203,12 @@ export default async function handler(
         changeManager.handleContentChange(event);
 
         const sectionPath = resolveSectionPath(slug);
-        pathsToRevalidate.push(`/${sectionPath}`, "/");
+
+        if (sectionPath && sectionPath !== slug) {
+          pathsToRevalidate.push(`/${sectionPath}`);
+        }
+        pathsToRevalidate.push("/");
+        
         tagsToPurge.push(
           `path:/${sectionPath}`,
           `section:${sectionPath}`,
