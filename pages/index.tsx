@@ -102,11 +102,7 @@ export default function Home({
           name="keywords"
           content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
         />
-        <link
-          rel="alternate"
-          hrefLang="x-default"
-          href={siteConfig.baseUrl}
-        />
+        <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
         <meta
           name="copyright"
           content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
@@ -172,9 +168,14 @@ export default function Home({
         <meta property="og:image" content={siteConfig?.iconPath} />
         <meta property="og:image:alt" content="Free Malaysia Today | FMT" />
         <meta property="og:locale" content="en_MY" />
-        {defaultAlternateLocale?.map((locale: any) => (
-          <meta key={locale} property="og:locale:alternate" content={locale} />
-        ))}
+        {Array.isArray(defaultAlternateLocale) &&
+          defaultAlternateLocale.map((locale: string) => (
+            <meta
+              key={locale}
+              property="og:locale:alternate"
+              content={locale}
+            />
+          ))}
 
         {/* twitter */}
         <meta name="twitter:card" content="summary_large_image" />

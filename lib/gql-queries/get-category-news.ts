@@ -71,11 +71,10 @@ async function rawGetCategoryNews(
           limit,
           preview,
         },
-        // REMOVED cacheSeconds - let smart cache handle it
       }
     );
 
-    return data?.posts || { edges: [] };
+    return data?.posts?.edges?.map((edge: any) => edge.node) || [];
   } catch (error) {
     console.error(`Error fetching posts for category ${categoryName}:`, error);
     return { edges: [] };
