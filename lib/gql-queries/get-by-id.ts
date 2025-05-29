@@ -10,6 +10,7 @@ query GetPost($id: ID!, $idType: PostIdType!) {
     dateGmt
     author {
       node {
+        databaseId
         name
         slug
         uri
@@ -24,6 +25,7 @@ query GetPost($id: ID!, $idType: PostIdType!) {
     categories {
       edges {
         node {
+          databaseId  
           name
           slug
         }
@@ -32,6 +34,7 @@ query GetPost($id: ID!, $idType: PostIdType!) {
     tags {
       edges {
         node {
+          databaseId
           slug
           name
         }

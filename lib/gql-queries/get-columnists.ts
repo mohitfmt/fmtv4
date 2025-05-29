@@ -27,6 +27,8 @@ async function rawGetColumnists(
             description
             posts(after: $afterPost, where: $wherePost, first: $firstPost) {
               nodes {
+                id
+                databaseId
                 title
                 uri
                 dateGmt

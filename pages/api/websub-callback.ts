@@ -148,13 +148,20 @@ const HOMEPAGE_TRIGGER_CATEGORIES = [
   "super-highlight",
   "highlight",
   "top-news",
+  "nation",
   "super-bm",
   "top-bm",
+  "bahasa",
   "top-opinion",
+  "opinion",
   "top-world",
+  "world",
   "top-lifestyle",
+  "leisure",
   "top-business",
+  "business",
   "top-sports",
+  "sports",
 ];
 
 /**
@@ -332,10 +339,10 @@ async function getRecentlyModifiedArticles(
 /**
  * Process articles to get cache tags and revalidation items
  */
-function processArticlesForRevalidation(
+async function processArticlesForRevalidation(
   articles: WPPost[],
   frontendDomain: string
-): {
+): Promise<{
   cacheTags: string[];
   revalidationItems: {
     path: string;
@@ -344,16 +351,18 @@ function processArticlesForRevalidation(
     priority: number;
   }[];
   shouldUpdateHomepage: boolean;
-} {
+  affectedPaths: Set<string>;
+}> {
   const cacheTags = new Set<string>();
   const revalidationItems: any[] = [];
+  const affectedPaths = new Set<string>();
   let shouldUpdateHomepage = false;
 
   // Get all navigation paths
   const allNavigationPaths = getAllNavigationPaths();
 
-  // Process each article
-  articles.forEach((post) => {
+  // Process each article and trigger immediate cache invalidation
+  for (const post of articles) {
     try {
       // Get categories from URL and API
       const urlCategories = extractCategoryFromUrl(post.link);
@@ -363,14 +372,38 @@ function processArticlesForRevalidation(
 
       const allCategories = [...new Set([...urlCategories, ...apiCategories])];
 
+      // Create content change event for smart cache
+      const event = {
+        type:
+          new Date(post.date).getTime() === new Date(post.modified).getTime()
+            ? ("new" as const)
+            : ("update" as const),
+        articleId: post.id.toString(),
+        slug: post.slug,
+        categories: allCategories,
+        timestamp: new Date(post.modified),
+        priority: "normal" as const,
+      };
+
+      // Trigger smart cache invalidation immediately
+      changeManager.handleContentChange(event);
+
+      // Wait a bit for cache processing
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      // Collect affected paths from change manager
+      const smartCachePaths = changeManager.getAffectedPaths();
+      smartCachePaths.forEach((path) => affectedPaths.add(path));
+
       // Check if homepage should be updated
       if (!shouldUpdateHomepage && shouldTriggerHomepageUpdate(allCategories)) {
         shouldUpdateHomepage = true;
         cacheTags.add("path:/");
         cacheTags.add("page:home");
+        affectedPaths.add("/");
       }
 
-      // Add category-related cache tags
+      // Add category-related cache tags and paths
       allCategories.forEach((category) => {
         if (!category) return;
 
@@ -380,17 +413,22 @@ function processArticlesForRevalidation(
         cacheTags.add(`path:${frontendPath}`);
         cacheTags.add(`section:${getCategoryPath(category)}`);
 
-        // Add to revalidation items
-        if (
-          !revalidationItems.some(
-            (item) => item.type === "category" && item.path === frontendPath
-          )
-        ) {
-          revalidationItems.push({
-            type: "category",
-            path: frontendPath,
-            priority: PRIORITY.HIGH,
-          });
+        affectedPaths.add(frontendPath);
+        affectedPaths.add(`/category/category/${category}`);
+
+        // Add parent category paths
+        const parentSection = getCategoryPath(category);
+        if (parentSection !== category) {
+          affectedPaths.add(`/${parentSection}`);
+        }
+
+        // Add subcategory paths
+        const navigationPath = allNavigationPaths.find(
+          (path: string) =>
+            path.includes(category) || path.includes(parentSection)
+        );
+        if (navigationPath) {
+          affectedPaths.add(navigationPath);
         }
       });
 
@@ -401,6 +439,7 @@ function processArticlesForRevalidation(
 
       cacheTags.add(`path:/${articlePath}`);
       cacheTags.add(`post:${post.slug}`);
+      affectedPaths.add(`/${articlePath}`);
 
       // Add article to revalidation
       revalidationItems.push({
@@ -412,7 +451,7 @@ function processArticlesForRevalidation(
     } catch (error) {
       console.error(`[WebSub] Error processing article ${post.id}:`, error);
     }
-  });
+  }
 
   // Add homepage if needed
   if (shouldUpdateHomepage) {
@@ -421,18 +460,25 @@ function processArticlesForRevalidation(
       path: "/",
       priority: PRIORITY.CRITICAL,
     });
+    affectedPaths.add("/");
   }
 
-  // Add main navigation sections
-  allNavigationPaths.forEach((path: string) => {
-    if (
-      !path.includes("/category/") &&
-      !revalidationItems.some((item) => item.path === path)
-    ) {
+  // Add all affected main sections
+  affectedPaths.forEach((path) => {
+    if (!revalidationItems.some((item) => item.path === path)) {
+      const priority =
+        path === "/"
+          ? PRIORITY.CRITICAL
+          : path.match(
+                /^\/(news|berita|business|opinion|world|sports|lifestyle)$/
+              )
+            ? PRIORITY.HIGH
+            : PRIORITY.MEDIUM;
+
       revalidationItems.push({
-        type: "category",
+        type: path === "/" ? "homepage" : "category",
         path,
-        priority: PRIORITY.HIGH,
+        priority,
       });
     }
   });
@@ -441,6 +487,7 @@ function processArticlesForRevalidation(
     cacheTags: Array.from(cacheTags),
     revalidationItems,
     shouldUpdateHomepage,
+    affectedPaths,
   };
 }
 
@@ -523,18 +570,50 @@ async function processRevalidationItem(
 async function processRevalidation(
   baseUrl: string,
   items: any[],
-  revalidateKey: string
+  revalidateKey: string,
+  affectedPaths: Set<string>
 ): Promise<void> {
   if (items.length === 0) return;
 
   console.log(
-    `[WebSub] Revalidating ${items.length} items with priority queuing`
+    `[WebSub] Revalidating ${items.length} items + ${affectedPaths.size} affected paths`
   );
 
-  // Sort by priority
-  const sortedItems = [...items].sort((a, b) => a.priority - b.priority);
+  // Combine all paths
+  const allPaths = new Set<string>();
+  items.forEach((item) => allPaths.add(item.path));
+  affectedPaths.forEach((path) => allPaths.add(path));
 
-  // Group by priority
+  // Convert to priority items
+  const allItems = Array.from(allPaths).map((path) => {
+    const existingItem = items.find((item) => item.path === path);
+    if (existingItem) return existingItem;
+
+    // Determine priority based on path
+    let priority = PRIORITY.MEDIUM;
+    if (path === "/") priority = PRIORITY.CRITICAL;
+    else if (
+      path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
+    )
+      priority = PRIORITY.HIGH;
+
+    return {
+      type: path === "/" ? "homepage" : "category",
+      path,
+      priority,
+    };
+  });
+
+  // Sort by priority
+  const sortedItems = allItems.sort((a, b) => a.priority - b.priority);
+
+  // Clear queues
+  criticalQueue.clear();
+  highQueue.clear();
+  mediumQueue.clear();
+  lowQueue.clear();
+
+  // Process with immediate revalidation for critical paths
   const criticalItems = sortedItems.filter(
     (item) => item.priority === PRIORITY.CRITICAL
   );
@@ -546,18 +625,19 @@ async function processRevalidation(
   );
   const lowItems = sortedItems.filter((item) => item.priority === PRIORITY.LOW);
 
-  // Clear queues
-  criticalQueue.clear();
-  highQueue.clear();
-  mediumQueue.clear();
-  lowQueue.clear();
-
-  // Add to queues
-  for (const item of criticalItems) {
-    criticalQueue.add(() =>
-      processRevalidationItem(baseUrl, item, revalidateKey)
+  // Process critical items immediately
+  if (criticalItems.length > 0) {
+    console.log(
+      `[WebSub] Processing ${criticalItems.length} critical items immediately`
+    );
+    await Promise.all(
+      criticalItems.map((item) =>
+        processRevalidationItem(baseUrl, item, revalidateKey)
+      )
     );
   }
+
+  // Queue other items
   for (const item of highItems) {
     highQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
   }
@@ -570,16 +650,9 @@ async function processRevalidation(
     lowQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
   }
 
-  // Process queues in order
-  await criticalQueue.onIdle();
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
+  // Process queues
   await highQueue.onIdle();
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   await mediumQueue.onIdle();
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
   await lowQueue.onIdle();
 
   console.log(`[WebSub] All revalidation queues processed`);
@@ -660,71 +733,49 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       return;
     }
 
-    // SMART CACHE INVALIDATION
-    const changeEvents = modifiedArticles.map((article) => ({
-      type:
-        new Date(article.date).getTime() ===
-        new Date(article.modified).getTime()
-          ? ("new" as const)
-          : ("update" as const),
-      articleId: article.id.toString(),
-      slug: article.slug,
-      categories: article.categories
-        ? getCategorySlugsFromIds(article.categories)
-        : [],
-      timestamp: new Date(article.modified),
-      priority: "normal" as const,
-    }));
-
     console.log(
-      `[WebSub] Processing ${changeEvents.length} content changes through smart cache`
+      `[WebSub] Processing ${modifiedArticles.length} modified articles`
     );
 
-    // Process in batches to avoid overwhelming the system
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < changeEvents.length; i += BATCH_SIZE) {
-      const batch = changeEvents.slice(i, i + BATCH_SIZE);
-      batch.forEach((event) => changeManager.handleContentChange(event));
+    // Process articles and get all affected paths
+    const {
+      cacheTags,
+      revalidationItems,
+      shouldUpdateHomepage,
+      affectedPaths,
+    } = await processArticlesForRevalidation(modifiedArticles, frontendDomain);
 
-      // Give batch processor time to work
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    // Process for Cloudflare and Next.js revalidation
-    const { cacheTags, revalidationItems, shouldUpdateHomepage } =
-      processArticlesForRevalidation(modifiedArticles, frontendDomain);
-
-    // Purge Cloudflare cache
+    // Purge Cloudflare cache immediately
     if (cacheTags.length > 0) {
       console.log(`[WebSub] Purging ${cacheTags.length} Cloudflare cache tags`);
 
-      // Cloudflare has a limit of 30 tags per request
       const TAG_BATCH_SIZE = 30;
+      const purgePromises = [];
+
       for (let i = 0; i < cacheTags.length; i += TAG_BATCH_SIZE) {
         const batch = cacheTags.slice(i, i + TAG_BATCH_SIZE);
-        await purgeCloudflareByTags(batch);
-
-        // Small delay between batches
-        if (i + TAG_BATCH_SIZE < cacheTags.length) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
+        purgePromises.push(purgeCloudflareByTags(batch));
       }
+
+      await Promise.all(purgePromises);
     }
 
-    // Process Next.js revalidation with queuing
-    await processRevalidation(baseUrl, revalidationItems, revalidateKey);
+    // Process Next.js revalidation with affected paths
+    await processRevalidation(
+      baseUrl,
+      revalidationItems,
+      revalidateKey,
+      affectedPaths
+    );
 
     // Ping IndexNow for SEO
     const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
-
-    // Batch IndexNow pings
     const indexNowUrls = modifiedArticles.map((post) => {
       const url = new URL(post.link);
       url.hostname = frontendDomain;
       return url.toString();
     });
 
-    // IndexNow accepts up to 10,000 URLs per request
     if (indexNowUrls.length > 0) {
       try {
         const response = await fetch("https://api.indexnow.org/indexnow", {

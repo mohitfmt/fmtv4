@@ -91,6 +91,7 @@ export const GET_MORE_HOME_POSTS_QUERY = `
           categories {
             edges {
               node {
+                databaseId
                 slug
                 name
                 id
@@ -99,6 +100,7 @@ export const GET_MORE_HOME_POSTS_QUERY = `
           }
           author {
             node {
+              databaseId
               slug
               name
               firstName

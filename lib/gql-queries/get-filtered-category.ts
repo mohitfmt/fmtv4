@@ -110,6 +110,7 @@ export const GET_FILTERED_CATEGORY = `
           }
           author {
             node {
+              databaseId
               uri
               name
               avatar
@@ -122,6 +123,7 @@ export const GET_FILTERED_CATEGORY = `
             edges {
               node {
                 id
+                databaseId
                 name
                 slug
                 count

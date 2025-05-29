@@ -1,116 +1,51 @@
 User-agent: *
 Allow: /
+Allow: /_next/static/
+Allow: /_next/image/
+Allow: /_next/data/
 Disallow: /wp-admin/
 Disallow: /wp-includes/
-Disallow: /?s=*
 Disallow: /*/edit/
+Disallow: /*/edit$
 Disallow: /api/
-Disallow: /*/api/
-Disallow: /*.api$
-Disallow: /_next/image/
-Disallow: /_next/static/media/
-Disallow: /_next/static/
-Disallow: /_next/chunks/
-Disallow: /_next/data/
-Disallow: /static/js/
-Disallow: /static/css/
-Disallow: /?*
-Disallow: /*.json$
-Disallow: /*/*.json*
+Disallow: /search?q=$
+Disallow: /search?q=&
 
 User-agent: Googlebot
 Allow: /
+Allow: /_next/
+Allow: /*.js
+Allow: /*.css
+Allow: /*.json
 Disallow: /wp-admin/
 Disallow: /wp-includes/
-Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
-Disallow: /*/api/
-Disallow: /*.api$
-Disallow: /_next/image/
-Disallow: /_next/static/media/
-Disallow: /_next/static/
-Disallow: /_next/chunks/
-Disallow: /_next/data/
-Disallow: /static/js/
-Disallow: /static/css/
-Disallow: /?*
-Disallow: /*.json$
-Disallow: /*/*.json*
-
 
 User-agent: Googlebot-News
 Allow: /
+Allow: /_next/
+Allow: /*.js
+Allow: /*.css
 Disallow: /wp-admin/
 Disallow: /wp-includes/
-Disallow: /?s=*
 Disallow: /*/edit/
 Disallow: /api/
-Disallow: /*/api/
-Disallow: /*.api$
-Disallow: /_next/image/
-Disallow: /_next/static/media/
-Disallow: /_next/static/
-Disallow: /_next/chunks/
-Disallow: /_next/data/
-Disallow: /static/js/
-Disallow: /static/css/
-Disallow: /?*
-Disallow: /*.json$
-Disallow: /*/*.json*
-
 
 User-agent: Google-Extended
-Allow: /
-Disallow: /wp-admin/
-Disallow: /wp-includes/
-Disallow: /?s=*
-Disallow: /*/edit/
-Disallow: /api/
-Disallow: /*/api/
-Disallow: /*.api$
-Disallow: /_next/image/
-Disallow: /_next/static/media/
-Disallow: /_next/static/
-Disallow: /_next/chunks/
-Disallow: /_next/data/
-Disallow: /static/js/
-Disallow: /static/css/
-Disallow: /?*
-Disallow: /*.json$
-Disallow: /*/*.json*
-
+Disallow: /
 
 User-agent: GoogleOther
 Allow: /
+Allow: /_next/
 Disallow: /wp-admin/
-Disallow: /wp-includes/
-Disallow: /?s=*
-Disallow: /*/edit/
 Disallow: /api/
-Disallow: /*/api/
-Disallow: /*.api$
-Disallow: /_next/image/
-Disallow: /_next/static/media/
-Disallow: /_next/static/
-Disallow: /_next/chunks/
-Disallow: /_next/data/
-Disallow: /static/js/
-Disallow: /static/css/
-Disallow: /?*
-Disallow: /*.json$
-Disallow: /*/*.json*
-
 
 User-agent: FeedFetcher-Google
-Allow: /*/feeds/
-Allow: /*/feed/
-Disallow: /
+Allow: /
 
 User-agent: GoogleProducer
-Allow: /*/feeds/
-Allow: /*/feed/
-Disallow: /
+Allow: /
 
 User-agent: Google-Read-Aloud
 Allow: /
@@ -123,6 +58,33 @@ Allow: /
 
 User-agent: Mediapartners-Google
 Allow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
 
 Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
 Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml

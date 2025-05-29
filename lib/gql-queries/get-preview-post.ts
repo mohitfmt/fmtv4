@@ -12,6 +12,7 @@ export const GET_POST = `
       uri
       author {
         node {
+          databaseId
           name
           slug
           uri
@@ -20,6 +21,7 @@ export const GET_POST = `
       categories {
         edges {
           node {
+            databaseId
             name
             slug
           }
@@ -28,6 +30,7 @@ export const GET_POST = `
       tags(first: 100) {
         edges {
           node {
+            databaseId
             name
             slug
           }
@@ -35,6 +38,7 @@ export const GET_POST = `
       }
       featuredImage {
         node {
+          databaseId
           sourceUrl
           altText
           mediaDetails {

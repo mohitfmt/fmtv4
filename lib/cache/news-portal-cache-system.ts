@@ -1,15 +1,7 @@
-// lib/cache/news-portal-cache-system.ts
-/**
- * Production-Ready Cache Management System for High-Traffic News Portal
- * Fixed version with proper TypeScript types
- */
-
+// lib/cache/news-portal-cache-system.ts (Enhanced version)
 import { LRUCache } from "lru-cache";
 import { EventEmitter } from "events";
 
-/**
- * Article Change Event
- */
 interface ContentChangeEvent {
   type: "new" | "update";
   articleId: string;
@@ -19,12 +11,10 @@ interface ContentChangeEvent {
   priority: "breaking" | "normal";
 }
 
-/**
- * Cache Dependency Graph
- */
 class CacheDependencyGraph {
   private dependencies = new Map<string, Set<string>>();
   private reverseDependencies = new Map<string, Set<string>>();
+  private navigationPaths = new Map<string, Set<string>>();
 
   addDependency(cacheKey: string, articleId: string): void {
     if (!this.dependencies.has(articleId)) {
@@ -36,6 +26,14 @@ class CacheDependencyGraph {
       this.reverseDependencies.set(cacheKey, new Set());
     }
     this.reverseDependencies.get(cacheKey)!.add(articleId);
+  }
+
+  setNavigationPaths(cacheKey: string, paths: string[]): void {
+    this.navigationPaths.set(cacheKey, new Set(paths));
+  }
+
+  getNavigationPaths(cacheKey: string): string[] {
+    return Array.from(this.navigationPaths.get(cacheKey) || []);
   }
 
   getDependentCacheKeys(articleId: string): string[] {
@@ -53,12 +51,14 @@ class CacheDependencyGraph {
     });
 
     this.reverseDependencies.delete(cacheKey);
+    this.navigationPaths.delete(cacheKey);
   }
 
   getStats() {
     return {
       articles: this.dependencies.size,
       cacheKeys: this.reverseDependencies.size,
+      navigationPaths: this.navigationPaths.size,
       totalDependencies: Array.from(this.dependencies.values()).reduce(
         (sum, set) => sum + set.size,
         0
@@ -67,10 +67,6 @@ class CacheDependencyGraph {
   }
 }
 
-/**
- * Smart News Cache
- * Fixed with proper TypeScript constraints
- */
 export class SmartNewsCache<
   T extends Record<string, any>,
 > extends EventEmitter {
@@ -105,37 +101,51 @@ export class SmartNewsCache<
     this.emit("set", { key, dependencies });
   }
 
+  setNavigationPaths(key: string, paths: string[]): void {
+    this.dependencyGraph.setNavigationPaths(key, paths);
+  }
+
   set(key: string, value: T): void {
-    // When no dependencies are provided, just set in cache without tracking
     this.cache.set(key, value);
     this.emit("set", { key, dependencies: [] });
   }
 
-  invalidateArticle(articleId: string): number {
+  invalidateArticle(articleId: string): {
+    invalidated: number;
+    affectedPaths: string[];
+  } {
     const keysToInvalidate =
       this.dependencyGraph.getDependentCacheKeys(articleId);
 
     let invalidated = 0;
+    const allAffectedPaths = new Set<string>();
+
     keysToInvalidate.forEach((key) => {
+      // Collect navigation paths before deleting
+      const paths = this.dependencyGraph.getNavigationPaths(key);
+      paths.forEach((path) => allAffectedPaths.add(path));
+
       if (this.cache.delete(key)) {
         invalidated++;
       }
     });
 
-    // Only log if something was invalidated or in debug mode
     if (invalidated > 0) {
       console.log(
-        `[${this.name}] Invalidated ${invalidated} entries for article ${articleId}`
-      );
-    } else if (process.env.DEBUG_CACHE === "true") {
-      console.log(
-        `[${this.name}] No entries to invalidate for article ${articleId}`
+        `[${this.name}] Invalidated ${invalidated} entries for article ${articleId}, affecting ${allAffectedPaths.size} paths`
       );
     }
 
-    this.emit("invalidate", { articleId, invalidated });
+    this.emit("invalidate", {
+      articleId,
+      invalidated,
+      paths: Array.from(allAffectedPaths),
+    });
 
-    return invalidated;
+    return {
+      invalidated,
+      affectedPaths: Array.from(allAffectedPaths),
+    };
   }
 
   get(key: string): T | undefined {
@@ -146,12 +156,10 @@ export class SmartNewsCache<
     return this.cache.delete(key);
   }
 
-  // Expose size property
   get size(): number {
     return this.cache.size;
   }
 
-  // Expose calculatedSize if available
   get calculatedSize(): number | undefined {
     return this.cache.calculatedSize;
   }
@@ -166,14 +174,12 @@ export class SmartNewsCache<
   }
 }
 
-/**
- * Content Change Manager
- */
 export class ContentChangeManager extends EventEmitter {
   private caches: Map<string, SmartNewsCache<any>> = new Map();
   private updateQueue: ContentChangeEvent[] = [];
   private isProcessing = false;
   private batchInterval: NodeJS.Timeout | null = null;
+  private affectedPathsCollector = new Set<string>();
 
   constructor(private batchDelayMs: number = 100) {
     super();
@@ -182,12 +188,24 @@ export class ContentChangeManager extends EventEmitter {
 
   registerCache(name: string, cache: SmartNewsCache<any>): void {
     this.caches.set(name, cache);
-    // console.log(`[ContentChangeManager] Registered cache: ${name}`);
+
+    // Listen for invalidation events to collect affected paths
+    cache.on("invalidate", ({ paths }) => {
+      if (paths && paths.length > 0) {
+        paths.forEach((path: string) => this.affectedPathsCollector.add(path));
+      }
+    });
   }
 
   handleContentChange(event: ContentChangeEvent): void {
     this.updateQueue.push(event);
     this.emit("queued", event);
+  }
+
+  getAffectedPaths(): string[] {
+    const paths = Array.from(this.affectedPathsCollector);
+    this.affectedPathsCollector.clear();
+    return paths;
   }
 
   private startBatchProcessor(): void {
@@ -216,7 +234,7 @@ export class ContentChangeManager extends EventEmitter {
 
     for (const [articleId, event] of changesByArticle) {
       for (const [cacheName, cache] of this.caches) {
-        const invalidated = cache.invalidateArticle(articleId);
+        const { invalidated } = cache.invalidateArticle(articleId);
 
         if (invalidated > 0) {
           const currentCount = invalidationStats.get(cacheName) || 0;
@@ -230,12 +248,11 @@ export class ContentChangeManager extends EventEmitter {
 
     const duration = Date.now() - startTime;
 
-    // Only log if something was actually invalidated
     if (totalInvalidated > 0 || process.env.DEBUG_CACHE === "true") {
       console.log(`[ContentChangeManager] Batch processed in ${duration}ms:`, {
         articlesProcessed: changesByArticle.size,
         totalInvalidated,
-        // Only show caches that had invalidations
+        affectedPaths: this.affectedPathsCollector.size,
         cacheStats: Object.fromEntries(
           Array.from(invalidationStats.entries()).filter(
             ([_, count]) => count > 0
@@ -256,6 +273,7 @@ export class ContentChangeManager extends EventEmitter {
     return {
       queueLength: this.updateQueue.length,
       isProcessing: this.isProcessing,
+      affectedPaths: this.affectedPathsCollector.size,
       caches: cacheStats,
     };
   }
@@ -267,9 +285,7 @@ export class ContentChangeManager extends EventEmitter {
   }
 }
 
-/**
- * Create News Caches with proper configuration
- */
+// Export everything else as before...
 export function createNewsCaches() {
   const changeManager = new ContentChangeManager(100);
 
@@ -315,16 +331,11 @@ export function createNewsCaches() {
   };
 }
 
-// Create global instances
 const { postDataCache, categoryCache, homepageCache, changeManager } =
   createNewsCaches();
 
-// Export for use in other files
 export { postDataCache, categoryCache, homepageCache, changeManager };
 
-/**
- * Cache Health Monitor
- */
 export class CacheHealthMonitor {
   private metricsHistory: any[] = [];
   private readonly maxHistorySize = 100;
@@ -365,14 +376,6 @@ export class CacheHealthMonitor {
       console.error("[CacheHealth] CRITICAL: Memory usage above 1.2GB");
       this.triggerMemoryRelief();
     }
-
-    // Object.entries(metrics.hitRates).forEach(([cache, rate]) => {
-    //   if ((rate as number) < 0.5) {
-    //     console.warn(
-    //       `[CacheHealth] Low hit rate for ${cache}: ${((rate as number) * 100).toFixed(1)}%`
-    //     );
-    //   }
-    // });
   }
 
   private triggerMemoryRelief(): void {
@@ -380,10 +383,6 @@ export class CacheHealthMonitor {
 
     caches.forEach((cache: any) => {
       const currentSize = cache.size;
-      const targetSize = Math.floor(currentSize * 0.7);
-
-      // LRU cache will handle eviction automatically when we add new items
-      // We can't manually evict specific items, but setting a smaller max will help
       console.log(
         `[MemoryRelief] Cache ${cache.name} has ${currentSize} items`
       );
@@ -439,5 +438,4 @@ export class CacheHealthMonitor {
   }
 }
 
-// Start monitoring
 export const cacheHealthMonitor = new CacheHealthMonitor();

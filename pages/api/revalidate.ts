@@ -1,9 +1,4 @@
 // pages/api/revalidate.ts
-/**
- * Revalidation API with Smart Cache Integration
- * Updated to work with SmartNewsCache dependency tracking
- */
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
 import { getPostData, playlistCache } from "@/lib/api";
@@ -19,6 +14,59 @@ const SECTION_PATH_MAP: Record<string, string> = {
   world: "world",
   sports: "sports",
   leisure: "lifestyle",
+};
+
+// Navigation structure for path generation
+const navigationPaths: Record<string, string[]> = {
+  news: [
+    "/news",
+    "/category/category/nation",
+    "/category/category/nation/sabahsarawak",
+  ],
+  berita: [
+    "/berita",
+    "/category/category/bahasa/tempatan",
+    "/category/category/bahasa/pandangan",
+    "/category/category/bahasa/dunia",
+  ],
+  business: [
+    "/business",
+    "/category/category/business/local-business",
+    "/category/category/business/world-business",
+  ],
+  lifestyle: [
+    "/lifestyle",
+    "/category/category/leisure/simple-stories",
+    "/category/category/leisure/travel",
+    "/category/category/leisure/food",
+    "/category/category/leisure/entertainment",
+    "/category/category/leisure/money",
+    "/category/category/leisure/health",
+    "/category/category/leisure/pets",
+    "/category/category/leisure/tech",
+    "/category/category/leisure/automotive",
+    "/category/category/leisure/property",
+  ],
+  opinion: [
+    "/opinion",
+    "/category/category/opinion/column",
+    "/category/category/opinion/editorial",
+    "/category/category/opinion/letters",
+    "/category/category/fmt-worldviews",
+  ],
+  world: ["/world", "/category/category/south-east-asia"],
+  sports: [
+    "/sports",
+    "/category/category/sports/football",
+    "/category/category/sports/badminton",
+    "/category/category/sports/motorsports",
+    "/category/category/sports/tennis",
+  ],
+  property: ["/category/category/leisure/property"],
+  education: ["/category/category/education"],
+  photos: ["/photos"],
+  videos: ["/videos"],
+  accelerator: ["/accelerator"],
 };
 
 function resolveSectionPath(slug: string): string {
@@ -38,6 +86,36 @@ function normalizeSlugPath(path?: string): string | undefined {
     .replace(/^\/+|\/+$/g, "");
 }
 
+// Helper to get all related paths for a category
+function getRelatedPaths(category: string): string[] {
+  const paths = new Set<string>();
+
+  // Always include homepage
+  paths.add("/");
+
+  // Add direct category paths
+  const sectionPath = resolveSectionPath(category);
+  if (navigationPaths[sectionPath]) {
+    navigationPaths[sectionPath].forEach((path: any) => paths.add(path));
+  }
+
+  // Add the category itself
+  paths.add(`/${sectionPath}`);
+  paths.add(`/category/category/${category}`);
+
+  // Check if this category is a subcategory
+  Object.entries(navigationPaths).forEach(([parent, childPaths]) => {
+    childPaths.forEach((childPath) => {
+      if (childPath.includes(category)) {
+        paths.add(`/${parent}`);
+        paths.add(childPath);
+      }
+    });
+  });
+
+  return Array.from(paths);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -55,25 +133,24 @@ export default async function handler(
   }
 
   const tagsToPurge: string[] = [];
-  const pathsToRevalidate: string[] = [];
+  const pathsToRevalidate = new Set<string>();
+  let smartCacheInvalidated = false;
 
   try {
     switch (type) {
       case "about": {
-        // About page is special - it doesn't use smart cache, so we handle it manually
         aboutPageCache.delete("page:about");
-        pathsToRevalidate.push("/about");
+        pathsToRevalidate.add("/about");
         tagsToPurge.push("path:/about", "page:about");
         break;
       }
 
       case "article":
       case "post": {
-        // For articles, we trigger smart invalidation if we can get the article ID
         try {
           const postData = await getPostData(slug);
           if (postData?.post?.databaseId) {
-            // Create a content change event for the smart cache system
+            // Create content change event
             const event = {
               type: "update" as const,
               articleId: postData.post.databaseId.toString(),
@@ -83,44 +160,63 @@ export default async function handler(
               priority: "normal" as const,
             };
 
-            // This single call will invalidate all cache entries that depend on this article
-            // This includes all pagination caches that contain this article!
+            // Trigger smart invalidation
             changeManager.handleContentChange(event as any);
+            smartCacheInvalidated = true;
+
+            // Wait a bit for cache invalidation to process
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
+            // Get all affected paths from the change manager
+            const affectedPaths = changeManager.getAffectedPaths();
+            affectedPaths.forEach((path) => pathsToRevalidate.add(path));
+
+            // Also add category-specific paths
+            const categories =
+              postData.post.categories?.edges?.map(
+                (edge: any) => edge.node.slug
+              ) || [];
+
+            categories.forEach((cat: string) => {
+              getRelatedPaths(cat).forEach((path) =>
+                pathsToRevalidate.add(path)
+              );
+            });
 
             console.log(
-              `[Revalidate] Smart invalidation triggered for article ${postData.post.databaseId}`
+              `[Revalidate] Smart invalidation for article ${postData.post.databaseId} - ${pathsToRevalidate.size} paths affected`
             );
           }
         } catch (e) {
-          // If we can't get the article ID, we still continue with path revalidation
           console.log(
             `[Revalidate] Could not fetch article ID for ${slug}, continuing with path revalidation`
           );
         }
 
-        // Continue with path-based revalidation for Next.js ISR
-        pathsToRevalidate.push(`/category/${slug}`);
+        // Always add the article path itself
+        pathsToRevalidate.add(`/category/${slug}`);
         tagsToPurge.push(
           `post:${slug}`,
           `related:${slug}`,
           `path:/category/${slug}`
         );
 
+        // Add section paths
         const section = extractSectionFromSlug(slug);
         if (section) {
-          const sectionPath = `/${section}`;
-          pathsToRevalidate.push(sectionPath);
-          tagsToPurge.push(`path:${sectionPath}`);
+          getRelatedPaths(section).forEach((path) =>
+            pathsToRevalidate.add(path)
+          );
+          tagsToPurge.push(`path:/${section}`, `section:${section}`);
         }
 
-        // Always revalidate homepage for any article
-        pathsToRevalidate.push("/");
-        tagsToPurge.push("path:/");
+        // Always revalidate homepage
+        pathsToRevalidate.add("/");
+        tagsToPurge.push("path:/", "page:home");
         break;
       }
 
       case "author": {
-        // For author updates, trigger a generic content change event
         const event = {
           type: "update" as const,
           articleId: `author-${id || slug}`,
@@ -131,9 +227,10 @@ export default async function handler(
         };
 
         changeManager.handleContentChange(event);
+        smartCacheInvalidated = true;
 
-        pathsToRevalidate.push(`/category/author/${slug}`);
-        pathsToRevalidate.push("/");
+        pathsToRevalidate.add(`/category/author/${slug}`);
+        pathsToRevalidate.add("/");
         tagsToPurge.push(
           `author:${slug}`,
           `path:/category/author/${slug}`,
@@ -143,7 +240,6 @@ export default async function handler(
       }
 
       case "tag": {
-        // For tag updates, trigger a generic content change event
         const event = {
           type: "update" as const,
           articleId: `tag-${id || slug}`,
@@ -154,43 +250,55 @@ export default async function handler(
         };
 
         changeManager.handleContentChange(event);
+        smartCacheInvalidated = true;
 
-        pathsToRevalidate.push(`/category/tag/${slug}`);
-        pathsToRevalidate.push("/");
+        pathsToRevalidate.add(`/category/tag/${slug}`);
+        pathsToRevalidate.add("/");
         tagsToPurge.push(`tag:${slug}`, `path:/category/tag/${slug}`, "path:/");
         break;
       }
 
       case "video": {
-        // Videos use a separate cache that's not article-based
         playlistCache.delete(`playlist:${id}`);
-        pathsToRevalidate.push(`/videos/${slug}`);
-        pathsToRevalidate.push("/");
-        tagsToPurge.push(`playlist:${id}`, `path:/videos/${slug}`, "path:/");
+        pathsToRevalidate.add(`/videos/${slug}`);
+        pathsToRevalidate.add("/videos");
+        pathsToRevalidate.add("/");
+        tagsToPurge.push(
+          `playlist:${id}`,
+          `path:/videos/${slug}`,
+          "path:/videos",
+          "path:/"
+        );
         break;
       }
 
       case "homepage": {
-        // Homepage revalidation - trigger a generic update
         const event = {
           type: "update" as const,
           articleId: "homepage-manual",
           slug: "homepage",
-          categories: ["homepage", "top-news", "highlight"],
+          categories: ["homepage", "top-news", "highlight", "super-highlight"],
           timestamp: new Date(),
           priority: "normal" as const,
         };
 
         changeManager.handleContentChange(event);
+        smartCacheInvalidated = true;
 
-        pathsToRevalidate.push("/");
-        tagsToPurge.push("path:/", "homepage");
+        pathsToRevalidate.add("/");
+
+        // Also revalidate all main section pages
+        Object.keys(navigationPaths).forEach((section) => {
+          pathsToRevalidate.add(`/${section}`);
+          tagsToPurge.push(`path:/${section}`, `section:${section}`);
+        });
+
+        tagsToPurge.push("path:/", "homepage", "page:home");
         break;
       }
 
       case "section":
       case "category": {
-        // Section/category revalidation - trigger update for all articles in category
         const event = {
           type: "update" as const,
           articleId: `category-${slug}`,
@@ -201,17 +309,16 @@ export default async function handler(
         };
 
         changeManager.handleContentChange(event);
+        smartCacheInvalidated = true;
+
+        // Get all related paths for this category
+        getRelatedPaths(slug).forEach((path) => pathsToRevalidate.add(path));
 
         const sectionPath = resolveSectionPath(slug);
-
-        if (sectionPath && sectionPath !== slug) {
-          pathsToRevalidate.push(`/${sectionPath}`);
-        }
-        pathsToRevalidate.push("/");
-        
         tagsToPurge.push(
           `path:/${sectionPath}`,
           `section:${sectionPath}`,
+          `category:${slug}`,
           "path:/"
         );
         break;
@@ -222,17 +329,33 @@ export default async function handler(
         return res.status(400).json({ message: `Unsupported type: ${type}` });
     }
 
-    // Revalidate Next.js paths (ISR)
-    console.log(`[Revalidate] Revalidating ${pathsToRevalidate.length} paths`);
-    for (const path of pathsToRevalidate) {
-      try {
-        await res.revalidate(path);
-        console.log(`[Revalidate] Successfully revalidated: ${path}`);
-      } catch (err) {
-        console.error("[Revalidate] Failed to revalidate path", {
-          path,
-          error: err,
-        });
+    // Convert Set to Array for revalidation
+    const pathsArray = Array.from(pathsToRevalidate);
+
+    console.log(`[Revalidate] Revalidating ${pathsArray.length} paths`);
+
+    // Revalidate paths in parallel batches
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < pathsArray.length; i += BATCH_SIZE) {
+      const batch = pathsArray.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (path) => {
+          try {
+            await res.revalidate(path);
+            console.log(`[Revalidate] Successfully revalidated: ${path}`);
+          } catch (err) {
+            console.error("[Revalidate] Failed to revalidate path", {
+              path,
+              error: err,
+            });
+          }
+        })
+      );
+
+      // Small delay between batches
+      if (i + BATCH_SIZE < pathsArray.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
@@ -255,9 +378,10 @@ export default async function handler(
       revalidated: true,
       type,
       slugOrId: slug || id,
-      pathsRevalidated: pathsToRevalidate.length,
+      pathsRevalidated: pathsArray.length,
       tagsPurged: tagsToPurge.length,
-      smartCacheInvalidated: true,
+      smartCacheInvalidated,
+      affectedPaths: pathsArray,
     });
   } catch (error: any) {
     console.error("[Revalidate] Error", { type, slug, id, error });

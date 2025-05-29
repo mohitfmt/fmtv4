@@ -19,6 +19,8 @@ async function rawGetPostAndMorePosts(
   const data = await gqlFetchAPI(
     `
       fragment AuthorFields on User {
+        id
+        databaseId
         name
         slug
         uri
@@ -39,6 +41,7 @@ async function rawGetPostAndMorePosts(
         uri
         featuredImage {
           node {
+            databaseId
             sourceUrl
             altText
             caption
@@ -57,6 +60,7 @@ async function rawGetPostAndMorePosts(
         categories {
           edges {
             node {
+              databaseId
               name
               slug
             }
@@ -65,6 +69,7 @@ async function rawGetPostAndMorePosts(
         tags {
           edges {
             node {
+              databaseId
               name
               slug
             }
@@ -82,6 +87,8 @@ async function rawGetPostAndMorePosts(
           revisions(first: 1, where: { orderby: { field: MODIFIED, order: DESC } }) {
             edges {
               node {
+                id
+                databaseId
                 title
                 excerpt
                 content

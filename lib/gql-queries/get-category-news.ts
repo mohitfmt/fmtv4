@@ -43,6 +43,7 @@ async function rawGetCategoryNews(
                 categories {
                   edges {
                     node {
+                      databaseId
                       slug
                       name
                       id
@@ -51,6 +52,7 @@ async function rawGetCategoryNews(
                 }
                 author {
                   node {
+                    databaseId
                     slug
                     name
                     firstName

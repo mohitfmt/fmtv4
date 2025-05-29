@@ -12,6 +12,7 @@ export const GET_SEARCH_POSTS = `
           categories {
            edges {
              node {
+               databaseId
                name
              }
            }

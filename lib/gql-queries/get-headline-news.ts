@@ -36,6 +36,7 @@ async function rawGetHeadlineNews(
               categories {
                 edges {
                   node {
+                    databaseId
                     slug
                     name
                     id
