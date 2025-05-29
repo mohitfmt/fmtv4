@@ -9,6 +9,7 @@ async function rawGetAllPostsWithSlug() {
         posts(first: 100) {
           edges {
             node {
+              databaseId
               slug
               uri
             }
@@ -33,7 +34,7 @@ async function rawGetAllPostsWithSlug() {
 }
 
 export const getAllPostsWithSlug = withSmartLRUCache(
-  () => "post:all-slugs",
+  () => "all-post-slugs", // Fixed cache key
   rawGetAllPostsWithSlug,
   allPostSlugsCache
 );

@@ -28,6 +28,7 @@ async function rawGetHeadlineNews(
           }) {
           edges {
             node {
+              databaseId
               title
               slug
               uri

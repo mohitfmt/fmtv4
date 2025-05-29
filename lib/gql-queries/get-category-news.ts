@@ -1,20 +1,12 @@
 import { categoryCache } from "../cache/smart-cache-registry";
+import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
 
-export async function getCategoryNews(
+async function rawGetCategoryNews(
   categoryName: string,
   limit: number,
   preview: boolean
 ) {
-  // Generate a unique cache key for this specific query
-  const cacheKey = JSON.stringify({ categoryName, limit, preview });
-
-  // Check smart cache first
-  const cached = categoryCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
   try {
     const data = await gqlFetchAPI(
       `
@@ -36,13 +28,13 @@ export async function getCategoryNews(
             }) {
             edges {
               node {
+                databaseId
                 title
                 excerpt
                 slug
                 uri
                 date
                 dateGmt
-                databaseId
                 featuredImage {
                   node {
                     sourceUrl
@@ -79,27 +71,21 @@ export async function getCategoryNews(
           limit,
           preview,
         },
-        cacheSeconds: 30,
+        // REMOVED cacheSeconds - let smart cache handle it
       }
     );
 
-    // Transform the response to extract just the nodes
-    const result = data?.posts?.edges.map((edge: any) => edge.node) || [];
-
-    // Extract dependencies - these are the article IDs this cache entry depends on
-    const dependencies = result
-      .map((post: any) => post.databaseId?.toString())
-      .filter(Boolean); // Remove any undefined values
-
-    // Store in smart cache with dependencies
-    // When any of these articles update, this cache entry will be automatically invalidated
-    if (result.length > 0) {
-      categoryCache.setWithDependencies(cacheKey, result, dependencies);
-    }
-
-    return result;
+    return data?.posts || { edges: [] };
   } catch (error) {
     console.error(`Error fetching posts for category ${categoryName}:`, error);
-    return [];
+    return { edges: [] };
   }
 }
+
+// Use smart cache wrapper
+export const getCategoryNews = withSmartLRUCache(
+  (categoryName: string, limit: number, preview: boolean) =>
+    `category:${categoryName}:${limit}:${preview}`,
+  rawGetCategoryNews,
+  categoryCache
+);

@@ -4,6 +4,7 @@ export const GET_SEARCH_POSTS = `
       edges {
         node {
           id
+          databaseId
           slug
           uri
           title

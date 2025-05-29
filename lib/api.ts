@@ -3,33 +3,20 @@ import { GET_POST_BY_SLUG } from "./gql-queries/get-by-id";
 import { getFilteredCategoryPosts } from "./gql-queries/get-filtered-category-posts";
 import { DEFAULT_TAGS } from "@/constants/default-tags";
 import { LRUCache } from "lru-cache";
+import { withSmartLRUCache } from "./cache/withSmartLRU";
+import { postDataCache } from "./cache/smart-cache-registry";
 
-// LRU cache for full post data
-export const postDataCache = new LRUCache<string, { post: any }>({
-  max: 200,
-  ttl: 1000 * 60,
-  allowStale: false,
-  updateAgeOnGet: false,
-});
-
-// LRU cache for playlist data
+// Keep playlistCache as regular LRU since it's not article-based
 export const playlistCache = new LRUCache<string, any>({
   max: 50,
   ttl: 1000 * 60 * 5,
   allowStale: false,
   updateAgeOnGet: false,
 });
-
 /**
  * Fetch full post data by slug, with LRU cache
  */
-export async function getPostData(
-  postId: string
-): Promise<{ post: any } | null> {
-  if (postDataCache.has(postId)) {
-    return postDataCache.get(postId)!;
-  }
-
+async function rawGetPostData(postId: string): Promise<{ post: any } | null> {
   try {
     const data = await gqlFetchAPI(GET_POST_BY_SLUG, {
       variables: {
@@ -38,17 +25,19 @@ export async function getPostData(
       },
     });
 
-    const result = data?.post ? { post: data.post } : null;
-    if (result) {
-      postDataCache.set(postId, result);
-    }
-
-    return result;
+    return data?.post ? { post: data.post } : null;
   } catch (error) {
     console.error("[getPostData] Error:", error);
     return null;
   }
 }
+
+// Use smart cache wrapper
+export const getPostData = withSmartLRUCache(
+  (postId: string) => `post:${postId}`,
+  rawGetPostData,
+  postDataCache
+);
 
 /**
  * Fetch related posts based on tags from the current post.

@@ -104,6 +104,12 @@ export class SmartNewsCache<
 
     this.emit("set", { key, dependencies });
   }
+  
+  set(key: string, value: T): void {
+    // When no dependencies are provided, just set in cache without tracking
+    this.cache.set(key, value);
+    this.emit("set", { key, dependencies: [] });
+  }
 
   invalidateArticle(articleId: string): number {
     const keysToInvalidate =

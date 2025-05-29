@@ -1,9 +1,4 @@
 // lib/cache/withSmartLRU.ts
-/**
- * Enhanced version of withLRU that adds dependency tracking
- * This is a drop-in replacement for your existing withLRUCache
- */
-
 import { SmartNewsCache } from "./news-portal-cache-system";
 
 export function withSmartLRUCache<T extends (...args: any[]) => Promise<any>>(
@@ -25,8 +20,11 @@ export function withSmartLRUCache<T extends (...args: any[]) => Promise<any>>(
     const dependencies = extractDependencies(result);
 
     // Store with dependencies
-    if (result) {
+    if (result && dependencies.length > 0) {
       cache.setWithDependencies(key, result, dependencies);
+    } else if (result) {
+      // If no dependencies found, still cache but without dependencies
+      cache.setWithDependencies(key, result, []);
     }
 
     return result;
@@ -34,15 +32,30 @@ export function withSmartLRUCache<T extends (...args: any[]) => Promise<any>>(
 }
 
 /**
- * Intelligent dependency extraction from GraphQL responses
- * This understands your data structure and extracts article IDs
+ * Enhanced dependency extraction that handles your data structures better
  */
 function extractDependencies(data: any): string[] {
   const dependencies = new Set<string>();
 
+  function extractFromNode(node: any) {
+    if (node?.databaseId) {
+      dependencies.add(node.databaseId.toString());
+    }
+  }
+
+  function extractFromEdges(edges: any[]) {
+    if (Array.isArray(edges)) {
+      edges.forEach((edge) => {
+        if (edge?.node) {
+          extractFromNode(edge.node);
+        }
+      });
+    }
+  }
+
   // Handle single post responses
-  if (data?.post?.databaseId) {
-    dependencies.add(data.post.databaseId.toString());
+  if (data?.post) {
+    extractFromNode(data.post);
   }
 
   // Handle user/author responses
@@ -52,29 +65,25 @@ function extractDependencies(data: any): string[] {
 
   // Handle posts array responses (most common)
   if (data?.posts?.edges) {
-    data.posts.edges.forEach((edge: any) => {
-      if (edge.node?.databaseId) {
-        dependencies.add(edge.node.databaseId.toString());
-      }
-    });
+    extractFromEdges(data.posts.edges);
   }
 
   // Handle direct array of posts
   if (Array.isArray(data)) {
-    data.forEach((item: any) => {
-      if (item?.databaseId) {
-        dependencies.add(item.databaseId.toString());
-      }
-    });
+    data.forEach(extractFromNode);
   }
 
-  // Handle paginated responses with nodes
-  if (data?.edges) {
-    data.edges.forEach((edge: any) => {
-      if (edge.node?.databaseId) {
-        dependencies.add(edge.node.databaseId.toString());
-      }
-    });
+  // Handle paginated responses with edges at root
+  if (data?.edges && Array.isArray(data.edges)) {
+    extractFromEdges(data.edges);
+  }
+
+  // Debug logging
+  if (dependencies.size === 0) {
+    console.warn(
+      "[extractDependencies] No dependencies found in:",
+      JSON.stringify(data).substring(0, 200) + "..."
+    );
   }
 
   return Array.from(dependencies);

@@ -6,19 +6,16 @@ export async function gqlFetchAPI(
   {
     variables,
     headers = {},
-    cacheSeconds,
   }: {
     variables?: any;
     headers?: Record<string, string>;
-    cacheSeconds?: number;
   } = {}
 ) {
   try {
     const baseHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      "Cache-Control": cacheSeconds
-        ? `public, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 2}`
-        : "no-cache, no-store, must-revalidate",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
     };
 
     const res = await fetch(API_URL, {
@@ -28,6 +25,7 @@ export async function gqlFetchAPI(
         query,
         variables,
       }),
+      cache: "no-store",
     });
 
     if (!res.ok) {

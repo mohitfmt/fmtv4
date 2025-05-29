@@ -51,7 +51,6 @@ async function rawGetFilteredCategoryPosts(
   }
 }
 
-// Use withSmartLRUCache instead of withLRUCache
 export const getFilteredCategoryPosts = withSmartLRUCache(
   generateCacheKey,
   rawGetFilteredCategoryPosts,
