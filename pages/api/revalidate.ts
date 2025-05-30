@@ -74,9 +74,11 @@ function resolveSectionPath(slug: string): string {
 }
 
 function extractSectionFromSlug(slug: string): string | null {
-  const parts = slug?.split("/").filter(Boolean);
-  if (!parts?.length) return null;
-  return resolveSectionPath(parts[0]);
+  const extracted = extractCategoriesFromSlug(slug);
+  if (!extracted.category) return null;
+
+  // Use the category and resolve it through the section map
+  return resolveSectionPath(extracted.category);
 }
 
 function normalizeSlugPath(path?: string): string | undefined {
@@ -148,14 +150,33 @@ export default async function handler(
       case "article":
       case "post": {
         try {
-          const postData = await getPostData(slug);
+          // Clean the slug - remove any leading/trailing slashes
+          const cleanSlug = slug.replace(/^\/+|\/+$/g, "");
+
+          // For the API call, we need just the path after /category/
+          // If slug is "/category/business/2025/05/29/article", extract "business/2025/05/29/article"
+          const slugForApi = cleanSlug.replace(/^category\//, "");
+
+          console.log(`[Revalidate] Processing article:`, {
+            originalSlug: slug,
+            cleanSlug: cleanSlug,
+            slugForApi: slugForApi,
+          });
+
+          const postData = await getPostData(slugForApi);
           if (postData?.post?.databaseId) {
             // Create content change event
+            const extractedCategories = extractCategoriesFromSlug(slugForApi);
+            const categoriesArray = [
+              extractedCategories.category,
+              extractedCategories.subcategory,
+            ].filter(Boolean);
+
             const event = {
               type: "update" as const,
               articleId: postData.post.databaseId.toString(),
-              slug: slug,
-              categories: extractCategoriesFromSlug(slug) || [],
+              slug: slugForApi,
+              categories: categoriesArray,
               timestamp: new Date(),
               priority: "normal" as const,
             };
@@ -193,16 +214,40 @@ export default async function handler(
           );
         }
 
-        // Always add the article path itself
-        pathsToRevalidate.add(`/category/${slug}`);
+        // For the actual revalidation path:
+        // If the slug already starts with "category/", just add leading slash
+        // Otherwise, add "/category/" prefix
+        let articlePath: string;
+
+        if (slug.startsWith("category/") || slug.startsWith("/category/")) {
+          // Already has category prefix, just ensure single leading slash
+          articlePath = "/" + slug.replace(/^\/+/, "");
+        } else {
+          // Need to add category prefix
+          articlePath = "/category/" + slug.replace(/^\/+/, "");
+        }
+
+        // Clean up any double slashes and remove trailing slash
+        articlePath = articlePath.replace(/\/+/g, "/").replace(/\/$/, "");
+
+        console.log(
+          `[Revalidate] Adding article path for revalidation: ${articlePath}`
+        );
+        pathsToRevalidate.add(articlePath);
+
+        // For cache tags, use the slug without /category/ prefix and without slashes
+        const slugForTags = slug
+          .replace(/^\/?(category\/)?/, "")
+          .replace(/\/$/, "");
+
         tagsToPurge.push(
-          `post:${slug}`,
-          `related:${slug}`,
-          `path:/category/${slug}`
+          `post:${slugForTags}`,
+          `related:${slugForTags}`,
+          `path:${articlePath}`
         );
 
         // Add section paths
-        const section = extractSectionFromSlug(slug);
+        const section = extractSectionFromSlug(slugForTags);
         if (section) {
           getRelatedPaths(section).forEach((path) =>
             pathsToRevalidate.add(path)
@@ -213,6 +258,13 @@ export default async function handler(
         // Always revalidate homepage
         pathsToRevalidate.add("/");
         tagsToPurge.push("path:/", "page:home");
+
+        console.log(`[Revalidate] Article processing complete:`, {
+          articlePath,
+          totalPaths: pathsToRevalidate.size,
+          tags: tagsToPurge.length,
+        });
+
         break;
       }
 

@@ -285,51 +285,63 @@ export function extractCategoriesFromSlug(slug: string): {
   const normalizedSlug = slug.startsWith("/") ? slug.substring(1) : slug;
   const parts = normalizedSlug.split("/").filter(Boolean);
 
-  // Handle direct category URLs
+  // Remove 'category' prefix if present
+  let workingParts = parts;
   if (parts[0] === "category") {
-    if (parts.length > 2) {
-      // Handle double category pattern
-      if (parts[1] === "category" && parts.length > 3) {
-        return {
-          category: parts[2],
-          subcategory: parts.length > 4 ? parts[3] : undefined,
-        };
+    workingParts = parts.slice(1);
+
+    // Handle double category pattern (category/category/...)
+    if (workingParts[0] === "category") {
+      workingParts = workingParts.slice(1);
+    }
+  }
+
+  // Now find where the date pattern starts
+  const datePattern = /^\d{4}$/;
+  let dateIndex = -1;
+
+  for (let i = 0; i < workingParts.length; i++) {
+    if (datePattern.test(workingParts[i])) {
+      // Verify it's followed by month and day
+      if (
+        i + 2 < workingParts.length &&
+        /^\d{2}$/.test(workingParts[i + 1]) &&
+        /^\d{2}$/.test(workingParts[i + 2])
+      ) {
+        dateIndex = i;
+        break;
       }
+    }
+  }
+
+  // Extract category and subcategory based on date position
+  if (dateIndex > 0) {
+    if (dateIndex === 1) {
+      // Format: category/year/month/day/slug
+      return { category: workingParts[0] };
+    } else if (dateIndex === 2) {
+      // Format: category/subcategory/year/month/day/slug
       return {
-        category: parts[1],
-        subcategory: parts[2],
+        category: workingParts[0],
+        subcategory: workingParts[1],
+      };
+    } else if (dateIndex === 3) {
+      // Format: category/subcategory/subsubcategory/year/month/day/slug
+      return {
+        category: workingParts[0],
+        subcategory: workingParts[1], // Could also include workingParts[2] if needed
       };
     }
-    return { category: parts[1] };
   }
 
-  // Handle URLs with year/month/day structure
-  // Format: category/subcategory/year/month/day/title
-  const datePattern = /^\d{4}$/;
-  for (let i = 0; i < parts.length; i++) {
-    if (datePattern.test(parts[i]) && i >= 1) {
-      // Found a year, so the previous parts are category/subcategory
-      if (i === 1) {
-        // Only category, no subcategory
-        return { category: parts[0] };
-      } else if (i === 2) {
-        // Category and subcategory
-        return {
-          category: parts[0],
-          subcategory: parts[1],
-        };
-      }
-    }
-  }
-
-  // Special case for bahasa
-  if (parts[0] === "bahasa" && parts.length > 1) {
+  // No date pattern found, use simpler logic
+  if (workingParts.length >= 2) {
     return {
-      category: "bahasa",
-      subcategory: parts[1],
+      category: workingParts[0],
+      subcategory: workingParts[1],
     };
   }
 
-  // Default case - just return first part as category
-  return { category: parts[0] };
+  // Default case
+  return { category: workingParts[0] || "uncategorized" };
 }
