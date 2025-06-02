@@ -44,11 +44,11 @@ spec:
           # Resource limits and requests
           resources:
             limits:
-              cpu: "4"
-              memory: 8Gi
-            requests:
               cpu: "2"
-              memory: 4Gi
+              memory: 2Gi
+            requests:
+              cpu: "1"
+              memory: 1Gi
 
           # Environment variables
           env:
@@ -60,7 +60,7 @@ spec:
             - name: NEXT_TELEMETRY_DISABLED
               value: "1"
             - name: NODE_OPTIONS
-              value: "--expose-gc --max-old-space-size=7168 --optimize-for-size"
+              value: "--expose-gc --max-old-space-size=1792 --optimize-for-size"
 
             # Public environment variables (client-side)
             - name: NEXT_PUBLIC_DOMAIN

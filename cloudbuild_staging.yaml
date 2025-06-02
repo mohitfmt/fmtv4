@@ -136,16 +136,16 @@ steps:
           --tag=$nextEnv \
           --region=${_REGION} \
           --port=3000 \
-          --memory=8Gi \
-          --cpu=4 \
+          --memory=2Gi \
+          --cpu=2 \
           --min-instances=0 \
-          --max-instances=90 \
-          --concurrency=90 \
+          --max-instances=10 \
+          --concurrency=10 \
           --platform=managed \
           --allow-unauthenticated \
           --set-env-vars="NODE_ENV=production" \
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
-          --set-env-vars="NODE_OPTIONS=--expose-gc --max-old-space-size=7168 --optimize-for-size" \
+          --set-env-vars="NODE_OPTIONS=--expose-gc --max-old-space-size=1792 --optimize-for-size" \
           --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
           --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
           --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \
@@ -174,7 +174,7 @@ steps:
           --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
           --set-env-vars="CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}" \
           --set-env-vars="SENDGRID_API_KEY=${_SENDGRID_API_KEY}" \
-          --timeout=60 \
+          --timeout=300 \
           --service-account=${_SERVICE_ACCOUNT} \
           --quiet
 

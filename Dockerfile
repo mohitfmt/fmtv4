@@ -100,7 +100,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DEBUG_MEMORY="true"
-ENV NODE_OPTIONS="--expose-gc --max-old-space-size=7168 --optimize-for-size"
+ENV NODE_OPTIONS="--expose-gc --max-old-space-size=1792 --optimize-for-size"
 ENV PORT=3000
 
 # Install production runtime dependencies for memory monitoring
