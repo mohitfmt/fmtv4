@@ -16,16 +16,15 @@ export async function register() {
       const caches = await import("@/lib/cache/smart-cache-registry");
 
       // Detect container memory
-      let containerMemoryMB = 2048; // Default 2GB
+      // let containerMemoryMB = 2048; // Default 2GB
 
       // Production typically has more memory than staging
-      const isProd = process.env.NEXT_PUBLIC_DOMAIN?.includes("www.");
-      containerMemoryMB = isProd ? 8192 : 2048;
+      // const isProd = process.env.NEXT_PUBLIC_DOMAIN?.includes("www.");
+      const containerMemoryMB = 8192;
 
-      // Calculate dynamic thresholds
-      const gcThreshold = Math.floor(containerMemoryMB * 0.25); // 25% - Start proactive GC
-      const warningThreshold = Math.floor(containerMemoryMB * 0.35); // 35% - Warning
-      const criticalThreshold = Math.floor(containerMemoryMB * 0.45); // 45% - Critical
+      const gcThreshold = Math.floor(containerMemoryMB * 0.15); // 15% = 1.2GB
+      const warningThreshold = Math.floor(containerMemoryMB * 0.25); // 25% = 2GB
+      const criticalThreshold = Math.floor(containerMemoryMB * 0.35); // 35% = 2.8GB
 
       // Start memory debugger
       startMemoryDebugger({
@@ -37,7 +36,7 @@ export async function register() {
         gcThreshold,
         warningThreshold,
         criticalThreshold,
-        fallbackGCInterval: isProd ? 60 * 60 * 1000 : 45 * 60 * 1000, // 60min prod, 45min staging
+        fallbackGCInterval: 30 * 60 * 1000,
       });
 
       // Track only the most important caches

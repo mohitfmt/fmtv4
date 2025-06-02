@@ -136,16 +136,16 @@ steps:
           --tag=$nextEnv \
           --region=${_REGION} \
           --port=3000 \
-          --memory=2Gi \
-          --cpu=2 \
+          --memory=8Gi \
+          --cpu=4 \
           --min-instances=0 \
-          --max-instances=10 \
-          --concurrency=10 \
+          --max-instances=90 \
+          --concurrency=90 \
           --platform=managed \
           --allow-unauthenticated \
           --set-env-vars="NODE_ENV=production" \
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
-          --set-env-vars="NODE_OPTIONS=--expose-gc" \
+          --set-env-vars="NODE_OPTIONS=--expose-gc --max-old-space-size=7168 --optimize-for-size" \
           --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
           --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
           --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \

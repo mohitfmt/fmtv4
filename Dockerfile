@@ -100,12 +100,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DEBUG_MEMORY="true"
-
-# Memory management configuration
-# --expose-gc: Allows manual garbage collection triggering
-# --max-old-space-size=1792: Limits heap to 1.75GB (leaving room for OS in 2GB container)
-# --optimize-for-size: Prefers smaller memory footprint over execution speed
-ENV NODE_OPTIONS="--expose-gc --max-old-space-size=1792 --optimize-for-size"
+ENV NODE_OPTIONS="--expose-gc --max-old-space-size=7168 --optimize-for-size"
 ENV PORT=3000
 
 # Install production runtime dependencies for memory monitoring
