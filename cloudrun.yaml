@@ -30,7 +30,7 @@ spec:
       containerConcurrency: 10
 
       # Request timeout (5 minutes)
-      timeoutSeconds: 60
+      timeoutSeconds: 300
 
       # Service account for the container
       serviceAccountName: fmt-v4-sa@mp-fmt-v2-stg.iam.gserviceaccount.com
@@ -60,7 +60,7 @@ spec:
             - name: NEXT_TELEMETRY_DISABLED
               value: "1"
             - name: NODE_OPTIONS
-              value: "--expose-gc --max-old-space-size=1792 --optimize-for-size"
+              value: "--expose-gc"
 
             # Public environment variables (client-side)
             - name: NEXT_PUBLIC_DOMAIN
