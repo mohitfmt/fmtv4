@@ -30,7 +30,7 @@ spec:
       containerConcurrency: 10
 
       # Request timeout (5 minutes)
-      timeoutSeconds: 300
+      timeoutSeconds: 60
 
       # Service account for the container
       serviceAccountName: fmt-v4-sa@mp-fmt-v2-stg.iam.gserviceaccount.com

@@ -174,7 +174,7 @@ steps:
           --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
           --set-env-vars="CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}" \
           --set-env-vars="SENDGRID_API_KEY=${_SENDGRID_API_KEY}" \
-          --timeout=300 \
+          --timeout=60 \
           --service-account=${_SERVICE_ACCOUNT} \
           --quiet
 
