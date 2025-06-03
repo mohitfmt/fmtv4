@@ -1,6 +1,6 @@
 import AdSlot from "@/components/common/AdSlot";
 import NewsAuthor from "@/components/common/NewsAuthor";
-import ShareButtons from "@/components/news-article/ShareButtons";
+// import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import React, { lazy, ReactNode, Suspense } from "react";
@@ -11,6 +11,7 @@ import {
   TagsSkeleton,
 } from "../skeletons/ArticleBodySkeleton";
 import siteConfig from "@/constants/site-config";
+import ShareComponents from "./ShareComponents";
 
 const TrendingNSubCategoriesList = lazy(
   () => import("@/components/common/TrendingNSubCategoriesList")
@@ -120,7 +121,13 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                   )}
                 </div>
                 <div>
-                  <ShareButtons
+                  {/* <ShareButtons
+                    url={fullUri}
+                    title={safeTitle}
+                    mediaUrl={safeFeaturedImage || ""}
+                    hashs={tagWithSlug}
+                  /> */}
+                  <ShareComponents
                     url={fullUri}
                     title={safeTitle}
                     mediaUrl={safeFeaturedImage || ""}
@@ -234,14 +241,14 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
 
           {/* Not Working in both v3 and v4 */}
           <div className="overflow-hidden text-center">
-          <AdSlot
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1691483572864-0"
-            name="1x1_MG"
-            sizes={[1, 1]}
-            visibleOnDevices="onlyMobile"
-          />
-        </div>
+            <AdSlot
+              targetingParams={dfpTargetingParams}
+              id="div-gpt-ad-1691483572864-0"
+              name="1x1_MG"
+              sizes={[1, 1]}
+              visibleOnDevices="onlyMobile"
+            />
+          </div>
         </div>
 
         {/* Our of Page Ad */}

@@ -1,11 +1,11 @@
 // components/news-article/GalleryLayout.tsx
 import AdSlot from "@/components/common/AdSlot";
 import NewsAuthor from "@/components/common/NewsAuthor";
-import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import React, { lazy, ReactNode, Suspense } from "react";
 import siteConfig from "@/constants/site-config";
+import ShareComponents from "../news-article/ShareComponents";
 
 const TrendingNSubCategoriesList = lazy(
   () => import("@/components/common/TrendingNSubCategoriesList")
@@ -94,7 +94,7 @@ const GalleryLayout: React.FC<GalleryLayoutProps> = ({
                   {post.author && <NewsAuthor author={post.author} />}
                 </div>
                 <div>
-                  <ShareButtons
+                  <ShareComponents
                     url={siteConfig.baseUrl + safeUri}
                     title={safeTitle}
                     mediaUrl={safeFeaturedImage || ""}

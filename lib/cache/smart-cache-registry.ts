@@ -133,6 +133,13 @@ export const caches = {
     ttl: 1000 * 60 * 10, // 10 minutes
     sizeCalculation: (value) => JSON.stringify(value).length * 2,
   }),
+
+  sidebarContent: new SmartNewsCache<any>("sidebarContent", {
+    max: 20, // Small max since there aren't many variations
+    maxSize: 10 * 1024 * 1024, // 10MB is plenty for sidebar data
+    ttl: 1000 * 60 * 10, // 10 minutes - longer TTL since content is stable
+    sizeCalculation: (value) => JSON.stringify(value).length * 2,
+  }),
 };
 
 // Register all caches with the change manager
@@ -159,3 +166,4 @@ export const moreSubcategoryPostsCache = caches.moreSubcategoryPosts;
 export const moreAuthorPostsCache = caches.moreAuthorPosts;
 export const moreTagPostsCache = caches.moreTagPosts;
 export const morePhotosCache = caches.morePhotos;
+export const sidebarContentCache = caches.sidebarContent;

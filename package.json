@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "node --expose-gc .output/server.js",
+    "start": "node --expose-gc .next/standalone/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -34,7 +34,6 @@
     "linkifyjs": "^4.2.0",
     "lru-cache": "^10.4.3",
     "lucide-react": "^0.477.0",
-    "nanoid": "^5.1.2",
     "next": "^15.2.1",
     "next-seo": "^6.6.0",
     "next-themes": "^0.4.3",
@@ -46,7 +45,6 @@
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-hook-form": "^7.54.0",
     "react-icons": "^5.5.0",
-    "react-share": "^5.2.2",
     "rss-parser": "^3.13.0",
     "sanitize-html": "^2.13.1",
     "sonner": "^2.0.1",
@@ -73,7 +71,6 @@
     "typescript": "^5.7.2"
   },
   "optionalDependencies": {
-    "why-is-node-running": "^3.2.2",
     "heapdump": "^0.3.15"
   }
 }

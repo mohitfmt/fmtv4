@@ -1,7 +1,7 @@
 import React from "react";
 import Linkify from "linkify-react";
-import ShareComponents from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
+import ShareComponents from "../news-article/ShareComponents";
 
 interface VideoContentProps {
   video: any;

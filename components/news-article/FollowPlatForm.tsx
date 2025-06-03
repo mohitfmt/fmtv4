@@ -1,8 +1,25 @@
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { FaTelegramPlane } from "react-icons/fa";
 import { SiGooglenews, SiWhatsapp } from "react-icons/si";
 
 const FollowPlatforms = () => {
+  const [telegramUrl, setTelegramUrl] = useState(
+    "https://t.me/FreeMalaysiaToday?join"
+  );
+
+  useEffect(() => {
+    // Check if on mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Use deep link for mobile
+      setTelegramUrl("tg://resolve?domain=FreeMalaysiaToday");
+    } else {
+      // Use web link for desktop
+      setTelegramUrl("https://t.me/FreeMalaysiaToday?join");
+    }
+  }, []);
   return (
     <section
       className="flex w-full items-center justify-center my-8"
@@ -49,7 +66,7 @@ const FollowPlatforms = () => {
 
           <Link
             className="flex items-center justify-center gap-2 rounded-lg bg-[#24a1de] px-5 py-3.5 text-white md:px-4 md:py-2"
-            href="https://t.me/FreeMalaysiaToday"
+            href={telegramUrl}
             rel="noreferrer"
             target="_blank"
             aria-label="Follow us on Telegram"

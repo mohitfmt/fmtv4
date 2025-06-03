@@ -219,7 +219,6 @@ const nextConfig: NextConfig = {
       config.externals = [
         ...(config.externals as any[]),
         "heapdump",
-        "why-is-node-running",
         "async_hooks",
         "fs",
         "path",
