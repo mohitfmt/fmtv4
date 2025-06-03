@@ -129,45 +129,49 @@ export const ChartbeatProvider = ({ children }: { children: ReactNode }) => {
   const lastNavigationTimeRef = useRef(0);
   const previousPathRef = useRef("");
 
-  // Better title extraction method
   const getPageTitle = (path: string): string => {
-    // Special case for home page - preserve "Free Malaysia Today" as the title
+    // Special case for home page
     if (path === "/" || path === "/index" || path === "/home") {
       return "Free Malaysia Today";
     }
-    // Try to get title from document.title
-    const docTitle = document.title;
-    if (docTitle && docTitle.trim() !== "") {
-      // Try the split method first (if titles use format "Page Title | Site Name")
-      if (docTitle.includes("|")) {
-        return docTitle.split("|")[0].trim();
+
+    // Only try to access DOM if we're in the browser and document is ready
+    if (typeof document !== "undefined" && document.readyState === "complete") {
+      // Try to get title from document.title
+      const docTitle = document.title;
+      if (docTitle && docTitle.trim() !== "") {
+        if (docTitle.includes("|")) {
+          return docTitle.split("|")[0].trim();
+        }
+        if (docTitle.includes(" - ")) {
+          return docTitle.split(" - ")[0].trim();
+        }
+        if (docTitle !== "Free Malaysia Today") {
+          return docTitle.trim();
+        }
       }
 
-      // Try alternative formats
-      if (docTitle.includes(" - ")) {
-        return docTitle.split(" - ")[0].trim();
+      // Try looking for h1 elements as a fallback
+      const h1Elements = document.querySelectorAll("h1");
+      if (h1Elements && h1Elements.length > 0) {
+        const h1Text = h1Elements[0]?.textContent?.trim();
+        if (h1Text && h1Text !== "") {
+          return h1Text;
+        }
       }
 
-      // If no separator but not the default site title, use the full title
-      if (docTitle !== "Free Malaysia Today") {
-        return docTitle.trim();
+      // Look for meta title - with better null checking
+      try {
+        const metaTitle = document.querySelector('meta[property="og:title"]');
+        if (metaTitle) {
+          const content = metaTitle.getAttribute("content");
+          if (content) {
+            return content;
+          }
+        }
+      } catch (e) {
+        // Silently fail and use default
       }
-    }
-
-    // Try looking for h1 elements as a fallback
-    const h1Elements = document.querySelectorAll("h1");
-    if (h1Elements.length > 0) {
-      // Use the first h1 element text
-      const h1Text = h1Elements[0].textContent?.trim();
-      if (h1Text && h1Text !== "") {
-        return h1Text;
-      }
-    }
-
-    // Look for meta title
-    const metaTitle = document.querySelector('meta[property="og:title"]');
-    if (metaTitle && metaTitle.getAttribute("content")) {
-      return metaTitle.getAttribute("content") || "Free Malaysia Today";
     }
 
     // Default fallback

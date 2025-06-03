@@ -1,14 +1,7 @@
-import siteConfig from "@/constants/site-config";
 import Link from "next/link";
 import React from "react";
 
 const NewsAuthor = ({ author }: any) => {
-  // const isAuthorHaveFullName =
-  //   author?.node?.firstName && author?.node?.lastName;
-  // const name = isAuthorHaveFullName
-  //   ? `${author.node.firstName} ${author.node.lastName}`
-  //   : author?.node?.name || null;
-
   return (
     <div
       className="tracking-wide font-rhd text-stone-700 dark:text-stone-300"
