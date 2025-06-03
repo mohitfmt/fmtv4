@@ -81,7 +81,7 @@ const mediumQueue = new PQueue({ concurrency: 5 });
 const lowQueue = new PQueue({ concurrency: 2 });
 
 // Track when queues are processing
-let isProcessing = false;
+// let isProcessing = false;
 
 // UPDATED: Complete category ID mapping
 const categoryIdToSlugMap: Record<number, string> = {
@@ -703,13 +703,13 @@ export default async function handler(
  * Process the WebSub notification in the background
  */
 async function processWebSubNotification(req: NextApiRequest): Promise<void> {
-  if (isProcessing) {
-    console.log("[WebSub] Already processing a notification, skipping");
-    return;
-  }
+  // if (isProcessing) {
+  //   console.log("[WebSub] Already processing a notification, skipping");
+  //   return;
+  // }
 
   try {
-    isProcessing = true;
+    // isProcessing = true;
     console.log("[WebSub] Background processing started");
 
     // Get domains
@@ -729,7 +729,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
 
     if (modifiedArticles.length === 0) {
       console.log("[WebSub] No recently modified articles found");
-      isProcessing = false;
+      // isProcessing = false;
       return;
     }
 
@@ -903,6 +903,6 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
   } catch (error) {
     console.error("[WebSub] Background processing error:", error);
   } finally {
-    isProcessing = false;
+    // isProcessing = false;
   }
 }

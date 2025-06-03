@@ -17,7 +17,7 @@ const NewsAuthor = ({ author }: any) => {
       itemType="https://schema.org/Person"
     >
       <Link
-        href={`${siteConfig.baseUrl}/category/author/${author?.node?.slug}`}
+        href={`/category/author/${author?.node?.slug}`}
         className="flex items-center font-bold"
         itemProp="url"
       >

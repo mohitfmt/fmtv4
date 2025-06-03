@@ -98,7 +98,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           hrefLang="x-default"
           href={`${fullUrl.replace(/^\/|\/$/g, "")}`}
         />
-        <link
+        {/* <link
           rel="alternate"
           type="application/atom+xml"
           title="Atom Feed"
@@ -115,7 +115,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           type="application/feed+json"
           title="JSON Feed"
           href={`${siteConfig.baseUrl}/feeds/json/${author?.slug.replace(/^\/|\/$/g, "")}`}
-        />
+        /> */}
         <meta
           property="og:title"
           content={`${author?.name ?? "Author"} | Free Malaysia Today (FMT)`}

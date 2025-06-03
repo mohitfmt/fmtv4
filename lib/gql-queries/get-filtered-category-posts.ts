@@ -10,7 +10,7 @@ function generateCacheKey(variables: PostsVariables | any): string {
 
   if (variables.first) keyParts.push(`first:${variables.first}`);
 
-  // CRITICAL FIX: Include offset in the cache key!
+  // Include pagination parameters
   if (variables.where?.offsetPagination?.offset !== undefined) {
     keyParts.push(`offset:${variables.where.offsetPagination.offset}`);
   }
@@ -18,10 +18,27 @@ function generateCacheKey(variables: PostsVariables | any): string {
     keyParts.push(`size:${variables.where.offsetPagination.size}`);
   }
 
+  // Include status filter
   if (variables.where?.status) {
     keyParts.push(`status:${variables.where.status}`);
   }
 
+  // CRITICAL FIX: Include author filter in cache key!
+  if (variables.where?.author) {
+    keyParts.push(`author:${variables.where.author}`);
+  }
+
+  // Include category filter if present
+  if (variables.where?.categoryId) {
+    keyParts.push(`categoryId:${variables.where.categoryId}`);
+  }
+
+  // Include tag filter if present
+  if (variables.where?.tag) {
+    keyParts.push(`tag:${variables.where.tag}`);
+  }
+
+  // Include taxonomy queries
   const taxQuery = variables.where?.taxQuery?.taxArray
     ?.map(
       (tax: any) =>
@@ -34,6 +51,11 @@ function generateCacheKey(variables: PostsVariables | any): string {
   // Include excludeQuery in key if present
   if (variables.where?.excludeQuery) {
     keyParts.push(`hasExclude:true`);
+  }
+
+  // Include any date queries
+  if (variables.where?.dateQuery) {
+    keyParts.push(`hasDateQuery:true`);
   }
 
   return `filteredPosts:${keyParts.join(":")}`;
