@@ -135,71 +135,298 @@ export const ChartbeatProvider = ({ children }: { children: ReactNode }) => {
       return "Free Malaysia Today";
     }
 
-    // Only try to access DOM if we're in the browser and document is ready
-    if (typeof document !== "undefined" && document.readyState === "complete") {
-      // Try to get title from document.title
-      const docTitle = document.title;
-      if (docTitle && docTitle.trim() !== "") {
-        if (docTitle.includes("|")) {
-          return docTitle.split("|")[0].trim();
-        }
-        if (docTitle.includes(" - ")) {
-          return docTitle.split(" - ")[0].trim();
-        }
-        if (docTitle !== "Free Malaysia Today") {
+    // Check if DOM is at least interactive (not just complete)
+    if (typeof document !== "undefined" && document.readyState !== "loading") {
+      // First try: document.title (usually fastest and most reliable)
+      try {
+        const docTitle = document.title;
+        if (
+          docTitle &&
+          docTitle.trim() !== "" &&
+          docTitle !== "Free Malaysia Today"
+        ) {
+          // Clean up common title formats
+          if (docTitle.includes("|")) {
+            const cleanTitle = docTitle.split("|")[0].trim();
+            if (cleanTitle) return cleanTitle;
+          }
+          if (docTitle.includes(" - ")) {
+            const cleanTitle = docTitle.split(" - ")[0].trim();
+            if (cleanTitle) return cleanTitle;
+          }
+          if (docTitle.includes(" — ")) {
+            // Em dash variant
+            const cleanTitle = docTitle.split(" — ")[0].trim();
+            if (cleanTitle) return cleanTitle;
+          }
           return docTitle.trim();
         }
+      } catch (e) {
+        console.warn("Error accessing document.title:", e);
       }
 
-      // Try looking for h1 elements as a fallback
-      const h1Elements = document.querySelectorAll("h1");
-      if (h1Elements && h1Elements.length > 0) {
-        const h1Text = h1Elements[0]?.textContent?.trim();
-        if (h1Text && h1Text !== "") {
-          return h1Text;
+      // Second try: h1 elements (often most accurate for articles)
+      try {
+        const h1Elements = document.querySelectorAll("h1");
+        if (h1Elements && h1Elements.length > 0) {
+          // Try to find the most relevant h1 (not site header)
+          for (const h1 of h1Elements) {
+            const h1Text = h1?.textContent?.trim();
+            if (
+              h1Text &&
+              h1Text !== "" &&
+              h1Text !== "Free Malaysia Today" &&
+              !h1.closest("header") && // Exclude header h1s
+              !h1.closest("nav") // Exclude navigation h1s
+            ) {
+              return h1Text;
+            }
+          }
         }
+      } catch (e) {
+        console.warn("Error accessing h1 elements:", e);
       }
 
-      // Look for meta title - with better null checking
+      // Third try: Open Graph meta title (good for social/SEO)
       try {
         const metaTitle = document.querySelector('meta[property="og:title"]');
         if (metaTitle) {
           const content = metaTitle.getAttribute("content");
-          if (content) {
-            return content;
+          if (
+            content &&
+            content.trim() !== "" &&
+            content !== "Free Malaysia Today"
+          ) {
+            return content.trim();
           }
         }
       } catch (e) {
-        // Silently fail and use default
+        console.warn("Error accessing og:title:", e);
+      }
+
+      // Fourth try: Structured data (JSON-LD)
+      try {
+        const jsonLdScripts = document.querySelectorAll(
+          'script[type="application/ld+json"]'
+        );
+        for (const script of jsonLdScripts) {
+          try {
+            const data = JSON.parse(script.textContent || "{}");
+
+            // Check for NewsArticle schema
+            if (data["@type"] === "NewsArticle" && data.headline) {
+              return data.headline;
+            }
+
+            // Check for Article schema
+            if (data["@type"] === "Article" && data.headline) {
+              return data.headline;
+            }
+
+            // Check for WebPage schema
+            if (data["@type"] === "WebPage" && data.name) {
+              return data.name;
+            }
+
+            // Check for graph format (often used by SEO plugins)
+            if (data["@graph"] && Array.isArray(data["@graph"])) {
+              for (const item of data["@graph"]) {
+                if (
+                  (item["@type"] === "NewsArticle" ||
+                    item["@type"] === "Article") &&
+                  item.headline
+                ) {
+                  return item.headline;
+                }
+                if (item["@type"] === "WebPage" && item.name) {
+                  return item.name;
+                }
+              }
+            }
+          } catch (parseError) {
+            // Skip this script if JSON is invalid
+            continue;
+          }
+        }
+      } catch (e) {
+        console.warn("Error accessing structured data:", e);
+      }
+
+      // Fifth try: Twitter meta title
+      try {
+        const twitterTitle = document.querySelector(
+          'meta[name="twitter:title"]'
+        );
+        if (twitterTitle) {
+          const content = twitterTitle.getAttribute("content");
+          if (
+            content &&
+            content.trim() !== "" &&
+            content !== "Free Malaysia Today"
+          ) {
+            return content.trim();
+          }
+        }
+      } catch (e) {
+        console.warn("Error accessing twitter:title:", e);
+      }
+
+      // Sixth try (bonus): Alternative meta titles
+      try {
+        // Try DC.title (Dublin Core)
+        const dcTitle = document.querySelector(
+          'meta[name="DC.title"], meta[name="dc.title"]'
+        );
+        if (dcTitle) {
+          const content = dcTitle.getAttribute("content");
+          if (
+            content &&
+            content.trim() !== "" &&
+            content !== "Free Malaysia Today"
+          ) {
+            return content.trim();
+          }
+        }
+
+        // Try title meta tag
+        const titleMeta = document.querySelector('meta[name="title"]');
+        if (titleMeta) {
+          const content = titleMeta.getAttribute("content");
+          if (
+            content &&
+            content.trim() !== "" &&
+            content !== "Free Malaysia Today"
+          ) {
+            return content.trim();
+          }
+        }
+      } catch (e) {
+        console.warn("Error accessing alternative meta titles:", e);
       }
     }
 
     // Default fallback
     return "Free Malaysia Today";
   };
-  // Get page metadata
+
   const getPageMetadata = useCallback(
     (path: string, prevPath?: string): PageMetadata => {
+      // Get the full path
       const fullPath = getCanonicalUrl(path, searchParams, {
         includeOrigin: false,
       }).replace(/\/\//, "/");
 
+      // Get the title using our robust function
       const title = getPageTitle(path);
-      const metaTags = Array.from(document.head.querySelectorAll("meta"));
-      const sections =
-        metaTags
-          .find((meta) => meta.getAttribute("name") === "category")
-          ?.getAttribute("content") || "homepage";
-      const authors =
-        metaTags
-          .find((meta) => meta.getAttribute("name") === "author")
-          ?.getAttribute("content") || "FMT Reporters";
 
-      const referrer = prevPath
-        ? getCanonicalUrl(prevPath, undefined, { includeOrigin: true })
-        : document.referrer || "";
+      // Initialize defaults
+      let sections = "homepage";
+      let authors = "FMT Reporters";
 
-      return { fullPath, sections, authors, title, referrer };
+      // Only try to access DOM if it's ready
+      if (
+        typeof document !== "undefined" &&
+        document.readyState !== "loading"
+      ) {
+        try {
+          // Get all meta tags once for efficiency
+          const metaTags = Array.from(document.head.querySelectorAll("meta"));
+
+          // Extract category/section
+          const categoryMeta = metaTags.find(
+            (meta) =>
+              meta.getAttribute("name") === "category" ||
+              meta.getAttribute("property") === "article:section"
+          );
+          if (categoryMeta) {
+            const content = categoryMeta.getAttribute("content");
+            if (content && content.trim() !== "") {
+              sections = content.trim();
+            }
+          }
+
+          // Extract author with multiple fallbacks
+          const authorMeta = metaTags.find(
+            (meta) =>
+              meta.getAttribute("name") === "author" ||
+              meta.getAttribute("property") === "article:author" ||
+              meta.getAttribute("name") === "DC.creator" ||
+              meta.getAttribute("name") === "dc.creator"
+          );
+          if (authorMeta) {
+            const content = authorMeta.getAttribute("content");
+            if (content && content.trim() !== "") {
+              authors = content.trim();
+            }
+          }
+
+          // Try to get author from structured data as fallback
+          if (authors === "FMT Reporters") {
+            try {
+              const jsonLdScripts = document.querySelectorAll(
+                'script[type="application/ld+json"]'
+              );
+              for (const script of jsonLdScripts) {
+                try {
+                  const data = JSON.parse(script.textContent || "{}");
+
+                  // Direct author property
+                  if (data.author) {
+                    if (typeof data.author === "string") {
+                      authors = data.author;
+                      break;
+                    } else if (data.author.name) {
+                      authors = data.author.name;
+                      break;
+                    }
+                  }
+
+                  // Check in @graph format
+                  if (data["@graph"] && Array.isArray(data["@graph"])) {
+                    for (const item of data["@graph"]) {
+                      if (item.author) {
+                        if (typeof item.author === "string") {
+                          authors = item.author;
+                          break;
+                        } else if (item.author.name) {
+                          authors = item.author.name;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                } catch (parseError) {
+                  // Skip invalid JSON
+                  continue;
+                }
+              }
+            } catch (e) {
+              // Keep default author
+            }
+          }
+        } catch (e) {
+          console.warn("Error extracting metadata:", e);
+          // Use defaults on any error
+        }
+      }
+
+      // Get referrer safely
+      let referrer = "";
+      if (prevPath) {
+        referrer = getCanonicalUrl(prevPath, undefined, {
+          includeOrigin: true,
+        });
+      } else if (typeof document !== "undefined") {
+        referrer = document.referrer || "";
+      }
+
+      return {
+        fullPath,
+        sections,
+        authors,
+        title,
+        referrer,
+      };
     },
     [searchParams]
   );

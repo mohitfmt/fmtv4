@@ -3,7 +3,7 @@ import { LRUCache } from "lru-cache";
 import { EventEmitter } from "events";
 
 interface ContentChangeEvent {
-  type: "new" | "update";
+  type: "new" | "update" | "delete";
   articleId: string;
   slug: string;
   categories: string[];
@@ -67,9 +67,7 @@ class CacheDependencyGraph {
   }
 }
 
-export class SmartNewsCache<
-  T extends Record<string, any>,
-> extends EventEmitter {
+class SmartNewsCache<T extends Record<string, any>> extends EventEmitter {
   private cache: LRUCache<string, T>;
   private dependencyGraph = new CacheDependencyGraph();
   private name: string;
@@ -181,7 +179,9 @@ export class ContentChangeManager extends EventEmitter {
   private batchInterval: NodeJS.Timeout | null = null;
   private affectedPathsCollector = new Set<string>();
 
-  constructor(private batchDelayMs: number = 100) {
+  // OPTIMIZED: Reduced batch delay for faster processing
+  constructor(private batchDelayMs: number = 50) {
+    // Was 100ms
     super();
     this.startBatchProcessor();
   }
@@ -195,11 +195,52 @@ export class ContentChangeManager extends EventEmitter {
         paths.forEach((path: string) => this.affectedPathsCollector.add(path));
       }
     });
+
+    console.log(`[ContentChangeManager] Registered cache: ${name}`);
+  }
+
+  unregisterCache(name: string): void {
+    this.caches.delete(name);
+    console.log(`[ContentChangeManager] Unregistered cache: ${name}`);
   }
 
   handleContentChange(event: ContentChangeEvent): void {
-    this.updateQueue.push(event);
-    this.emit("queued", event);
+    // OPTIMIZED: Process high-priority events immediately
+    if (event.priority === "breaking") {
+      this.processImmediately(event);
+    } else {
+      this.updateQueue.push(event);
+      this.emit("queued", event);
+    }
+  }
+
+  // New method for immediate processing of breaking news
+  private async processImmediately(event: ContentChangeEvent): Promise<void> {
+    console.log(
+      `[ContentChangeManager] Processing breaking news immediately: ${event.articleId}`
+    );
+
+    const invalidationStats = new Map<string, number>();
+    let totalInvalidated = 0;
+
+    for (const [cacheName, cache] of this.caches) {
+      const { invalidated } = cache.invalidateArticle(event.articleId);
+      if (invalidated > 0) {
+        invalidationStats.set(cacheName, invalidated);
+        totalInvalidated += invalidated;
+        console.log(
+          `[${cacheName}] Immediately invalidated ${invalidated} entries`
+        );
+      }
+    }
+
+    this.emit("processed", event);
+
+    console.log(`[ContentChangeManager] Breaking news processed:`, {
+      articleId: event.articleId,
+      totalInvalidated,
+      affectedPaths: this.affectedPathsCollector.size,
+    });
   }
 
   getAffectedPaths(): string[] {
@@ -227,43 +268,87 @@ export class ContentChangeManager extends EventEmitter {
     const invalidationStats = new Map<string, number>();
     let totalInvalidated = 0;
 
+    // OPTIMIZED: Deduplicate events by articleId (keep latest)
     const changesByArticle = new Map<string, ContentChangeEvent>();
     batch.forEach((event) => {
       changesByArticle.set(event.articleId, event);
     });
 
-    for (const [articleId, event] of changesByArticle) {
-      for (const [cacheName, cache] of this.caches) {
-        const { invalidated } = cache.invalidateArticle(articleId);
+    // OPTIMIZED: Process caches in parallel
+    const cachePromises = Array.from(this.caches.entries()).map(
+      async ([cacheName, cache]) => {
+        let cacheInvalidated = 0;
 
-        if (invalidated > 0) {
-          const currentCount = invalidationStats.get(cacheName) || 0;
-          invalidationStats.set(cacheName, currentCount + invalidated);
-          totalInvalidated += invalidated;
+        // Process all articles for this cache
+        for (const [articleId, event] of changesByArticle) {
+          try {
+            const { invalidated } = cache.invalidateArticle(articleId);
+            if (invalidated > 0) {
+              cacheInvalidated += invalidated;
+              totalInvalidated += invalidated;
+            }
+          } catch (error) {
+            console.error(
+              `[${cacheName}] Error invalidating article ${articleId}:`,
+              error
+            );
+          }
         }
-      }
 
+        if (cacheInvalidated > 0) {
+          invalidationStats.set(cacheName, cacheInvalidated);
+        }
+
+        return cacheInvalidated;
+      }
+    );
+
+    // Wait for all caches to complete
+    await Promise.all(cachePromises);
+
+    // Emit processed events
+    for (const event of changesByArticle.values()) {
       this.emit("processed", event);
     }
 
     const duration = Date.now() - startTime;
 
+    // Log if there were invalidations or debug mode is on
     if (totalInvalidated > 0 || process.env.DEBUG_CACHE === "true") {
       console.log(`[ContentChangeManager] Batch processed in ${duration}ms:`, {
         articlesProcessed: changesByArticle.size,
         totalInvalidated,
         affectedPaths: this.affectedPathsCollector.size,
-        cacheStats: Object.fromEntries(
-          Array.from(invalidationStats.entries()).filter(
-            ([_, count]) => count > 0
-          )
-        ),
+        cacheStats: Object.fromEntries(invalidationStats.entries()),
       });
     }
 
     this.isProcessing = false;
+
+    // If more items were queued while processing, process them soon
+    if (this.updateQueue.length > 0) {
+      setTimeout(() => {
+        if (!this.isProcessing) {
+          this.processBatch();
+        }
+      }, 10);
+    }
   }
 
+  // OPTIMIZED: Force immediate processing when needed
+  async forceProcess(): Promise<void> {
+    if (this.updateQueue.length > 0) {
+      console.log(
+        `[ContentChangeManager] Force processing ${this.updateQueue.length} queued items`
+      );
+      await this.processBatch();
+    }
+
+    // Wait a bit for any propagation
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  // Get current statistics
   getStats() {
     const cacheStats: any = {};
     this.caches.forEach((cache, name) => {
@@ -274,20 +359,83 @@ export class ContentChangeManager extends EventEmitter {
       queueLength: this.updateQueue.length,
       isProcessing: this.isProcessing,
       affectedPaths: this.affectedPathsCollector.size,
+      registeredCaches: this.caches.size,
       caches: cacheStats,
     };
   }
 
+  // Clean up resources
   destroy(): void {
     if (this.batchInterval) {
       clearInterval(this.batchInterval);
+      this.batchInterval = null;
     }
+
+    // Clear any pending updates
+    this.updateQueue = [];
+    this.affectedPathsCollector.clear();
+
+    // Remove all listeners
+    this.removeAllListeners();
+
+    console.log("[ContentChangeManager] Destroyed");
+  }
+
+  // Manual queue clear (for emergencies)
+  clearQueue(): void {
+    const queueSize = this.updateQueue.length;
+    this.updateQueue = [];
+    console.log(`[ContentChangeManager] Cleared ${queueSize} queued items`);
+  }
+
+  // Check if a specific article is queued
+  isArticleQueued(articleId: string): boolean {
+    return this.updateQueue.some((event) => event.articleId === articleId);
+  }
+
+  // Get queue info for debugging
+  getQueueInfo(): {
+    size: number;
+    articles: string[];
+    oldestTimestamp?: Date;
+    newestTimestamp?: Date;
+  } {
+    if (this.updateQueue.length === 0) {
+      return { size: 0, articles: [] };
+    }
+
+    const articles = this.updateQueue.map((e) => e.articleId);
+    const timestamps = this.updateQueue.map((e) => e.timestamp);
+
+    return {
+      size: this.updateQueue.length,
+      articles: [...new Set(articles)], // Unique article IDs
+      oldestTimestamp: new Date(
+        Math.min(...timestamps.map((t) => t.getTime()))
+      ),
+      newestTimestamp: new Date(
+        Math.max(...timestamps.map((t) => t.getTime()))
+      ),
+    };
+  }
+
+  // Priority queue jump for urgent content
+  prioritizeArticle(articleId: string): boolean {
+    const index = this.updateQueue.findIndex((e) => e.articleId === articleId);
+    if (index > 0) {
+      const [event] = this.updateQueue.splice(index, 1);
+      this.updateQueue.unshift(event);
+      console.log(`[ContentChangeManager] Prioritized article ${articleId}`);
+      return true;
+    }
+    return false;
   }
 }
 
 // Export everything else as before...
 export function createNewsCaches() {
-  const changeManager = new ContentChangeManager(100);
+  // OPTIMIZED: Use the new 50ms batch delay
+  const changeManager = new ContentChangeManager(50);
 
   const postDataCache = new SmartNewsCache<any>("postData", {
     max: 300,
@@ -335,6 +483,22 @@ const { postDataCache, categoryCache, homepageCache, changeManager } =
   createNewsCaches();
 
 export { postDataCache, categoryCache, homepageCache, changeManager };
+
+// Create singleton instance
+export const contentChangeManager = changeManager;
+
+// Helper function to determine priority based on categories
+export function determinePriority(categories: string[]): "breaking" | "normal" {
+  const breakingCategories = ["breaking-news", "urgent", "flash", "alert"];
+  const hasBreakingCategory = categories.some((cat) =>
+    breakingCategories.includes(cat.toLowerCase())
+  );
+
+  return hasBreakingCategory ? "breaking" : "normal";
+}
+
+// Export types for use in other files
+export type { SmartNewsCache, ContentChangeEvent };
 
 export class CacheHealthMonitor {
   private metricsHistory: any[] = [];

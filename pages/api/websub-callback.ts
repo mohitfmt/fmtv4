@@ -1,7 +1,7 @@
 // pages/api/websub-callback.ts
 /**
  * Complete WebSub Handler with Smart Cache Integration
- * Updated with correct category mappings and optimizations
+ * OPTIMIZED VERSION with correct priority handling
  */
 
 import { addMinutes } from "date-fns";
@@ -20,7 +20,7 @@ interface WPPost {
   link: string;
   slug: string;
   title: { rendered: string };
-  categories: number[];
+  categories?: number[];
 }
 
 // UPDATED: Category mapping based on your navigation structure
@@ -68,20 +68,25 @@ const categoryMappings: Record<string, string> = {
 
 // Priority levels for different types of content
 const PRIORITY = {
-  CRITICAL: 1, // Homepage and breaking news
-  HIGH: 2, // Main section pages
-  MEDIUM: 3, // Individual articles
-  LOW: 4, // Archive pages
+  CRITICAL: 1, // Article pages
+  HIGH: 2, // Homepage
+  MEDIUM: 3, // Category pages
+  LOW: 4, // Tags, authors
 };
 
-// Create queues with different concurrency levels
-const criticalQueue = new PQueue({ concurrency: 2 });
-const highQueue = new PQueue({ concurrency: 3 });
-const mediumQueue = new PQueue({ concurrency: 5 });
-const lowQueue = new PQueue({ concurrency: 2 });
+// OPTIMIZED: Increased concurrency for better throughput
+const criticalQueue = new PQueue({ concurrency: 10 }); // Articles (was 2)
+const highQueue = new PQueue({ concurrency: 5 }); // Homepage (was 3)
+const mediumQueue = new PQueue({ concurrency: 20 }); // Categories (was 5)
+const lowQueue = new PQueue({ concurrency: 10 }); // Tags/authors (was 2)
 
-// Track when queues are processing
-// let isProcessing = false;
+// Track processing to prevent duplicates
+const processingArticles = new Set<string>();
+const recentlyProcessed = new Map<string, number>();
+const DEDUP_WINDOW = 5 * 60 * 1000; // 5 minutes
+
+// Lock to prevent concurrent processing
+let isProcessing = false;
 
 // UPDATED: Complete category ID mapping
 const categoryIdToSlugMap: Record<number, string> = {
@@ -257,9 +262,9 @@ function normalizePathForRevalidation(path: string): string {
     "about",
     "advertise",
     "privacy-policy",
-    "property", // Added from navigation
-    "education", // Added from navigation
-    "carzilla", // Added from navigation
+    "property",
+    "education",
+    "carzilla",
   ];
 
   if (specialPages.some((page) => normalizedPath === page)) {
@@ -278,18 +283,19 @@ function normalizePathForRevalidation(path: string): string {
 }
 
 /**
- * Get recently modified articles from WordPress
+ * OPTIMIZED: Get recently modified articles from WordPress with deduplication
  */
 async function getRecentlyModifiedArticles(
   wpDomain: string
 ): Promise<WPPost[]> {
   try {
     const now = new Date();
-    const fifteenMinsAgo = addMinutes(now, -15);
-    const modifiedAfter = fifteenMinsAgo?.toISOString();
+    // OPTIMIZED: Reduced window to 5 minutes to minimize duplicates
+    const fiveMinutesAgo = addMinutes(now, -5);
+    const modifiedAfter = fiveMinutesAgo?.toISOString();
 
     console.log(
-      `[WebSub] Fetching posts modified after ${modifiedAfter} (15-minute window)`
+      `[WebSub] Fetching posts modified after ${modifiedAfter} (5-minute window)`
     );
 
     const controller = new AbortController();
@@ -316,11 +322,24 @@ async function getRecentlyModifiedArticles(
       }
 
       const posts: WPPost[] = await response.json();
+
+      // OPTIMIZED: Filter out recently processed articles
+      const uniquePosts = posts.filter((post) => {
+        const lastProcessed = recentlyProcessed.get(post.id.toString());
+        if (lastProcessed && Date.now() - lastProcessed < DEDUP_WINDOW) {
+          console.log(
+            `[WebSub] Skipping recently processed article ${post.id}`
+          );
+          return false;
+        }
+        return true;
+      });
+
       console.log(
-        `[WebSub] Found ${posts?.length} recently modified posts in 15-minute window`
+        `[WebSub] Found ${posts.length} posts, ${uniquePosts.length} after deduplication`
       );
 
-      return posts;
+      return uniquePosts;
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === "AbortError") {
@@ -337,7 +356,7 @@ async function getRecentlyModifiedArticles(
 }
 
 /**
- * Process articles to get cache tags and revalidation items
+ * OPTIMIZED: Process articles to get cache tags and revalidation items
  */
 async function processArticlesForRevalidation(
   articles: WPPost[],
@@ -373,11 +392,10 @@ async function processArticlesForRevalidation(
       const allCategories = [...new Set([...urlCategories, ...apiCategories])];
 
       // Create content change event for smart cache
+      const isNew =
+        new Date(post.date).getTime() === new Date(post.modified).getTime();
       const event = {
-        type:
-          new Date(post.date).getTime() === new Date(post.modified).getTime()
-            ? ("new" as const)
-            : ("update" as const),
+        type: isNew ? ("new" as const) : ("update" as const),
         articleId: post.id.toString(),
         slug: post.slug,
         categories: allCategories,
@@ -441,45 +459,58 @@ async function processArticlesForRevalidation(
       cacheTags.add(`post:${post.slug}`);
       affectedPaths.add(`/${articlePath}`);
 
-      // Add article to revalidation
+      // PRIORITY 1: Add article to revalidation (CRITICAL)
       revalidationItems.push({
         type: "post",
         path: articlePath,
         categories: allCategories,
-        priority: PRIORITY.MEDIUM,
+        priority: PRIORITY.CRITICAL,
       });
     } catch (error) {
       console.error(`[WebSub] Error processing article ${post.id}:`, error);
     }
   }
 
-  // Add homepage if needed
+  // PRIORITY 2: Add homepage if needed (HIGH)
   if (shouldUpdateHomepage) {
     revalidationItems.push({
       type: "homepage",
       path: "/",
-      priority: PRIORITY.CRITICAL,
+      priority: PRIORITY.HIGH,
     });
     affectedPaths.add("/");
   }
 
-  // Add all affected main sections
+  // PRIORITY 3: Add all affected main sections
   affectedPaths.forEach((path) => {
     if (!revalidationItems.some((item) => item.path === path)) {
-      const priority =
-        path === "/"
-          ? PRIORITY.CRITICAL
-          : path.match(
-                /^\/(news|berita|business|opinion|world|sports|lifestyle)$/
-              )
-            ? PRIORITY.HIGH
-            : PRIORITY.MEDIUM;
+      let priority = PRIORITY.MEDIUM;
 
-      revalidationItems.push({
-        type: path === "/" ? "homepage" : "category",
-        path,
-        priority,
-      });
+      if (path === "/") {
+        priority = PRIORITY.HIGH; // Already handled above
+      } else if (
+        path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
+      ) {
+        priority = PRIORITY.MEDIUM; // Category pages
+      } else if (path.includes("/tag/") || path.includes("/author/")) {
+        priority = PRIORITY.LOW; // Tags/authors
+      } else if (!path.includes("/category/")) {
+        // It's likely an article path not already added
+        priority = PRIORITY.CRITICAL;
+      }
+
+      if (!revalidationItems.some((item) => item.path === path)) {
+        revalidationItems.push({
+          type:
+            path === "/"
+              ? "homepage"
+              : priority === PRIORITY.CRITICAL
+                ? "post"
+                : "category",
+          path,
+          priority,
+        });
+      }
     }
   });
 
@@ -492,7 +523,7 @@ async function processArticlesForRevalidation(
 }
 
 /**
- * Process a single revalidation request
+ * OPTIMIZED: Process a single revalidation request
  */
 async function processRevalidationItem(
   baseUrl: string,
@@ -508,13 +539,15 @@ async function processRevalidationItem(
     requestBody.categories = item.categories;
   }
 
-  const maxRetries = item.priority <= PRIORITY.HIGH ? 3 : 2;
+  // OPTIMIZED: Reduced retry attempts for faster processing
+  const maxRetries = item.priority <= PRIORITY.HIGH ? 2 : 1;
   let attempts = 0;
 
   while (attempts <= maxRetries) {
     try {
       const controller = new AbortController();
-      const timeout = item.priority <= PRIORITY.HIGH ? 30000 : 20000;
+      // OPTIMIZED: Reduced timeout for faster failure detection
+      const timeout = item.priority <= PRIORITY.HIGH ? 15000 : 10000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(`${baseUrl}/api/revalidate`, {
@@ -542,10 +575,9 @@ async function processRevalidationItem(
       attempts++;
 
       if (attempts <= maxRetries) {
-        const baseDelay = item.priority <= PRIORITY.HIGH ? 1000 : 2000;
-        const delay = Math.floor(
-          baseDelay * Math.pow(2, attempts) * (0.9 + Math.random() * 0.2)
-        );
+        // OPTIMIZED: Shorter retry delays
+        const baseDelay = item.priority <= PRIORITY.HIGH ? 500 : 1000;
+        const delay = Math.floor(baseDelay * Math.pow(1.5, attempts));
 
         console.log(
           `[WebSub] Retry ${attempts}/${maxRetries} for ${item.type} ${item.path} in ${delay}ms`
@@ -565,15 +597,15 @@ async function processRevalidationItem(
 }
 
 /**
- * Process revalidation with priority queuing
+ * OPTIMIZED: Process revalidation with priority queuing
  */
-async function processRevalidation(
+async function processRevalidationOptimized(
   baseUrl: string,
   items: any[],
   revalidateKey: string,
   affectedPaths: Set<string>
 ): Promise<void> {
-  if (items.length === 0) return;
+  if (items.length === 0 && affectedPaths.size === 0) return;
 
   console.log(
     `[WebSub] Revalidating ${items.length} items + ${affectedPaths.size} affected paths`
@@ -591,21 +623,44 @@ async function processRevalidation(
 
     // Determine priority based on path
     let priority = PRIORITY.MEDIUM;
-    if (path === "/") priority = PRIORITY.CRITICAL;
-    else if (
+    if (path === "/") {
+      priority = PRIORITY.HIGH; // Homepage
+    } else if (
       path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
-    )
-      priority = PRIORITY.HIGH;
+    ) {
+      priority = PRIORITY.MEDIUM; // Category pages
+    } else if (path.includes("/tag/") || path.includes("/author/")) {
+      priority = PRIORITY.LOW; // Tags/Authors
+    } else {
+      priority = PRIORITY.CRITICAL; // Assume it's an article
+    }
 
     return {
-      type: path === "/" ? "homepage" : "category",
+      type:
+        path === "/"
+          ? "homepage"
+          : path.includes("/") &&
+              !path.match(
+                /^\/(news|berita|business|opinion|world|sports|lifestyle)$/
+              )
+            ? "post"
+            : "category",
       path,
       priority,
     };
   });
 
-  // Sort by priority
-  const sortedItems = allItems.sort((a, b) => a.priority - b.priority);
+  // Group by priority
+  const priorityGroups = {
+    [PRIORITY.CRITICAL]: allItems.filter(
+      (item) => item.priority === PRIORITY.CRITICAL
+    ),
+    [PRIORITY.HIGH]: allItems.filter((item) => item.priority === PRIORITY.HIGH),
+    [PRIORITY.MEDIUM]: allItems.filter(
+      (item) => item.priority === PRIORITY.MEDIUM
+    ),
+    [PRIORITY.LOW]: allItems.filter((item) => item.priority === PRIORITY.LOW),
+  };
 
   // Clear queues
   criticalQueue.clear();
@@ -613,47 +668,38 @@ async function processRevalidation(
   mediumQueue.clear();
   lowQueue.clear();
 
-  // Process with immediate revalidation for critical paths
-  const criticalItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.CRITICAL
-  );
-  const highItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.HIGH
-  );
-  const mediumItems = sortedItems.filter(
-    (item) => item.priority === PRIORITY.MEDIUM
-  );
-  const lowItems = sortedItems.filter((item) => item.priority === PRIORITY.LOW);
+  // OPTIMIZED: Queue all items by priority
+  const queueMap = {
+    [PRIORITY.CRITICAL]: criticalQueue,
+    [PRIORITY.HIGH]: highQueue,
+    [PRIORITY.MEDIUM]: mediumQueue,
+    [PRIORITY.LOW]: lowQueue,
+  };
 
-  // Process critical items immediately
-  if (criticalItems.length > 0) {
-    console.log(
-      `[WebSub] Processing ${criticalItems.length} critical items immediately`
-    );
-    await Promise.all(
-      criticalItems.map((item) =>
-        processRevalidationItem(baseUrl, item, revalidateKey)
-      )
-    );
-  }
+  // Queue all items
+  Object.entries(priorityGroups).forEach(([priority, items]) => {
+    const numPriority = Number(priority);
+    if (items.length > 0) {
+      const queue = queueMap[numPriority];
+      console.log(
+        `[WebSub] Queuing ${items.length} items with priority ${numPriority}`
+      );
 
-  // Queue other items
-  for (const item of highItems) {
-    highQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
-  }
-  for (const item of mediumItems) {
-    mediumQueue.add(() =>
-      processRevalidationItem(baseUrl, item, revalidateKey)
-    );
-  }
-  for (const item of lowItems) {
-    lowQueue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
-  }
+      items.forEach((item) => {
+        queue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
+      });
+    }
+  });
 
-  // Process queues
+  // Process queues in priority order
+  await criticalQueue.onIdle();
+  console.log(`[WebSub] Critical queue (articles) processed`);
+
   await highQueue.onIdle();
-  await mediumQueue.onIdle();
-  await lowQueue.onIdle();
+  console.log(`[WebSub] High priority queue (homepage) processed`);
+
+  // Process medium and low priority queues in parallel
+  await Promise.all([mediumQueue.onIdle(), lowQueue.onIdle()]);
 
   console.log(`[WebSub] All revalidation queues processed`);
 }
@@ -700,16 +746,19 @@ export default async function handler(
 }
 
 /**
- * Process the WebSub notification in the background
+ * ENHANCED: Process the WebSub notification in the background
  */
 async function processWebSubNotification(req: NextApiRequest): Promise<void> {
-  // if (isProcessing) {
-  //   console.log("[WebSub] Already processing a notification, skipping");
-  //   return;
-  // }
+  if (isProcessing) {
+    console.log("[WebSub] Already processing, queuing for next cycle");
+    // OPTIMIZED: Queue the request instead of skipping
+    setTimeout(() => processWebSubNotification(req), 5000);
+    return;
+  }
 
   try {
-    // isProcessing = true;
+    isProcessing = true;
+    const startTime = Date.now();
     console.log("[WebSub] Background processing started");
 
     // Get domains
@@ -724,18 +773,77 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     const host = req.headers.host || frontendDomain;
     const baseUrl = `${protocol}://${host}`;
 
-    // Get recently modified articles
+    // Get recently modified articles with deduplication
     const modifiedArticles = await getRecentlyModifiedArticles(wpDomain);
 
     if (modifiedArticles.length === 0) {
-      console.log("[WebSub] No recently modified articles found");
-      // isProcessing = false;
+      console.log("[WebSub] No new articles to process");
+      isProcessing = false;
       return;
+    }
+
+    // Track processed articles
+    modifiedArticles.forEach((article) => {
+      recentlyProcessed.set(article.id.toString(), Date.now());
+    });
+
+    // Clean up old entries
+    const cutoffTime = Date.now() - DEDUP_WINDOW;
+    for (const [id, timestamp] of recentlyProcessed.entries()) {
+      if (timestamp < cutoffTime) {
+        recentlyProcessed.delete(id);
+      }
     }
 
     console.log(
       `[WebSub] Processing ${modifiedArticles.length} modified articles`
     );
+
+    // OPTIMIZED: Process smart cache invalidation in parallel batches
+    const SMART_CACHE_BATCH_SIZE = 10;
+    for (let i = 0; i < modifiedArticles.length; i += SMART_CACHE_BATCH_SIZE) {
+      const batch = modifiedArticles.slice(i, i + SMART_CACHE_BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (post) => {
+          try {
+            const urlCategories = extractCategoryFromUrl(post.link);
+            const apiCategories = post.categories
+              ? getCategorySlugsFromIds(post.categories)
+              : [];
+
+            const allCategories = [
+              ...new Set([...urlCategories, ...apiCategories]),
+            ];
+
+            const isNew =
+              new Date(post.date).getTime() ===
+              new Date(post.modified).getTime();
+
+            const event = {
+              type: isNew ? ("new" as const) : ("update" as const),
+              articleId: post.id.toString(),
+              slug: post.slug,
+              categories: allCategories,
+              timestamp: new Date(post.modified),
+              priority: "normal" as const,
+            };
+
+            changeManager.handleContentChange(event);
+          } catch (error) {
+            console.error(
+              `[WebSub] Error processing article ${post.id}:`,
+              error
+            );
+          }
+        })
+      );
+
+      // Small delay between batches
+      if (i + SMART_CACHE_BATCH_SIZE < modifiedArticles.length) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
 
     // Process articles and get all affected paths
     const {
@@ -745,7 +853,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       affectedPaths,
     } = await processArticlesForRevalidation(modifiedArticles, frontendDomain);
 
-    // Purge Cloudflare cache immediately
+    // OPTIMIZED: Parallel Cloudflare purging (don't wait)
     if (cacheTags.length > 0) {
       console.log(`[WebSub] Purging ${cacheTags.length} Cloudflare cache tags`);
 
@@ -754,21 +862,31 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
 
       for (let i = 0; i < cacheTags.length; i += TAG_BATCH_SIZE) {
         const batch = cacheTags.slice(i, i + TAG_BATCH_SIZE);
-        purgePromises.push(purgeCloudflareByTags(batch));
+        purgePromises.push(
+          purgeCloudflareByTags(batch).catch((err) =>
+            console.error(`[WebSub] Cloudflare purge batch failed:`, err)
+          )
+        );
       }
 
-      await Promise.all(purgePromises);
+      // Don't wait for all purges to complete
+      Promise.all(purgePromises).then(() =>
+        console.log("[WebSub] All Cloudflare purges completed")
+      );
     }
 
     // Process Next.js revalidation with affected paths
-    await processRevalidation(
+    await processRevalidationOptimized(
       baseUrl,
       revalidationItems,
       revalidateKey,
       affectedPaths
     );
 
-    // Ping IndexNow for SEO
+    const processingTime = Date.now() - startTime;
+    console.log(`[WebSub] Processing completed in ${processingTime}ms`);
+
+    // Ping IndexNow for SEO (async)
     const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
     const indexNowUrls = modifiedArticles.map((post) => {
       const url = new URL(post.link);
@@ -777,29 +895,29 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     });
 
     if (indexNowUrls.length > 0) {
-      try {
-        const response = await fetch("https://api.indexnow.org/indexnow", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            host: frontendDomain,
-            key: indexNowKey,
-            urlList: indexNowUrls,
-          }),
+      fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          host: frontendDomain,
+          key: indexNowKey,
+          urlList: indexNowUrls,
+        }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            console.error(`[IndexNow] Batch ping failed: ${response.status}`);
+          } else {
+            console.log(
+              `[IndexNow] Successfully pinged ${indexNowUrls.length} URLs`
+            );
+          }
+        })
+        .catch((err) => {
+          console.error("[IndexNow] Error with batch ping:", err);
         });
-
-        if (!response.ok) {
-          console.error(`[IndexNow] Batch ping failed: ${response.status}`);
-        } else {
-          console.log(
-            `[IndexNow] Successfully pinged ${indexNowUrls.length} URLs`
-          );
-        }
-      } catch (err) {
-        console.error("[IndexNow] Error with batch ping:", err);
-      }
     }
 
     // Revalidate API endpoints only if necessary
@@ -813,7 +931,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       }
     }
 
-    // CRITICAL: Ping all your feed URLs
+    // CRITICAL: Ping all your feed URLs (async)
     const hubUrl = "https://pubsubhubbub.appspot.com/";
 
     // Frontend feed URLs
@@ -903,6 +1021,57 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
   } catch (error) {
     console.error("[WebSub] Background processing error:", error);
   } finally {
-    // isProcessing = false;
+    isProcessing = false;
+  }
+}
+
+// Helper function to ping IndexNow
+async function pingIndexNow(articles: WPPost[], domain: string): Promise<void> {
+  try {
+    const urls = articles.map((article) => {
+      const url = new URL(article.link);
+      url.hostname = domain;
+      return url.toString();
+    });
+
+    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
+
+    if (!indexNowKey || urls.length === 0) return;
+
+    const response = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host: domain,
+        key: indexNowKey,
+        keyLocation: `https://${domain}/${indexNowKey}.txt`,
+        urlList: urls,
+      }),
+    });
+
+    if (response.ok) {
+      console.log(`[WebSub] IndexNow pinged for ${urls.length} URLs`);
+    }
+  } catch (error) {
+    console.error("[WebSub] IndexNow ping failed:", error);
+  }
+}
+
+// Helper function to ping feeds
+async function pingFeeds(domain: string): Promise<void> {
+  try {
+    const feedUrls = [
+      `https://${domain}/feed`,
+      `https://${domain}/rss`,
+      `https://${domain}/sitemap.xml`,
+    ];
+
+    await Promise.all(
+      feedUrls.map((url) => fetch(url, { method: "HEAD" }).catch(() => {}))
+    );
+
+    console.log("[WebSub] Feed endpoints pinged");
+  } catch (error) {
+    console.error("[WebSub] Feed ping failed:", error);
   }
 }
