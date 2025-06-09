@@ -67,7 +67,9 @@ class CacheDependencyGraph {
   }
 }
 
-class SmartNewsCache<T extends Record<string, any>> extends EventEmitter {
+export class SmartNewsCache<
+  T extends Record<string, any>,
+> extends EventEmitter {
   private cache: LRUCache<string, T>;
   private dependencyGraph = new CacheDependencyGraph();
   private name: string;
@@ -196,7 +198,7 @@ export class ContentChangeManager extends EventEmitter {
       }
     });
 
-    console.log(`[ContentChangeManager] Registered cache: ${name}`);
+    // console.log(`[ContentChangeManager] Registered cache: ${name}`);
   }
 
   unregisterCache(name: string): void {
@@ -498,7 +500,7 @@ export function determinePriority(categories: string[]): "breaking" | "normal" {
 }
 
 // Export types for use in other files
-export type { SmartNewsCache, ContentChangeEvent };
+export type { ContentChangeEvent };
 
 export class CacheHealthMonitor {
   private metricsHistory: any[] = [];
