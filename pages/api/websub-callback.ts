@@ -476,7 +476,7 @@ async function processArticlesForRevalidation(
     revalidationItems.push({
       type: "homepage",
       path: "/",
-      priority: PRIORITY.HIGH,
+      priority: PRIORITY.CRITICAL,
     });
     affectedPaths.add("/");
   }
@@ -487,7 +487,7 @@ async function processArticlesForRevalidation(
       let priority = PRIORITY.MEDIUM;
 
       if (path === "/") {
-        priority = PRIORITY.HIGH; // Already handled above
+        priority = PRIORITY.CRITICAL; // Already handled above
       } else if (
         path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
       ) {
@@ -624,7 +624,7 @@ async function processRevalidationOptimized(
     // Determine priority based on path
     let priority = PRIORITY.MEDIUM;
     if (path === "/") {
-      priority = PRIORITY.HIGH; // Homepage
+      priority = PRIORITY.CRITICAL; // Homepage
     } else if (
       path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
     ) {
