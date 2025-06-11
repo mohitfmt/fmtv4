@@ -391,6 +391,14 @@ async function processArticlesForRevalidation(
 
       const allCategories = [...new Set([...urlCategories, ...apiCategories])];
 
+      console.log(`[DEBUG] Processing article ${post.id}:`, {
+        postLink: post.link,
+        postSlug: post.slug,
+        urlCategories: urlCategories,
+        apiCategories: apiCategories,
+        allCategories: allCategories,
+      });
+
       // Create content change event for smart cache
       const isNew =
         new Date(post.date).getTime() === new Date(post.modified).getTime();
@@ -458,6 +466,13 @@ async function processArticlesForRevalidation(
       cacheTags.add(`path:/${articlePath}`);
       cacheTags.add(`post:${post.slug}`);
       affectedPaths.add(`/${articlePath}`);
+
+      console.log(`[DEBUG] Adding revalidation item:`, {
+        articlePath: articlePath,
+        type: "post",
+        pathWithoutDomain: pathWithoutDomain,
+        normalizedPath: normalizePathForRevalidation(pathWithoutDomain),
+      });
 
       // PRIORITY 1: Add article to revalidation (CRITICAL)
       revalidationItems.push({
