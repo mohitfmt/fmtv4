@@ -1,16 +1,18 @@
 // pages/api/websub-callback.ts
 /**
- * Complete WebSub Handler with Smart Cache Integration
- * OPTIMIZED VERSION with correct priority handling
+ * WebSub Handler with Smart Cache Integration
+ * PRODUCTION VERSION - Fixed category extraction and removed deduplication
  */
 
 import { addMinutes } from "date-fns";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
-import { getAllNavigationPaths } from "../../lib/navigation-cache";
 import PQueue from "p-queue";
 import { changeManager } from "@/lib/cache/smart-cache-registry";
-import { purgeCloudflareByTags } from "@/lib/cache/purge";
+import {
+  purgeCloudflareByTags,
+  purgeCloudflareByUrls,
+} from "@/lib/cache/purge";
 
 // Define types for WordPress API responses
 interface WPPost {
@@ -23,7 +25,7 @@ interface WPPost {
   categories?: number[];
 }
 
-// UPDATED: Category mapping based on your navigation structure
+// Category mapping based on your navigation structure
 const categoryMappings: Record<string, string> = {
   // Main categories
   bahasa: "berita", // CMS "bahasa" → Frontend "/berita"
@@ -34,7 +36,7 @@ const categoryMappings: Record<string, string> = {
   sports: "sports",
   world: "world",
 
-  // Subcategory mappings (if needed)
+  // Subcategory mappings
   tempatan: "berita",
   pandangan: "berita",
   dunia: "berita",
@@ -74,21 +76,16 @@ const PRIORITY = {
   LOW: 4, // Tags, authors
 };
 
-// OPTIMIZED: Increased concurrency for better throughput
-const criticalQueue = new PQueue({ concurrency: 10 }); // Articles (was 2)
-const highQueue = new PQueue({ concurrency: 5 }); // Homepage (was 3)
-const mediumQueue = new PQueue({ concurrency: 20 }); // Categories (was 5)
-const lowQueue = new PQueue({ concurrency: 10 }); // Tags/authors (was 2)
-
-// Track processing to prevent duplicates
-const processingArticles = new Set<string>();
-const recentlyProcessed = new Map<string, number>();
-const DEDUP_WINDOW = 5 * 60 * 1000; // 5 minutes
+// Priority queues with increased concurrency
+const criticalQueue = new PQueue({ concurrency: 10 }); // Articles
+const highQueue = new PQueue({ concurrency: 5 }); // Homepage
+const mediumQueue = new PQueue({ concurrency: 20 }); // Categories
+const lowQueue = new PQueue({ concurrency: 10 }); // Tags/authors
 
 // Lock to prevent concurrent processing
 let isProcessing = false;
 
-// UPDATED: Complete category ID mapping
+// Complete category ID mapping
 const categoryIdToSlugMap: Record<number, string> = {
   // Homepage/Highlights
   127940: "super-highlight",
@@ -170,41 +167,42 @@ const HOMEPAGE_TRIGGER_CATEGORIES = [
 ];
 
 /**
- * Extract category from article URL
- * This handles your complex URL patterns
+ * Extract category from article URL - FIXED VERSION
+ * This properly handles URL patterns without extracting dates as categories
  */
 function extractCategoryFromUrl(url: string): string[] {
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split("/").filter(Boolean);
 
-    // Handle URL pattern with category/category/ prefix
-    if (
-      pathParts.length >= 3 &&
-      pathParts[0] === "category" &&
-      pathParts[1] === "category"
-    ) {
-      const category = pathParts[2];
-
-      // Check for subcategory
-      if (pathParts.length >= 4) {
-        return [category, pathParts[3]];
-      }
-
-      return [category];
-    }
-    // Handle normal category structure
-    else if (pathParts.length >= 2 && pathParts[0] === "category") {
-      const category = pathParts[1];
-
-      if (pathParts.length >= 3) {
-        return [category, pathParts[2]];
-      }
-
-      return [category];
+    // Remove 'category' prefix if present
+    if (pathParts[0] === "category") {
+      pathParts.shift();
     }
 
-    return [];
+    // Article URLs follow pattern: {section}[/{subsection}]/{year}/{month}/{day}/{slug}
+    // We need to extract only the section and subsection, not dates
+
+    const categories: string[] = [];
+
+    // First part is always the main section
+    if (pathParts.length > 0) {
+      const section = pathParts[0];
+      categories.push(section);
+
+      // Check if there's a subsection (only for bahasa currently)
+      if (section === "bahasa" && pathParts.length > 1) {
+        const potentialSubsection = pathParts[1];
+
+        // Valid bahasa subsections
+        const validBahasaSubsections = ["tempatan", "pandangan", "dunia"];
+        if (validBahasaSubsections.includes(potentialSubsection)) {
+          categories.push(potentialSubsection);
+        }
+      }
+    }
+
+    return categories;
   } catch (error) {
     console.error(`[WebSub] Failed to extract category from ${url}:`, error);
     return [];
@@ -235,62 +233,13 @@ function shouldTriggerHomepageUpdate(categorySlugs: string[]): boolean {
 }
 
 /**
- * Normalize path for revalidation
- */
-function normalizePathForRevalidation(path: string): string {
-  const normalizedPath = path.startsWith("/") ? path.substring(1) : path;
-
-  const mainSections = [
-    "news",
-    "berita",
-    "business",
-    "opinion",
-    "world",
-    "sports",
-    "lifestyle",
-  ];
-
-  if (mainSections.includes(normalizedPath)) {
-    return normalizedPath;
-  }
-
-  const specialPages = [
-    "photos",
-    "videos",
-    "accelerator",
-    "contact-us",
-    "about",
-    "advertise",
-    "privacy-policy",
-    "property",
-    "education",
-    "carzilla",
-  ];
-
-  if (specialPages.some((page) => normalizedPath === page)) {
-    return normalizedPath;
-  }
-
-  if (normalizedPath.startsWith("category/category/")) {
-    return normalizedPath;
-  }
-
-  if (normalizedPath.startsWith("category/")) {
-    return normalizedPath;
-  }
-
-  return `category/${normalizedPath}`;
-}
-
-/**
- * OPTIMIZED: Get recently modified articles from WordPress with deduplication
+ * Get recently modified articles from WordPress - NO DEDUPLICATION
  */
 async function getRecentlyModifiedArticles(
   wpDomain: string
 ): Promise<WPPost[]> {
   try {
     const now = new Date();
-    // OPTIMIZED: Reduced window to 5 minutes to minimize duplicates
     const fiveMinutesAgo = addMinutes(now, -5);
     const modifiedAfter = fiveMinutesAgo?.toISOString();
 
@@ -323,23 +272,10 @@ async function getRecentlyModifiedArticles(
 
       const posts: WPPost[] = await response.json();
 
-      // OPTIMIZED: Filter out recently processed articles
-      const uniquePosts = posts.filter((post) => {
-        const lastProcessed = recentlyProcessed.get(post.id.toString());
-        if (lastProcessed && Date.now() - lastProcessed < DEDUP_WINDOW) {
-          console.log(
-            `[WebSub] Skipping recently processed article ${post.id}`
-          );
-          return false;
-        }
-        return true;
-      });
+      // NO DEDUPLICATION - Process ALL updates
+      console.log(`[WebSub] Found ${posts.length} posts to process`);
 
-      console.log(
-        `[WebSub] Found ${posts.length} posts, ${uniquePosts.length} after deduplication`
-      );
-
-      return uniquePosts;
+      return posts;
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === "AbortError") {
@@ -356,7 +292,7 @@ async function getRecentlyModifiedArticles(
 }
 
 /**
- * OPTIMIZED: Process articles to get cache tags and revalidation items
+ * Process articles to get cache tags and revalidation items - FIXED VERSION
  */
 async function processArticlesForRevalidation(
   articles: WPPost[],
@@ -377,27 +313,21 @@ async function processArticlesForRevalidation(
   const affectedPaths = new Set<string>();
   let shouldUpdateHomepage = false;
 
-  // Get all navigation paths
-  const allNavigationPaths = getAllNavigationPaths();
-
-  // Process each article and trigger immediate cache invalidation
   for (const post of articles) {
     try {
-      // Get categories from URL and API
+      // Extract categories properly (without dates)
       const urlCategories = extractCategoryFromUrl(post.link);
       const apiCategories = post.categories
         ? getCategorySlugsFromIds(post.categories)
         : [];
 
+      // Combine and deduplicate categories
       const allCategories = [...new Set([...urlCategories, ...apiCategories])];
 
-      console.log(`[DEBUG] Processing article ${post.id}:`, {
-        postLink: post.link,
-        postSlug: post.slug,
-        urlCategories: urlCategories,
-        apiCategories: apiCategories,
-        allCategories: allCategories,
-      });
+      // Filter out any invalid "categories" like years
+      const validCategories = allCategories.filter(
+        (cat) => cat && !cat.match(/^\d{4}$/) && cat.length > 0
+      );
 
       // Create content change event for smart cache
       const isNew =
@@ -406,126 +336,117 @@ async function processArticlesForRevalidation(
         type: isNew ? ("new" as const) : ("update" as const),
         articleId: post.id.toString(),
         slug: post.slug,
-        categories: allCategories,
+        categories: validCategories,
         timestamp: new Date(post.modified),
         priority: "normal" as const,
       };
 
-      // Trigger smart cache invalidation immediately
+      // Trigger smart cache invalidation
       changeManager.handleContentChange(event);
 
-      // Wait a bit for cache processing
-      await new Promise((resolve) => setTimeout(resolve, 20));
-
-      // Collect affected paths from change manager
-      const smartCachePaths = changeManager.getAffectedPaths();
-      smartCachePaths.forEach((path) => affectedPaths.add(path));
-
-      // Check if homepage should be updated
-      if (!shouldUpdateHomepage && shouldTriggerHomepageUpdate(allCategories)) {
-        shouldUpdateHomepage = true;
-        cacheTags.add("path:/");
-        cacheTags.add("page:home");
-        affectedPaths.add("/");
-      }
-
-      // Add category-related cache tags and paths
-      allCategories.forEach((category) => {
-        if (!category) return;
-
-        cacheTags.add(`category:${category}`);
-
-        const frontendPath = `/${getCategoryPath(category)}`;
-        cacheTags.add(`path:${frontendPath}`);
-        cacheTags.add(`section:${getCategoryPath(category)}`);
-
-        affectedPaths.add(frontendPath);
-        affectedPaths.add(`/category/category/${category}`);
-
-        // Add parent category paths
-        const parentSection = getCategoryPath(category);
-        if (parentSection !== category) {
-          affectedPaths.add(`/${parentSection}`);
-        }
-
-        // Add subcategory paths
-        const navigationPath = allNavigationPaths.find(
-          (path: string) =>
-            path.includes(category) || path.includes(parentSection)
-        );
-        if (navigationPath) {
-          affectedPaths.add(navigationPath);
-        }
-      });
-
-      // Process article path
+      // Extract the article path from the URL
       const urlObj = new URL(post.link);
-      const pathWithoutDomain = urlObj.pathname.substring(1);
-      const articlePath = normalizePathForRevalidation(pathWithoutDomain);
+      const articlePath = urlObj.pathname;
 
-      cacheTags.add(`path:/${articlePath}`);
-      cacheTags.add(`post:${post.slug}`);
-      affectedPaths.add(`/${articlePath}`);
+      // Remove leading slash for processing
+      const pathWithoutLeadingSlash = articlePath.substring(1);
 
-      console.log(`[DEBUG] Adding revalidation item:`, {
-        articlePath: articlePath,
-        type: "post",
-        pathWithoutDomain: pathWithoutDomain,
-        normalizedPath: normalizePathForRevalidation(pathWithoutDomain),
-      });
-
-      // PRIORITY 1: Add article to revalidation (CRITICAL)
+      // Add the article path for revalidation (HIGHEST PRIORITY)
       revalidationItems.push({
         type: "post",
-        path: articlePath,
-        categories: allCategories,
+        path: pathWithoutLeadingSlash,
+        categories: validCategories,
         priority: PRIORITY.CRITICAL,
       });
+
+      // Add cache tags for the article
+      cacheTags.add(`path:${articlePath}`);
+      cacheTags.add(`post:${post.slug}`);
+      cacheTags.add(`article:${post.id}`);
+
+      // Check if homepage should be updated
+      if (!shouldUpdateHomepage && shouldTriggerHomepageUpdate(apiCategories)) {
+        shouldUpdateHomepage = true;
+      }
+
+      // Add category pages based on valid categories only
+      validCategories.forEach((category) => {
+        // Skip if it's a year or other invalid category
+        if (category.match(/^\d{4}$/) || !category) return;
+
+        // Category landing page path
+        const categoryPagePath = `/category/category/${category}`;
+        affectedPaths.add(categoryPagePath);
+        cacheTags.add(`category:${category}`);
+        cacheTags.add(`path:${categoryPagePath}`);
+
+        // Also add the friendly URL if it exists
+        const friendlyPath = getCategoryPath(category);
+        if (friendlyPath !== category) {
+          affectedPaths.add(`/${friendlyPath}`);
+          cacheTags.add(`path:/${friendlyPath}`);
+          cacheTags.add(`section:${friendlyPath}`);
+        }
+      });
+
+      // For Bahasa articles, also add the parent category
+      if (urlCategories[0] === "bahasa") {
+        affectedPaths.add("/category/category/bahasa");
+        affectedPaths.add("/berita");
+        cacheTags.add("category:bahasa");
+        cacheTags.add("path:/category/category/bahasa");
+        cacheTags.add("path:/berita");
+        cacheTags.add("section:berita");
+      }
     } catch (error) {
       console.error(`[WebSub] Error processing article ${post.id}:`, error);
     }
   }
 
-  // PRIORITY 2: Add homepage if needed (HIGH)
+  // Add homepage if needed
   if (shouldUpdateHomepage) {
     revalidationItems.push({
       type: "homepage",
       path: "/",
-      priority: PRIORITY.CRITICAL,
+      priority: PRIORITY.HIGH,
     });
+    cacheTags.add("path:/");
+    cacheTags.add("page:home");
     affectedPaths.add("/");
   }
 
-  // PRIORITY 3: Add all affected main sections
+  // Convert affected paths to revalidation items (with proper priorities)
   affectedPaths.forEach((path) => {
     if (!revalidationItems.some((item) => item.path === path)) {
       let priority = PRIORITY.MEDIUM;
+      let type = "category";
 
+      // Determine type and priority based on path
       if (path === "/") {
-        priority = PRIORITY.CRITICAL; // Already handled above
+        type = "homepage";
+        priority = PRIORITY.HIGH;
+      } else if (path.includes("/20") && path.split("/").length > 4) {
+        // It's an article path (contains date)
+        type = "post";
+        priority = PRIORITY.CRITICAL;
       } else if (
         path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
       ) {
-        priority = PRIORITY.MEDIUM; // Category pages
-      } else if (path.includes("/tag/") || path.includes("/author/")) {
-        priority = PRIORITY.LOW; // Tags/authors
-      } else if (!path.includes("/category/")) {
-        // It's likely an article path not already added
-        priority = PRIORITY.CRITICAL;
+        // Main section pages
+        type = "section";
+        priority = PRIORITY.HIGH;
       }
 
-      if (!revalidationItems.some((item) => item.path === path)) {
-        revalidationItems.push({
-          type:
-            path === "/"
-              ? "homepage"
-              : priority === PRIORITY.CRITICAL
-                ? "post"
-                : "category",
-          path,
-          priority,
-        });
-      }
+      // Remove leading slash for consistency
+      const pathForRevalidation = path.startsWith("/")
+        ? path.substring(1)
+        : path;
+
+      revalidationItems.push({
+        type,
+        path: pathForRevalidation,
+        priority,
+      });
     }
   });
 
@@ -538,7 +459,7 @@ async function processArticlesForRevalidation(
 }
 
 /**
- * OPTIMIZED: Process a single revalidation request
+ * Process a single revalidation request
  */
 async function processRevalidationItem(
   baseUrl: string,
@@ -547,21 +468,19 @@ async function processRevalidationItem(
 ): Promise<boolean> {
   const requestBody: any = {
     type: item.type,
-    [item.type === "post" ? "postSlug" : "path"]: item.path,
+    [item.type === "post" ? "slug" : "path"]: item.path,
   };
 
   if (item.type === "post" && item.categories && item.categories.length > 0) {
     requestBody.categories = item.categories;
   }
 
-  // OPTIMIZED: Reduced retry attempts for faster processing
   const maxRetries = item.priority <= PRIORITY.HIGH ? 2 : 1;
   let attempts = 0;
 
   while (attempts <= maxRetries) {
     try {
       const controller = new AbortController();
-      // OPTIMIZED: Reduced timeout for faster failure detection
       const timeout = item.priority <= PRIORITY.HIGH ? 15000 : 10000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -590,7 +509,6 @@ async function processRevalidationItem(
       attempts++;
 
       if (attempts <= maxRetries) {
-        // OPTIMIZED: Shorter retry delays
         const baseDelay = item.priority <= PRIORITY.HIGH ? 500 : 1000;
         const delay = Math.floor(baseDelay * Math.pow(1.5, attempts));
 
@@ -601,7 +519,7 @@ async function processRevalidationItem(
       } else {
         console.error(
           `[WebSub] Failed to revalidate ${item.type} ${item.path}:`,
-          error
+          error.message || error
         );
         return false;
       }
@@ -612,7 +530,7 @@ async function processRevalidationItem(
 }
 
 /**
- * OPTIMIZED: Process revalidation with priority queuing
+ * Process revalidation with priority queuing
  */
 async function processRevalidationOptimized(
   baseUrl: string,
@@ -626,55 +544,16 @@ async function processRevalidationOptimized(
     `[WebSub] Revalidating ${items.length} items + ${affectedPaths.size} affected paths`
   );
 
-  // Combine all paths
-  const allPaths = new Set<string>();
-  items.forEach((item) => allPaths.add(item.path));
-  affectedPaths.forEach((path) => allPaths.add(path));
-
-  // Convert to priority items
-  const allItems = Array.from(allPaths).map((path) => {
-    const existingItem = items.find((item) => item.path === path);
-    if (existingItem) return existingItem;
-
-    // Determine priority based on path
-    let priority = PRIORITY.MEDIUM;
-    if (path === "/") {
-      priority = PRIORITY.CRITICAL; // Homepage
-    } else if (
-      path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
-    ) {
-      priority = PRIORITY.MEDIUM; // Category pages
-    } else if (path.includes("/tag/") || path.includes("/author/")) {
-      priority = PRIORITY.LOW; // Tags/Authors
-    } else {
-      priority = PRIORITY.CRITICAL; // Assume it's an article
-    }
-
-    return {
-      type:
-        path === "/"
-          ? "homepage"
-          : path.includes("/") &&
-              !path.match(
-                /^\/(news|berita|business|opinion|world|sports|lifestyle)$/
-              )
-            ? "post"
-            : "category",
-      path,
-      priority,
-    };
-  });
-
   // Group by priority
   const priorityGroups = {
-    [PRIORITY.CRITICAL]: allItems.filter(
+    [PRIORITY.CRITICAL]: items.filter(
       (item) => item.priority === PRIORITY.CRITICAL
     ),
-    [PRIORITY.HIGH]: allItems.filter((item) => item.priority === PRIORITY.HIGH),
-    [PRIORITY.MEDIUM]: allItems.filter(
+    [PRIORITY.HIGH]: items.filter((item) => item.priority === PRIORITY.HIGH),
+    [PRIORITY.MEDIUM]: items.filter(
       (item) => item.priority === PRIORITY.MEDIUM
     ),
-    [PRIORITY.LOW]: allItems.filter((item) => item.priority === PRIORITY.LOW),
+    [PRIORITY.LOW]: items.filter((item) => item.priority === PRIORITY.LOW),
   };
 
   // Clear queues
@@ -683,7 +562,7 @@ async function processRevalidationOptimized(
   mediumQueue.clear();
   lowQueue.clear();
 
-  // OPTIMIZED: Queue all items by priority
+  // Queue all items by priority
   const queueMap = {
     [PRIORITY.CRITICAL]: criticalQueue,
     [PRIORITY.HIGH]: highQueue,
@@ -761,12 +640,11 @@ export default async function handler(
 }
 
 /**
- * ENHANCED: Process the WebSub notification in the background
+ * Process the WebSub notification in the background
  */
 async function processWebSubNotification(req: NextApiRequest): Promise<void> {
   if (isProcessing) {
     console.log("[WebSub] Already processing, queuing for next cycle");
-    // OPTIMIZED: Queue the request instead of skipping
     setTimeout(() => processWebSubNotification(req), 5000);
     return;
   }
@@ -788,77 +666,18 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     const host = req.headers.host || frontendDomain;
     const baseUrl = `${protocol}://${host}`;
 
-    // Get recently modified articles with deduplication
+    // Get recently modified articles
     const modifiedArticles = await getRecentlyModifiedArticles(wpDomain);
 
     if (modifiedArticles.length === 0) {
-      console.log("[WebSub] No new articles to process");
+      console.log("[WebSub] No articles to process");
       isProcessing = false;
       return;
-    }
-
-    // Track processed articles
-    modifiedArticles.forEach((article) => {
-      recentlyProcessed.set(article.id.toString(), Date.now());
-    });
-
-    // Clean up old entries
-    const cutoffTime = Date.now() - DEDUP_WINDOW;
-    for (const [id, timestamp] of recentlyProcessed.entries()) {
-      if (timestamp < cutoffTime) {
-        recentlyProcessed.delete(id);
-      }
     }
 
     console.log(
       `[WebSub] Processing ${modifiedArticles.length} modified articles`
     );
-
-    // OPTIMIZED: Process smart cache invalidation in parallel batches
-    const SMART_CACHE_BATCH_SIZE = 10;
-    for (let i = 0; i < modifiedArticles.length; i += SMART_CACHE_BATCH_SIZE) {
-      const batch = modifiedArticles.slice(i, i + SMART_CACHE_BATCH_SIZE);
-
-      await Promise.all(
-        batch.map(async (post) => {
-          try {
-            const urlCategories = extractCategoryFromUrl(post.link);
-            const apiCategories = post.categories
-              ? getCategorySlugsFromIds(post.categories)
-              : [];
-
-            const allCategories = [
-              ...new Set([...urlCategories, ...apiCategories]),
-            ];
-
-            const isNew =
-              new Date(post.date).getTime() ===
-              new Date(post.modified).getTime();
-
-            const event = {
-              type: isNew ? ("new" as const) : ("update" as const),
-              articleId: post.id.toString(),
-              slug: post.slug,
-              categories: allCategories,
-              timestamp: new Date(post.modified),
-              priority: "normal" as const,
-            };
-
-            changeManager.handleContentChange(event);
-          } catch (error) {
-            console.error(
-              `[WebSub] Error processing article ${post.id}:`,
-              error
-            );
-          }
-        })
-      );
-
-      // Small delay between batches
-      if (i + SMART_CACHE_BATCH_SIZE < modifiedArticles.length) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-    }
 
     // Process articles and get all affected paths
     const {
@@ -868,7 +687,34 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       affectedPaths,
     } = await processArticlesForRevalidation(modifiedArticles, frontendDomain);
 
-    // OPTIMIZED: Parallel Cloudflare purging (don't wait)
+    // IMMEDIATE Cloudflare URL purge for articles
+    const articleUrls: string[] = [];
+    const fullBaseUrl = `https://${frontendDomain}`;
+
+    modifiedArticles.forEach((article) => {
+      const urlObj = new URL(article.link);
+      const path = urlObj.pathname;
+
+      // Add multiple URL variations to ensure complete purge
+      articleUrls.push(`${fullBaseUrl}${path}`);
+      if (!path.endsWith("/")) {
+        articleUrls.push(`${fullBaseUrl}${path}/`); // With trailing slash
+      }
+    });
+
+    // Immediate Cloudflare URL purge
+    if (articleUrls.length > 0) {
+      console.log(
+        `[WebSub] Immediate Cloudflare purge for ${articleUrls.length} article URLs`
+      );
+      purgeCloudflareByUrls(articleUrls)
+        .then(() => console.log("[WebSub] Article URL purge completed"))
+        .catch((err) =>
+          console.error("[WebSub] Article URL purge failed:", err)
+        );
+    }
+
+    // Parallel Cloudflare tag purging
     if (cacheTags.length > 0) {
       console.log(`[WebSub] Purging ${cacheTags.length} Cloudflare cache tags`);
 
@@ -890,7 +736,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       );
     }
 
-    // Process Next.js revalidation with affected paths
+    // Process Next.js revalidation
     await processRevalidationOptimized(
       baseUrl,
       revalidationItems,
@@ -946,7 +792,7 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       }
     }
 
-    // CRITICAL: Ping all your feed URLs (async)
+    // Ping all feed URLs (async)
     const hubUrl = "https://pubsubhubbub.appspot.com/";
 
     // Frontend feed URLs
@@ -1037,56 +883,5 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     console.error("[WebSub] Background processing error:", error);
   } finally {
     isProcessing = false;
-  }
-}
-
-// Helper function to ping IndexNow
-async function pingIndexNow(articles: WPPost[], domain: string): Promise<void> {
-  try {
-    const urls = articles.map((article) => {
-      const url = new URL(article.link);
-      url.hostname = domain;
-      return url.toString();
-    });
-
-    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
-
-    if (!indexNowKey || urls.length === 0) return;
-
-    const response = await fetch("https://api.indexnow.org/indexnow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        host: domain,
-        key: indexNowKey,
-        keyLocation: `https://${domain}/${indexNowKey}.txt`,
-        urlList: urls,
-      }),
-    });
-
-    if (response.ok) {
-      console.log(`[WebSub] IndexNow pinged for ${urls.length} URLs`);
-    }
-  } catch (error) {
-    console.error("[WebSub] IndexNow ping failed:", error);
-  }
-}
-
-// Helper function to ping feeds
-async function pingFeeds(domain: string): Promise<void> {
-  try {
-    const feedUrls = [
-      `https://${domain}/feed`,
-      `https://${domain}/rss`,
-      `https://${domain}/sitemap.xml`,
-    ];
-
-    await Promise.all(
-      feedUrls.map((url) => fetch(url, { method: "HEAD" }).catch(() => {}))
-    );
-
-    console.log("[WebSub] Feed endpoints pinged");
-  } catch (error) {
-    console.error("[WebSub] Feed ping failed:", error);
   }
 }

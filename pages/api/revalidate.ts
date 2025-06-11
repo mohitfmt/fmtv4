@@ -2,7 +2,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
 import { getPostData, playlistCache } from "@/lib/api";
-import { purgeCloudflareByTags } from "@/lib/cache/purge";
+import {
+  purgeCloudflareByTags,
+  purgeCloudflareByUrls,
+} from "@/lib/cache/purge";
 import { extractCategoriesFromSlug } from "@/lib/navigation-cache";
 import { changeManager } from "@/lib/cache/smart-cache-registry";
 
@@ -221,122 +224,197 @@ async function performRevalidation(
       case "article":
       case "post": {
         try {
-          // Clean the slug - remove any leading/trailing slashes
-          const cleanSlug = slug.replace(/^\/+|\/+$/g, "");
+          // The slug parameter contains the path without leading slash
+          // e.g., "category/nation/2025/06/11/reforms-ongoing-and-backed-by-solid-evidence-says-azalina"
 
-          // For the API call, we need just the path after /category/
-          // If slug is "/category/business/2025/05/29/article", extract "business/2025/05/29/article"
-          const slugForApi = cleanSlug.replace(/^category\//, "");
+          console.log(`[Revalidate] Processing article with slug: ${slug}`);
 
-          console.log(`[Revalidate] Processing article:`, {
-            originalSlug: slug,
-            cleanSlug: cleanSlug,
-            slugForApi: slugForApi,
-          });
+          // Ensure we have a proper path with leading slash
+          let articlePath = slug.startsWith("/") ? slug : "/" + slug;
 
-          const postData = await getPostData(slugForApi);
-          if (postData?.post?.databaseId) {
-            // Create content change event
-            const extractedCategories = extractCategoriesFromSlug(slugForApi);
-            const categoriesArray = [
-              extractedCategories.category,
-              extractedCategories.subcategory,
-            ].filter(Boolean);
+          // Clean up any double slashes
+          articlePath = articlePath.replace(/\/+/g, "/");
 
-            const event = {
-              type: "update" as const,
-              articleId: postData.post.databaseId.toString(),
-              slug: slugForApi,
-              categories: categoriesArray,
-              timestamp: new Date(),
-              priority: "normal" as const,
-            };
+          // Remove trailing slash if present
+          articlePath = articlePath.replace(/\/$/, "");
 
-            // Trigger smart invalidation
-            changeManager.handleContentChange(event as any);
-            smartCacheInvalidated = true;
+          console.log(
+            `[Revalidate] Article path for revalidation: ${articlePath}`
+          );
 
-            // OPTIMIZED: Shorter wait for cache invalidation
-            await new Promise((resolve) => setTimeout(resolve, 50));
+          // Extract the section from the path for category invalidation
+          const pathParts = articlePath.split("/").filter(Boolean);
 
-            // Get all affected paths from the change manager
-            const affectedPaths = changeManager.getAffectedPaths();
-            affectedPaths.forEach((path) => pathsToRevalidate.add(path));
+          // Skip 'category' if it's the first part
+          if (pathParts[0] === "category") {
+            pathParts.shift();
+          }
 
-            // Also add category-specific paths
-            const categories =
-              postData.post.categories?.edges?.map(
-                (edge: any) => edge.node.slug
-              ) || [];
+          // The section is the first part after 'category'
+          const section = pathParts[0];
+          const subsection =
+            section === "bahasa" &&
+            pathParts[1] &&
+            !pathParts[1].match(/^\d{4}$/)
+              ? pathParts[1]
+              : null;
 
-            categories.forEach((cat: string) => {
-              getRelatedPaths(cat).forEach((path) =>
-                pathsToRevalidate.add(path)
-              );
-            });
+          console.log(
+            `[Revalidate] Extracted section: ${section}, subsection: ${subsection}`
+          );
 
+          // Always revalidate the article itself first (highest priority)
+          pathsToRevalidate.add(articlePath);
+
+          // Add cache tags for the article
+          tagsToPurge.push(
+            `path:${articlePath}`,
+            `post:${slug}`,
+            `article:${articlePath}`
+          );
+
+          // Try to get more information about the article
+          try {
+            // Extract just the article slug from the full path
+            const articleSlugMatch = articlePath.match(/\/([^\/]+)\/?$/);
+            const articleSlug = articleSlugMatch ? articleSlugMatch[1] : slug;
+
+            const postData = await getPostData(articleSlug);
+
+            if (postData?.post?.databaseId) {
+              // Create content change event for smart cache
+              const event = {
+                type: "update" as const,
+                articleId: postData.post.databaseId.toString(),
+                slug: articlePath,
+                categories: [section, subsection].filter(Boolean),
+                timestamp: new Date(),
+                priority: "normal" as const,
+              };
+
+              changeManager.handleContentChange(event as any);
+              smartCacheInvalidated = true;
+
+              // Add article-specific cache tag
+              tagsToPurge.push(`article:${postData.post.databaseId}`);
+
+              // Get categories from the post data
+              const categories =
+                postData.post.categories?.edges?.map(
+                  (edge: any) => edge.node.slug
+                ) || [];
+
+              // Process each category
+              categories.forEach((cat: string) => {
+                // Skip invalid categories like years
+                if (cat.match(/^\d{4}$/) || !cat) return;
+
+                // Add the category page for revalidation
+                const categoryPagePath = `/category/category/${cat}`;
+                pathsToRevalidate.add(categoryPagePath);
+                tagsToPurge.push(`category:${cat}`, `path:${categoryPagePath}`);
+
+                // Also add friendly URL if applicable
+                const friendlyPath = resolveSectionPath(cat);
+                if (friendlyPath !== cat) {
+                  pathsToRevalidate.add(`/${friendlyPath}`);
+                  tagsToPurge.push(
+                    `path:/${friendlyPath}`,
+                    `section:${friendlyPath}`
+                  );
+                }
+              });
+            }
+          } catch (e) {
             console.log(
-              `[Revalidate] Smart invalidation for article ${postData.post.databaseId} - ${pathsToRevalidate.size} paths affected`
+              `[Revalidate] Could not fetch additional article data: ${e}`
             );
           }
-        } catch (e) {
+
+          // Add the main section pages based on the URL structure
+          if (section) {
+            // Add the category page
+            const categoryPagePath = `/category/category/${section}`;
+            pathsToRevalidate.add(categoryPagePath);
+            tagsToPurge.push(`category:${section}`, `path:${categoryPagePath}`);
+
+            // Add the friendly URL
+            const friendlyPath = resolveSectionPath(section);
+            if (friendlyPath && friendlyPath !== section) {
+              pathsToRevalidate.add(`/${friendlyPath}`);
+              tagsToPurge.push(
+                `path:/${friendlyPath}`,
+                `section:${friendlyPath}`
+              );
+            }
+
+            // For Bahasa subsections
+            if (section === "bahasa" && subsection) {
+              const subsectionPath = `/category/category/bahasa/${subsection}`;
+              pathsToRevalidate.add(subsectionPath);
+              tagsToPurge.push(
+                `category:${subsection}`,
+                `path:${subsectionPath}`
+              );
+            }
+          }
+
+          // Always revalidate homepage as articles might appear there
+          pathsToRevalidate.add("/");
+          tagsToPurge.push("path:/", "page:home");
+
+          // Force process smart cache changes immediately
+          await changeManager.forceProcess();
+
+          // CRITICAL: Immediate Cloudflare URL purge for the article
+          const baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com"}`;
+          const fullArticleUrls = [
+            `${baseUrl}${articlePath}`,
+            `${baseUrl}${articlePath}/`, // With trailing slash
+          ];
+
           console.log(
-            `[Revalidate] Could not fetch article ID for ${slug}, continuing with path revalidation`
+            `[Revalidate] Purging Cloudflare cache for article URLs:`,
+            fullArticleUrls
           );
-        }
 
-        // For the actual revalidation path:
-        // If the slug already starts with "category/", just add leading slash
-        // Otherwise, add "/category/" prefix
-        let articlePath: string;
+          try {
+            await purgeCloudflareByUrls(fullArticleUrls);
+            console.log(
+              `[Revalidate] Cloudflare URL purge completed for article`
+            );
+          } catch (error) {
+            console.error(`[Revalidate] Cloudflare URL purge failed:`, error);
+          }
 
-        if (slug.startsWith("category/") || slug.startsWith("/category/")) {
-          // Already has category prefix, just ensure single leading slash
-          articlePath = "/" + slug.replace(/^\/+/, "");
-        } else {
-          // Need to add category prefix
-          articlePath = "/category/" + slug.replace(/^\/+/, "");
-        }
+          // Also purge by tags
+          if (tagsToPurge.length > 0) {
+            purgeCloudflareByTags(tagsToPurge)
+              .then(() =>
+                console.log(`[Revalidate] Cloudflare tag purge completed`)
+              )
+              .catch((err) =>
+                console.error(`[Revalidate] Cloudflare tag purge failed:`, err)
+              );
+          }
 
-        // Clean up any double slashes and remove trailing slash
-        articlePath = articlePath.replace(/\/+/g, "/").replace(/\/$/, "");
+          console.log(`[Revalidate] Article processing complete:`, {
+            articlePath,
+            totalPaths: pathsToRevalidate.size,
+            tags: tagsToPurge.length,
+          });
 
-        console.log(
-          `[Revalidate] Adding article path for revalidation: ${articlePath}`
-        );
-        pathsToRevalidate.add(articlePath);
-
-        // For cache tags, use the slug without /category/ prefix and without slashes
-        const slugForTags = slug
-          .replace(/^\/?(category\/)?/, "")
-          .replace(/\/$/, "");
-
-        tagsToPurge.push(
-          `post:${slugForTags}`,
-          `related:${slugForTags}`,
-          `path:${articlePath}`
-        );
-
-        // Add section paths
-        const section = extractSectionFromSlug(slugForTags);
-        if (section) {
-          getRelatedPaths(section).forEach((path) =>
-            pathsToRevalidate.add(path)
+          break;
+        } catch (error: any) {
+          console.error(
+            `[Revalidate] Error processing article ${slug}:`,
+            error
           );
-          tagsToPurge.push(`path:/${section}`, `section:${section}`);
+          return res.status(500).json({
+            message: "Error processing article",
+            error: error.message,
+          });
         }
-
-        // Always revalidate homepage
-        pathsToRevalidate.add("/");
-        tagsToPurge.push("path:/", "page:home");
-
-        console.log(`[Revalidate] Article processing complete:`, {
-          articlePath,
-          totalPaths: pathsToRevalidate.size,
-          tags: tagsToPurge.length,
-        });
-
-        break;
       }
 
       case "author": {
