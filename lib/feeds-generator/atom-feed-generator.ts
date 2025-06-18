@@ -117,7 +117,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
   switch (slugStr) {
     case "nation":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/nation/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/nation/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/news",
         title:
           "Nation | Politics | Economy | Social | Crime | Education | Environment",
@@ -133,7 +133,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "berita":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/top-bm/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/berita",
         title:
           "Berita | Tempatan | Pandangan | Dunia | Politik, Ekonomi, Sukan, Teknologi",
@@ -150,7 +150,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "business":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/business/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/business/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/business",
         title: "Business | Local Business | World Business | Malaysia | FMT",
         subtitle:
@@ -165,7 +165,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "headlines":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/highlight/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/highlight/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com",
         title: "Headlines | Latest | Malaysia | Top Stories | Local News",
         subtitle:
@@ -177,7 +177,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "lifestyle":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/leisure/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/leisure/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/lifestyle",
         title:
           "Lifestyle | Food | Entertainment | Health | Family | Money | Travel | Tech | Pets",
@@ -199,7 +199,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "opinion":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/opinion/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/opinion/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/opinion",
         title: "Opinion | Editorial | Column | Letters",
         subtitle:
@@ -215,7 +215,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "sports":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/sports/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/sports/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/sports",
         title: "Sports | Football | Badminton | Tennis | Motorsports",
         subtitle:
@@ -232,7 +232,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "world":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/world/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/category/world/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/category/category/world",
         title: "World | Global News | International News",
         subtitle:
@@ -245,7 +245,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
     case "sea":
       payloadObj = {
         rssUrl:
-          "https://cms.freemalaysiatoday.com/category/south-east-asia/feed/",
+          "https://cms.freemalaysiatoday.com/category/south-east-asia/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/category/category/south-east-asia",
         title: "Southeast Asia | Asian News | International News",
         subtitle:
@@ -258,7 +258,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     default:
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/feed/",
+        rssUrl: "https://cms.freemalaysiatoday.com/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com",
         title: "Free Malaysia Today",
         subtitle:
