@@ -7,7 +7,7 @@ export async function pingSingleItemFeeds(
   const baseUrl = `https://${frontendDomain}`;
 
   for (const post of articles) {
-    const feedUrl = `${baseUrl}/api/feeds/websub/${post.id}.xml`;
+    const feedUrl = `${baseUrl}/api/feeds/websub/${post.id}`;
     try {
       const body = new URLSearchParams({
         "hub.mode": "publish",
