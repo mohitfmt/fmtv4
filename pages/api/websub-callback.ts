@@ -13,6 +13,7 @@ import {
   purgeCloudflareByTags,
   purgeCloudflareByUrls,
 } from "@/lib/cache/purge";
+import { pingSingleItemFeeds } from "@/lib/websub-single-feed";
 
 // Define types for WordPress API responses
 interface WPPost {
@@ -669,6 +670,8 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
     // Get recently modified articles
     const modifiedArticles = await getRecentlyModifiedArticles(wpDomain);
 
+    await pingSingleItemFeeds(modifiedArticles, frontendDomain);
+
     if (modifiedArticles.length === 0) {
       console.log("[WebSub] No articles to process");
       isProcessing = false;
@@ -857,15 +860,6 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       "https://cms.freemalaysiatoday.com/category/sports/feed/",
       "https://cms.freemalaysiatoday.com/category/world/feed/",
       "https://cms.freemalaysiatoday.com/feed/",
-      "https://cms.freemalaysiatoday.com/category/nation/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/top-bm/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/business/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/highlight/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/leisure/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/opinion/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/sports/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/category/world/feed/?orderby=modified&order=desc",
-      "https://cms.freemalaysiatoday.com/feed/?orderby=modified&order=desc",
     ];
 
     for (const feedUrl of cmsFeeds) {

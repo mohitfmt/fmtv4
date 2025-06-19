@@ -213,6 +213,84 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // 0a. Redirect any http:// request to https://www
+      {
+        source: "/:path*", // catch everything
+        has: [{ type: "header", key: "x-forwarded-proto", value: "http" }],
+        destination: "https://www.freemalaysiatoday.com/:path*",
+        permanent: true,
+      },
+
+      // 0b. Redirect naked domain to www (even on HTTPS)
+      {
+        source: "/:path*",
+        has: [{ type: "host", key: "host", value: "freemalaysiatoday.com" }],
+        destination: "https://www.freemalaysiatoday.com/:path*",
+        permanent: true,
+      },
+      // 1. Double-domain typo → strip the duplicate
+      {
+        source: "/www.freemalaysiatoday.com/:path*",
+        destination: "/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path+/", // catch ANY path with a trailing slash
+        destination: "/:path+", // drop the slash
+        permanent: true,
+      },
+      // 2. AMP variants → drop the /amp prefix
+      {
+        source: "/amp/:path*",
+        destination: "/:path*",
+        permanent: true,
+      },
+
+      // 3. Legacy “/tag/slug” → canonical /category/tag/slug
+      {
+        source: "/tag/:tag",
+        destination: "/category/tag/:tag",
+        permanent: true,
+      },
+
+      // 4. Legacy “/author/slug” → canonical /category/author/slug
+      {
+        source: "/author/:author",
+        destination: "/category/author/:author",
+        permanent: true,
+      },
+
+      // 5. Date-only archive URLs → point at the section archive
+      {
+        source: "/category/:section/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})",
+        destination: "/category/:section",
+        permanent: true,
+      },
+
+      // 6. Attachment links → strip off “/attachment/…”
+      {
+        source: "/:path*/attachment/:rest*",
+        destination: "/:path*",
+        permanent: true,
+      },
+
+      // 7. Staging subdomain → redirect to production host
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            key: "host",
+            value: "staging-beta.freemalaysiatoday.com",
+          },
+        ],
+        destination: "https://www.freemalaysiatoday.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   webpack(config, { isServer }) {
     if (isServer) {
       // don’t try to bundle these native modules into the client
