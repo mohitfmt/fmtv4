@@ -135,9 +135,9 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                   />
                 </div>
               </div>
-              <div className="mb-6">
+              <div className="my-6 border-l border-stone-500 rounded-md overflow-hidden">
                 <h2
-                  className="excerpt text-xl my-3"
+                  className="excerpt text-xl my-3 pl-3 italic text-stone-800 dark:text-stone-200"
                   itemProp="description"
                   dangerouslySetInnerHTML={{ __html: safeExcerpt }}
                 />
