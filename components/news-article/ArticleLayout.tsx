@@ -1,9 +1,10 @@
+import dynamic from "next/dynamic";
 import AdSlot from "@/components/common/AdSlot";
 import NewsAuthor from "@/components/common/NewsAuthor";
 // import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
-import React, { lazy, ReactNode, Suspense } from "react";
+import React, { ReactNode, Suspense } from "react";
 import {
   FollowPlatformsSkeleton,
   NewsletterSkeleton,
@@ -13,15 +14,15 @@ import {
 import siteConfig from "@/constants/site-config";
 import ShareComponents from "./ShareComponents";
 
-const TrendingNSubCategoriesList = lazy(
+const TrendingNSubCategoriesList = dynamic(
   () => import("@/components/common/TrendingNSubCategoriesList")
 );
-const RelatedNews = lazy(() => import("./RelatedNews"));
-const OutBrainWidget = lazy(() => import("./OutbrainWidget"));
-const JumpSlider = lazy(() => import("./JumpSlider"));
-const MoreStories = lazy(() => import("./MoreStories"));
-const NewsletterForm = lazy(() => import("./NewsLetterForm"));
-const FollowPlatforms = lazy(() => import("./FollowPlatForm"));
+const RelatedNews = dynamic(() => import("./RelatedNews"));
+const OutBrainWidget = dynamic(() => import("./OutbrainWidget"));
+const JumpSlider = dynamic(() => import("./JumpSlider"));
+const MoreStories = dynamic(() => import("./MoreStories"));
+const NewsletterForm = dynamic(() => import("./NewsLetterForm"));
+const FollowPlatforms = dynamic(() => import("./FollowPlatForm"));
 
 interface ArticleLayoutProps {
   post: any;
@@ -135,7 +136,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
                   />
                 </div>
               </div>
-              <div className="my-6 border-l border-stone-500 rounded-md overflow-hidden">
+              <div className="my-6 border-l-2 border-stone-500 rounded-md overflow-hidden">
                 <h2
                   className="excerpt text-xl my-3 pl-3 italic text-stone-800 dark:text-stone-200"
                   itemProp="description"

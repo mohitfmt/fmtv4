@@ -1,14 +1,16 @@
+import React from "react";
 import siteConfig from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
 import { OrgJsonLD, WebPageJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
 
-const extractFirstParagraph = (htmlContent: string) => {
+const extractFirstParagraph = (htmlContent: string): string | null => {
   const paragraphPattern = /<p>(.*?)<\/p>/;
   const match = htmlContent?.match(paragraphPattern);
   return match ? match[1].trim() : null;
 };
-const extractLocation = (content: string) => {
+
+const extractLocation = (content: string): string => {
   const locationPattern = /^([A-Z\s]+:)\s+/;
   const match = content?.match(locationPattern);
   if (match) {
@@ -16,32 +18,34 @@ const extractLocation = (content: string) => {
   }
   return "MALAYSIA";
 };
+
 const extractYouTubeID = (content: string): string | null => {
   const regex =
     /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
   const match = content?.match(regex);
   return match ? match[1] : null;
 };
+
 const getRelatedNewsJsonLd = (relatedData: any) => {
-  const ListofItems = relatedData?.map((node: any, index: number) => ({
-    "@type": "ListItem",
-    position: index + 1,
-    url: `https://www.freemalaysiatoday.com${node?.uri}`,
-    name: node?.title,
-  }));
+  const items =
+    relatedData?.map((node: any, index: number) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${siteConfig.baseUrl}${node?.uri}`,
+      name: node?.title,
+    })) ?? [];
 
   return {
-    "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: ListofItems,
+    name: "Related Articles",
+    itemListElement: items,
   };
 };
+
 const getBreadcrumbJsonLd = (uri: string) => {
   let baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN ?? "www.freemalaysiatoday.com"}`;
-  baseUrl = baseUrl.replace(/\/$/, "");
-
-  const postUri = uri.split("/").filter(Boolean);
-
+  baseUrl = baseUrl.replace(/\/+$/, "");
+  const segments = uri.split("/").filter(Boolean);
   const months = [
     "January",
     "February",
@@ -56,260 +60,178 @@ const getBreadcrumbJsonLd = (uri: string) => {
     "November",
     "December",
   ];
+  const getOrdinal = (d: number) =>
+    d > 3 && d < 21 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[d % 10] || "th";
 
-  const formatName = (item: string, index: number, array: string[]) => {
-    if (/^\d{4}$/.test(item)) {
-      return `${item} (Year)`;
-    } else if (/^\d{2}$/.test(item) && /^\d{4}$/.test(array[index - 1])) {
-      const monthIndex = parseInt(item, 10) - 1;
-      return `${item} (${months[monthIndex]})`;
-    } else if (
-      /^\d{2}$/.test(item) &&
-      /^\d{2}$/.test(array[index - 1]) &&
-      /^\d{4}$/.test(array[index - 2])
+  const formatted = segments.map((seg, i, arr) => {
+    if (/^\d{4}$/.test(seg)) return `${seg} (Year)`;
+    if (/^\d{2}$/.test(seg) && /^\d{4}$/.test(arr[i - 1])) {
+      return `${seg} (${months[parseInt(seg, 10) - 1]})`;
+    }
+    if (
+      /^\d{2}$/.test(seg) &&
+      /^\d{2}$/.test(arr[i - 1]) &&
+      /^\d{4}$/.test(arr[i - 2])
     ) {
-      const day = parseInt(item, 10);
-      const month = months[parseInt(array[index - 1], 10) - 1];
-      const year = array[index - 2];
-      return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
-    } else {
-      return item.toUpperCase().replace(/-/g, " ");
+      const day = parseInt(seg, 10);
+      return `${day}${getOrdinal(day)} ${months[parseInt(arr[i - 1], 10) - 1]} ${arr[i - 2]}`;
     }
-  };
+    return seg.toUpperCase().replace(/-/g, " ");
+  });
 
-  const getOrdinalSuffix = (day: number) => {
-    if (day > 3 && day < 21) return "th";
-    switch (day % 10) {
-      case 1:
-        return "st";
-      case 2:
-        return "nd";
-      case 3:
-        return "rd";
-      default:
-        return "th";
-    }
-  };
-
-  const itemListElement = postUri.map((item, index, array) => ({
+  const list = formatted.map((name, idx) => ({
     "@type": "ListItem",
-    position: index + 2,
-    name: formatName(item, index, array),
-    item: `${baseUrl}/${array.slice(0, index + 1).join("/")}/`,
+    position: idx + 2,
+    name,
+    item: `${baseUrl}/${segments.slice(0, idx + 1).join("/")}/`,
   }));
 
   return {
-    "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: baseUrl,
-      },
-      ...itemListElement,
+      { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+      ...list,
     ],
   };
 };
 
-const ArticleJsonLD = ({
+const ArticleJsonLD: React.FC<{ data: ArticleData; relatedData: any }> = ({
   data,
   relatedData,
-}: {
-  data: ArticleData;
-  relatedData: any;
 }) => {
+  const fullUrl = `${siteConfig.baseUrl}${data.uri}`;
+  const stripContent = stripHTML(data.content ?? "");
+  const firstPara = extractFirstParagraph(data.content ?? "");
+  const location = extractLocation(firstPara ?? "");
+  const timeToRead = Math.ceil((stripContent?.split(" ")?.length || 0) / 200);
+  const duration = `PT${timeToRead}M`;
+  const cleanExcerpt = stripHTML(data.excerpt ?? "");
   const keywords =
-    data?.keywords?.keywords ||
-    data?.tags?.edges?.map(({ node }: any) => node?.name).join(", ");
+    data.keywords?.keywords ||
+    data.tags?.edges?.map((t: any) => t.node.name).join(", ");
 
-  const fullUrl = `${siteConfig.baseUrl}${data?.uri}`;
+  // Video
+  const videoId = extractYouTubeID(data.content ?? "");
+  const videoNode = videoId
+    ? {
+        "@type": "VideoObject",
+        "@id": `https://www.youtube.com/watch?v=${videoId}`,
+        name: data.title,
+        description: cleanExcerpt,
+        uploadDate: `${data.dateGmt}Z`,
+        thumbnailUrl: data.featuredImage?.node?.sourceUrl,
+        contentUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        author: {
+          "@type": "NewsMediaOrganization",
+          name: siteConfig.siteName,
+          url: siteConfig.baseUrl,
+        },
+        publisher: {
+          "@type": "NewsMediaOrganization",
+          name: siteConfig.siteName,
+          logo: OrgJsonLD.logo,
+        },
+        url: fullUrl,
+      }
+    : null;
 
-  const stripContent = stripHTML(data?.content ?? "content not found");
-  const firstParagraph = extractFirstParagraph(
-    data?.content ?? "content not found"
-  );
-  const location = extractLocation(firstParagraph ?? "location not found");
-
-  const timeToRead = Math.ceil(stripContent?.split(" ").length / 200);
-  const durationToReadNews = "PT" + timeToRead + "M";
-
-  const urlSegments = fullUrl.split("/");
-  const categoryIndex = urlSegments.findIndex((part) => part === "category");
-  const articleCategory =
-    categoryIndex !== -1 ? urlSegments[categoryIndex + 1] : "notfound";
-  const articleType = "NewsArticle";
-  const articleLanguage = "en";
-  const cleanExcerpt = stripHTML(data?.excerpt ?? "excerpt not found");
-
-  let videoJsonLD = null;
-  const videoId = extractYouTubeID(data?.content ?? "content not found");
-
-  if (videoId) {
-    videoJsonLD = {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      "@id": `https://www.youtube.com/watch?v=${videoId}`,
-      name: data?.title,
-      description: cleanExcerpt,
-      uploadDate: data?.dateGmt + "Z",
-      thumbnailUrl: data?.featuredImage?.node?.sourceUrl,
-      contentUrl: `https://www.youtube.com/watch?v=${videoId}`,
-      embedUrl: `https://www.youtube.com/embed/${videoId}`,
-      author: {
-        "@type": "NewsMediaOrganization",
-        name: "Free Malaysia Today",
-        url: "https://www.freemalaysiatoday.com/",
-      },
-      url: fullUrl,
-      publisher: {
-        "@type": "NewsMediaOrganization",
-        name: "Free Malaysia Today",
-        logo: OrgJsonLD.logo,
-      },
-    };
-  }
-
-  const articleJsonLd = {
-    "@context": "https://schema.org",
-    "@type": articleType,
-    name: data?.title,
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": fullUrl,
-    },
+  // Article node
+  const articleNode = {
+    "@type": "NewsArticle",
+    name: data.title,
+    mainEntityOfPage: { "@type": "WebPage", "@id": fullUrl },
     url: fullUrl,
-    headline: data?.title,
-    about: `${data?.title} - ${cleanExcerpt}`,
-    alternativeHeadline: cleanExcerpt,
-    abstract: `${data?.title} - ${cleanExcerpt}`,
-    dateCreated: data?.dateGmt + "Z",
-    datePublished: data?.dateGmt + "Z",
-    dateModified: data?.modifiedGmt + "Z",
-    articleSection:
-      data?.categories?.edges?.map((category) => category?.node?.name) ??
-      articleCategory,
-    articleBody: stripContent,
-    wordCount: stripContent?.split(" ").length,
-    timeRequired: durationToReadNews,
-    countryOfOrigin: {
-      "@type": "Country",
-      name: "Malaysia",
-    },
-    isAccessibleForFree: true,
-    image: {
-      "@context": "https://schema.org",
-      "@type": "ImageObject",
-      "@id": data?.featuredImage?.node?.sourceUrl,
-      url: data?.featuredImage?.node?.sourceUrl,
-      height: data?.featuredImage?.node?.mediaDetails?.height,
-      width: data?.featuredImage?.node?.mediaDetails?.width,
-      representativeOfPage: true,
-      caption: data?.title ?? `${siteConfig.siteName}`,
-      contentUrl: data?.featuredImage?.node?.sourceUrl,
-      creditText: data?.title ?? `${siteConfig.siteName}`,
-      license: `${siteConfig.baseUrl}/privacy-policy/`,
-      acquireLicensePage: `${siteConfig.baseUrl}/privacy-policy/`,
-      creator: {
-        "@type": "Organization",
-        name: `${siteConfig.siteName}`,
-        url: `${siteConfig.baseUrl}`,
-      },
-      copyrightNotice: `© Free Malaysia Today, ${new Date().getFullYear()}`,
-    },
-    thumbnailUrl: data?.featuredImage?.node?.sourceUrl,
-    contentLocation: {
-      "@type": "Place",
-      name: location,
-    },
-
+    headline: data.title,
+    abstract: `${data.title} - ${cleanExcerpt}`,
+    description: cleanExcerpt,
+    dateCreated: `${data.dateGmt}Z`,
+    datePublished: `${data.dateGmt}Z`,
+    dateModified: `${data.modifiedGmt}Z`,
     author: [
       {
         "@type": "Person",
-        name: data?.author.node.name,
-        url: `${siteConfig.baseUrl}${data?.author.node.uri ?? "/category/author/fmtreporters/"}`,
-        sameAs: `${siteConfig.baseUrl}${data?.author.node.uri ?? "/category/author/fmtreporters/"}`,
+        name: data.author.node.name,
+        url: `${siteConfig.baseUrl}${data.author.node.uri}`,
+        sameAs: `${siteConfig.baseUrl}${data.author.node.uri}`,
         affiliation: {
           "@type": "NewsMediaOrganization",
-          name: "Free Malaysia Today",
-          url: "https://www.freemalaysiatoday.com/",
+          name: siteConfig.siteName,
+          url: siteConfig.baseUrl,
         },
         jobTitle: "Reporter",
         worksFor: {
           "@type": "NewsMediaOrganization",
-          name: "Free Malaysia Today",
-          url: "https://www.freemalaysiatoday.com/",
+          name: siteConfig.siteName,
+          url: siteConfig.baseUrl,
         },
       },
     ],
     publisher: {
       "@type": "NewsMediaOrganization",
-      name: `${siteConfig.siteName}`,
-      url: `${siteConfig.baseUrl}`,
-      logo: {
-        "@type": "ImageObject",
-        url: siteConfig.iconPath,
-        width: 512,
-        height: 512,
+      name: siteConfig.siteName,
+      url: siteConfig.baseUrl,
+      logo: OrgJsonLD.logo,
+    },
+    image: {
+      "@type": "ImageObject",
+      url: data?.featuredImage?.node?.sourceUrl,
+      width: data?.featuredImage?.node?.mediaDetails?.width,
+      height: data?.featuredImage?.node?.mediaDetails?.height,
+      caption: data?.title,
+      representativeOfPage: true,
+      contentUrl: data?.featuredImage?.node?.sourceUrl,
+      creditText: data?.title,
+      license: `${siteConfig.baseUrl}/privacy-policy/`,
+      acquireLicensePage: `${siteConfig.baseUrl}/privacy-policy/`,
+      creator: {
+        "@type": "Organization",
+        name: siteConfig.siteName,
+        url: siteConfig.baseUrl,
       },
+      copyrightNotice: `© ${siteConfig.siteName}, ${new Date().getFullYear()}`,
     },
-    inLanguage: articleLanguage,
-    speakable: {
-      "@type": "SpeakableSpecification",
-      cssSelector: [".headline", ".news-content"],
-    },
+    articleSection: data?.categories?.edges?.map((c: any) => c.node.name),
+    articleBody: stripContent,
+    wordCount: stripContent.split(" ").length,
+    timeRequired: duration,
+    isAccessibleForFree: true,
+    contentLocation: { "@type": "Place", name: location },
     keywords,
     potentialAction: {
       "@type": "ReadAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: fullUrl,
-      },
+      target: { "@type": "EntryPoint", urlTemplate: fullUrl },
       actionStatus: "PotentialActionStatus",
     },
   };
 
-  const breadcrumbJsonLd = getBreadcrumbJsonLd(data?.uri || "");
-  const relatedNewsJsonLd = getRelatedNewsJsonLd(relatedData);
+  // Breadcrumb & Related
+  const breadcrumbNode = getBreadcrumbJsonLd(data?.uri ?? siteConfig.baseUrl);
+  const relatedNode = getRelatedNewsJsonLd(relatedData);
+
+  // WebPage
+  const { "@context": _ctx, ...webPageNode } = WebPageJsonLD;
+
+  // Assemble @graph
+  const graph = [
+    articleNode,
+    breadcrumbNode,
+    relatedNode,
+    ...(videoNode ? [videoNode] : []),
+    webPageNode,
+  ];
+
+  const combinedJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": graph,
+  };
 
   return (
-    <>
-      {videoJsonLD && (
-        <script
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(videoJsonLD),
-          }}
-          id="video-json-ld"
-          type="application/ld+json"
-          async
-        />
-      )}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(articleJsonLd),
-        }}
-        id="article-json-ld"
-        type="application/ld+json"
-        async
-      />
-
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-        type="application/ld+json"
-        async
-      />
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(relatedNewsJsonLd) }}
-        type="application/ld+json"
-        async
-      />
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
-        type="application/ld+json"
-        async
-      />
-    </>
+    <script
+      id="combined-json-ld"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(combinedJsonLd) }}
+    />
   );
 };
 

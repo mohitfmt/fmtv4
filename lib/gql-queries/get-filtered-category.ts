@@ -119,7 +119,7 @@ export const GET_FILTERED_CATEGORY = `
               }
             }
           }
-          tags {
+          tags(first: 100) {
             edges {
               node {
                 id

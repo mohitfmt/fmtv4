@@ -31,7 +31,7 @@ query GetPost($id: ID!, $idType: PostIdType!) {
         }
       }
     }
-    tags {
+    tags (first: 100) {
       edges {
         node {
           databaseId

@@ -66,7 +66,7 @@ async function rawGetPostAndMorePosts(
             }
           }
         }
-        tags {
+        tags (first: 100) {
           edges {
             node {
               databaseId

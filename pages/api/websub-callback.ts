@@ -241,15 +241,15 @@ async function getRecentlyModifiedArticles(
 ): Promise<WPPost[]> {
   try {
     const now = new Date();
-    const fiveMinutesAgo = addMinutes(now, -5);
-    const modifiedAfter = fiveMinutesAgo?.toISOString();
+    const tenMinutesAgo = addMinutes(now, -10);
+    const modifiedAfter = tenMinutesAgo?.toISOString();
 
     console.log(
-      `[WebSub] Fetching posts modified after ${modifiedAfter} (5-minute window)`
+      `[WebSub] Fetching posts modified after ${modifiedAfter} (10-minute window)`
     );
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller?.abort(), 10000);
+    const timeoutId = setTimeout(() => controller?.abort(), 20000); // 20 seconds timeout
 
     try {
       const response = await fetch(
@@ -631,8 +631,20 @@ export default async function handler(
 
     // Process asynchronously
     processWebSubNotification(req).catch((error) => {
-      console.error("[WebSub] Background processing error:", error);
+      console.error(
+        "[WebSub] Background Process WebSub Notification error:",
+        error
+      );
     });
+
+    // setTimeout(() => {
+    //   processWebSubNotification(req).catch((error) => {
+    //     console.error(
+    //       "[WebSub] Background Process WebSub Notification after 30 Seconds:",
+    //       error
+    //     );
+    //   });
+    // }, 45000); // Delay of 45 seconds for retry
 
     return;
   }

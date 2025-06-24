@@ -92,7 +92,7 @@ const NewsArticlePost = ({
     );
   }
   const tagsWithSlug = getSafeTags(post);
-  const safeTags = tagsWithSlug.map((tag: any) => tag.href.split("/").pop());
+  const safeTags = tagsWithSlug.map((tag: any) => tag.name);
 
   const dfpTargetingParams = getAdTargeting(post, safeTags);
 
@@ -232,6 +232,8 @@ const NewsArticlePost = ({
         />
         <meta property="og:image:alt" content={imageAltText} />
 
+        <meta property="article:publisher" content="https://www.facebook.com/FreeMalaysiaToday"/>
+
         {/* Article type */}
         <meta property="article:author" content={safeAuthor} />
         <meta property="article:section" content={safeCategories[0]} />
@@ -358,11 +360,9 @@ export const getStaticProps: GetStaticProps = async ({
           data?.posts?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
           [],
         relatedPosts:
-          relatedPosts?.map((post: any) => post?.node).filter(Boolean) ||
-          [],
+          relatedPosts?.map((post: any) => post?.node).filter(Boolean) || [],
         moreStories:
-          moreStories?.map((story: any) => story?.node).filter(Boolean) ||
-          [],
+          moreStories?.map((story: any) => story?.node).filter(Boolean) || [],
       },
       revalidate: REVALIDATION_INTERVAL,
     };

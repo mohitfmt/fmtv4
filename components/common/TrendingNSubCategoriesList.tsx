@@ -59,7 +59,7 @@ const TrendingNSubCategoriesList = ({
         </span>
       </div>
       <ul className="flex items-center gap-1 md:gap-3 flex-wrap">
-        {items.map((item) => (
+        {items?.slice(0, 10).map((item) => (
           <li
             key={item.id || item.slug || item.title || item.href}
             className="px-2.5 py-1 font-semibold rounded-lg font-rhd text-xs uppercase tracking-widest border-[0.5px] border-stone-400 hover:bg-accent-yellow dark:hover:bg-accent-blue transition-colors ease-in-out"
