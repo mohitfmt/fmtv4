@@ -1,54 +1,5 @@
 User-agent: *
-Allow: /
-Allow: /_next/static/
-Allow: /_next/image/
-Allow: /_next/data/
-Disallow: /wp-admin/
-Disallow: /wp-includes/
-Disallow: /*/edit/
-Disallow: /*/edit$
-Disallow: /api/
-Disallow: /search?q=$
-Disallow: /search?q=&
-
-User-agent: Googlebot
-Allow: /
-Allow: /_next/
-Allow: /*.js
-Allow: /*.css
-Allow: /*.json
-Disallow: /wp-admin/
-Disallow: /wp-includes/
-Disallow: /*/edit/
-Disallow: /api/
-
-User-agent: Googlebot-News
-Allow: /
-Allow: /_next/
-Allow: /*.js
-Allow: /*.css
-Disallow: /wp-admin/
-Disallow: /wp-includes/
-Disallow: /*/edit/
-Disallow: /api/
-
-User-agent: Google-Extended
 Disallow: /
-
-User-agent: GoogleOther
-Allow: /
-Allow: /_next/
-Disallow: /wp-admin/
-Disallow: /api/
-
-User-agent: FeedFetcher-Google
-Allow: /
-
-User-agent: GoogleProducer
-Allow: /
-
-User-agent: Google-Read-Aloud
-Allow: /
 
 User-agent: AdsBot-Google
 Allow: /
@@ -58,37 +9,3 @@ Allow: /
 
 User-agent: Mediapartners-Google
 Allow: /
-
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
-Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml
-Sitemap: https://www.freemalaysiatoday.com/news-sitemap.xml
-Sitemap: https://www.freemalaysiatoday.com/landing-page-sitemap.xml
-Sitemap: https://www.freemalaysiatoday.com/video-sitemap.xml
-Sitemap: https://www.freemalaysiatoday.com/feeds-sitemap.xml
