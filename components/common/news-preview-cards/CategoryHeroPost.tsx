@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { cn, getPreferredCategory } from "@/lib/utils";
+import { cn, getPreferredCategory, stripHTML } from "@/lib/utils";
 import { PostCardProps } from "@/types/global";
 import CoverImage from "../CoverImage";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
-import parse from "html-react-parser";
 
 type CategoryHeroPostProps = {
   post: PostCardProps;
@@ -17,7 +16,7 @@ const CategoryHeroPost = ({
   className,
   eagerLoadImage,
 }: CategoryHeroPostProps) => {
-  const parsedExcerpt = parse(post?.excerpt || "");
+  const parsedExcerpt = stripHTML(post?.excerpt || "");
 
   const preferredCategory = getPreferredCategory(post?.categories?.edges);
 
@@ -57,14 +56,22 @@ const CategoryHeroPost = ({
         </div>
 
         {/* Middle - Title */}
-        <Link href={post?.uri} prefetch={false} className="my-auto">
+        <Link
+          href={post?.uri}
+          prefetch={false}
+          className="my-auto"
+          title={post?.title}
+        >
           <h1 className="text-4xl font-bitter font-black leading-tight hover:text-blue-700 dark:hover:text-cyan-300">
             {post?.title}
           </h1>
         </Link>
 
         {/* Bottom - Excerpt */}
-        <summary className="list-none font-bitter text-foreground mt-auto">
+        <summary
+          className="list-none font-bitter text-foreground mt-auto italic"
+          title={parsedExcerpt}
+        >
           <h2>{parsedExcerpt}</h2>
         </summary>
       </div>

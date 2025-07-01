@@ -23,9 +23,9 @@ async function rawGetAllPostsWithSlug() {
       return { edges: [] };
     }
 
-    console.log(
-      `[getAllPostsWithSlug] Fetched ${data.posts.edges.length} slugs`
-    );
+    // console.log(
+    //   `[getAllPostsWithSlug] Fetched ${data.posts.edges.length} slugs`
+    // );
     return data.posts;
   } catch (error) {
     console.error("[getAllPostsWithSlug] Fetch failed:", error);

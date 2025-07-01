@@ -460,11 +460,24 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     };
 
     // Fetch highlight posts, excluding super-highlight posts
-    const highlightPosts = await getFilteredCategoryNews(
+    let highlightPosts = await getFilteredCategoryNews(
       "highlight",
       4,
       excludeSlugs
     );
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Retry once after 1s if no posts found
+    if (!highlightPosts?.length || highlightPosts.length < 4) {
+      await delay(1000);
+      console.log("[Home] Retrying highlight posts fetch after 1s...");
+      highlightPosts = await getFilteredCategoryNews(
+        "highlight",
+        4,
+        excludeSlugs
+      );
+    }
 
     // Update excludeSlugs to include highlight posts as well
     if (Array.isArray(highlightPosts)) {

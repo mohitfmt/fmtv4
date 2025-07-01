@@ -2,6 +2,7 @@ import CoverImage from "../common/CoverImage";
 import Link from "next/link";
 import NewsAuthor from "../common/NewsAuthor";
 import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
+import { stripHTML } from "@/lib/utils";
 
 const SuperNewsPreview = ({
   title,
@@ -12,7 +13,7 @@ const SuperNewsPreview = ({
   slug,
   uri,
 }: any) => {
-  const updatedExcerpt = excerpt?.replace(/<[^>]*>/g, "");
+  const updatedExcerpt = stripHTML(excerpt || "");
 
   return (
     <article className="p-0 md:p-2 border-b mt-1 overflow-hidden">

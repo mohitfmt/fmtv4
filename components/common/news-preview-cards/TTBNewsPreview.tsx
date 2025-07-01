@@ -1,4 +1,4 @@
-import { getPreferredCategory } from "@/lib/utils";
+import { getPreferredCategory, stripHTML } from "@/lib/utils";
 import CoverImage from "../CoverImage";
 import Link from "next/link";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
@@ -15,7 +15,7 @@ const TTBNewsPreview = ({
   isBig = false,
   isSpecialPage = false,
 }: any) => {
-  const updatedExcerpt = excerpt?.replace(/<[^>]*>?/gm, "");
+  const updatedExcerpt = stripHTML(excerpt || "");
   const preferredCategory = getPreferredCategory(categories?.edges);
 
   return (

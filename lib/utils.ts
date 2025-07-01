@@ -287,18 +287,38 @@ export const calculateCacheDuration = () => {
   return duration;
 };
 
-export const stripHTML = (htmlString: string) => {
-  if (!htmlString) return "";
-
-  return htmlString
-    .replace(/<\/?[^>]+(>|$)|\n/g, "") // Remove HTML tags and newlines
-    .replace(/&amp;/g, "&") // Convert HTML entities
+export const stripHTML = (html:string) => {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, "") // Remove HTML tags
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .trim(); // Remove extra whitespace
+    .replace(/&#8217;/g, "'") // Apostrophe
+    .replace(/&#8216;/g, "'") // Left single quote
+    .replace(/&#8211;/g, "-") // En dash
+    .replace(/&#8212;/g, "-") // Em dash
+    .replace(/&#8230;/g, "...") // Ellipsis
+    .replace(/&#8220;/g, '"') // Left double quote
+    .replace(/&#8221;/g, '"') // Right double quote
+    .replace(/&[a-z0-9#]+;/gi, (match) => {
+      // Handle other HTML entities
+      const entities: Record<string, string> = {
+        '&apos;': "'",
+        '&ndash;': "-",
+        '&mdash;': "-",
+        '&hellip;': "...",
+        '&ldquo;': '"',
+        '&rdquo;': '"',
+        '&lsquo;': "'",
+        '&rsquo;': "'"
+      };
+      return entities[match] || match;
+    })
+    .trim();
 };
 
 export const parseISO8601DurationToSeconds = (duration: string) => {
