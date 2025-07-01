@@ -1,6 +1,6 @@
 import Link from "next/link";
 import CoverImage from "../CoverImage";
-import { getPreferredCategory } from "@/lib/utils";
+import { getPreferredCategory, stripHTML } from "@/lib/utils";
 import PublishingDateTime from "../display-date-formats/PublishingDateTime";
 
 const LTRNewsPreview = ({
@@ -12,7 +12,7 @@ const LTRNewsPreview = ({
   categories,
   uri,
 }: any) => {
-  const plainTextExcerpt = excerpt?.replace(/<[^>]+>/g, "") || "";
+  const plainTextExcerpt = stripHTML(excerpt || "");
 
   const preferredCategory = getPreferredCategory(categories.edges);
   return (
