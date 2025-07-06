@@ -78,10 +78,7 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
           </React.Fragment>
         ))}
 
-        <link
-          rel="canonical"
-          href={`${videoArticles?.url.replace("/", "")}`}
-        />
+        <link rel="canonical" href={`${videoArticles?.url.replace("/", "")}`} />
 
         <link
           rel="alternate"
@@ -102,20 +99,14 @@ const VideoDetailPage: NextPage<VideoDetailPageProps> = ({
       <script
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(OrgJsonLD) }}
         type="application/ld+json"
-        async
-        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(websiteJSONLD) }}
         type="application/ld+json"
-        async
-        // defer
       />
       <script
         dangerouslySetInnerHTML={{ __html: JSON?.stringify(videoArticles) }}
         type="application/ld+json"
-        async
-        // defer
       />
 
       {/* Top Desktop Ad */}

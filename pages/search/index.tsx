@@ -133,14 +133,10 @@ const Search = () => {
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
           type="application/ld+json"
-          // async
-          // defer
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           type="application/ld+json"
-          // async
-          // defer
         />
       </Head>
 

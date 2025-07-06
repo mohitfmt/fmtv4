@@ -184,14 +184,10 @@ export default function TagPage({ tag, posts }: TagPageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-          async
-          defer
         />
         <script
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
           type="application/ld+json"
-          async
-          defer
         />
       </Head>
       <TagLayout

@@ -103,7 +103,7 @@ export default function App({
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4, viewport-fit=cover"
         />
         <meta name="referrer" content="no-referrer-when-downgrade" />
-        {/* <meta
+        <meta
           name="robots"
           content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
         />
@@ -114,8 +114,7 @@ export default function App({
         <meta
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-        /> */}
-
+        />
         <meta name="application-name" content="Free Malaysia Today" />
       </Head>
 
@@ -179,6 +178,7 @@ export default function App({
 
       {/* NoScript fallback as a proper React component */}
       <noscript>
+        {/* eslint-disable-next-line */}
         <img
           height="1"
           width="1"

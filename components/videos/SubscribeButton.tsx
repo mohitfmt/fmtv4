@@ -95,7 +95,6 @@ const SubscribeButton = ({ channelId }: SubscribeButtonProps) => {
       <div
         id={`subscribe-container-${channelId}`}
         className="w-full"
-        aria-live="polite"
       />
       <Script
         id="youtube-subscribe-script"

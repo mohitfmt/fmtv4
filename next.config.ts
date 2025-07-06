@@ -277,18 +277,18 @@ const nextConfig: NextConfig = {
       },
 
       // 7. Staging subdomain → redirect to production host
-      // {
-      //   source: "/:path*",
-      //   has: [
-      //     {
-      //       type: "host",
-      //       key: "host",
-      //       value: "staging-beta.freemalaysiatoday.com",
-      //     },
-      //   ],
-      //   destination: "https://www.freemalaysiatoday.com/:path*",
-      //   permanent: true,
-      // },
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            key: "host",
+            value: "staging-beta.freemalaysiatoday.com",
+          },
+        ],
+        destination: "https://www.freemalaysiatoday.com/:path*",
+        permanent: true,
+      },
     ];
   },
   webpack(config, { isServer }) {
