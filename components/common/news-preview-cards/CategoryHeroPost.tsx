@@ -56,12 +56,7 @@ const CategoryHeroPost = ({
         </div>
 
         {/* Middle - Title */}
-        <Link
-          href={post?.uri}
-          prefetch={false}
-          className="my-auto"
-          title={post?.title}
-        >
+        <Link href={post?.uri} className="my-auto" title={post?.title}>
           <h1 className="text-4xl font-bitter font-black leading-tight hover:text-blue-700 dark:hover:text-cyan-300">
             {post?.title}
           </h1>

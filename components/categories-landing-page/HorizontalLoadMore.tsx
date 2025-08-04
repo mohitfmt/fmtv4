@@ -106,6 +106,7 @@ const HorizontalLoadMore = ({
             transition-all duration-300 ease-in-out
             ${!canGoPrevious || isLoadingPrev ? "cursor-not-allowed opacity-50 border-gray-200" : "hover:border-accent-yellow"}
           `}
+          rel="prev"
           disabled={!canGoPrevious || isLoadingPrev}
           onClick={handlePrevious}
           aria-label="Previous page"
@@ -142,6 +143,7 @@ const HorizontalLoadMore = ({
           `}
           disabled={!canGoNext || isLoadingNext}
           onClick={handleNext}
+          rel="next"
           aria-label="Next page"
         >
           <HiOutlineChevronRight

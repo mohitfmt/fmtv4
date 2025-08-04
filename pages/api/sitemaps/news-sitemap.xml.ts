@@ -1,11 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import {
-  format,
-  isWithinInterval,
-  parseISO,
-  subDays,
-  subMonths,
-} from "date-fns";
+import { format, isWithinInterval, subDays, subMonths } from "date-fns";
 import keyword_extractor from "keyword-extractor";
 
 export default async function handler(
@@ -52,7 +46,6 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
         urlDate &&
         isWithinInterval(urlDate, { start: twoDaysAgo, end: new Date() })
       ) {
-        let genresTag = "";
         const locMatch = urlMatch.match(/<loc>(.*?)<\/loc>/);
         const urlPath = locMatch ? locMatch[1] : "";
         const isBahasa = urlPath.includes("bahasa");
@@ -82,16 +75,16 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
           ? publicationDateMatch[1]
           : "";
 
-        const genreMappings: { [key: string]: string } = {
-          nation: "PressRelease",
-          bahasa: "PressRelease",
-          opinion: "Opinion",
-          world: "PressRelease",
-          business: "PressRelease",
-          sports: "PressRelease",
-          leisure: "Blog",
-          default: "UserGenerated",
-        };
+        // const genreMappings: { [key: string]: string } = {
+        //   nation: "PressRelease",
+        //   bahasa: "PressRelease",
+        //   opinion: "Opinion",
+        //   world: "PressRelease",
+        //   business: "PressRelease",
+        //   sports: "PressRelease",
+        //   leisure: "Blog",
+        //   default: "UserGenerated",
+        // };
 
         const extractedKeywords = Array.isArray(extraction_result)
           ? extraction_result.join(", ")
@@ -103,8 +96,8 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
             : `${f_genre} news`;
         keywords = `${baseKeywords}, ${extractedKeywords}`;
 
-        const genreKey = f_genre.toLowerCase();
-        genresTag = `<news:genres>${genreMappings[genreKey] || genreMappings["default"]}</news:genres>`;
+        // const genreKey = f_genre.toLowerCase();
+        // genresTag = `<news:genres>${genreMappings[genreKey] || genreMappings["default"]}</news:genres>`;
 
         const regLastMod = /<lastmod>(.*?)<\/lastmod>/;
 
@@ -119,7 +112,6 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
               <news:publication_date>${new Date(publicationDate).toISOString()}</news:publication_date>
               <news:title>${titleFromURL}</news:title>
               <news:keywords>${keywords}</news:keywords>
-              ${genresTag}
             </news:news>`
           )
           .replace(regLastMod, "");
@@ -132,9 +124,14 @@ const fetchAndCombineSitemaps = async (urls: string[]) => {
 
 const parseDateFromUrl = (url: string) => {
   const urlDateMatch = url.match(/(\d{4})\/(\d{2})\/(\d{2})/);
-  return urlDateMatch
-    ? parseISO(`${urlDateMatch[1]}-${urlDateMatch[2]}-${urlDateMatch[3]}`)
-    : null;
+  if (!urlDateMatch) return null;
+
+  const [, year, month, day] = urlDateMatch;
+  const date = new Date(Date.UTC(+year, +month - 1, +day));
+
+  // Validate date
+  if (isNaN(date.getTime())) return null;
+  return date;
 };
 
 const generateFinalSitemap = (urlSetContent: any) => {

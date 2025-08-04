@@ -30,7 +30,6 @@ export const LatestVideosSidebar: React.FC<RelatedVideosSidebarProps> = ({
             <Link
               key={node?.id}
               href={node?.uri || "#"}
-              prefetch={false}
               className="relative flex items-center gap-4"
             >
               <div className="w-2/4 relative min-h-20">

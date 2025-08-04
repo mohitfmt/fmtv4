@@ -87,7 +87,6 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
       <div className="text-foreground flex h-full flex-col items-center justify-around px-5">
         <Link
           href={columnists[currentIndex]?.uri}
-          prefetch={false}
           title={columnists[currentIndex]?.name}
         >
           <Image

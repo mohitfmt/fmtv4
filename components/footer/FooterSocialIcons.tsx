@@ -3,9 +3,13 @@ import Link from "next/link";
 import React from "react";
 
 const FooterSocialIcons: React.FC = () => (
-  <nav className="flex flex-wrap items-center justify-center gap-4 py-5">
+  <nav
+    aria-label="Social Links"
+    className="flex flex-wrap items-center justify-center gap-4 py-5"
+  >
     {social.map((item) => (
       <Link
+        prefetch={false}
         key={item.name}
         href={item.url}
         title={item.name}

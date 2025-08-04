@@ -11,15 +11,9 @@ interface PhotoCardProps {
 }
 
 const PhotoCard: React.FC<PhotoCardProps> = ({ node }) => {
-
   return (
     <div className="relative aspect-[4/3] overflow-hidden rounded-lg cursor-pointer group">
-      <Link
-        href={node.uri}
-        className="absolute inset-0"
-        prefetch={false}
-        title={node.title}
-      >
+      <Link href={node.uri} className="absolute inset-0" title={node.title}>
         <div className="relative h-full w-full overflow-hidden">
           <Image
             src={node.featuredImage.node.sourceUrl}

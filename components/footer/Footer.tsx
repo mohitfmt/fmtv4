@@ -24,14 +24,16 @@ const Footer: React.FC = () => {
         <div className="flex flex-col lg:flex-row justify-between gap-8 border-b border-gray-700 pb-8">
           <Link
             href={"/"}
-            prefetch={false}
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex justify-center items-center lg:justify-start md:mb-4"
           >
             <LogoSVG className="w-[200px] h-auto" />
           </Link>
 
-          <nav className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-x-12 gap-y-8 w-full lg:w-3/4 text-center sm:text-center md:text-left lg:text-left">
+          <nav
+            aria-label="Article categories"
+            className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-x-12 gap-y-8 w-full lg:w-3/4 text-center sm:text-center md:text-left lg:text-left"
+          >
             {columnData.map((column, index) => (
               <NavigationColumn key={index} items={column} />
             ))}

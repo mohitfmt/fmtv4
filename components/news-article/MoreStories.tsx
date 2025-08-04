@@ -40,7 +40,7 @@ const MoreStories: React.FC<MoreStoriesProps> = ({ moreStories }) => {
   }
 
   return (
-    <section className="">
+    <section className="more-stories" aria-live="polite">
       <div className="space-y-4 py-2">
         {moreStories.map((node) => {
           // Get preferred category for each story
@@ -56,7 +56,6 @@ const MoreStories: React.FC<MoreStoriesProps> = ({ moreStories }) => {
               <div className="col-span-4">
                 <Link
                   href={node.uri}
-                  prefetch={false}
                   className="block hover:scale-105 transition-all ease-linear duration-100"
                 >
                   <Image
@@ -87,7 +86,7 @@ const MoreStories: React.FC<MoreStoriesProps> = ({ moreStories }) => {
                     <PublishingDateTime dateString={node.date} size={16} />
                   </div>
                 </div>
-                <Link href={node.uri} prefetch={false} className="block">
+                <Link href={node.uri} className="block">
                   <h3 className="mb-2 font-semibold hover:text-accent-blue">
                     {node.title}
                   </h3>

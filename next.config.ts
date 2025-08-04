@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
   },
   images: {
+    loader: "custom",
+    loaderFile: "./lib/cloudflare-loader.js",
     remotePatterns: [
       {
         protocol: protocol.slice(0, -1) as "https" | "http",
@@ -78,10 +80,10 @@ const nextConfig: NextConfig = {
         })
       ),
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200],
-    imageSizes: [16, 32, 64, 96, 128, 256],
-    minimumCacheTTL: 3600,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1600, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ["image/webp"],
+    minimumCacheTTL: 31536000, // 1 year - Cloudflare handles invalidation
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },

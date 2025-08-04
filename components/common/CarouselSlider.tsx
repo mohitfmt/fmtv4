@@ -49,7 +49,6 @@ const CarouselSlider: React.FC<CarouselSliderProps> = ({
               <Link
                 className="absolute inset-0"
                 href={post.uri || "#"}
-                prefetch={false}
                 title={post.title || "Untitled"}
               />
               {post?.featuredImage?.node?.sourceUrl && (

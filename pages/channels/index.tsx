@@ -71,10 +71,12 @@ const Channels: React.FC<SocialIconsProps> = ({
           Channels
         </h1>
         <nav
+          aria-label="Social Links"
           className={`mt-8 flex flex-row flex-wrap justify-center items-center gap-4 ${className}`}
         >
           {social.map(({ name, url, icon: Icon, color, size }) => (
             <Link
+              prefetch={false}
               key={name}
               href={url}
               title={name}

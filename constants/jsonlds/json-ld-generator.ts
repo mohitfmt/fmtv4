@@ -76,6 +76,7 @@ export const generatedJsonLd = (
           "@id": articleUrl,
           breadcrumb: {
             "@type": "BreadcrumbList",
+            "@id": `${articleUrl}#breadcrumb`,
             itemListElement: [
               {
                 "@type": "ListItem",
@@ -96,10 +97,7 @@ export const generatedJsonLd = (
               {
                 "@type": "ListItem",
                 position: 3,
-                item: {
-                  "@id": articleUrl,
-                  name: node?.title ?? "Article",
-                },
+                name: node?.title ?? "Article",
               },
             ],
           },
@@ -153,6 +151,7 @@ export const generatedJsonLd = (
     hasPart: articleItemListElement,
     breadcrumb: {
       "@type": "BreadcrumbList",
+      "@id": `${pathURi}#breadcrumb`,
       itemListElement: [
         {
           "@type": "ListItem",

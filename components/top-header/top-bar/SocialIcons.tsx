@@ -17,10 +17,12 @@ export const SocialIcons: React.FC<SocialIconsProps> = ({
 }) => {
   return (
     <nav
+      aria-label="Social Links"
       className={`flex flex-row items-center gap-0 md:gap-1 overflow-hidden ${className}`}
     >
       {social.map(({ name, url, icon: Icon, color, size }) => (
         <Link
+          prefetch={false}
           key={name}
           href={url}
           title={name}

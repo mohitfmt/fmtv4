@@ -90,7 +90,6 @@ const Headlines = () => {
                 key={`${post.id}-${index}`}
                 className="mx-1 inline-flex items-center group"
                 href={post.uri}
-                prefetch={false}
               >
                 <span className="uppercase py-0.5 px-2 bg-accent-yellow text-sm tracking-wide font-semibold mr-2 rounded-lg">
                   <span className="flex items-center text-black">

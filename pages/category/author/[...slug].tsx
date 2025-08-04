@@ -45,6 +45,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
 
       {
         "@type": "BreadcrumbList",
+        "@id": `${fullUrl}#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",

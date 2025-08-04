@@ -110,7 +110,7 @@ export const generateCollectionPageJsonLD = ({
         width: 1600,
         height: 1000,
         copyrightNotice: "© Free Malaysia Today, since 2009",
-        acquireLicensePage: `${baseUrl}/license`,
+        acquireLicensePage: `${baseUrl}/disclaimers-copyright`,
         creator: {
           "@type": "Organization",
           name: "Free Malaysia Today",

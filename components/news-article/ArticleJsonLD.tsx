@@ -3,6 +3,7 @@ import siteConfig from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
 import { OrgJsonLD, WebPageJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
+import { generateStructuredDataImages } from "@/lib/image-utils";
 
 const extractFirstParagraph = (htmlContent: string): string | null => {
   const paragraphPattern = /<p>(.*?)<\/p>/;
@@ -88,6 +89,7 @@ const getBreadcrumbJsonLd = (uri: string) => {
 
   return {
     "@type": "BreadcrumbList",
+    "@id": `${baseUrl}${uri}#breadcrumb`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
       ...list,
@@ -141,6 +143,10 @@ const ArticleJsonLD: React.FC<{ data: ArticleData; relatedData: any }> = ({
     "@type": "NewsArticle",
     name: data.title,
     mainEntityOfPage: { "@type": "WebPage", "@id": fullUrl },
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: [".headline", ".news-content"],
+    },
     url: fullUrl,
     headline: data.title,
     abstract: `${data.title} - ${cleanExcerpt}`,
@@ -173,24 +179,15 @@ const ArticleJsonLD: React.FC<{ data: ArticleData; relatedData: any }> = ({
       url: siteConfig.baseUrl,
       logo: OrgJsonLD.logo,
     },
-    image: {
-      "@type": "ImageObject",
-      url: data?.featuredImage?.node?.sourceUrl,
-      width: data?.featuredImage?.node?.mediaDetails?.width,
-      height: data?.featuredImage?.node?.mediaDetails?.height,
-      caption: data?.title,
-      representativeOfPage: true,
-      contentUrl: data?.featuredImage?.node?.sourceUrl,
-      creditText: data?.title,
-      license: `${siteConfig.baseUrl}/privacy-policy/`,
-      acquireLicensePage: `${siteConfig.baseUrl}/privacy-policy/`,
-      creator: {
-        "@type": "Organization",
-        name: siteConfig.siteName,
-        url: siteConfig.baseUrl,
-      },
-      copyrightNotice: `© ${siteConfig.siteName}, ${new Date().getFullYear()}`,
-    },
+    image: generateStructuredDataImages(
+      data?.featuredImage?.node?.sourceUrl ?? "",
+      {
+        caption: data?.title,
+        title: data?.title,
+        width: data?.featuredImage?.node?.mediaDetails?.width || 1600,
+        height: data?.featuredImage?.node?.mediaDetails?.height || 1000,
+      }
+    ),
     articleSection: data?.categories?.edges?.map((c: any) => c.node.name),
     articleBody: stripContent,
     wordCount: stripContent.split(" ").length,

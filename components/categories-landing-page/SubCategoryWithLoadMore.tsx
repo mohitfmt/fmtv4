@@ -234,6 +234,7 @@ const SubCategoriesWithLoadMore = ({
           className="w-full transition-colors dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoPrevious || isLoading}
           onClick={handlePrevious}
+          rel="prev"
           aria-label={`Previous page of ${title}`}
           aria-disabled={!canGoPrevious || isLoading}
         >
@@ -247,6 +248,7 @@ const SubCategoriesWithLoadMore = ({
           className="w-full transition-colors  dark:border-[0.5px] duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoNext || isLoading}
           onClick={handleNext}
+          rel="next"
           aria-label={`Next page of ${title}`}
           aria-disabled={!canGoNext || isLoading}
         >

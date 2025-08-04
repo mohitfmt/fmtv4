@@ -33,7 +33,7 @@ const RelatedNews: React.FC<RelatedNewsProps> = ({
   }
 
   return (
-    <section className="mt-8">
+    <section className="mt-8" aria-live="polite">
       {/* <h2 className="text-2xl font-extrabold">Related News</h2> */}
       <SectionHeading sectionName="Related News" />
       <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2 lg:grid-cols-3">

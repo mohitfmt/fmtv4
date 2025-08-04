@@ -49,7 +49,10 @@ const TrendingNSubCategoriesList = ({
   const label = getLabel();
 
   return (
-    <div className={`flex items-center gap-2 md:gap-3 my-5 ${className}`}>
+    <div
+      aria-live="polite"
+      className={`flex items-center gap-2 md:gap-3 my-5 ${className}`}
+    >
       <div className="inline-flex items-center justify-center bg-accent-yellow dark:bg-accent-blue px-2 py-1 rounded-lg border-[0.5px] border-yellow-400 dark:border-blue-100">
         <span className="hidden md:block font-bold uppercase tracking-wide text-sm px-1">
           {label}

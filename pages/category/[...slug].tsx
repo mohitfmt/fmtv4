@@ -16,6 +16,7 @@ import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { loadPostContext } from "@/lib/loadPostContext";
+import { getOGImageUrl, getTwitterImageUrl } from "@/lib/image-utils";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
@@ -169,8 +170,9 @@ const NewsArticlePost = ({
         <title>{`${safeTitle} | ${siteConfig.siteShortName}`}</title>
         <meta name="description" content={safeExcerpt} />
         <meta name="author" content={safeAuthor} />
-        <meta name="keywords" content={safeTags} />
         <meta name="category" content={safeCategories} />
+        <meta name="news_keywords" content={safeTags.join(", ")} />
+        <meta name="robots" content="max-image-preview:large" />
         <meta property="fb:pages" content={fbPageId} />
 
         <link
@@ -222,22 +224,29 @@ const NewsArticlePost = ({
           <meta key={locale} property="og:locale:alternate" content={locale} />
         ))}
         {/* og:Images */}
-        <meta property="og:image" content={safeFeaturedImage} />
-        <meta property="og:image:secure_url" content={safeFeaturedImage} />
-        <meta property="og:image:type" content="image/webp" />
-        <meta property="og:image:width" content={imageSize?.width || "1600"} />
+        <meta property="og:image" content={getOGImageUrl(safeFeaturedImage)} />
         <meta
-          property="og:image:height"
-          content={imageSize?.height || "1000"}
+          property="og:image:secure_url"
+          content={getOGImageUrl(safeFeaturedImage)}
         />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/webp" />
         <meta property="og:image:alt" content={imageAltText} />
 
-        <meta property="article:publisher" content="https://www.facebook.com/FreeMalaysiaToday"/>
+        <meta
+          property="article:publisher"
+          content="https://www.facebook.com/FreeMalaysiaToday"
+        />
 
         {/* Article type */}
         <meta property="article:author" content={safeAuthor} />
-        <meta property="article:section" content={safeCategories[0]} />
-        <meta property="article:tag" content={safeTags} />
+        {safeCategories.map((category: string, index: number) => (
+          <meta key={index} property="article:section" content={category} />
+        ))}
+        {safeTags.slice(0, 10).map((tag: string, index: number) => (
+          <meta key={index} property="article:tag" content={tag} />
+        ))}
         {publishedTime && (
           <meta
             property="article:published_time"
@@ -254,11 +263,24 @@ const NewsArticlePost = ({
         <meta name="twitter:url" content={`${siteConfig.baseUrl}${safeUri}`} />
         <meta name="twitter:title" content={safeTitle} />
         <meta name="twitter:description" content={safeExcerpt} />
-        <meta name="twitter:image" content={safeFeaturedImage} />
+        <meta
+          name="twitter:image"
+          content={getTwitterImageUrl(safeFeaturedImage)}
+        />
         <meta name="twitter:image:alt" content={imageAltText} />
         <meta name="twitter:creator" content={safeAuthor} />
         <meta name="twitter:label1" content="Written by" />
         <meta name="twitter:data1" content={safeAuthor} />
+        {relatedPosts
+          ?.slice(0, 5)
+          .map((related, index) => (
+            <link
+              key={index}
+              rel="related"
+              href={`${siteConfig.baseUrl}${related.uri}`}
+              title={related.title}
+            />
+          ))}
       </Head>
 
       <ArticleJsonLD data={post} relatedData={relatedPosts} />

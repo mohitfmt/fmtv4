@@ -43,7 +43,6 @@ const VideoCard = ({ node }: VideoCardProps) => {
       <Link
         href={uri}
         className="absolute inset-0 z-10"
-        prefetch={false}
         aria-label={`Watch ${title}`}
       />
       <div className="relative aspect-video overflow-hidden">
@@ -53,7 +52,8 @@ const VideoCard = ({ node }: VideoCardProps) => {
           className="rounded-lg object-cover transition-transform duration-300 group-hover:scale-105"
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          priority={false}
+          quality={75}
+          loading="lazy"
         />
       </div>
       <div className="py-2 px-1">

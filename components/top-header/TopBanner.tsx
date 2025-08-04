@@ -35,7 +35,6 @@ export default function TopBanner() {
         <div className="flex flex-row items-center justify-between py-2">
           <Link
             href={"/"}
-            prefetch={false}
             aria-label="Free Malaysia Today - Return to homepage"
             className="flex flex-col items-center"
           >

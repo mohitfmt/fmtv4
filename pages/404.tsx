@@ -68,7 +68,6 @@ const NotFound = () => {
         </p>
         <Link
           href="/"
-          prefetch={false}
           className="rounded-md bg-accent-blue py-4 px-4 text-lg font-semibold text-white transition-all duration-200 hover:scale-105"
         >
           Return Home

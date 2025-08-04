@@ -163,6 +163,8 @@ const HorizontalNewsContent = ({
           className="flex-1 transition-colors duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-[0.5px] dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoPrevious || isLoadingPrev}
           onClick={handlePrevious}
+          aria-label="Previous page"
+          rel="prev"
         >
           <span className="flex items-center justify-center">
             <FaArrowLeftLong className="mr-2" />
@@ -175,6 +177,8 @@ const HorizontalNewsContent = ({
           className="flex-1 transition-colors duration-200 hover:bg-stone-200 hover:text-gray-900 dark:border-[0.5px] dark:border-stone-300 dark:text-gray-200 dark:hover:bg-stone-100 dark:hover:text-gray-800"
           disabled={!canGoNext || isLoadingNext}
           onClick={handleNext}
+          aria-label="Next page"
+          rel="next"
         >
           <span className="flex items-center justify-center">
             Next

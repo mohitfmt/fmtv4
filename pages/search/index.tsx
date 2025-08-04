@@ -33,6 +33,7 @@ const Search = () => {
       // Breadcrumbs
       {
         "@type": "BreadcrumbList",
+        "@id": `${fullUrl}#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",
