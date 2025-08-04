@@ -172,9 +172,7 @@ const NewsArticlePost = ({
         <meta name="author" content={safeAuthor} />
         <meta name="category" content={safeCategories} />
         <meta name="news_keywords" content={safeTags.join(", ")} />
-        <meta name="robots" content="max-image-preview:large" />
         <meta property="fb:pages" content={fbPageId} />
-
         <link
           rel="author"
           href={`${siteConfig.baseUrl}${post?.author?.node?.uri ?? "/category/author/fmtreporters"}`}
