@@ -241,12 +241,15 @@ const NewsArticlePost = ({
 
         {/* Article type */}
         <meta property="article:author" content={safeAuthor} />
-        {safeCategories.map((category: string, index: number) => (
-          <meta key={index} property="article:section" content={category} />
+        {safeCategories?.map((category: string, index: number) => (
+          <meta property="article:section" content={category} />
         ))}
-        {safeTags.slice(0, 10).map((tag: string, index: number) => (
-          <meta key={index} property="article:tag" content={tag} />
-        ))}
+        {safeTags &&
+          safeTags
+            .slice(0, 10)
+            .map((tag: string, index: number) => (
+              <meta property="article:tag" content={tag} />
+            ))}
         {publishedTime && (
           <meta
             property="article:published_time"
