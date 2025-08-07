@@ -171,6 +171,7 @@ const NewsArticlePost = ({
         <meta name="description" content={safeExcerpt} />
         <meta name="author" content={safeAuthor} />
         <meta name="category" content={safeCategories} />
+        <meta name="keywords" content={safeTags.join(", ")} />
         <meta name="news_keywords" content={safeTags.join(", ")} />
         <meta property="fb:pages" content={fbPageId} />
         <link

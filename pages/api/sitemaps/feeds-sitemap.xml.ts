@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import Parser from "rss-parser";
+import { formatSitemapDate } from "@/lib/sitemap-cache";
 
 const parser: Parser = new Parser();
 
@@ -31,31 +32,19 @@ const feedsUrls = [
   "https://www.freemalaysiatoday.com/feeds/atom/world",
 ];
 
-async function fetchFeedLastBuildDate(feedUrl: string) {
+async function fetchFeedLastBuildDate(feedUrl: string): Promise<string> {
   try {
     const feed = await parser.parseURL(feedUrl);
-
-    // For Atom feeds
-    if (feed.feed) {
-      if (feed.feed.updated) return feed.feed.updated;
-      if (feed.items && feed.items.length > 0 && feed.items[0].updated)
-        return feed.items[0].updated;
-      // Fallback to current date if no date found
-      return new Date().toISOString();
+    if (feed.lastBuildDate) {
+      return formatSitemapDate(new Date(feed.lastBuildDate));
     }
-
-    // For RSS feeds
-    if (feed.lastBuildDate) return feed.lastBuildDate;
-    if (feed.items && feed.items.length > 0 && feed.items[0].pubDate)
-      return feed.items[0].pubDate;
-
-    // Fallback to current date if no date found
-    return new Date().toISOString();
+    if (feed.items && feed.items.length > 0 && feed.items[0].pubDate) {
+      return formatSitemapDate(new Date(feed.items[0].pubDate));
+    }
   } catch (error) {
     console.error(`Error fetching feed ${feedUrl}:`, error);
-    // Return current date as fallback instead of null
-    return new Date().toISOString();
   }
+  return formatSitemapDate(new Date());
 }
 
 export default async function handler(
@@ -63,8 +52,9 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    // Increase timeout for potentially slow feed responses
     res.setTimeout(60000);
+    res.setHeader("Content-Type", "application/xml");
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
 
     const feedPromises = feedsUrls.map((feedUrl) =>
       fetchFeedLastBuildDate(feedUrl)
@@ -72,30 +62,30 @@ export default async function handler(
 
     const lastBuildDates = await Promise.all(feedPromises);
 
-    const sitemapIndexEntries = feedsUrls
+    const sitemapEntries = feedsUrls
       .map((feedUrl, index) => {
-        const lastBuildDate = lastBuildDates[index];
-        return `    <sitemap>
+        const feedName = feedUrl.split("/").pop();
+        const changefreq = feedName === "headlines" ? "always" : "hourly";
+        const priority = feedName === "headlines" ? "0.9" : "0.7";
+
+        return `    <url>
       <loc>${feedUrl}</loc>
-      <lastmod>${new Date(lastBuildDate).toISOString()}</lastmod>
-    </sitemap>`;
+      <lastmod>${lastBuildDates[index]}</lastmod>
+      <changefreq>${changefreq}</changefreq>
+      <priority>${priority}</priority>
+    </url>`;
       })
       .join("\n");
 
-    const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapIndexEntries}
-</sitemapindex>`;
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries}
+</urlset>`;
 
-    res.setHeader("Content-Type", "application/xml");
-    res.setHeader("Cache-Control", "no-store");
-
-    res.write(sitemapIndex.trim());
+    res.write(sitemap.trim());
     res.end();
   } catch (err) {
-    console.error("[SITEMAP_API_ERROR] Sitemap fetching error:", err);
-    res
-      .status(500)
-      .send(`[SITEMAP_API_ERROR] Feeds sitemap Internal Server Error : ${err}`);
+    console.error("[SITEMAP_ERROR] Feeds sitemap error:", err);
+    res.status(500).send(`[SITEMAP_ERROR] Feeds sitemap error: ${err}`);
   }
 }

@@ -98,6 +98,10 @@ export const generatedJsonLd = (
                 "@type": "ListItem",
                 position: 3,
                 name: node?.title ?? "Article",
+                item: {
+                  "@id": articleUrl,
+                  name: node?.title ?? "Article",
+                },
               },
             ],
           },
