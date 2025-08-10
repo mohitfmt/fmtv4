@@ -34,6 +34,7 @@ async function rawGetPostAndMorePosts(
         title
         excerpt
         slug
+        status
         date
         dateGmt
         modifiedGmt

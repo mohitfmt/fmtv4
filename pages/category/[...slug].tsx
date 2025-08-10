@@ -20,7 +20,7 @@ import { getOGImageUrl, getTwitterImageUrl } from "@/lib/image-utils";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["General"];
-const REVALIDATION_INTERVAL = 1500; // 25 minutes
+const REVALIDATION_INTERVAL = 1800;
 
 interface ArticleProps {
   post: any;
@@ -353,8 +353,13 @@ export const getStaticProps: GetStaticProps = async ({
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
 
-    if (!data?.post) {
-      return { notFound: true };
+    if (
+      !data?.post ||
+      data.post.status === "draft" ||
+      data.post.status === "private" ||
+      data.post.status === "trash"
+    ) {
+      return { notFound: true, revalidate: 60 };
     }
 
     // If in edit mode, redirect to CMS

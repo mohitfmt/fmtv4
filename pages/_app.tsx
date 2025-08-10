@@ -97,16 +97,23 @@ export default function App({
       <Head>
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
+
         {/* Viewport for responsiveness */}
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=4, viewport-fit=cover"
         />
+
+        {/* Referrer Policy */}
         <meta name="referrer" content="no-referrer-when-downgrade" />
+
+        {/* Robots Meta Tags - Enhanced */}
         <meta
           name="robots"
           content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
         />
+
+        {/* Googlebot Directives */}
         <meta
           name="googlebot"
           content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
@@ -115,7 +122,116 @@ export default function App({
           name="googlebot-news"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
+
+        {/* Bingbot Directives - NEW */}
+        <meta
+          name="bingbot"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+
+        {/* Other Search Engine Bots */}
+        <meta
+          name="slurp"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="msnbot"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="yandexbot"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+        <meta
+          name="baiduspider"
+          content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+        />
+
+        {/* Application Information */}
         <meta name="application-name" content="Free Malaysia Today" />
+        <meta name="apple-mobile-web-app-title" content="FMT News" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* Theme Color */}
+        <meta
+          name="theme-color"
+          content="#ffffff"
+          media="(prefers-color-scheme: light)"
+        />
+        <meta
+          name="theme-color"
+          content="#000000"
+          media="(prefers-color-scheme: dark)"
+        />
+
+        {/* DNS Prefetch and Preconnect for Performance */}
+        <link rel="dns-prefetch" href="https://media.freemalaysiatoday.com" />
+        <link
+          rel="dns-prefetch"
+          href="https://securepubads.g.doubleclick.net"
+        />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://scripts.kiosked.com" />
+
+        <link
+          rel="preconnect"
+          href="https://media.freemalaysiatoday.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://securepubads.g.doubleclick.net"
+          crossOrigin="anonymous"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+
+        {/* Favicon and Icons */}
+        <link rel="icon" href="/favicon.ico" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
+        />
+        <link rel="manifest" href="/manifest.json" />
+
+        {/* RSS Feeds - Global */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="Free Malaysia Today - RSS Feed"
+          href="https://www.freemalaysiatoday.com/feeds/rss/headlines"
+        />
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Free Malaysia Today - Atom Feed"
+          href="https://www.freemalaysiatoday.com/feeds/atom/headlines"
+        />
+        <link
+          rel="alternate"
+          type="application/feed+json"
+          title="Free Malaysia Today - JSON Feed"
+          href="https://www.freemalaysiatoday.com/feeds/json/headlines"
+        />
       </Head>
 
       <GoogleOAuthProvider

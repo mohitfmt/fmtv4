@@ -1,5 +1,8 @@
 // pages/category/category/[categorySlug]/index.tsx
+
 import { GetStaticProps, GetStaticPaths } from "next";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
@@ -9,7 +12,11 @@ import {
 } from "@/components/common/CategoryMetaData";
 import siteConfig from "@/constants/site-config";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-// import { useVisibilityRefresh } from "@/hooks/useVisibilityRefresh";
+import {
+  getRedirectUrl,
+  isCanonicalPath,
+} from "@/constants/canonical-url-mappings";
+import ErrorPage from "next/error";
 
 interface Props {
   categorySlug: string;
@@ -18,6 +25,10 @@ interface Props {
       node: PostCardProps;
     }>;
   };
+  totalCount?: number;
+  lastModified?: string;
+  shouldRedirect?: string;
+  isError?: boolean;
 }
 
 interface SeoConfig {
@@ -29,31 +40,52 @@ interface SeoConfig {
 
 type SeoSubCategoriesType = Record<string, SeoConfig>;
 
-const CategoryPage = ({ categorySlug, posts }: Props) => {
-  // useVisibilityRefresh();
-  // Create AdsTargetingParams
+// Helper function to calculate revalidation time based on content age
+const getRevalidationTime = (lastModified?: string): number => {
+  if (!lastModified) return 600; // 10 minutes default
 
+  const age = Date.now() - new Date(lastModified).getTime();
+  const hours = age / (1000 * 60 * 60);
+
+  if (hours < 24) return 300; // 5 minutes for fresh content
+  if (hours < 168) return 900; // 15 minutes for week-old content
+  return 1800; // 30 minutes for older content
+};
+
+const CategoryPage = ({
+  categorySlug,
+  posts,
+  totalCount,
+  lastModified,
+  shouldRedirect,
+  isError,
+}: Props) => {
+  const router = useRouter();
+
+  // Handle client-side redirect for non-canonical URLs
+  useEffect(() => {
+    if (shouldRedirect && typeof window !== "undefined") {
+      router.replace(shouldRedirect, undefined, { shallow: true });
+    }
+  }, [shouldRedirect, router]);
+
+  // Handle error state
+  if (isError) {
+    return <ErrorPage statusCode={404} />;
+  }
+
+  // Create AdsTargetingParams with enhanced keywords
   const AdsTargetingParams = {
     pos: "listing",
-    section: [`${categorySlug}-landing-page`, "landing-page"],
+    section: [`${categorySlug}-landing-page`, "landing-page", "category"],
     key: [
-      `${categorySlug}`,
+      categorySlug,
       "Free Malaysia Today",
       "Malaysia News",
-      "Latest Malaysia News",
-      "Breaking News Malaysia",
-      "Malaysia Politics News",
-      "gambling",
-      "religion",
-      "alcohol",
-      "lgbt",
-      "sex",
-      "drug abuse",
-      "get rich",
-      "match-making",
-      "dating",
-      "lottery",
-    ],
+      `${categorySlug} news`,
+      `latest ${categorySlug}`,
+      "FMT",
+    ].slice(0, 10), // Limit keywords
   };
 
   const typedSeoSubCategories = seoSubCategories as SeoSubCategoriesType;
@@ -63,47 +95,155 @@ const CategoryPage = ({ categorySlug, posts }: Props) => {
   const fullPathName = `/category/category/${categorySlug}`;
 
   const metadataConfig = {
-    title: `${seoData?.metaTitle ?? pathName?.replace(/\b\w/g, (c) => c.toUpperCase())} | Free Malaysia Today (FMT)`,
-    description: seoData?.description,
-    keywords: seoData?.keywords,
+    title: `${seoData?.metaTitle ?? categorySlug} | Free Malaysia Today (FMT)`,
+    description:
+      seoData?.description ||
+      `Stay updated with the latest ${categorySlug} news, breaking stories, and in-depth analysis from Malaysia's trusted news source.`,
+    keywords: seoData?.keywords || [
+      categorySlug,
+      "Malaysia",
+      "News",
+      "Free Malaysia Today",
+      `${categorySlug} news`,
+      `latest ${categorySlug}`,
+      "breaking news",
+      "Malaysia news",
+    ],
     category: categorySlug,
-    pathName,
     fullPathName,
-    imageAlt: siteConfig.siteName,
+    pathName,
+    imageAlt: `${categorySlug} - ${siteConfig.siteName}`,
+    articleCount: totalCount,
+    lastModified: lastModified,
   };
-
-  // Find current page from categoriesNavigation
 
   return (
     <>
+      {/* SEO Meta Tags */}
       <CategoryMetadata config={metadataConfig} />
+
+      {/* Structured Data */}
       <CategoryJsonLD
         posts={posts}
         pathName={fullPathName}
-        title={categorySlug}
+        title={metadataConfig.title}
+        description={metadataConfig.description}
+        category={categorySlug}
+        articleCount={totalCount}
       />
-      <SubCategoryPostLayout
-        title={seoData?.h1Title || categorySlug}
-        posts={posts}
-        categorySlug={categorySlug}
-        AdsTargetingParams={AdsTargetingParams}
-      />
+
+      {/* Main Content with Semantic HTML */}
+      <main role="main" aria-label={`${categorySlug} news articles`}>
+        <section aria-labelledby="category-title" className="category-content">
+          <header>
+            <h1 id="category-title" className="sr-only">
+              {seoData?.h1Title || categorySlug}
+            </h1>
+          </header>
+
+          {/* Article Feed */}
+          <div
+            role="feed"
+            aria-busy={router.isFallback ? "true" : "false"}
+            aria-label={`${categorySlug} articles feed`}
+          >
+            <SubCategoryPostLayout
+              title={seoData?.h1Title || categorySlug}
+              posts={posts}
+              categorySlug={categorySlug}
+              AdsTargetingParams={AdsTargetingParams}
+            />
+          </div>
+        </section>
+
+        {/* Navigation hints for screen readers */}
+        <nav aria-label="Category navigation" className="sr-only">
+          <h2>Related Categories</h2>
+          <ul>
+            <li>
+              <a href="/news">News</a>
+            </li>
+            <li>
+              <a href="/business">Business</a>
+            </li>
+            <li>
+              <a href="/sports">Sports</a>
+            </li>
+            <li>
+              <a href="/lifestyle">Lifestyle</a>
+            </li>
+            <li>
+              <a href="/opinion">Opinion</a>
+            </li>
+          </ul>
+        </nav>
+      </main>
+
+      {/* Prefetch related categories for better performance */}
+      <link rel="prefetch" href="/news" />
+      <link rel="prefetch" href="/business" />
+      <link rel="prefetch" href="/sports" />
     </>
   );
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
+  // Pre-generate paths for known categories
+  const knownCategories = [
+    "nation",
+    "bahasa",
+    "business",
+    "leisure",
+    "opinion",
+    "sports",
+    "world",
+    "sabahsarawak",
+    "south-east-asia",
+    "tempatan",
+    "pandangan",
+    "dunia",
+    "local-business",
+    "world-business",
+    "editorial",
+    "column",
+    "letters",
+    "fmt-worldviews",
+    "football",
+    "badminton",
+    "motorsports",
+    "tennis",
+    "education",
+    "food",
+    "entertainment",
+    "health",
+    "money",
+    "travel",
+    "tech",
+    "pets",
+    "automotive",
+    "property",
+    "simple-stories",
+  ];
+
+  const paths = knownCategories.map((slug) => ({
+    params: { categorySlug: slug },
+  }));
+
   return {
-    paths: [],
-    fallback: "blocking",
+    paths,
+    fallback: "blocking", // Generate new paths on-demand
   };
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const categorySlug = params?.categorySlug as string;
 
+  // Check if this URL should redirect to canonical
+  const currentPath = `/category/category/${categorySlug}`;
+  const redirectUrl = getRedirectUrl(currentPath);
+
   try {
-    // Build the tax query for the category
+    // Build the query with status check
     const taxQuery = {
       relation: "AND",
       taxArray: [
@@ -116,30 +256,63 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       ],
     };
 
-    // Fetch exactly 3 posts using gqlFetchAPI
     const variables = {
       first: 25,
       where: {
         taxQuery,
+        // Only get published posts
+        status: "PUBLISH",
       },
     };
+
     const response = await getFilteredCategoryPosts(variables);
+
+    // Check if we have valid posts
+    if (!response?.posts?.edges || response.posts.edges.length === 0) {
+      // Category exists but has no posts - still valid
+      console.log(`Category ${categorySlug} has no posts yet`);
+    }
+
+    // Get the most recent post date for cache control
+    const lastModified =
+      response?.posts?.edges?.[0]?.node?.modifiedGmt ||
+      response?.posts?.edges?.[0]?.node?.dateGmt;
+
+    const totalCount = response?.posts?.edges?.length || 0;
 
     return {
       props: {
         categorySlug,
-        posts: response?.posts,
+        posts: response?.posts || { edges: [] },
+        totalCount,
+        lastModified: lastModified || null,
+        shouldRedirect: redirectUrl,
       },
-      revalidate: 60,
+      revalidate: getRevalidationTime(lastModified),
     };
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    console.error(`Error fetching category ${categorySlug}:`, error);
+
+    // Check if it's a 404 or actual error
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+      // Category doesn't exist - return 404
+      return {
+        notFound: true,
+        revalidate: 60, // Check again in 1 minute
+      };
+    }
+
+    // Other errors - return error state but still render
     return {
       props: {
         categorySlug,
         posts: { edges: [] },
+        isError: true,
       },
-      revalidate: 110,
+      revalidate: 60, // Quick retry on errors
     };
   }
 };
