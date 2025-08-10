@@ -11,7 +11,6 @@ import {
 } from "@/constants/alternate-locales";
 import {
   getCanonicalUrl,
-  isCanonicalPath,
   getAlternateUrls,
 } from "@/constants/canonical-url-mappings";
 
