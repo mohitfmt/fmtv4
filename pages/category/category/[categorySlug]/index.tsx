@@ -12,11 +12,9 @@ import {
 } from "@/components/common/CategoryMetaData";
 import siteConfig from "@/constants/site-config";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import {
-  getRedirectUrl,
-  isCanonicalPath,
-} from "@/constants/canonical-url-mappings";
+import { getRedirectUrl } from "@/constants/canonical-url-mappings";
 import ErrorPage from "next/error";
+import Link from "next/link";
 
 interface Props {
   categorySlug: string;
@@ -161,19 +159,19 @@ const CategoryPage = ({
           <h2>Related Categories</h2>
           <ul>
             <li>
-              <a href="/news">News</a>
+              <Link href="/news">News</Link>
             </li>
             <li>
-              <a href="/business">Business</a>
+              <Link href="/business">Business</Link>
             </li>
             <li>
-              <a href="/sports">Sports</a>
+              <Link href="/sports">Sports</Link>
             </li>
             <li>
-              <a href="/lifestyle">Lifestyle</a>
+              <Link href="/lifestyle">Lifestyle</Link>
             </li>
             <li>
-              <a href="/opinion">Opinion</a>
+              <Link href="/opinion">Opinion</Link>
             </li>
           </ul>
         </nav>

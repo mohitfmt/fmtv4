@@ -14,6 +14,7 @@ import siteConfig from "@/constants/site-config";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 import { getRedirectUrl } from "@/constants/canonical-url-mappings";
 import ErrorPage from "next/error";
+import Link from "next/link";
 
 interface Props {
   subcategorySlug: string;
@@ -195,11 +196,11 @@ const SubCategoryPage = ({
                   itemScope
                   itemType="https://schema.org/ListItem"
                 >
-                  <a itemProp="item" href="/" className="hover:underline">
+                  <Link itemProp="item" href="/" className="hover:underline">
                     <span itemProp="name" className="uppercase">
                       Home
                     </span>
-                  </a>
+                  </Link>
                   <meta itemProp="position" content="1" />
                 </li>
                 <li className="mx-2">/</li>
@@ -208,7 +209,7 @@ const SubCategoryPage = ({
                   itemScope
                   itemType="https://schema.org/ListItem"
                 >
-                  <a
+                  <Link
                     itemProp="item"
                     href={`/category/category/${category}`}
                     className="hover:underline"
@@ -216,7 +217,7 @@ const SubCategoryPage = ({
                     <span itemProp="name" className="uppercase">
                       {category === "leisure" ? "lifestyle" : category}
                     </span>
-                  </a>
+                  </Link>
                   <meta itemProp="position" content="2" />
                 </li>
                 <li className="mx-2">/</li>
@@ -269,16 +270,18 @@ const SubCategoryPage = ({
           <nav>
             <ul>
               <li>
-                <a href={`/category/category/${category}`}>All {category}</a>
+                <Link href={`/category/category/${category}`}>
+                  All {category}
+                </Link>
               </li>
               <li>
-                <a href="/news">Latest News</a>
+                <Link href="/news">Latest News</Link>
               </li>
               <li>
-                <a href="/business">Business</a>
+                <Link href="/business">Business</Link>
               </li>
               <li>
-                <a href="/sports">Sports</a>
+                <Link href="/sports">Sports</Link>
               </li>
             </ul>
           </nav>
