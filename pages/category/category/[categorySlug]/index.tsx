@@ -1,8 +1,6 @@
 // pages/category/category/[categorySlug]/index.tsx
 
 import { GetStaticProps, GetStaticPaths } from "next";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
@@ -12,7 +10,6 @@ import {
 } from "@/components/common/CategoryMetaData";
 import siteConfig from "@/constants/site-config";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { getRedirectUrl } from "@/constants/canonical-url-mappings";
 import ErrorPage from "next/error";
 import Link from "next/link";
 
@@ -55,17 +52,17 @@ const CategoryPage = ({
   posts,
   totalCount,
   lastModified,
-  shouldRedirect,
+  // shouldRedirect,
   isError,
 }: Props) => {
-  const router = useRouter();
+  // const router = useRouter();
 
-  // Handle client-side redirect for non-canonical URLs
-  useEffect(() => {
-    if (shouldRedirect && typeof window !== "undefined") {
-      router.replace(shouldRedirect, undefined, { shallow: true });
-    }
-  }, [shouldRedirect, router]);
+  // // Handle client-side redirect for non-canonical URLs
+  // useEffect(() => {
+  //   if (shouldRedirect && typeof window !== "undefined") {
+  //     router.replace(shouldRedirect, undefined, { shallow: true });
+  //   }
+  // }, [shouldRedirect, router]);
 
   // Handle error state
   if (isError) {
@@ -142,7 +139,7 @@ const CategoryPage = ({
           {/* Article Feed */}
           <div
             role="feed"
-            aria-busy={router.isFallback ? "true" : "false"}
+            // aria-busy={router.isFallback ? "true" : "false"}
             aria-label={`${categorySlug} articles feed`}
           >
             <SubCategoryPostLayout
@@ -238,7 +235,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 
   // Check if this URL should redirect to canonical
   const currentPath = `/category/category/${categorySlug}`;
-  const redirectUrl = getRedirectUrl(currentPath);
+  // const redirectUrl = getRedirectUrl(currentPath);
 
   try {
     // Build the query with status check
@@ -284,7 +281,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         posts: response?.posts || { edges: [] },
         totalCount,
         lastModified: lastModified || null,
-        shouldRedirect: redirectUrl,
+        // shouldRedirect: redirectUrl,
       },
       revalidate: getRevalidationTime(lastModified),
     };

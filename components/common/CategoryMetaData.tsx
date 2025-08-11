@@ -144,7 +144,6 @@ export const CategoryMetadata = ({ config }: CategoryMetadataProps) => {
       {/* Additional Search Engine Directives */}
       <meta name="slurp" content="index, follow" />
       <meta name="msnbot" content="index, follow" />
-      <meta name="revisit-after" content="1 day" />
       <meta name="rating" content="general" />
       <meta name="distribution" content="global" />
 

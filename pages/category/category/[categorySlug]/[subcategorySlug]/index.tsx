@@ -1,8 +1,6 @@
 // pages/category/category/[categorySlug]/[subcategorySlug]/index.tsx
 
 import { GetStaticProps, GetStaticPaths } from "next";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import {
@@ -12,7 +10,6 @@ import {
 import { seoSubCategories } from "@/constants/sub-categories-meta-config";
 import siteConfig from "@/constants/site-config";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { getRedirectUrl } from "@/constants/canonical-url-mappings";
 import ErrorPage from "next/error";
 import Link from "next/link";
 
@@ -70,18 +67,8 @@ const SubCategoryPage = ({
   posts,
   totalCount,
   lastModified,
-  shouldRedirect,
   isError,
 }: Props) => {
-  const router = useRouter();
-
-  // Handle client-side redirect for non-canonical URLs
-  useEffect(() => {
-    if (shouldRedirect && typeof window !== "undefined") {
-      router.replace(shouldRedirect, undefined, { shallow: true });
-    }
-  }, [shouldRedirect, router]);
-
   // Handle error state
   if (isError) {
     return <ErrorPage statusCode={404} />;
@@ -245,11 +232,7 @@ const SubCategoryPage = ({
             aria-labelledby="subcategory-title"
             className="subcategory-content"
           >
-            <div
-              role="feed"
-              aria-busy={router.isFallback ? "true" : "false"}
-              aria-label={`${subcategorySlug} articles feed`}
-            >
+            <div role="feed" aria-label={`${subcategorySlug} articles feed`}>
               <SubCategoryPostLayout
                 title={seoData.h1Title || subcategorySlug}
                 posts={posts}
@@ -342,10 +325,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const subcategorySlug = params?.subcategorySlug as string;
   const category = params?.categorySlug as string;
 
-  // Check if this URL should redirect to canonical
-  const currentPath = `/category/category/${category}/${subcategorySlug}`;
-  const redirectUrl = getRedirectUrl(currentPath);
-
   try {
     const taxQuery = {
       relation: "AND",
@@ -385,7 +364,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         posts: response?.posts || { edges: [] },
         totalCount,
         lastModified: lastModified || null,
-        shouldRedirect: redirectUrl,
       },
       revalidate: getRevalidationTime(lastModified, category),
     };
