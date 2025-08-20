@@ -287,7 +287,7 @@ export const calculateCacheDuration = () => {
   return duration;
 };
 
-export const stripHTML = (html:string) => {
+export const stripHTML = (html: string) => {
   if (!html) return "";
   return html
     .replace(/<[^>]*>/g, "") // Remove HTML tags
@@ -307,14 +307,14 @@ export const stripHTML = (html:string) => {
     .replace(/&[a-z0-9#]+;/gi, (match) => {
       // Handle other HTML entities
       const entities: Record<string, string> = {
-        '&apos;': "'",
-        '&ndash;': "-",
-        '&mdash;': "-",
-        '&hellip;': "...",
-        '&ldquo;': '"',
-        '&rdquo;': '"',
-        '&lsquo;': "'",
-        '&rsquo;': "'"
+        "&apos;": "'",
+        "&ndash;": "-",
+        "&mdash;": "-",
+        "&hellip;": "...",
+        "&ldquo;": '"',
+        "&rdquo;": '"',
+        "&lsquo;": "'",
+        "&rsquo;": "'",
       };
       return entities[match] || match;
     })
@@ -462,4 +462,200 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
         reject(err);
       });
   });
+}
+
+// Add these functions to your lib/utils.ts file
+
+/**
+ * Format view count to human readable format
+ * Examples:
+ * 1234 -> "1.2K"
+ * 1234567 -> "1.2M"
+ * 12345678 -> "12M"
+ */
+export function formatViewCount(count: string | number): string {
+  const num = typeof count === "string" ? parseInt(count) : count;
+
+  if (isNaN(num)) return "0";
+
+  if (num < 1000) {
+    return num.toString();
+  } else if (num < 1_000_000) {
+    const k = (num / 1000).toFixed(num < 10000 ? 1 : 0);
+    return `${k}K`;
+  } else if (num < 1_000_000_000) {
+    const m = (num / 1_000_000).toFixed(num < 10_000_000 ? 1 : 0);
+    return `${m}M`;
+  } else {
+    const b = (num / 1_000_000_000).toFixed(1);
+    return `${b}B`;
+  }
+}
+
+/**
+ * Format ISO 8601 duration to human readable format
+ * Examples:
+ * PT4M13S -> "4:13"
+ * PT1H2M10S -> "1:02:10"
+ * PT15S -> "0:15"
+ */
+export function formatDuration(duration: string): string {
+  if (!duration) return "0:00";
+
+  // Parse ISO 8601 duration (PT#H#M#S)
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+
+  if (!match) return "0:00";
+
+  const hours = parseInt(match[1] || "0");
+  const minutes = parseInt(match[2] || "0");
+  const seconds = parseInt(match[3] || "0");
+
+  if (hours > 0) {
+    // Format: H:MM:SS
+    const formattedMinutes = minutes.toString().padStart(2, "0");
+    const formattedSeconds = seconds.toString().padStart(2, "0");
+    return `${hours}:${formattedMinutes}:${formattedSeconds}`;
+  } else {
+    // Format: M:SS
+    const formattedSeconds = seconds.toString().padStart(2, "0");
+    return `${minutes}:${formattedSeconds}`;
+  }
+}
+
+/**
+ * Parse ISO 8601 duration to seconds
+ * Example: PT4M13S -> 253
+ */
+export function parseDurationToSeconds(duration: string): number {
+  if (!duration) return 0;
+
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+
+  if (!match) return 0;
+
+  const hours = parseInt(match[1] || "0");
+  const minutes = parseInt(match[2] || "0");
+  const seconds = parseInt(match[3] || "0");
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Format number with commas
+ * Example: 1234567 -> "1,234,567"
+ */
+export function formatNumber(num: string | number): string {
+  const n = typeof num === "string" ? parseInt(num) : num;
+  if (isNaN(n)) return "0";
+  return n.toLocaleString();
+}
+
+/**
+ * Get time ago string
+ * Examples:
+ * "2 minutes ago"
+ * "3 hours ago"
+ * "5 days ago"
+ */
+export function getTimeAgo(date: string | Date): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 604800) {
+    const days = Math.floor(seconds / 86400);
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 2592000) {
+    const weeks = Math.floor(seconds / 604800);
+    return `${weeks} week${weeks !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 31536000) {
+    const months = Math.floor(seconds / 2592000);
+    return `${months} month${months !== 1 ? "s" : ""} ago`;
+  }
+
+  const years = Math.floor(seconds / 31536000);
+  return `${years} year${years !== 1 ? "s" : ""} ago`;
+}
+
+/**
+ * Check if a video is a YouTube Short based on duration
+ */
+export function isYouTubeShort(durationInSeconds: number): boolean {
+  return durationInSeconds <= 60;
+}
+
+/**
+ * Get video thumbnail URL in desired quality
+ */
+export function getVideoThumbnail(
+  thumbnails: any,
+  quality: "default" | "medium" | "high" | "standard" | "maxres" = "high"
+): string {
+  // Fallback chain: requested → high → medium → default
+  return (
+    thumbnails?.[quality]?.url ||
+    thumbnails?.high?.url ||
+    thumbnails?.medium?.url ||
+    thumbnails?.default?.url ||
+    "/images/video-placeholder.jpg"
+  ); // Add a placeholder image
+}
+
+/**
+ * Extract video ID from YouTube URL
+ * Handles various YouTube URL formats
+ */
+export function extractYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+
+  // Regular video URLs
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+
+  // If it's already just the video ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+    return url;
+  }
+
+  return null;
+}
+
+/**
+ * Generate YouTube embed URL
+ */
+export function getYouTubeEmbedUrl(videoId: string, autoplay = false): string {
+  const params = new URLSearchParams({
+    rel: "0", // Don't show related videos
+    modestbranding: "1", // Minimal YouTube branding
+    ...(autoplay && { autoplay: "1", mute: "1" }), // Autoplay requires mute
+  });
+
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+/**
+ * Generate YouTube watch URL
+ */
+export function getYouTubeWatchUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${videoId}`;
 }

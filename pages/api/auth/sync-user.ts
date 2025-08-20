@@ -51,6 +51,9 @@ export default async function handler(
           firstName: userData?.given_name,
           lastName: userData?.family_name,
           emailVerified: userData?.email_verified,
+          lastLogin: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       }),
       5000 // 5 second timeout

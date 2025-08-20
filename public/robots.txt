@@ -3,6 +3,7 @@ Allow: /
 Allow: /_next/static/
 Allow: /_next/image/
 Allow: /_next/data/
+Allow: /videos/
 Disallow: /wp-admin/
 Disallow: /wp-includes/
 Disallow: /*/edit/
@@ -17,6 +18,7 @@ Allow: /_next/
 Allow: /*.js
 Allow: /*.css
 Allow: /*.json
+Allow: /videos/
 Disallow: /wp-admin/
 Disallow: /wp-includes/
 Disallow: /*/edit/
@@ -27,6 +29,7 @@ Allow: /
 Allow: /_next/
 Allow: /*.js
 Allow: /*.css
+Allow: /videos/
 Disallow: /wp-admin/
 Disallow: /wp-includes/
 Disallow: /*/edit/
@@ -38,6 +41,7 @@ Disallow: /
 User-agent: GoogleOther
 Allow: /
 Allow: /_next/
+Allow: /videos/
 Disallow: /wp-admin/
 Disallow: /api/
 
@@ -73,6 +77,16 @@ Disallow: /
 
 User-agent: MJ12bot
 Disallow: /
+
+User-agent: Googlebot-Video
+Allow: /videos/
+Allow: /api/videos/
+Crawl-delay: 0
+
+# Bing specific
+User-agent: Bingbot
+Allow: /videos/
+Crawl-delay: 1
 
 Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
 Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml

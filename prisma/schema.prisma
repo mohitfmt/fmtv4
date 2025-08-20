@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-1.1.x", "linux-musl-openssl-3.0.x"]
 }
 
@@ -14,37 +8,227 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model MostViewed {
-  id       String   @id @default(cuid()) @map("_id")
-  title    String
-  slug     String
-  uri      String
-  date     DateTime
-  image    String?
-  category Json?
+type VideosContentDetails {
+  caption         Boolean
+  definition      String
+  dimension       String
+  duration        String
+  durationSeconds Int
+  licensedContent Boolean
+  projection      String
+}
+
+type VideosStatistics {
+  commentCount Int
+  likeCount    Int
+  viewCount    Int
+}
+
+type VideosStatus {
+  embeddable          Boolean
+  license             String
+  madeForKids         Boolean
+  privacyStatus       String
+  publicStatsViewable Boolean
+  uploadStatus        String
+}
+
+type VideosThumbnails {
+  default  String
+  high     String
+  maxres   String?
+  medium   String
+  standard String
+}
+
+model Account {
+  id                String @id @map("_id")
+  access_token      String
+  expires_at        Int
+  id_token          String
+  provider          String
+  providerAccountId String
+  scope             String
+  token_type        String
+  type              String
+  userId            String
+
+  @@unique([provider, providerAccountId])
+}
+
+model ArticleShare {
+  id        String   @id @map("_id")
+  createdAt DateTime @db.Date
+  ip        String
+  platform  String
+  updatedAt DateTime @db.Date
+  url       String
+}
+
+model ChartBeatJob {
+  id        String   @id @map("_id")
+  createdAt DateTime @db.Date
+  queryId   String   @unique
+  status    String
+  updatedAt DateTime @db.Date
 }
 
 model Columnist {
-  id     String @id @default(cuid()) @map("_id")
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
   userId Int
 }
 
-model TrendingTag {
-  id    String @id @default(cuid()) @map("_id")
-  title String
+model LoggedUser {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt     DateTime @db.Date
+  email         String   @unique
+  emailVerified Boolean
+  firstName     String?
+  lastLogin     DateTime @db.Date
+  lastName      String?
+  name          String
+  picture       String?
+  updatedAt     DateTime @db.Date
+}
+
+model MostViewed {
+  id    String   @id @default(auto()) @map("_id") @db.ObjectId
+  date  DateTime @db.Date
+  image String
   slug  String
+  title String
   uri   String
 }
 
-model LoggedUser {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  email          String    @unique
-  name           String
-  picture        String?
-  firstName      String?   
-  lastName       String?
-  emailVerified  Boolean   @default(false)
-  lastLogin      DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-} 
+model PageView {
+  /// Multiple data types found: String: 83.7%, String (ObjectId): 16.3% out of 1000 sampled entries
+  id    Json   @id @map("_id")
+  /// Multiple data types found: Int: 66%, BigInt: 34% out of 1000 sampled entries
+  count Json
+  url   String @unique
+}
+
+model Session {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  /// Field referred in an index, but found no data to define the type.
+  sessionToken Json?  @unique
+}
+
+model Share {
+  /// Multiple data types found: String: 30.5%, String (ObjectId): 69.5% out of 1000 sampled entries
+  id             Json     @id @map("_id")
+  createdAt      DateTime @db.Date
+  /// Multiple data types found: Int: 82.5%, BigInt: 17.5% out of 1000 sampled entries
+  emailShares    Json
+  /// Multiple data types found: Int: 82.5%, BigInt: 17.5% out of 1000 sampled entries
+  facebookShares Json
+  /// Multiple data types found: Int: 82.5%, BigInt: 17.5% out of 1000 sampled entries
+  total          Json
+  updatedAt      DateTime @db.Date
+  url            String   @unique
+  /// Multiple data types found: Int: 82.5%, BigInt: 17.5% out of 1000 sampled entries
+  whatsappShares Json
+  /// Multiple data types found: Int: 82.5%, BigInt: 17.5% out of 1000 sampled entries
+  xShares        Json
+}
+
+model TrendingTag {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  slug  String
+  title String
+  uri   String
+}
+
+model User {
+  id            String @id @map("_id")
+  email         String @unique
+  /// Could not determine type: the field only had null or empty values in the sample set.
+  emailVerified Json?
+  image         String
+  name          String
+}
+
+model VerificationToken {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  /// Field referred in an index, but found no data to define the type.
+  identifier Json?
+  /// Field referred in an index, but found no data to define the type.
+  token      Json?  @unique
+
+  @@unique([identifier, token])
+}
+
+model system {
+  id  String @id @default(auto()) @map("_id") @db.ObjectId
+  /// Field referred in an index, but found no data to define the type.
+  key Json?  @unique
+}
+
+model videos {
+  id              String               @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId      String
+  channelId       String
+  contentDetails  VideosContentDetails
+  defaultLanguage String
+  description     String
+  isShort         Boolean
+  lastSyncedAt    DateTime             @db.Date
+  migratedAt      DateTime             @db.Date
+  playlists       Json?
+  publishedAt     DateTime             @db.Date
+  statistics      VideosStatistics
+  status          VideosStatus
+  syncVersion     Int
+  tags            String[]
+  thumbnails      VideosThumbnails
+  tier            String
+  title           String
+  videoId         String               @unique
+  videoType       String
+  /// Field referred in an index, but found no data to define the type.
+  viewCount       Json?
+
+  @@index([tier, publishedAt])
+  @@index([isShort, viewCount])
+  @@index([publishedAt])
+  @@index([viewCount])
+  @@index([playlists])
+}
+
+model websub_stats {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  webhooksReceived Int      @default(0)
+  videosProcessed  Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt // This is what we use for last webhook time
+}
+
+model websub_subscriptions {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  channelId         String   @unique
+  webhookUrl        String
+  status            String   // active, pending, expired
+  lastRenewal       DateTime?
+  expiresAt         DateTime?
+  renewalCount      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+}
+
+model channel_info {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  channelId       String   @unique
+  title           String
+  description     String   
+  thumbnailUrl    String?
+  subscriberCount Int
+  videoCount      Int
+  viewCount       BigInt
+  customUrl       String?
+  lastFetched     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([lastFetched])
+}
