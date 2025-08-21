@@ -167,14 +167,14 @@ model system {
 model videos {
   id              String               @id @default(auto()) @map("_id") @db.ObjectId
   categoryId      String
-  channelId       String
+  channelId       String?
   contentDetails  VideosContentDetails
   defaultLanguage String
   description     String
   isShort         Boolean
   lastSyncedAt    DateTime             @db.Date
   migratedAt      DateTime             @db.Date
-  playlists       Json?
+  playlists       String[]
   publishedAt     DateTime             @db.Date
   statistics      VideosStatistics
   status          VideosStatus

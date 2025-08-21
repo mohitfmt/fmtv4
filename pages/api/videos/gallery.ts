@@ -1,5 +1,5 @@
 // pages/api/videos/gallery.ts
-// Updated to work with the auto-generated schema
+// Optimized version with efficient per-playlist queries
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
@@ -72,44 +72,7 @@ export default async function handler(
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all the data we need - note using 'videos' not 'Video'
-    const [totalCount, heroVideos, shorts, todayVideos, recentVideos] =
-      await Promise.all([
-        // Total count
-        prisma.videos.count(), // Changed from prisma.video to prisma.videos
-
-        // Hero videos - hot/trending tier
-        prisma.videos.findMany({
-          where: {
-            tier: { in: ["hot", "trending"] },
-            isShort: false,
-          },
-          orderBy: { publishedAt: "desc" },
-          take: 5,
-        }),
-
-        // Shorts
-        prisma.videos.findMany({
-          where: { isShort: true },
-          orderBy: { publishedAt: "desc" },
-          take: 12,
-        }),
-
-        // Today's new videos
-        prisma.videos.count({
-          where: {
-            publishedAt: { gte: today },
-          },
-        }),
-
-        // Recent videos for playlists
-        prisma.videos.findMany({
-          orderBy: { publishedAt: "desc" },
-          take: 18, // 6 per playlist for 3 playlists
-        }),
-      ]);
-
-    // Transform videos for frontend (statistics is now properly typed!)
+    // Transform video function
     const transformVideo = (video: any) => {
       return {
         ...video,
@@ -125,25 +88,92 @@ export default async function handler(
       };
     };
 
-    // Build playlists (temporary - assign recent videos)
-    const playlists: any = {};
-    let videoIndex = 0;
+    // OPTIMIZED: Fetch only what we need with parallel queries
+    const videosPerPlaylist = 6; // Configurable
 
-    for (const playlist of youTubePlaylists.slice(0, 3)) {
-      const playlistVideos = recentVideos.slice(videoIndex, videoIndex + 6);
-      if (playlistVideos.length > 0) {
+    // Create all queries in parallel
+    const queries = [
+      // Total count
+      prisma.videos.count(),
+
+      // Hero videos - hot/trending tier
+      prisma.videos.findMany({
+        where: {
+          tier: { in: ["hot", "trending"] },
+          isShort: false,
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 5,
+      }),
+
+      // Shorts
+      prisma.videos.findMany({
+        where: { isShort: true },
+        orderBy: { publishedAt: "desc" },
+        take: 12,
+      }),
+
+      // Today's new videos count
+      prisma.videos.count({
+        where: {
+          publishedAt: { gte: today },
+        },
+      }),
+
+      // OPTIMIZED: Fetch videos for each playlist separately
+      ...youTubePlaylists.map((playlist) =>
+        prisma.videos.findMany({
+          where: {
+            playlists: {
+              has: playlist.playlistId, // MongoDB array contains query
+            },
+          },
+          orderBy: { publishedAt: "desc" },
+          take: videosPerPlaylist,
+        })
+      ),
+    ];
+
+    // Execute all queries in parallel
+    const results = await Promise.all(queries);
+
+    // Destructure results
+    const [
+      totalCount,
+      heroVideos,
+      shorts,
+      todayVideos,
+      ...playlistResults // Rest are playlist results
+    ] = results;
+
+    // Build playlists object
+    const playlists: any = {};
+
+    youTubePlaylists.forEach((playlist, index) => {
+      const playlistVideos = playlistResults[index] as any[];
+
+      if (playlistVideos && playlistVideos.length > 0) {
         playlists[playlist.playlistId] = {
           name: playlist.name,
           videos: playlistVideos.map(transformVideo),
         };
-        videoIndex += 6;
+
+        console.log(
+          `[Video Gallery API] Playlist ${playlist.name}: ${playlistVideos.length} videos`
+        );
+      } else {
+        // Include empty playlists with empty array
+        playlists[playlist.playlistId] = {
+          name: playlist.name,
+          videos: [],
+        };
       }
-    }
+    });
 
     // Build response
     const responseData = {
-      hero: heroVideos.map(transformVideo),
-      shorts: shorts.map(transformVideo),
+      hero: Array.isArray(heroVideos) ? heroVideos.map(transformVideo) : [],
+      shorts: Array.isArray(shorts) ? shorts.map(transformVideo) : [],
       playlists,
       stats: {
         totalVideos: totalCount,
@@ -151,6 +181,20 @@ export default async function handler(
         newToday: todayVideos,
       },
     };
+
+    // Log summary for debugging
+    console.log("[Video Gallery API] Response summary:", {
+      heroCount: responseData.hero.length,
+      shortsCount: responseData.shorts.length,
+      playlistCount: Object.keys(responseData.playlists).length,
+      playlistDetails: Object.entries(responseData.playlists).map(
+        ([id, data]: [string, any]) => ({
+          id,
+          name: data.name,
+          videoCount: data.videos.length,
+        })
+      ),
+    });
 
     // Cache the response
     galleryCache.set(cacheKey, responseData);

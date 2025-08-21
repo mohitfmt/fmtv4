@@ -1,3 +1,4 @@
+// pages/api/videos/channel-info.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 
@@ -5,6 +6,15 @@ const prisma = new PrismaClient();
 
 // Cache duration: 24 hours
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+// Helper to safely convert BigInt to number
+function serializeBigInt(obj: any): any {
+  return JSON.parse(
+    JSON.stringify(obj, (key, value) =>
+      typeof value === "bigint" ? Number(value) : value
+    )
+  );
+}
 
 interface ChannelInfo {
   id: string;
@@ -88,11 +98,23 @@ export default async function handler(
 
       if (cacheAge < CACHE_DURATION && req.query.fresh !== "true") {
         console.log("[Channel Info] Serving from cache");
-        return res.status(200).json({
-          ...cachedInfo,
+
+        // Serialize BigInt before sending response
+        const serializedInfo = serializeBigInt({
+          id: cachedInfo.channelId,
+          title: cachedInfo.title,
+          description: cachedInfo.description,
+          thumbnailUrl: cachedInfo.thumbnailUrl,
+          subscriberCount: cachedInfo.subscriberCount,
+          videoCount: cachedInfo.videoCount,
+          viewCount: cachedInfo.viewCount,
+          customUrl: cachedInfo.customUrl,
+          lastFetched: cachedInfo.lastFetched,
           fromCache: true,
           cacheAge: Math.floor(cacheAge / 1000 / 60), // in minutes
         });
+
+        return res.status(200).json(serializedInfo);
       }
     }
 
@@ -106,11 +128,22 @@ export default async function handler(
         console.log(
           "[Channel Info] YouTube fetch failed, returning stale cache"
         );
-        return res.status(200).json({
-          ...cachedInfo,
+
+        const serializedInfo = serializeBigInt({
+          id: cachedInfo.channelId,
+          title: cachedInfo.title,
+          description: cachedInfo.description,
+          thumbnailUrl: cachedInfo.thumbnailUrl,
+          subscriberCount: cachedInfo.subscriberCount,
+          videoCount: cachedInfo.videoCount,
+          viewCount: cachedInfo.viewCount,
+          customUrl: cachedInfo.customUrl,
+          lastFetched: cachedInfo.lastFetched,
           fromCache: true,
           stale: true,
         });
+
+        return res.status(200).json(serializedInfo);
       }
 
       // No cache and fetch failed - return default
@@ -129,7 +162,7 @@ export default async function handler(
       });
     }
 
-    // Store in database
+    // Store in database - viewCount will be stored as BigInt
     await prisma.channel_info.upsert({
       where: { channelId: freshInfo.id },
       update: {
@@ -138,7 +171,7 @@ export default async function handler(
         thumbnailUrl: freshInfo.thumbnailUrl,
         subscriberCount: freshInfo.subscriberCount,
         videoCount: freshInfo.videoCount,
-        viewCount: freshInfo.viewCount,
+        viewCount: BigInt(freshInfo.viewCount), // Convert to BigInt for storage
         customUrl: freshInfo.customUrl,
         lastFetched: freshInfo.lastFetched,
       },
@@ -149,7 +182,7 @@ export default async function handler(
         thumbnailUrl: freshInfo.thumbnailUrl,
         subscriberCount: freshInfo.subscriberCount,
         videoCount: freshInfo.videoCount,
-        viewCount: freshInfo.viewCount,
+        viewCount: BigInt(freshInfo.viewCount), // Convert to BigInt for storage
         customUrl: freshInfo.customUrl,
         lastFetched: freshInfo.lastFetched,
       },
@@ -188,7 +221,7 @@ export async function refreshChannelInfo() {
         thumbnailUrl: freshInfo.thumbnailUrl,
         subscriberCount: freshInfo.subscriberCount,
         videoCount: freshInfo.videoCount,
-        viewCount: freshInfo.viewCount,
+        viewCount: BigInt(freshInfo.viewCount), // Convert to BigInt
         customUrl: freshInfo.customUrl,
         lastFetched: freshInfo.lastFetched,
       },
@@ -199,7 +232,7 @@ export async function refreshChannelInfo() {
         thumbnailUrl: freshInfo.thumbnailUrl,
         subscriberCount: freshInfo.subscriberCount,
         videoCount: freshInfo.videoCount,
-        viewCount: freshInfo.viewCount,
+        viewCount: BigInt(freshInfo.viewCount), // Convert to BigInt
         customUrl: freshInfo.customUrl,
         lastFetched: freshInfo.lastFetched,
       },

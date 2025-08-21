@@ -172,7 +172,7 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
       video.thumbnails?.high?.url ||
       video.thumbnails?.medium?.url ||
       video.thumbnails?.default?.url ||
-      `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
+      `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`
     );
   };
 
@@ -208,9 +208,9 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
               {formatDuration(currentVideo.duration)}
             </span>
           </div>
-          <h2 className="text-2xl md:text-4xl font-bold mb-2 line-clamp-2">
+          {/* <h2 className="text-2xl md:text-4xl font-bold mb-2 line-clamp-2">
             {currentVideo.title}
-          </h2>
+          </h2> */}
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
               <Eye className="w-4 h-4" />
@@ -370,6 +370,8 @@ const PlaylistSection = ({
     );
   };
 
+  console.log(`Playlist Section: ${playlistId}`, playlist);
+
   return (
     <section className="my-10">
       <div className="flex items-center justify-between mb-6">
@@ -479,7 +481,6 @@ const VideosPage = ({
       </div>
     );
   }
-
   const metaTitle = "Videos - Free Malaysia Today";
   const metaDescription =
     "Watch the latest news videos, exclusive interviews, special reports, and more from Free Malaysia Today.";
@@ -584,7 +585,9 @@ export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   try {
     // Fetch video data and channel info in parallel
     const [videoResponse, channelResponse] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/videos/gallery`),
+      fetch(
+        `${process.env.NEXT_PUBLIC_SITE_URL}/api/videos/gallery?fresh=true`
+      ),
       fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/videos/channel-info`),
     ]);
 
