@@ -157,10 +157,6 @@ export default async function handler(
           name: playlist.name,
           videos: playlistVideos.map(transformVideo),
         };
-
-        console.log(
-          `[Video Gallery API] Playlist ${playlist.name}: ${playlistVideos.length} videos`
-        );
       } else {
         // Include empty playlists with empty array
         playlists[playlist.playlistId] = {
@@ -181,20 +177,6 @@ export default async function handler(
         newToday: todayVideos,
       },
     };
-
-    // Log summary for debugging
-    console.log("[Video Gallery API] Response summary:", {
-      heroCount: responseData.hero.length,
-      shortsCount: responseData.shorts.length,
-      playlistCount: Object.keys(responseData.playlists).length,
-      playlistDetails: Object.entries(responseData.playlists).map(
-        ([id, data]: [string, any]) => ({
-          id,
-          name: data.name,
-          videoCount: data.videos.length,
-        })
-      ),
-    });
 
     // Cache the response
     galleryCache.set(cacheKey, responseData);
