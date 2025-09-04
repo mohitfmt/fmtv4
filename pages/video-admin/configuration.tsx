@@ -283,17 +283,41 @@ export default function ConfigurationPage() {
       const configData = configResponse?.data || null;
       setConfig(configData);
 
-      // Load playlists
+      // Load playlists - Updated to handle new API response format
       try {
-        const playlistsData = await videoApiJson<Playlist[]>(
-          "/api/video-admin/playlists"
-        );
+        const playlistsResponse = await videoApiJson<{
+          success: boolean;
+          data: Playlist[];
+          total: number;
+        }>("/api/video-admin/playlists?limit=50");
 
-        if (Array.isArray(playlistsData) && playlistsData.length > 0) {
-          setPlaylists(playlistsData);
+        // Check if we have the new response format
+        if (playlistsResponse?.success && playlistsResponse?.data) {
+          // New API format
+          if (
+            Array.isArray(playlistsResponse.data) &&
+            playlistsResponse.data.length > 0
+          ) {
+            setPlaylists(playlistsResponse.data);
+          } else {
+            setPlaylistError(
+              "No playlists found. Please sync playlists from YouTube first."
+            );
+            setPlaylists([]);
+          }
+        } else if (Array.isArray(playlistsResponse)) {
+          // Old API format (backwards compatibility)
+          if (playlistsResponse.length > 0) {
+            setPlaylists(playlistsResponse);
+          } else {
+            setPlaylistError(
+              "No playlists found. Please sync playlists from YouTube first."
+            );
+            setPlaylists([]);
+          }
         } else {
           setPlaylistError(
-            "No playlists found. Please sync playlists from YouTube first."
+            "Failed to load playlists. Invalid response format."
           );
           setPlaylists([]);
         }
@@ -306,7 +330,7 @@ export default function ConfigurationPage() {
       }
     } catch (error) {
       console.error("Failed to load configuration:", error);
-      setMessage("Failed to load configuration");
+      setLoading(false);
     } finally {
       setLoading(false);
     }

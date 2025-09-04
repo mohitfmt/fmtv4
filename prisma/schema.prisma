@@ -172,8 +172,8 @@ model videos {
   defaultLanguage String
   description     String
   isShort         Boolean
-  lastSyncedAt    DateTime             @db.Date
-  migratedAt      DateTime             @db.Date
+  lastSyncedAt    DateTime?             @db.Date
+  migratedAt      DateTime?             @db.Date
   playlists       String[]
   publishedAt     DateTime             @db.Date
   statistics      VideosStatistics

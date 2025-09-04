@@ -1,3 +1,4 @@
+// pages/api/video-admin/playlists/[id].ts
 import { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
@@ -5,11 +6,11 @@ import { z } from "zod";
 
 const updatePlaylistSchema = z.object({
   isActive: z.boolean().optional(),
-  title: z.string().optional(),
-  description: z.string().optional(),
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(500).optional(),
 });
 
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
   const traceId = (req as any).traceId;
 
@@ -20,9 +21,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       return handleUpdatePlaylist(req, res, traceId);
     default:
       res.setHeader("Allow", ["GET", "PATCH"]);
-      return res.status(405).json({ error: "Method not allowed" });
+      return res.status(405).json({
+        success: false,
+        error: "Method not allowed",
+      });
   }
-};
+}
 
 async function handleGetPlaylist(
   req: NextApiRequest,
@@ -32,34 +36,69 @@ async function handleGetPlaylist(
   try {
     const { id } = req.query;
 
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid playlist ID",
+        traceId,
+      });
+    }
+
     const playlist = await prisma.playlist.findUnique({
-      where: { playlistId: id as string },
-      // include: {
-      //   _count: {
-      //     select: { videos: true },
-      //   },
-      // },
+      where: { playlistId: id },
     });
 
     if (!playlist) {
       return res.status(404).json({
+        success: false,
         error: "Playlist not found",
         traceId,
       });
     }
 
+    // Get recent sync history
+    const recentSync = await prisma.syncHistory.findFirst({
+      where: { playlistId: id },
+      orderBy: { timestamp: "desc" },
+      select: {
+        status: true,
+        videosAdded: true,
+        videosUpdated: true,
+        videosRemoved: true,
+        timestamp: true,
+        error: true,
+      },
+    });
+
+    // Check if currently syncing
+    const syncStatus = await prisma.syncStatus.findUnique({
+      where: { id: "main" },
+      select: {
+        currentlySyncing: true,
+        currentPlaylistId: true,
+      },
+    });
+
+    const isSyncing =
+      syncStatus?.currentlySyncing && syncStatus.currentPlaylistId === id;
+
     return res.status(200).json({
+      success: true,
       data: {
         ...playlist,
-        // videoCount: playlist?._count?.videos,
-        videoCount: 0,
+        itemCount: playlist.itemCount || 0,
+        syncInProgress: isSyncing,
+        lastSyncResult: recentSync || null,
       },
       traceId,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error(`[${traceId}] Failed to fetch playlist:`, error);
     return res.status(500).json({
+      success: false,
       error: "Failed to fetch playlist",
+      message: error instanceof Error ? error.message : "Unknown error",
       traceId,
     });
   }
@@ -74,17 +113,41 @@ async function handleUpdatePlaylist(
     const { id } = req.query;
     const session = (req as any).session;
 
-    const validation = updatePlaylistSchema.safeParse(req.body);
-    if (!validation.success) {
+    if (!id || typeof id !== "string") {
       return res.status(400).json({
-        error: "Invalid request body",
-        details: validation.error,
+        success: false,
+        error: "Invalid playlist ID",
         traceId,
       });
     }
 
-    const playlist = await prisma.playlist.update({
-      where: { playlistId: id as string },
+    // Validate request body
+    const validation = updatePlaylistSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request body",
+        details: validation.error.flatten(),
+        traceId,
+      });
+    }
+
+    // Check if playlist exists
+    const existingPlaylist = await prisma.playlist.findUnique({
+      where: { playlistId: id },
+    });
+
+    if (!existingPlaylist) {
+      return res.status(404).json({
+        success: false,
+        error: "Playlist not found",
+        traceId,
+      });
+    }
+
+    // Update playlist
+    const updatedPlaylist = await prisma.playlist.update({
+      where: { playlistId: id },
       data: {
         ...validation.data,
         updatedAt: new Date(),
@@ -92,29 +155,48 @@ async function handleUpdatePlaylist(
     });
 
     // Log admin action
+    const actionType =
+      validation.data.isActive !== undefined
+        ? validation.data.isActive
+          ? "ACTIVATE_PLAYLIST"
+          : "DEACTIVATE_PLAYLIST"
+        : "UPDATE_PLAYLIST";
+
     await prisma.admin_activity_logs.create({
       data: {
-        action: "UPDATE_PLAYLIST",
-        id: playlist.id,
+        action: actionType,
         entityType: "playlist",
-        userId: session.user.id,
-        // userEmail: session.user.email,
+        userId: session.user?.email || session.user?.id || "system",
         metadata: {
-          playlistId: playlist.playlistId,
+          playlistId: updatedPlaylist.playlistId,
+          playlistName: updatedPlaylist.title,
           changes: validation.data,
+          previousState: {
+            isActive: existingPlaylist.isActive,
+            title: existingPlaylist.title,
+            description: existingPlaylist.description,
+          },
         },
-        // traceId,
+        ipAddress:
+          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+          req.socket.remoteAddress,
+        userAgent: req.headers["user-agent"] || null,
       },
     });
 
     return res.status(200).json({
-      data: playlist,
+      success: true,
+      data: updatedPlaylist,
+      message: `Playlist "${updatedPlaylist.title}" updated successfully`,
       traceId,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error(`[${traceId}] Failed to update playlist:`, error);
     return res.status(500).json({
+      success: false,
       error: "Failed to update playlist",
+      message: error instanceof Error ? error.message : "Unknown error",
       traceId,
     });
   }
