@@ -4,6 +4,7 @@ import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import {
   RefreshCw,
   AlertTriangle,
@@ -30,6 +31,15 @@ import {
 import { videoApiJson } from "@/lib/videoApi";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
+
+interface PageProps {
+  requiresAuth?: boolean;
+  unauthorized?: boolean;
+  userEmail?: string;
+  traceId?: string;
+  enableOneTap?: boolean;
+  session?: any;
+}
 
 interface WebSubStatus {
   isActive: boolean;
@@ -106,7 +116,14 @@ interface SyncControlData {
   stats: SyncStats;
 }
 
-export default function SyncControlPage() {
+export default function SyncControlPage({
+  requiresAuth,
+  unauthorized,
+  userEmail,
+  session: serverSession,
+}: PageProps) {
+  const { data: session } = useSession();
+  const currentSession = session || serverSession;
   // State Management
   const [data, setData] = useState<SyncControlData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,8 +173,10 @@ export default function SyncControlPage() {
 
   // Initial load and auto-refresh
   useEffect(() => {
-    loadSyncData();
-  }, [loadSyncData]);
+    if (currentSession) {
+      loadSyncData();
+    }
+  }, [currentSession, loadSyncData]);
 
   // Auto-refresh when active
   useEffect(() => {
@@ -314,6 +333,10 @@ export default function SyncControlPage() {
   }
 
   const health = getHealthStatus();
+
+  if (requiresAuth && !currentSession) {
+    return null;
+  }
 
   return (
     <>

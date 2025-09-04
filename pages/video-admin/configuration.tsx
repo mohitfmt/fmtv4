@@ -5,6 +5,7 @@ import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react"; // ADD THIS
 import {
   Save,
   AlertCircle,
@@ -22,6 +23,15 @@ import { cn } from "@/lib/utils";
 import { FaCalendar, FaHashtag, FaPlay, FaVideo } from "react-icons/fa6";
 import { FaPlayCircle } from "react-icons/fa";
 import Image from "next/image";
+
+interface PageProps {
+  requiresAuth?: boolean;
+  unauthorized?: boolean;
+  userEmail?: string;
+  traceId?: string;
+  enableOneTap?: boolean;
+  session?: any;
+}
 
 interface VideoConfig {
   homepage: {
@@ -41,7 +51,6 @@ interface VideoConfig {
 
 interface Playlist {
   playlistId: string;
-  name: string;
   title: string;
   videoCount: number;
   itemCount: number;
@@ -83,15 +92,15 @@ const PlaylistComboBox = ({
     const searchLower = search.toLowerCase();
     return playlists.filter(
       (p) =>
-        p.name.toLowerCase().includes(searchLower) ||
+        p.title.toLowerCase().includes(searchLower) ||
         p.description?.toLowerCase().includes(searchLower) ||
         p.playlistId.toLowerCase().includes(searchLower)
     );
   }, [playlists, search]);
 
   const isShorts = (playlist: Playlist) =>
-    playlist.name.toLowerCase().includes("short") ||
-    playlist.name.toLowerCase().includes("reel");
+    playlist?.title?.toLowerCase().includes("short") ||
+    playlist?.title?.toLowerCase().includes("reel");
 
   return (
     <div className="relative">
@@ -108,7 +117,7 @@ const PlaylistComboBox = ({
                 <FaPlayCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               )}
               <div>
-                <div className="font-medium">{selectedPlaylist.name}</div>
+                <div className="font-medium">{selectedPlaylist.title}</div>
                 {showDetails && (
                   <div className="text-xs text-muted-foreground">
                     {selectedPlaylist.videoCount} videos •{" "}
@@ -198,7 +207,7 @@ const PlaylistComboBox = ({
                         {playlist.thumbnailUrl && (
                           <Image
                             src={playlist.thumbnailUrl}
-                            alt={playlist.name}
+                            alt={playlist.title}
                             className="w-12 h-12 object-cover rounded"
                           />
                         )}
@@ -209,7 +218,9 @@ const PlaylistComboBox = ({
                             ) : (
                               <FaPlay className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             )}
-                            <span className="font-medium">{playlist.name}</span>
+                            <span className="font-medium">
+                              {playlist.title}
+                            </span>
                           </div>
                           {playlist.description && (
                             <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -259,7 +270,15 @@ const PlaylistComboBox = ({
 const MIN_PLAYLIST_SECTIONS = 5;
 const MAX_PLAYLIST_SECTIONS = 8;
 
-export default function ConfigurationPage() {
+export default function ConfigurationPage({
+  requiresAuth,
+  unauthorized,
+  userEmail,
+  session: serverSession,
+}: PageProps) {
+  const { data: session } = useSession();
+  const currentSession = session || serverSession;
+
   const [config, setConfig] = useState<VideoConfig | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [saving, setSaving] = useState(false);
@@ -268,8 +287,10 @@ export default function ConfigurationPage() {
   const [playlistError, setPlaylistError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (currentSession) {
+      loadData();
+    }
+  }, [currentSession]);
 
   const loadData = async () => {
     try {
@@ -432,6 +453,10 @@ export default function ConfigurationPage() {
       },
     });
   };
+
+  if (requiresAuth && !currentSession) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -825,4 +850,12 @@ export default function ConfigurationPage() {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR();
+export const getServerSideProps: GetServerSideProps = withAdminPageSSR(
+  async (context) => {
+    return {
+      props: {
+        requiresAuth: true,
+      },
+    };
+  }
+);

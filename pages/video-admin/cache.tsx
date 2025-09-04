@@ -4,6 +4,7 @@ import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import {
   Trash2,
   RefreshCw,
@@ -24,6 +25,15 @@ import {
 import { videoApiJson } from "@/lib/videoApi";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+
+interface PageProps {
+  requiresAuth?: boolean;
+  unauthorized?: boolean;
+  userEmail?: string;
+  traceId?: string;
+  enableOneTap?: boolean;
+  session?: any;
+}
 
 interface CacheMetrics {
   cdn: {
@@ -91,7 +101,14 @@ interface CacheStatus {
   recommendations: string[];
 }
 
-export default function CacheManagementPage() {
+export default function CacheManagementPage({
+  requiresAuth,
+  unauthorized,
+  userEmail,
+  session: serverSession,
+}: PageProps) {
+  const { data: session } = useSession();
+  const currentSession = session || serverSession;
   // State Management
   const [status, setStatus] = useState<CacheStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,8 +155,10 @@ export default function CacheManagementPage() {
 
   // Initial load and auto-refresh
   useEffect(() => {
-    loadCacheStatus();
-  }, [loadCacheStatus]);
+    if (currentSession) {
+      loadCacheStatus();
+    }
+  }, [loadCacheStatus, currentSession]);
 
   // Auto-refresh
   useEffect(() => {
@@ -260,6 +279,10 @@ export default function CacheManagementPage() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
+  if (requiresAuth && !currentSession) {
+    return null;
+  }
+  
   if (loading && !status) {
     return (
       <AdminLayout

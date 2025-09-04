@@ -4,6 +4,7 @@ import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import {
   RefreshCw,
   ExternalLink,
@@ -27,6 +28,15 @@ import { videoApiJson } from "@/lib/videoApi";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+
+interface PageProps {
+  requiresAuth?: boolean;
+  unauthorized?: boolean;
+  userEmail?: string;
+  traceId?: string;
+  enableOneTap?: boolean;
+  session?: any;
+}
 
 interface Playlist {
   id: string;
@@ -63,7 +73,14 @@ interface SyncResponse {
   queuePosition?: number;
 }
 
-export default function PlaylistsPage() {
+export default function PlaylistsPage({
+  requiresAuth,
+  unauthorized,
+  userEmail,
+  session: serverSession,
+}: PageProps) {
+  const { data: session } = useSession();
+  const currentSession = session || serverSession;
   // State Management
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,8 +139,10 @@ export default function PlaylistsPage() {
 
   // Initial load and refresh
   useEffect(() => {
-    loadPlaylists();
-  }, [loadPlaylists]);
+    if (currentSession) {
+      loadPlaylists();
+    }
+  }, [currentSession, loadPlaylists]);
 
   // Auto-refresh every 30 seconds if any playlist is syncing
   useEffect(() => {
@@ -308,6 +327,9 @@ export default function PlaylistsPage() {
 
     return matchesSearch && matchesFilter && matchesVisibility;
   });
+  if (requiresAuth && !currentSession) {
+    return null;
+  }
 
   // Render empty state
   if (loading && playlists.length === 0) {
