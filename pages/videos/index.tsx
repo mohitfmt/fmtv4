@@ -1,4 +1,5 @@
 // pages/videos/index.tsx
+// Need to change it according to the new schema // npx prisma generate 
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Image from "next/image";

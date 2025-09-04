@@ -196,7 +196,7 @@ model videos {
 }
 
 model websub_stats {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
   webhooksReceived Int      @default(0)
   videosProcessed  Int      @default(0)
   createdAt        DateTime @default(now())
@@ -204,23 +204,22 @@ model websub_stats {
 }
 
 model websub_subscriptions {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  channelId         String   @unique
-  webhookUrl        String
-  status            String   // active, pending, expired
-  lastRenewal       DateTime?
-  expiresAt         DateTime?
-  renewalCount      Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  channelId    String    @unique
+  webhookUrl   String
+  status       String // active, pending, expired
+  lastRenewal  DateTime?
+  expiresAt    DateTime?
+  renewalCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model channel_info {
-  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
   channelId       String   @unique
   title           String
-  description     String   
+  description     String
   thumbnailUrl    String?
   subscriberCount Int
   videoCount      Int
@@ -231,4 +230,78 @@ model channel_info {
   updatedAt       DateTime @updatedAt
 
   @@index([lastFetched])
+}
+
+model admin_activity_logs {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String
+  action     String
+  entityType String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  @@index([timestamp])
+  @@map("admin_activity_logs")
+}
+
+model VideoConfig {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  homepagePlaylist   String
+  fallbackPlaylist   String?
+  heroPlaylist       String
+  shortsPlaylist     String
+  displayedPlaylists Json
+  updatedAt          DateTime @updatedAt
+}
+
+// Map the Playlist model to the existing 'playlists' collection
+model Playlist {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId   String    @unique
+  title        String    // Changed from 'name' to match existing field
+  description  String?
+  thumbnailUrl String?
+  itemCount    Int       @default(0) // Changed from videoCount to match existing
+  isActive     Boolean   @default(true)
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+  channelTitle String?
+
+  @@map("playlists") // This maps the model to the 'playlists' collection
+}
+
+model SyncHistory {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  status        String
+  videosAdded   Int      @default(0)
+  videosUpdated Int      @default(0)
+  videosRemoved Int      @default(0)
+  duration      Int
+  error         String?
+  playlistId    String?
+  playlistName  String?
+  timestamp     DateTime @default(now())
+}
+
+model CacheHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String // cdn, lru, all
+  action    String // clear, purge, optimize
+  items     Int?
+  timestamp DateTime @default(now())
+}
+
+model SyncStatus {
+  id                String    @id @default("main") @map("_id")
+  currentlySyncing  Boolean   @default(false)
+  currentPlaylistId String?
+  lastSync          DateTime?
+  lastError         String?
+  totalSyncs        Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@map("syncStatus")
 }

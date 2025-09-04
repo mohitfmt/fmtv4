@@ -81,8 +81,6 @@ export default function CoverImage({
         priority={isPriority}
         quality={isPriority || isBig ? 85 : 75}
         loading={isPriority ? "eager" : "lazy"}
-        placeholder="blur"
-        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAh1QAAIdUBBJy0nQAAAEtQTFRFAAAA8ak7HVqqqC0jHVqq/fz6qCwivVQ499Sn15+bqCwiVXus8KY5qCwiwYlbw9PoMWKgobrc8qk68qk6HVqq+eXN9bxn8KY6qCwiCqtsPAAAABl0Uk5TAP7+/h//Pv7//9L+tnf9/1L/Kgqs//9nD7y8RTsAAADASURBVHicjVHtDoMgEONDREQnooDv/6TrHTjnfizWkFzS2itFiEc4+v7gIZa48dCF0H3oftTAfIgySWDaRLcrYG+SWVeMTBOCagjfvLYnL1+nQJEH/K0DNJiBTpbS+xXw2IIA9K9x7gWDbBLOQBbrYkgAi7kJLAtMTiSQSi1L21EFaWgOBuNdUFdYzpgNvsQrLgGF1I5u0UJmCqmU91yFqCn/XvMqqjR+uhfVqh5RdeQuy2/V9FgAD1s8Hwt49tBv+I0JpUT5PH8AAAAASUVORK5CYII="
       />
     </div>
   );

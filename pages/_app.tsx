@@ -12,6 +12,8 @@ import { useEffect, useRef } from "react";
 import Head from "next/head";
 // import siteConfig from "@/constants/site-config";
 import Script from "next/script";
+import { useRouter } from "next/router";
+import { SessionProvider } from "next-auth/react";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -60,9 +62,11 @@ const roboto = Roboto_Slab({
 
 export default function App({
   Component,
-  pageProps: { ...pageProps },
+  pageProps: { session, ...pageProps },
 }: AppProps) {
   const isAdInitialized = useRef(false);
+  const router = useRouter();
+  const isAdminRoute = router.pathname.startsWith("/video-admin");
 
   useEffect(() => {
     if (!isAdInitialized.current) {
@@ -92,6 +96,17 @@ export default function App({
     </div>
   );
 
+  const finalContent = isAdminRoute ? (
+    <SessionProvider session={session}>
+      <div className={`${bitter.variable} ${rhd.variable} ${roboto.variable}`}>
+        <div className="min-h-screen bg-background text-foreground">
+          <Component {...pageProps} />
+        </div>
+      </div>
+    </SessionProvider>
+  ) : (
+    content
+  );
   return (
     <>
       <Head>
@@ -256,7 +271,7 @@ export default function App({
                 dfpTargetingParams={{}}
                 asPath="/"
               >
-                {content}
+                {finalContent}
               </GPTProvider>
             </MultipurposeProvider>
           </ThemeProvider>

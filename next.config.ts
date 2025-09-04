@@ -95,6 +95,32 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      {
+        source: "/video-admin/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow, noarchive",
+          },
+          {
+            key: "Cache-Control",
+            value: "private, no-store",
+          },
+        ],
+      },
+      {
+        source: "/api/video-admin/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow, noarchive",
+          },
+          {
+            key: "Cache-Control",
+            value: "private, no-store",
+          },
+        ],
+      },
       // API specific headers
       {
         source: "/api/websub-callback",
