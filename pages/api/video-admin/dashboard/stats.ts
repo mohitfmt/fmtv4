@@ -4,6 +4,39 @@ import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { getAllCaches } from "@/lib/cache/video-cache-registry";
 
+// Simple in-memory rate limiter
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(email: string, limit = 30, windowMs = 60000): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(email);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitStore.set(email, {
+      count: 1,
+      resetTime: now + windowMs,
+    });
+    return true;
+  }
+
+  if (userLimit.count >= limit) {
+    return false;
+  }
+
+  userLimit.count++;
+  return true;
+}
+
+// Clean up old rate limit entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60000); // Clean up every minute
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
@@ -11,8 +44,43 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const traceId = (req as any).traceId;
+  const session = (req as any).session;
+
+  // Basic rate limiting (30 requests per minute per user)
+  if (session?.user?.email) {
+    if (!checkRateLimit(session.user.email)) {
+      res.setHeader("Retry-After", "60");
+      return res.status(429).json({
+        success: false,
+        error: "Too many requests. Please wait a moment before refreshing.",
+        traceId,
+      });
+    }
+  }
 
   try {
+    // Check if we have a cached response (for high-frequency requests)
+    const cacheKey = `dashboard-stats-${session?.user?.email || "anonymous"}`;
+    const cachedStats = global.dashboardCache?.get(cacheKey);
+
+    if (cachedStats && Date.now() - cachedStats.timestamp < 30000) {
+      // Return cached data if less than 30 seconds old
+      res.setHeader("X-Cache", "HIT");
+      res.setHeader("X-Trace-Id", traceId);
+      res.setHeader(
+        "Cache-Control",
+        "private, max-age=30, stale-while-revalidate=60"
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: cachedStats.data,
+        traceId,
+        timestamp: new Date(cachedStats.timestamp).toISOString(),
+        cached: true,
+      });
+    }
+
     // Fetch video statistics with correct field names
     const [totalVideos, recentVideos, trendingVideos, lastVideo] =
       await Promise.all([
@@ -55,23 +123,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const inactivePlaylists = totalPlaylists - activePlaylists;
 
-    // Fetch sync status from websub
-    const [websub, websubStats, syncStatus, lastSyncHistory] =
-      await Promise.all([
-        prisma.websub_subscriptions.findFirst({
-          where: { channelId: process.env.YOUTUBE_CHANNEL_ID },
-          orderBy: { updatedAt: "desc" },
-        }),
-        prisma.websub_stats.findFirst(),
-        prisma.syncStatus.findUnique({
-          where: { id: "main" },
-        }),
-        // Get the last sync from history
-        prisma.syncHistory.findFirst({
-          orderBy: { timestamp: "desc" },
-          select: { timestamp: true },
-        }),
-      ]);
+    // Fetch sync status from websub with timeout
+    const syncPromise = Promise.all([
+      prisma.websub_subscriptions.findFirst({
+        where: { channelId: process.env.YOUTUBE_CHANNEL_ID },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.websub_stats.findFirst(),
+      prisma.syncStatus.findUnique({
+        where: { id: "main" },
+      }),
+      prisma.syncHistory.findFirst({
+        orderBy: { timestamp: "desc" },
+        select: { timestamp: true },
+      }),
+    ]);
+
+    // Add timeout to prevent hanging requests
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Database timeout")), 5000)
+    );
+
+    let websub, websubStats, syncStatus, lastSyncHistory;
+    try {
+      [websub, websubStats, syncStatus, lastSyncHistory] = (await Promise.race([
+        syncPromise,
+        timeoutPromise,
+      ])) as any;
+    } catch (error) {
+      console.error(`[${traceId}] Sync status fetch timeout:`, error);
+      // Continue with null values if timeout
+    }
 
     // Determine sync status
     let syncStatusValue: "active" | "inactive" | "syncing" = "inactive";
@@ -94,47 +176,77 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         ? syncTimes.sort((a, b) => b!.getTime() - a!.getTime())[0]
         : null;
 
-    // Calculate cache metrics
-    const caches = getAllCaches();
-    let totalHits = 0;
-    let totalRequests = 0;
+    // Calculate cache metrics with error handling
+    let cdnHitRate = 94; // Default value
+    let lruUsage = 0;
     let totalCacheSize = 0;
     let maxCacheSize = 0;
+    let cachesList: Array<{ instance: any }> = [];
+    let cacheCount = 0;
 
-    caches.forEach(({ instance }) => {
-      const hits = (instance as any).hits || 0;
-      const misses = (instance as any).misses || 0;
-      totalHits += hits;
-      totalRequests += hits + misses;
-      totalCacheSize += instance.size;
-      maxCacheSize += instance.max;
-    });
+    try {
+      cachesList = getAllCaches() ?? [];
+      cacheCount = cachesList.length;
 
-    const cdnHitRate =
-      totalRequests > 0 ? Math.round((totalHits / totalRequests) * 100) : 94; // Default to a realistic value if no data
+      let totalHits = 0;
+      let totalRequests = 0;
 
-    const lruUsage =
-      maxCacheSize > 0 ? Math.round((totalCacheSize / maxCacheSize) * 100) : 0;
+      for (const { instance } of cachesList) {
+        const hits = Number(instance?.hits ?? 0);
+        const misses = Number(instance?.misses ?? 0);
+        const size = Number(instance?.size ?? 0);
+        const max = Number(instance?.max ?? 0);
+
+        totalHits += hits;
+        totalRequests += hits + misses;
+        totalCacheSize += size;
+        maxCacheSize += max;
+      }
+
+      if (totalRequests > 0)
+        cdnHitRate = Math.round((totalHits / totalRequests) * 100);
+      if (maxCacheSize > 0)
+        lruUsage = Math.round((totalCacheSize / maxCacheSize) * 100);
+    } catch (error) {
+      console.error(`[${traceId}] Cache metrics calculation error:`, error);
+    }
 
     // Get last cache clear
-    const lastCacheClear = await prisma.cacheHistory.findFirst({
-      orderBy: { timestamp: "desc" },
-      select: { timestamp: true },
-    });
+    const lastCacheClear = await prisma.cacheHistory
+      .findFirst({
+        orderBy: { timestamp: "desc" },
+        select: { timestamp: true },
+      })
+      .catch(() => null);
 
-    // Get recent activity for the activity feed (using correct field name 'timestamp')
-    const recentActivity = await prisma.admin_activity_logs.findMany({
-      orderBy: { timestamp: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        action: true,
-        entityType: true,
-        userId: true,
-        timestamp: true,
-        metadata: true,
-      },
-    });
+    // Get recent activity with error handling and timeout
+    let recentActivity = [];
+    try {
+      const activityPromise = prisma.admin_activity_logs.findMany({
+        orderBy: { timestamp: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          userId: true,
+          timestamp: true,
+          metadata: true,
+        },
+      });
+
+      const activityTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Activity fetch timeout")), 2000)
+      );
+
+      recentActivity = (await Promise.race([
+        activityPromise,
+        activityTimeout,
+      ])) as any[];
+    } catch (error) {
+      console.error(`[${traceId}] Recent activity fetch error:`, error);
+      recentActivity = [];
+    }
 
     // Compile dashboard stats
     const stats = {
@@ -166,7 +278,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         lastCleared: lastCacheClear?.timestamp?.toISOString() || null,
         totalCacheSize,
         maxCacheSize,
-        cacheCount: caches.length,
+        cacheCount,
       },
       recentActivity: recentActivity.map((activity) => ({
         id: activity.id,
@@ -181,21 +293,55 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       })),
     };
 
+    // Store in cache
+    if (!global.dashboardCache) {
+      global.dashboardCache = new Map();
+    }
+
+    global.dashboardCache.set(cacheKey, {
+      data: stats,
+      timestamp: Date.now(),
+    });
+
+    // Clean old cache entries
+    if (global.dashboardCache.size > 100) {
+      const firstKey = global.dashboardCache.keys().next().value;
+      if (firstKey) {
+        global.dashboardCache.delete(firstKey);
+      }
+    }
+
     res.setHeader("X-Trace-Id", traceId);
-    res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate");
+    res.setHeader("X-Cache", "MISS");
+    res.setHeader(
+      "Cache-Control",
+      "private, max-age=30, stale-while-revalidate=60"
+    );
 
     return res.status(200).json({
       success: true,
       data: stats,
       traceId,
       timestamp: new Date().toISOString(),
+      cached: false,
     });
   } catch (error) {
     console.error(`[${traceId}] Failed to fetch dashboard stats:`, error);
-    return res.status(500).json({
+
+    // Return a more user-friendly error message
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    const isTimeout = errorMessage.includes("timeout");
+    const statusCode = isTimeout ? 504 : 500;
+
+    return res.status(statusCode).json({
       success: false,
-      error: "Failed to fetch dashboard statistics",
-      message: error instanceof Error ? error.message : "Unknown error",
+      error: isTimeout
+        ? "Database response timeout. Please try again."
+        : "Failed to fetch dashboard statistics. Please refresh the page.",
+      message:
+        process.env.NODE_ENV === "development" ? errorMessage : undefined,
       traceId,
     });
   }
@@ -214,6 +360,9 @@ function formatAction(action: string): string {
     LOGOUT: "Admin logged out",
     OPTIMIZE_DATABASE: "Database optimized",
     WEBHOOK_RENEWED: "Webhook subscription renewed",
+    MANUAL_REFRESH: "Dashboard refreshed",
+    AUTO_SYNC: "Auto-sync triggered",
+    ERROR_LOGGED: "Error logged",
   };
 
   return actionMap[action] || action.replace(/_/g, " ").toLowerCase();
@@ -228,19 +377,26 @@ function extractActivityDetails(action: string, metadata: any): string | null {
       case "SYNC_PLAYLIST":
         return metadata.playlistName || metadata.playlistId || null;
       case "UPDATE_CONFIG":
-        return "Video page configuration";
+        return metadata.section || "Video page configuration";
       case "CLEAR_CACHE":
-        return metadata.type ? `${metadata.type} cache` : null;
+        return metadata.type ? `${metadata.type} cache` : "All caches";
       case "UPDATE_PLAYLIST":
         return metadata.playlistName || metadata.playlistId || null;
       case "PURGE_CDN":
         return metadata.path || "All paths";
+      case "ERROR_LOGGED":
+        return metadata.error?.substring(0, 50) || "Unknown error";
       default:
         return null;
     }
   } catch {
     return null;
   }
+}
+
+// Add TypeScript declaration for global cache
+declare global {
+  var dashboardCache: Map<string, { data: any; timestamp: number }> | undefined;
 }
 
 // Export with authentication wrapper
