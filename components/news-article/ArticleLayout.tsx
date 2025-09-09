@@ -288,52 +288,6 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
               targetingParams={dfpTargetingParams}
             />
           </div>
-
-          {/* Not Working in both v3 and v4 */}
-          <div className="overflow-hidden text-center">
-            {/* <AdSlot
-              targetingParams={dfpTargetingParams}
-              id="div-gpt-ad-1691483572864-0"
-              name="1x1_MG"
-              sizes={[1, 1]}
-              visibleOnDevices="onlyMobile"
-            /> */}
-            {typeof window !== "undefined" && (
-              <>
-                {/* Desktop Widget */}
-                {!isMobile && (
-                  <>
-                    <div
-                      data-type="_mgwidget"
-                      data-widget-id="1509834"
-                      data-src-id="${PUBLISHER_ID}"
-                    />
-                    <script
-                      dangerouslySetInnerHTML={{
-                        __html: `(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");`,
-                      }}
-                    />
-                  </>
-                )}
-
-                {/* Mobile Widget */}
-                {isMobile && (
-                  <>
-                    <div
-                      data-type="_mgwidget"
-                      data-widget-id="1509838"
-                      data-src-id="${PUBLISHER_ID}"
-                    />
-                    <script
-                      dangerouslySetInnerHTML={{
-                        __html: `(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");`,
-                      }}
-                    />
-                  </>
-                )}
-              </>
-            )}
-          </div>
         </div>
 
         {/* Our of Page Ad */}
