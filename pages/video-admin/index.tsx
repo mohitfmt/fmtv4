@@ -1,20 +1,37 @@
+// pages/video-admin/index.tsx
 import { GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subDays, format } from "date-fns";
 import {
   motion,
   AnimatePresence,
   Variants,
   MotionConfig,
   useReducedMotion,
-  useInView,
+  LazyMotion,
+  domAnimation,
+  m,
 } from "framer-motion";
 import CountUp from "react-countup";
 import { cn } from "@/lib/utils";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Area,
+  AreaChart,
+} from "recharts";
 
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -28,17 +45,16 @@ import {
   MdList,
   MdSettings,
   MdTrendingUp,
+  MdTrendingDown,
 } from "react-icons/md";
 import {
   FiActivity,
   FiVideo,
   FiClock,
-  FiMail,
   FiWifiOff,
-  FiInfo,
-  FiChevronRight,
   FiZap,
   FiAlertCircle,
+  FiTrendingUp as FiTrending,
 } from "react-icons/fi";
 
 // TypeScript interfaces
@@ -51,12 +67,22 @@ interface PageProps {
   session?: any;
 }
 
+interface VideoUploadData {
+  date: string;
+  day: string;
+  videos: number;
+  lastWeek: number;
+}
+
 interface DashboardStats {
   videos: {
     total: number;
     lastAdded: string | null;
     trending: number;
     newToday: number;
+    thisWeek?: number;
+    lastWeek?: number;
+    uploadHistory?: VideoUploadData[];
   };
   playlists: {
     total: number;
@@ -92,42 +118,14 @@ interface DashboardResponse {
   timestamp: string;
 }
 
-// Static configuration - moved outside component
-const QUICK_ACTIONS = [
-  {
-    href: "/video-admin/configuration",
-    icon: MdSettings,
-    label: "Configuration",
-    description: "Manage settings",
-  },
-  {
-    href: "/video-admin/playlists",
-    icon: MdList,
-    label: "Playlists",
-    description: "Organize videos",
-  },
-  {
-    href: "/video-admin/sync",
-    icon: MdRefresh,
-    label: "Sync Control",
-    description: "YouTube sync",
-  },
-  {
-    href: "/video-admin/cache",
-    icon: MdStorage,
-    label: "Cache",
-    description: "Optimize storage",
-  },
-];
-
 // Animation Variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
     },
   },
 };
@@ -148,239 +146,291 @@ const cardVariants: Variants = {
   },
 };
 
-const activityItemVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    x: -20,
-  },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-    },
-  },
+// Custom Tooltip for Chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-popover border border-border rounded-lg shadow-lg p-3">
+        <p className="text-sm font-medium">{label}</p>
+        <div className="space-y-1 mt-2">
+          <p className="text-sm">
+            <span className="text-muted-foreground">This Week:</span>{" "}
+            <span className="font-semibold text-primary">
+              {payload[0].value} videos
+            </span>
+          </p>
+          {payload[1] && (
+            <p className="text-sm">
+              <span className="text-muted-foreground">Last Week:</span>{" "}
+              <span className="font-medium">{payload[1].value} videos</span>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
 };
 
-// Safe progress bar color variants - no dynamic Tailwind classes
-const PROGRESS_VARIANTS = {
-  success: "bg-green-600",
-  info: "bg-blue-600",
-  warning: "bg-orange-600",
-  danger: "bg-red-600",
-} as const;
-
-// Components
-
-function AnimatedProgressBar({
-  value,
-  variant = "success",
-  height = 4,
+// Week Comparison Component
+function WeekComparison({
+  thisWeek = 0,
+  lastWeek = 0,
 }: {
-  value: number;
-  variant?: keyof typeof PROGRESS_VARIANTS;
-  height?: number;
+  thisWeek: number;
+  lastWeek: number;
 }) {
+  const percentChange =
+    lastWeek > 0
+      ? ((thisWeek - lastWeek) / lastWeek) * 100
+      : thisWeek > 0
+        ? 100
+        : 0;
+  const isIncrease = thisWeek >= lastWeek;
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div
-      className="w-full bg-muted rounded-full overflow-hidden"
-      style={{ height }}
-    >
-      <motion.div
-        className={cn("h-full", PROGRESS_VARIANTS[variant])}
-        initial={{ width: shouldReduceMotion ? `${value}%` : 0 }}
-        animate={{ width: `${value}%` }}
-        transition={
-          shouldReduceMotion
-            ? {}
-            : {
-                duration: 1.2,
-                ease: "easeOut",
-                delay: 0.2,
-              }
-        }
-      />
-    </div>
-  );
-}
-
-function AnimatedNumber({
-  value,
-  duration = 2,
-  prefix = "",
-  suffix = "",
-}: {
-  value: number;
-  duration?: number;
-  prefix?: string;
-  suffix?: string;
-}) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-10%" });
-  const shouldReduceMotion = useReducedMotion();
-
-  return (
-    <span ref={ref} className="text-2xl font-bold text-foreground">
-      {prefix}
-      {inView ? (
-        <CountUp
-          start={0}
-          end={value}
-          duration={shouldReduceMotion ? 0 : duration}
-          separator=","
-          decimals={0}
-        />
-      ) : (
-        "0"
-      )}
-      {suffix}
-    </span>
-  );
-}
-
-function PulseDot({ status }: { status: "active" | "inactive" | "syncing" }) {
-  const shouldReduceMotion = useReducedMotion();
-  const colors = {
-    active: "bg-green-500",
-    inactive: "bg-gray-400",
-    syncing: "bg-blue-500",
-  };
-
-  if (shouldReduceMotion) {
-    return <div className={cn("w-2 h-2 rounded-full", colors[status])} />;
-  }
-
-  return (
-    <div className="relative">
-      <div className={cn("w-2 h-2 rounded-full", colors[status])} />
-      {status === "active" && !shouldReduceMotion && (
-        <div
-          className={cn(
-            "absolute inset-0 w-2 h-2 rounded-full animate-ping",
-            colors[status]
-          )}
-        />
-      )}
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
-        <div className="h-10 w-32 bg-muted rounded-lg animate-pulse" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="bg-card rounded-lg border border-border p-4 animate-pulse"
-          >
-            <div className="h-4 w-24 bg-muted rounded mb-2" />
-            <div className="h-8 w-32 bg-muted rounded" />
-            <div className="h-3 w-20 bg-muted rounded mt-2" />
+    <LazyMotion features={domAnimation}>
+      <m.div
+        initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-card rounded-lg border border-border p-4"
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Weekly Comparison
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">This Week</span>
+                <span className="text-lg font-semibold">{thisWeek}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Last Week</span>
+                <span className="text-sm font-medium">{lastWeek}</span>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
+
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center ml-4 px-3 py-2 rounded-lg",
+              isIncrease ? "bg-green-500/10" : "bg-red-500/10"
+            )}
+          >
+            {isIncrease ? (
+              <MdTrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+            ) : (
+              <MdTrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+            )}
+            <span
+              className={cn(
+                "text-sm font-bold mt-1",
+                isIncrease
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
+              )}
+            >
+              {percentChange > 0 ? "+" : ""}
+              {percentChange.toFixed(0)}%
+            </span>
+          </div>
+        </div>
+      </m.div>
+    </LazyMotion>
   );
 }
 
-// Custom hooks
+// Video Upload Graph Component
+function VideoUploadGraph({ data }: { data: VideoUploadData[] }) {
+  const shouldReduceMotion = useReducedMotion();
+  const [chartType, setChartType] = useState<"area" | "bar">("area");
 
-function useActivityDetection(timeout = 5 * 60 * 1000) {
-  const [isActive, setIsActive] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  return (
+    <LazyMotion features={domAnimation}>
+      <m.div
+        initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-card rounded-lg border border-border p-4"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold">
+              Video Uploads - Last 7 Days
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Daily upload activity
+            </p>
+          </div>
+          <div className="flex gap-1 p-1 bg-muted rounded-lg">
+            <button
+              onClick={() => setChartType("area")}
+              className={cn(
+                "px-2 py-1 text-xs rounded transition-colors",
+                chartType === "area"
+                  ? "bg-background shadow-sm"
+                  : "hover:bg-background/50"
+              )}
+            >
+              Area
+            </button>
+            <button
+              onClick={() => setChartType("bar")}
+              className={cn(
+                "px-2 py-1 text-xs rounded transition-colors",
+                chartType === "bar"
+                  ? "bg-background shadow-sm"
+                  : "hover:bg-background/50"
+              )}
+            >
+              Bar
+            </button>
+          </div>
+        </div>
 
-  const resetTimeout = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setIsActive(true);
-    timeoutRef.current = setTimeout(() => {
-      setIsActive(false);
-    }, timeout);
-  }, [timeout]);
+        <div className="h-48 md:h-64 -mx-2">
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === "area" ? (
+              <AreaChart
+                data={data}
+                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="colorThisWeek"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient
+                    id="colorLastWeek"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="lastWeek"
+                  stroke="#94a3b8"
+                  fill="url(#colorLastWeek)"
+                  strokeWidth={1.5}
+                  name="Last Week"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="videos"
+                  stroke="#3b82f6"
+                  fill="url(#colorThisWeek)"
+                  strokeWidth={2}
+                  name="This Week"
+                />
+              </AreaChart>
+            ) : (
+              <BarChart
+                data={data}
+                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="lastWeek" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="videos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
 
-  useEffect(() => {
-    const events = [
-      "mousedown",
-      "mousemove",
-      "keypress",
-      "scroll",
-      "touchstart",
-    ];
-
-    events.forEach((event) => {
-      document.addEventListener(event, resetTimeout, true);
-    });
-
-    resetTimeout();
-
-    return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, resetTimeout, true);
-      });
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [resetTimeout]);
-
-  return isActive;
+        <div className="flex items-center justify-center gap-4 mt-3">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full" />
+            <span className="text-xs text-muted-foreground">This Week</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-slate-400 rounded-full" />
+            <span className="text-xs text-muted-foreground">Last Week</span>
+          </div>
+        </div>
+      </m.div>
+    </LazyMotion>
+  );
 }
 
-// Main component
-
-export default function VideoAdminDashboard({
-  requiresAuth,
-  unauthorized,
-  userEmail,
-  session: serverSession,
-}: PageProps) {
-  const { data: session, status: sessionStatus } = useSession();
+// Main Dashboard Component
+export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
+  const { data: currentSession } = useSession();
   const router = useRouter();
-  const currentSession = session || serverSession;
   const shouldReduceMotion = useReducedMotion();
 
-  // State
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [lastManualRefreshAt, setLastManualRefreshAt] = useState(0);
-  const [refreshRotation, setRefreshRotation] = useState(0);
+  const [isUserActive, setIsUserActive] = useState(true);
+  const [lastManualRefreshAt, setLastManualRefreshAt] = useState<Date | null>(
+    null
+  );
 
-  // Refs
-  const abortRef = useRef<AbortController | null>(null);
-  const refreshIntervalRef = useRef<ReturnType<typeof setInterval>>();
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  // For retry display
   const retryCountRef = useRef(0);
+  const [retryCountView, setRetryCountView] = useState(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const refreshIntervalRef = useRef<NodeJS.Timeout>();
+  const abortRef = useRef<AbortController>();
 
-  // Hooks
-  const isUserActive = useActivityDetection();
-
-  // Calculate dynamic refresh interval
-  const getRefreshInterval = useCallback(() => {
-    // 30 seconds after manual refresh, then 2 min active / 5 min idle
-    if (lastManualRefreshAt > 0 && Date.now() - lastManualRefreshAt < 30000) {
-      return 30000;
+  // Generate upload data from API response
+  const uploadData = useMemo(() => {
+    // Use real data from API
+    if (stats?.videos?.uploadHistory && stats.videos.uploadHistory.length > 0) {
+      return stats.videos.uploadHistory;
     }
+
+    // Return empty array if no data yet (during loading)
+    return [];
+  }, [stats]);
+
+  // Calculate auto-refresh interval
+  const autoRefreshInterval = useMemo(() => {
     return isUserActive ? 2 * 60 * 1000 : 5 * 60 * 1000;
-  }, [isUserActive, lastManualRefreshAt]);
+  }, [isUserActive]);
 
   // Load dashboard stats
   const loadDashboardStats = useCallback(
     async (silent = false, isRetry = false) => {
-      // Cancel any in-flight requests
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -418,10 +468,23 @@ export default function VideoAdminDashboard({
         );
 
         if (response?.data) {
+          // Log the API response in development
+          if (process.env.NODE_ENV === "development") {
+            console.log("Dashboard API Response:", {
+              thisWeek: response.data.videos.thisWeek,
+              lastWeek: response.data.videos.lastWeek,
+              uploadHistory: response.data.videos.uploadHistory,
+              trending: response.data.videos.trending,
+              newToday: response.data.videos.newToday,
+            });
+          }
+
+          // Set stats directly from API - NO MOCKING!
           setStats(response.data);
           setLastUpdated(new Date());
           setError(null);
           retryCountRef.current = 0;
+          setRetryCountView(0);
           setIsOffline(false);
 
           sessionStorage.setItem(
@@ -443,7 +506,9 @@ export default function VideoAdminDashboard({
             "You appear to be offline. Data will refresh when connection is restored."
           );
         } else {
-          setError("Failed to load dashboard statistics. Retrying...");
+          setError(
+            `Failed to load dashboard statistics. Retry attempt: ${retryCountRef.current + 1}/3`
+          );
 
           if (retryCountRef.current < 3) {
             const retryDelay = Math.min(
@@ -452,6 +517,7 @@ export default function VideoAdminDashboard({
             );
             retryTimeoutRef.current = setTimeout(() => {
               retryCountRef.current++;
+              setRetryCountView(retryCountRef.current);
               loadDashboardStats(true, true);
             }, retryDelay);
           } else {
@@ -461,9 +527,6 @@ export default function VideoAdminDashboard({
           }
         }
       } finally {
-        if (abortRef.current === controller) {
-          abortRef.current = null;
-        }
         setLoading(false);
         setRefreshing(false);
       }
@@ -471,90 +534,73 @@ export default function VideoAdminDashboard({
     []
   );
 
-  // Handle manual refresh with 180° rotation
+  // Manual refresh handler
   const handleRefresh = useCallback(() => {
-    setRefreshRotation((prev) => prev + 180);
-    setLastManualRefreshAt(Date.now());
-    loadDashboardStats();
-
-    // Re-arm the interval with new timing
-    if (refreshIntervalRef.current) {
-      clearInterval(refreshIntervalRef.current);
-    }
-
-    // Use 30 seconds for immediate interval after manual refresh
-    refreshIntervalRef.current = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadDashboardStats(true);
-      }
-    }, 30000);
+    setLastManualRefreshAt(new Date());
+    retryCountRef.current = 0;
+    setRetryCountView(0);
+    loadDashboardStats(true);
   }, [loadDashboardStats]);
 
-  // Set up auto-refresh with visibility handling
+  // Initial load
   useEffect(() => {
-    if (!currentSession) return;
-
-    const setupRefresh = () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-
-      if (document.visibilityState === "visible") {
-        const interval = getRefreshInterval();
-        refreshIntervalRef.current = setInterval(() => {
-          if (document.visibilityState === "visible") {
-            loadDashboardStats(true);
-          }
-        }, interval);
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        loadDashboardStats(true);
-        setupRefresh();
-      } else {
-        if (refreshIntervalRef.current) {
-          clearInterval(refreshIntervalRef.current);
-        }
-      }
-    };
-
-    // Initial load
     loadDashboardStats();
-    setupRefresh();
+  }, []);
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+  // Auto refresh setup
+  useEffect(() => {
+    refreshIntervalRef.current = setInterval(() => {
+      loadDashboardStats(true);
+    }, autoRefreshInterval);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-      abortRef.current?.abort();
     };
-  }, [
-    currentSession,
-    getRefreshInterval,
-    loadDashboardStats,
-    lastManualRefreshAt,
-  ]);
+  }, [autoRefreshInterval, loadDashboardStats]);
 
-  // Online/offline detection
+  // User activity detection
+  useEffect(() => {
+    let activityTimeout: NodeJS.Timeout;
+
+    const handleActivity = () => {
+      setIsUserActive(true);
+      clearTimeout(activityTimeout);
+      activityTimeout = setTimeout(
+        () => {
+          setIsUserActive(false);
+        },
+        10 * 60 * 1000
+      );
+    };
+
+    const events = ["mousedown", "keydown", "scroll", "touchstart"];
+    events.forEach((event) => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    handleActivity();
+
+    return () => {
+      events.forEach((event) => {
+        window.removeEventListener(event, handleActivity);
+      });
+      clearTimeout(activityTimeout);
+    };
+  }, []);
+
+  // Online/Offline detection
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
-      loadDashboardStats(true);
+      if (error?.includes("offline")) {
+        loadDashboardStats(true);
+      }
     };
 
     const handleOffline = () => {
       setIsOffline(true);
-      setError(
-        "Connection lost. Data will refresh when connection is restored."
-      );
     };
 
     window.addEventListener("online", handleOnline);
@@ -564,104 +610,36 @@ export default function VideoAdminDashboard({
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [loadDashboardStats]);
+  }, [error, loadDashboardStats]);
 
-  // Handle authentication
+  // Cleanup
   useEffect(() => {
-    if (requiresAuth && sessionStatus === "loading") {
-      return;
-    }
+    return () => {
+      abortRef.current?.abort();
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, []);
 
-    if (
-      requiresAuth &&
-      !currentSession &&
-      sessionStatus === "unauthenticated"
-    ) {
-      router.replace("/video-admin/login");
-    }
-  }, [requiresAuth, currentSession, sessionStatus, router]);
-
-  // Show nothing while redirecting
+  // Require auth check
   if (requiresAuth && !currentSession) {
     return null;
-  }
-
-  // Unauthorized state
-  if (
-    unauthorized ||
-    (currentSession?.user?.email &&
-      !currentSession.user.email.endsWith("@freemalaysiatoday.com"))
-  ) {
-    return (
-      <>
-        <Head>
-          <title>Access Denied - Video Admin</title>
-          <meta name="robots" content="noindex,nofollow,noarchive" />
-        </Head>
-
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <div className="bg-card rounded-lg shadow-lg border border-border p-8">
-              <div className="text-center mb-6">
-                <AiOutlineWarning className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-foreground">
-                  Access Denied
-                </h1>
-                <p className="text-muted-foreground mt-2 mb-4">
-                  Your account{" "}
-                  <span className="font-semibold">
-                    ({userEmail || currentSession?.user?.email})
-                  </span>{" "}
-                  is not authorized to access this portal.
-                </p>
-                <div className="bg-muted/50 rounded-lg p-4 text-left">
-                  <p className="text-sm font-medium mb-2">Requirements:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Must use @freemalaysiatoday.com email address</li>
-                    <li>• Must be granted admin access</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-6 mt-6">
-                <div className="text-center">
-                  <p className="text-sm font-medium mb-3">Need Access?</p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Contact the administrators:
-                  </p>
-                  <div className="space-y-2">
-                    <a
-                      href="mailto:mohit@freemalaysiatoday.com"
-                      className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1"
-                    >
-                      <FiMail className="w-3 h-3" />
-                      mohit@freemalaysiatoday.com
-                    </a>
-                    <a
-                      href="mailto:afiq@freemalaysiatoday.com"
-                      className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1"
-                    >
-                      <FiMail className="w-3 h-3" />
-                      afiq@freemalaysiatoday.com
-                    </a>
-                    <p className="text-xs text-muted-foreground pt-2">
-                      Or contact the Technical Department
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
   }
 
   // Loading state
   if (loading && !stats) {
     return (
       <AdminLayout title="Dashboard">
-        <LoadingSkeleton />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
       </AdminLayout>
     );
   }
@@ -670,23 +648,26 @@ export default function VideoAdminDashboard({
   if (error && !stats) {
     return (
       <AdminLayout title="Dashboard">
-        <div
-          className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
-          role="alert"
-        >
-          <div className="flex items-center gap-2">
-            <AiOutlineWarning className="w-5 h-5 text-red-600" />
-            <p className="text-sm font-medium text-red-900 dark:text-red-100">
-              {error}
-            </p>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center max-w-md">
+            <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2">Unable to load dashboard</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            {retryCountView > 0 && retryCountView < 3 && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Retry attempt: {retryCountView}/3
+              </p>
+            )}
+            <button
+              onClick={handleRefresh}
+              className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1 mx-auto"
+              aria-busy={refreshing}
+              aria-live="polite"
+            >
+              <MdRefresh className="w-3 h-3" />
+              Try Again
+            </button>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1"
-          >
-            <MdRefresh className="w-3 h-3" />
-            Try Again
-          </button>
         </div>
       </AdminLayout>
     );
@@ -700,391 +681,394 @@ export default function VideoAdminDashboard({
         <meta name="robots" content="noindex,nofollow,noarchive" />
       </Head>
 
-      <AdminLayout title="Dashboard">
-        <MotionConfig reducedMotion="user">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            {/* Status bar */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                {lastUpdated && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                    <FiClock className="w-3 h-3" />
-                    Updated{" "}
-                    {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-                  </div>
-                )}
-
-                {isUserActive ? (
-                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-full">
-                    <FiZap className="w-3 h-3" />
-                    <span>Active</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                    <FiInfo className="w-3 h-3" />
-                    <span>Idle</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                {isOffline && (
-                  <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 px-3 py-1 rounded-full">
-                    <FiWifiOff className="w-3 h-3" />
-                    Offline
-                  </div>
-                )}
-
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="Refresh dashboard data"
-                >
-                  <motion.span
-                    animate={{ rotate: refreshRotation }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="inline-flex"
-                  >
-                    <MdRefresh className="w-4 h-4" />
-                  </motion.span>
-                  {refreshing ? "Refreshing..." : "Refresh"}
-                </button>
-              </div>
-            </div>
-
-            {/* Offline/Error Banner */}
-            <AnimatePresence>
-              {(isOffline || error) && stats && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 overflow-hidden"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div className="flex items-center gap-2">
-                    <FiAlertCircle className="w-4 h-4 text-yellow-600" />
-                    <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                      {isOffline
-                        ? "You're offline. Showing cached data."
-                        : error}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Video Stats Cards */}
-            <motion.div
-              variants={shouldReduceMotion ? {} : containerVariants}
-              initial={shouldReduceMotion ? undefined : "hidden"}
-              animate={shouldReduceMotion ? undefined : "visible"}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      <AdminLayout
+        title="Dashboard"
+        description="Video management overview"
+        isRefreshing={refreshing}
+        onRefresh={handleRefresh}
+      >
+        <LazyMotion features={domAnimation}>
+          <MotionConfig reducedMotion="user">
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4 md:space-y-6"
             >
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Videos
-                  </p>
-                  <FiVideo className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <AnimatedNumber value={stats?.videos.total || 0} />
-                {stats?.videos.lastAdded && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Last:{" "}
-                    {formatDistanceToNow(new Date(stats.videos.lastAdded), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                )}
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    New Today
-                  </p>
-                  <FiClock className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <AnimatedNumber value={stats?.videos.newToday || 0} />
-                <div className="text-xs text-muted-foreground mt-1">
-                  Last 24 hours
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Trending
-                  </p>
-                  <MdTrendingUp className="w-4 h-4 text-red-500" />
-                </div>
-                <AnimatedNumber value={stats?.videos.trending || 0} />
-                <div className="text-xs text-muted-foreground mt-1">
-                  Hot & trending
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Playlists
-                  </p>
-                  <MdList className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <AnimatedNumber value={stats?.playlists.total || 0} />
-                <div className="text-xs text-muted-foreground mt-1">
-                  {stats?.playlists.active || 0} active
-                </div>
-              </motion.div>
-            </motion.div>
-
-            {/* System Status Cards */}
-            <motion.div
-              variants={shouldReduceMotion ? {} : containerVariants}
-              initial={shouldReduceMotion ? undefined : "hidden"}
-              animate={shouldReduceMotion ? undefined : "visible"}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-            >
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Sync Status
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <PulseDot status={stats?.sync.status || "inactive"} />
-                    <MdRefresh
-                      className={cn(
-                        "w-4 h-4",
-                        stats?.sync.currentlySyncing &&
-                          !shouldReduceMotion &&
-                          "animate-spin text-blue-600",
-                        stats?.sync.status === "active" && "text-green-600",
-                        stats?.sync.status === "inactive" && "text-gray-400"
-                      )}
-                    />
-                  </div>
-                </div>
-                <p className="text-lg font-semibold capitalize">
-                  {stats?.sync.currentlySyncing
-                    ? "Syncing"
-                    : stats?.sync.status || "Unknown"}
-                </p>
-                {stats?.sync.lastSync && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(stats.sync.lastSync), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                )}
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    CDN Hit Rate
-                  </p>
-                  <MdStorage className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-semibold">
-                  {stats?.cache.cdnHitRate || 0}%
-                </p>
-                <div className="mt-2">
-                  <AnimatedProgressBar
-                    value={stats?.cache.cdnHitRate || 0}
-                    variant="success"
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    LRU Cache
-                  </p>
-                  <MdStorage className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-semibold">
-                  {stats?.cache.lruUsage || 0}%
-                </p>
-                <div className="mt-2">
-                  <AnimatedProgressBar
-                    value={stats?.cache.lruUsage || 0}
-                    variant={
-                      (stats?.cache.lruUsage || 0) > 80 ? "warning" : "info"
-                    }
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {} : cardVariants}
-                className="bg-card rounded-lg border border-border p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Next Sync
-                  </p>
-                  <FiClock className="w-4 h-4 text-muted-foreground" />
-                </div>
-                {stats?.sync.nextSync ? (
-                  <p className="text-sm">
-                    {formatDistanceToNow(new Date(stats.sync.nextSync), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not scheduled</p>
-                )}
-              </motion.div>
-            </motion.div>
-
-            {/* Quick Actions - Using proper Link components */}
-            <motion.div
-              variants={shouldReduceMotion ? {} : containerVariants}
-              initial={shouldReduceMotion ? undefined : "hidden"}
-              animate={shouldReduceMotion ? undefined : "visible"}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
-            >
-              {QUICK_ACTIONS.map((item) => (
-                <motion.div
-                  key={item.href}
-                  variants={shouldReduceMotion ? {} : cardVariants}
-                  whileHover={shouldReduceMotion ? {} : { y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Link
-                    href={item.href}
-                    className="block bg-card rounded-lg border border-border p-4 transition-all text-left group hover:border-primary/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={`Navigate to ${item.label}`}
-                    prefetch
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <item.icon className="w-6 h-6 text-primary/70 group-hover:text-primary transition-colors" />
-                      <FiChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              {/* Status bar - Mobile optimized */}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 sm:pb-0">
+                  {lastUpdated && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                      <FiClock className="w-3 h-3" />
+                      Updated{" "}
+                      {formatDistanceToNow(lastUpdated, { addSuffix: true })}
                     </div>
+                  )}
 
-                    <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                      {item.label}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {item.description}
-                    </p>
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.div>
+                  {isUserActive ? (
+                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
+                      <FiZap className="w-3 h-3" />
+                      Active Mode
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
+                      <FiActivity className="w-3 h-3" />
+                      Idle Mode
+                    </div>
+                  )}
 
-            {/* Recent Activity */}
-            <AnimatePresence>
-              {stats?.recentActivity && stats.recentActivity.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  {isOffline && (
+                    <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
+                      <FiWifiOff className="w-3 h-3" />
+                      Offline
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {error && stats && (
+                <m.div
+                  initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3"
+                >
+                  <div className="flex items-start gap-2">
+                    <AiOutlineWarning className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-amber-900 dark:text-amber-200">
+                        {error}
+                      </p>
+                      {retryCountView > 0 && retryCountView < 3 && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          Retry attempt: {retryCountView}/3
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </m.div>
+              )}
+
+              {/* 7-Day Graph and Week Comparison with Hot/New metrics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  {uploadData.length > 0 ? (
+                    <VideoUploadGraph data={uploadData} />
+                  ) : (
+                    <div className="bg-card rounded-lg border border-border p-8 flex items-center justify-center h-64">
+                      <p className="text-muted-foreground">
+                        No upload data available
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <WeekComparison
+                    thisWeek={stats?.videos?.thisWeek || 0}
+                    lastWeek={stats?.videos?.lastWeek || 0}
+                  />
+
+                  {/* Hot/Trending and New Today Cards - Using Real API Data */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <m.div
+                      initial={
+                        shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }
+                      }
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <FiTrending className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                          HOT
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                        <CountUp
+                          end={stats?.videos.trending || 0}
+                          duration={shouldReduceMotion ? 0 : 1.5}
+                        />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Trending
+                      </p>
+                    </m.div>
+
+                    <m.div
+                      initial={
+                        shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }
+                      }
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <FiZap className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                          NEW
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        <CountUp
+                          end={stats?.videos.newToday || 0}
+                          duration={shouldReduceMotion ? 0 : 1.5}
+                        />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Today
+                      </p>
+                    </m.div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Metrics - Responsive grid */}
+              <m.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              >
+                {/* Total Videos */}
+                <m.div
+                  variants={shouldReduceMotion ? {} : cardVariants}
                   className="bg-card rounded-lg border border-border p-4"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <FiActivity className="w-5 h-5" />
-                      Recent Activity
-                    </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Videos
+                    </p>
+                    <FiVideo className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <motion.div
-                    className="space-y-3"
-                    variants={shouldReduceMotion ? {} : containerVariants}
-                    initial={shouldReduceMotion ? undefined : "hidden"}
-                    animate={shouldReduceMotion ? undefined : "visible"}
+                  <p className="text-2xl font-bold">
+                    <CountUp
+                      end={stats?.videos.total || 0}
+                      duration={shouldReduceMotion ? 0 : 1.5}
+                      separator=","
+                    />
+                  </p>
+                  {stats?.videos.newToday !== undefined && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      +{stats.videos.newToday} today
+                    </p>
+                  )}
+                </m.div>
+
+                {/* Active Playlists */}
+                <m.div
+                  variants={shouldReduceMotion ? {} : cardVariants}
+                  className="bg-card rounded-lg border border-border p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Active Playlists
+                    </p>
+                    <MdList className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-bold">
+                    <CountUp
+                      end={stats?.playlists.active || 0}
+                      duration={shouldReduceMotion ? 0 : 1.5}
+                    />
+                    <span className="text-lg text-muted-foreground">
+                      /{stats?.playlists.total || 0}
+                    </span>
+                  </p>
+                  <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                    <m.div
+                      className="h-full bg-green-600"
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${
+                          stats?.playlists.total
+                            ? (stats.playlists.active / stats.playlists.total) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                      transition={
+                        shouldReduceMotion ? {} : { duration: 1, delay: 0.5 }
+                      }
+                    />
+                  </div>
+                </m.div>
+
+                {/* Sync Status */}
+                <m.div
+                  variants={shouldReduceMotion ? {} : cardVariants}
+                  className="bg-card rounded-lg border border-border p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Sync Status
+                    </p>
+                    <FiActivity className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <p
+                    className={cn(
+                      "text-lg font-semibold",
+                      stats?.sync.currentlySyncing &&
+                        "text-blue-600 dark:text-blue-400"
+                    )}
                   >
-                    {stats.recentActivity.map((activity, index) => {
-                      // Determine status based on activity age
-                      const activityAge =
-                        Date.now() - new Date(activity.timestamp).getTime();
-                      const activityStatus =
-                        activityAge < 5 * 60 * 1000
-                          ? "active"
-                          : activityAge < 30 * 60 * 1000
-                            ? "syncing"
-                            : "inactive";
+                    {stats?.sync.currentlySyncing
+                      ? "Syncing"
+                      : stats?.sync.status || "Unknown"}
+                  </p>
+                  {stats?.sync.lastSync && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(stats.sync.lastSync), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  )}
+                </m.div>
 
-                      return (
-                        <motion.div
-                          key={activity.id}
-                          variants={
-                            shouldReduceMotion ? {} : activityItemVariants
-                          }
-                          custom={index}
-                          className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <PulseDot status={activityStatus} />
-                            <div>
-                              <p className="text-sm font-medium">
-                                {activity.action}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {activity.entityType} • {activity.userId}
-                              </p>
+                {/* CDN Hit Rate */}
+                <m.div
+                  variants={shouldReduceMotion ? {} : cardVariants}
+                  className="bg-card rounded-lg border border-border p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      CDN Hit Rate
+                    </p>
+                    <MdStorage className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-bold">
+                    {stats?.cache.cdnHitRate || 0}%
+                  </p>
+                  <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                    <m.div
+                      className={cn(
+                        "h-full",
+                        (stats?.cache.cdnHitRate || 0) >= 80
+                          ? "bg-green-600"
+                          : (stats?.cache.cdnHitRate || 0) >= 60
+                            ? "bg-amber-600"
+                            : "bg-red-600"
+                      )}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stats?.cache.cdnHitRate || 0}%` }}
+                      transition={
+                        shouldReduceMotion ? {} : { duration: 1, delay: 0.5 }
+                      }
+                    />
+                  </div>
+                </m.div>
+              </m.div>
+
+              {/* Quick Actions - Mobile optimized 2x2 grid on small screens */}
+              <div>
+                <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {
+                      href: "/video-admin/configuration",
+                      icon: MdSettings,
+                      label: "Settings",
+                      color: "text-blue-600",
+                    },
+                    {
+                      href: "/video-admin/playlists",
+                      icon: MdList,
+                      label: "Playlists",
+                      color: "text-green-600",
+                    },
+                    {
+                      href: "/video-admin/sync",
+                      icon: MdRefresh,
+                      label: "Sync",
+                      color: "text-purple-600",
+                    },
+                    {
+                      href: "/video-admin/cache",
+                      icon: MdStorage,
+                      label: "Cache",
+                      color: "text-amber-600",
+                    },
+                  ].map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Link
+                        key={action.href}
+                        href={action.href}
+                        className={cn(
+                          "group flex flex-col items-center justify-center p-4 rounded-lg border border-border",
+                          "hover:bg-muted/50 hover:border-primary/50 transition-all",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        )}
+                      >
+                        <Icon className={cn("w-8 h-8 mb-2", action.color)} />
+                        <span className="text-sm font-medium">
+                          {action.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recent Activity - Mobile optimized */}
+              {stats?.recentActivity && stats.recentActivity.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold mb-3">
+                    Recent Activity
+                  </h2>
+                  <div className="bg-card rounded-lg border border-border">
+                    <div className="divide-y divide-border">
+                      {stats.recentActivity
+                        .slice(0, 5)
+                        .map((activity, index) => (
+                          <m.div
+                            key={activity.id}
+                            initial={
+                              shouldReduceMotion ? {} : { opacity: 0, x: -20 }
+                            }
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="p-3 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {activity.action}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {activity.entityType} • {activity.userId}
+                                </p>
+                              </div>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {formatDistanceToNow(
+                                  new Date(activity.timestamp),
+                                  {
+                                    addSuffix: true,
+                                  }
+                                )}
+                              </span>
                             </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(activity.timestamp), {
-                              addSuffix: true,
-                            })}
-                          </p>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                </motion.div>
+                          </m.div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
               )}
-            </AnimatePresence>
-
-            {/* Auto-refresh status */}
-            <div
-              className="text-xs text-center text-muted-foreground"
-              role="status"
-              aria-live="polite"
-            >
-              Auto-refresh:{" "}
-              {isUserActive
-                ? "Every 2 minutes (active)"
-                : "Every 5 minutes (idle)"}
-              {retryCountRef.current > 0 &&
-                ` • Retry attempt: ${retryCountRef.current}/3`}
-            </div>
-          </motion.div>
-        </MotionConfig>
+            </m.div>
+          </MotionConfig>
+        </LazyMotion>
       </AdminLayout>
     </>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR();
+// Server-side props
+export const getServerSideProps: GetServerSideProps = withAdminPageSSR(
+  async (context) => {
+    return {
+      props: {
+        requiresAuth: true,
+        traceId: context.query.traceId || null,
+      },
+    };
+  }
+);

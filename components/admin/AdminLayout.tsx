@@ -1,108 +1,73 @@
+// components/admin/AdminLayout.tsx
+import { useState, useEffect, ReactNode } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/router";
-import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, Variants } from "framer-motion";
-import { LogoSVG } from "@/components/ui/icons/LogoSVG";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/router";
+import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  motion,
+  AnimatePresence,
+  LazyMotion,
+  domAnimation,
+} from "framer-motion";
+import { useTheme } from "next-themes";
+import MobileNav from "./MobileNav";
+
+// Icons
 import {
-  FiLogOut,
+  FiHome,
   FiSettings,
   FiList,
   FiRefreshCw,
   FiDatabase,
-  FiHome,
-  FiChevronRight,
+  FiLogOut,
+  FiUser,
   FiSun,
   FiMoon,
   FiMonitor,
+  FiChevronRight,
 } from "react-icons/fi";
-import { cn } from "@/lib/utils";
+
+// Logo component (simplified version)
+const LogoSVG = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 40 40"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect
+      width="40"
+      height="40"
+      rx="8"
+      fill="currentColor"
+      className="text-primary"
+    />
+    <path d="M12 20L18 14V26L12 20Z" fill="white" />
+    <path d="M22 14H28V16H22V14Z" fill="white" />
+    <path d="M22 19H26V21H22V19Z" fill="white" />
+    <path d="M22 24H28V26H22V24Z" fill="white" />
+  </svg>
+);
 
 interface AdminLayoutProps {
-  children: React.ReactNode;
-  title: string;
+  children: ReactNode;
+  title?: string;
   description?: string;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-// Animation variants with proper typing
-const headerVariants: Variants = {
-  initial: { y: -20, opacity: 0 },
-  animate: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut" as const,
-    },
-  },
-};
-
-const sidebarVariants: Variants = {
-  initial: { x: -20, opacity: 0 },
-  animate: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut" as const,
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const navItemVariants: Variants = {
-  initial: { x: -20, opacity: 0 },
-  animate: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.3,
-      ease: "easeOut" as const,
-    },
-  },
-  hover: {
-    x: 4,
-    transition: { duration: 0.2 },
-  },
-};
-
-const contentVariants: Variants = {
-  initial: { opacity: 0, y: 20 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut" as const,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    transition: { duration: 0.3 },
-  },
-};
-
-// Theme Toggle Component
-function ThemeToggle() {
+// Theme Toggle Component for Desktop
+function DesktopThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return <div className="w-9 h-9 rounded-lg bg-muted animate-pulse" />;
-  }
+  if (!mounted) return null;
 
   const themes = [
     { value: "light", icon: FiSun, label: "Light" },
@@ -110,47 +75,34 @@ function ThemeToggle() {
     { value: "system", icon: FiMonitor, label: "System" },
   ];
 
-  const currentTheme = themes.find((t) => t.value === theme) || themes[2];
-  const Icon = currentTheme.icon;
+  const currentTheme = themes.find((t) => t.value === (theme || "system"));
+  const Icon = currentTheme?.icon || FiSun;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={theme}
-              initial={{ rotate: -30, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 30, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Icon className="w-5 h-5" />
-            </motion.div>
-          </AnimatePresence>
-          <span className="sr-only">Toggle theme</span>
-        </motion.button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
-        {themes.map(({ value, icon: ThemeIcon, label }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className={cn(
-              "cursor-pointer flex items-center gap-2",
-              theme === value && "bg-accent"
-            )}
-          >
-            <ThemeIcon className="w-4 h-4" />
-            <span>{label}</span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="relative group">
+      <button
+        onClick={() => {
+          const currentIndex = themes.findIndex(
+            (t) => t.value === (theme || "system")
+          );
+          const nextIndex = (currentIndex + 1) % themes.length;
+          setTheme(themes[nextIndex].value);
+        }}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
+          "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        )}
+        aria-label={`Current theme: ${currentTheme?.label}. Click to change.`}
+      >
+        <Icon className="w-4 h-4" />
+        <span className="text-xs font-medium">{currentTheme?.label}</span>
+      </button>
+
+      {/* Tooltip */}
+      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+        Click to cycle themes
+      </div>
+    </div>
   );
 }
 
@@ -158,10 +110,13 @@ export default function AdminLayout({
   children,
   title,
   description,
+  isRefreshing,
+  onRefresh,
 }: AdminLayoutProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleSignOut = () => {
     sessionStorage.setItem("admin_signed_out", "true");
@@ -196,193 +151,210 @@ export default function AdminLayout({
     };
   }, [router]);
 
+  // Load sidebar preference
+  useEffect(() => {
+    const savedState = localStorage.getItem("admin-sidebar-collapsed");
+    if (savedState !== null) {
+      setIsSidebarCollapsed(savedState === "true");
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    const newState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newState);
+    localStorage.setItem("admin-sidebar-collapsed", String(newState));
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Loading Bar */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 z-[100] origin-left"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <motion.header
-        variants={headerVariants}
-        initial="initial"
-        animate="animate"
-        className="bg-card shadow-sm border-b border-border sticky top-0 z-50 backdrop-blur-md bg-card/95"
-      >
-        <div className="mx-auto px-4 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Link href="/video-admin">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <LogoSVG className="h-8 cursor-pointer" />
-              </motion.div>
-            </Link>
+    <LazyMotion features={domAnimation}>
+      <div className="min-h-screen bg-background">
+        {/* Loading Bar */}
+        <AnimatePresence>
+          {isLoading && (
             <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 24 }}
-              transition={{ delay: 0.2 }}
-              className="w-px bg-border"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 z-[100] origin-left"
             />
-            <motion.h1
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-xl font-semibold text-foreground"
-            >
-              Video Admin
-            </motion.h1>
-          </div>
+          )}
+        </AnimatePresence>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex items-center gap-3"
-          >
-            <motion.span
-              className="text-sm text-muted-foreground hidden sm:block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              {session?.user?.email}
-            </motion.span>
+        {/* Mobile Navigation */}
+        <MobileNav isRefreshing={isRefreshing} onRefresh={onRefresh} />
 
-            <ThemeToggle />
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                size="sm"
-                className="hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 hover:border-red-200 dark:hover:border-red-800 transition-all"
-              >
-                <FiLogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </motion.div>
-          </motion.div>
-        </div>
-      </motion.header>
-
-      <div className="flex mx-auto">
-        {/* Sidebar Navigation */}
-        <motion.nav
-          variants={sidebarVariants}
-          initial="initial"
-          animate="animate"
-          className="w-64 bg-card border-r border-border min-h-[calc(100vh-4rem)]"
-        >
-          <div className="p-4 space-y-1">
-            {navItems.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = router.pathname === item.href;
-
-              return (
-                <motion.div
-                  key={item.href}
-                  variants={navItemVariants}
-                  custom={index}
-                  whileHover="hover"
-                >
-                  <Link href={item.href}>
-                    <div
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer relative overflow-hidden",
-                        isActive
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {/* Hover ripple effect */}
-                      {!isActive && (
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-primary/5 to-purple-600/5"
-                          initial={{ x: "-100%" }}
-                          whileHover={{ x: 0 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      )}
-
-                      <motion.div
-                        animate={{ scale: isActive ? 1.1 : 1 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Icon className="w-5 h-5 relative z-10" />
-                      </motion.div>
-
-                      <span className="font-medium relative z-10">
-                        {item.label}
-                      </span>
-
-                      <AnimatePresence>
-                        {isActive && (
-                          <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            className="ml-auto"
-                          >
-                            <FiChevronRight className="w-4 h-4" />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.nav>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6 overflow-hidden">
-          {/* Page Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6"
-          >
-            <h2 className="text-3xl font-bold text-foreground">{title}</h2>
-            {description && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-muted-foreground mt-1"
-              >
-                {description}
-              </motion.p>
+        {/* Desktop Layout */}
+        <div className="hidden lg:flex h-screen">
+          {/* Desktop Sidebar */}
+          <aside
+            className={cn(
+              "bg-card border-r border-border transition-all duration-300 flex flex-col",
+              isSidebarCollapsed ? "w-16" : "w-64"
             )}
-          </motion.div>
+          >
+            {/* Sidebar Header */}
+            <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+              {!isSidebarCollapsed && (
+                <Link href="/video-admin" className="flex items-center gap-3">
+                  <LogoSVG className="h-8 w-8" />
+                  <span className="font-semibold text-lg">Video Admin</span>
+                </Link>
+              )}
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                aria-label={
+                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                }
+              >
+                <FiChevronRight
+                  className={cn(
+                    "w-5 h-5 transition-transform",
+                    !isSidebarCollapsed && "rotate-180"
+                  )}
+                />
+              </button>
+            </div>
 
-          {/* Page Content with Animation */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={router.pathname}
-              variants={contentVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </main>
+            {/* Navigation */}
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = router.pathname === item.href;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      isActive && "bg-muted text-primary font-medium",
+                      isSidebarCollapsed && "justify-center"
+                    )}
+                    title={isSidebarCollapsed ? item.label : undefined}
+                  >
+                    <Icon
+                      className={cn("w-5 h-5", isActive && "text-primary")}
+                    />
+                    {!isSidebarCollapsed && (
+                      <span className="text-sm">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Sidebar Footer */}
+            <div className="p-3 border-t border-border">
+              {/* User Info */}
+              {session?.user && !isSidebarCollapsed && (
+                <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                  {session.user.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <FiUser className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">
+                      {session.user.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {session.user.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Sign Out Button */}
+              <button
+                onClick={handleSignOut}
+                className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2 rounded-lg",
+                  "hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-colors",
+                  isSidebarCollapsed && "justify-center"
+                )}
+                title={isSidebarCollapsed ? "Sign Out" : undefined}
+              >
+                <FiLogOut className="w-5 h-5" />
+                {!isSidebarCollapsed && (
+                  <span className="text-sm font-medium">Sign Out</span>
+                )}
+              </button>
+            </div>
+          </aside>
+
+          {/* Desktop Main Content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Desktop Header */}
+            <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
+              <div>
+                {title && <h1 className="text-xl font-semibold">{title}</h1>}
+                {description && (
+                  <p className="text-sm text-muted-foreground">{description}</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Theme Toggle - More Prominent on Desktop */}
+                <DesktopThemeToggle />
+
+                {/* Refresh Button if provided */}
+                {onRefresh && (
+                  <button
+                    onClick={onRefresh}
+                    disabled={isRefreshing}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors",
+                      "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      isRefreshing && "opacity-50 cursor-not-allowed"
+                    )}
+                    aria-label="Refresh"
+                    aria-busy={isRefreshing}
+                    aria-live="polite"
+                  >
+                    <FiRefreshCw
+                      className={cn("w-4 h-4", isRefreshing && "animate-spin")}
+                    />
+                    <span className="text-sm font-medium">
+                      {isRefreshing ? "Refreshing..." : "Refresh"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          </div>
+        </div>
+
+        {/* Mobile Layout - Content Area */}
+        <div className="lg:hidden">
+          <main className="pt-14 pb-16 px-4">
+            {/* Mobile Page Header */}
+            {title && (
+              <div className="mb-4">
+                <h1 className="text-xl font-semibold">{title}</h1>
+                {description && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </LazyMotion>
   );
 }

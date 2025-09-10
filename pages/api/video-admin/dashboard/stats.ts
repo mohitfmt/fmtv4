@@ -3,6 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { getAllCaches } from "@/lib/cache/video-cache-registry";
+import { startOfWeek, endOfWeek, subWeeks, subDays, format } from "date-fns";
 
 // Simple in-memory rate limiter
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -36,6 +37,79 @@ setInterval(() => {
     }
   }
 }, 60000); // Clean up every minute
+
+async function getWeeklyVideoStats(prisma: any) {
+  const now = new Date();
+  const twoWeeksAgo = subWeeks(now, 2);
+
+  // Get all videos from the last 2 weeks in one query
+  const videos = await prisma.videos.findMany({
+    where: {
+      publishedAt: {
+        gte: twoWeeksAgo,
+      },
+    },
+    select: {
+      publishedAt: true,
+    },
+  });
+
+  // Process the videos to calculate daily counts
+  const dailyCounts = new Map<string, number>();
+  const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+  const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+
+  let thisWeekTotal = 0;
+  let lastWeekTotal = 0;
+
+  videos.forEach((video: any) => {
+    if (video.publishedAt) {
+      const dateKey = format(video.publishedAt, "yyyy-MM-dd");
+
+      // Count for daily breakdown
+      dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
+
+      // Count for weekly totals
+      if (video.publishedAt >= thisWeekStart) {
+        thisWeekTotal++;
+      } else if (
+        video.publishedAt >= lastWeekStart &&
+        video.publishedAt <= lastWeekEnd
+      ) {
+        lastWeekTotal++;
+      }
+    }
+  });
+
+  // Build the upload history array
+  const uploadHistory = [];
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  for (let i = 0; i < 7; i++) {
+    const currentDate = subDays(now, 6 - i);
+    const lastWeekDate = subDays(currentDate, 7);
+
+    const currentKey = format(currentDate, "yyyy-MM-dd");
+    const lastWeekKey = format(lastWeekDate, "yyyy-MM-dd");
+
+    const dayIndex = currentDate.getDay();
+    const dayName = days[dayIndex === 0 ? 6 : dayIndex - 1];
+
+    uploadHistory.push({
+      date: currentKey,
+      day: dayName,
+      videos: dailyCounts.get(currentKey) || 0,
+      lastWeek: dailyCounts.get(lastWeekKey) || 0,
+    });
+  }
+
+  return {
+    thisWeek: thisWeekTotal,
+    lastWeek: lastWeekTotal,
+    uploadHistory,
+  };
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -82,7 +156,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Fetch video statistics with correct field names
-    const [totalVideos, recentVideos, trendingVideos, lastVideo] =
+    const [totalVideos, recentVideos, trendingVideos, lastVideo, weeklyStats] =
       await Promise.all([
         // Total video count
         prisma.videos.count(),
@@ -90,7 +164,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // Videos added in last 24 hours (using lastSyncedAt)
         prisma.videos.count({
           where: {
-            lastSyncedAt: {
+            publishedAt: {
               gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
             },
           },
@@ -105,12 +179,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         // Last added video (using lastSyncedAt)
         prisma.videos.findFirst({
-          orderBy: { lastSyncedAt: "desc" },
+          orderBy: { publishedAt: "desc" },
           select: {
             lastSyncedAt: true,
             publishedAt: true,
           },
         }),
+
+        getWeeklyVideoStats(prisma),
       ]);
 
     // Fetch playlist statistics
@@ -253,11 +329,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       videos: {
         total: totalVideos,
         lastAdded:
-          lastVideo?.lastSyncedAt?.toISOString() ||
           lastVideo?.publishedAt?.toISOString() ||
+          lastVideo?.lastSyncedAt?.toISOString() ||
           null,
         trending: trendingVideos,
         newToday: recentVideos,
+        thisWeek: weeklyStats.thisWeek,
+        lastWeek: weeklyStats.lastWeek,
+        uploadHistory: weeklyStats.uploadHistory,
       },
       playlists: {
         total: totalPlaylists,

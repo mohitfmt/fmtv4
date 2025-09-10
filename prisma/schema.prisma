@@ -165,34 +165,52 @@ model system {
 }
 
 model videos {
-  id              String               @id @default(auto()) @map("_id") @db.ObjectId
-  categoryId      String
-  channelId       String?
-  contentDetails  VideosContentDetails
-  defaultLanguage String
-  description     String
-  isShort         Boolean
-  lastSyncedAt    DateTime?             @db.Date
-  migratedAt      DateTime?             @db.Date
-  playlists       String[]
-  publishedAt     DateTime             @db.Date
-  statistics      VideosStatistics
-  status          VideosStatus
-  syncVersion     Int
-  tags            String[]
-  thumbnails      VideosThumbnails
-  tier            String
-  title           String
-  videoId         String               @unique
-  videoType       String
-  /// Field referred in an index, but found no data to define the type.
-  viewCount       Json?
-
-  @@index([tier, publishedAt])
-  @@index([isShort, viewCount])
+  id                      String               @id @default(auto()) @map("_id") @db.ObjectId
+  videoId                 String               @unique
+  title                   String
+  description             String
+  publishedAt             DateTime             @db.Date
+  channelId               String
+  channelTitle            String
+  
+  // Search & categorization
+  searchableText          String?
+  tags                    String[]
+  categoryId              String
+  defaultLanguage         String
+  
+  // Associations
+  playlists               String[]
+  relatedVideos           String[]
+  
+  // Media details
+  thumbnails              VideosThumbnails
+  contentDetails          VideosContentDetails
+  statistics              VideosStatistics
+  status                  VideosStatus
+  
+  // Metadata
+  isShort                 Boolean
+  videoType               String
+  popularityScore         Int?
+  tier                    String
+  isActive                Boolean             @default(true)
+  
+  // Sync tracking
+  lastSyncedAt            DateTime?           @db.Date
+  syncVersion             Int                 @default(1)
+  updatedAt               DateTime            @updatedAt
+  playlistsUpdatedAt      DateTime?           @db.Date
+  relatedVideosUpdatedAt  DateTime?           @db.Date
+  
+  // Remove the duplicate viewCount field
+  
+  @@index([videoId])
   @@index([publishedAt])
-  @@index([viewCount])
   @@index([playlists])
+  @@index([tier, publishedAt])
+  @@index([isShort, publishedAt])
+  @@index([isActive])
 }
 
 model websub_stats {
@@ -256,20 +274,32 @@ model VideoConfig {
   updatedAt          DateTime @updatedAt
 }
 
-// Map the Playlist model to the existing 'playlists' collection
 model Playlist {
   id           String    @id @default(auto()) @map("_id") @db.ObjectId
   playlistId   String    @unique
-  title        String    // Changed from 'name' to match existing field
+  title        String
   description  String?
-  thumbnailUrl String?
-  itemCount    Int       @default(0) // Changed from videoCount to match existing
-  isActive     Boolean   @default(true)
+  visibility   String    @default("Public")
+  createdAt    DateTime  @db.Date
   updatedAt    DateTime  @updatedAt
-  createdAt    DateTime  @default(now())
+  isActive     Boolean   @default(true)
+  slug         String?
+  
+  // YouTube channel info
+  channelId    String?
   channelTitle String?
+  
+  // Content info
+  itemCount    Int       @default(0)
+  thumbnailUrl String?
+  
+  // YouTube sync metadata (these are missing!)
+  lastSyncedAt DateTime? @db.Date
+  syncVersion  Int       @default(1)
+  privacyStatus String?
+  publishedAt   DateTime? @db.Date
 
-  @@map("playlists") // This maps the model to the 'playlists' collection
+  @@map("playlists")
 }
 
 model SyncHistory {
