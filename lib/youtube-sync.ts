@@ -1,7 +1,7 @@
 import { google, youtube_v3 } from "googleapis";
 import { prisma } from "@/lib/prisma";
 
-const youtube = google.youtube({
+export const youtube = google.youtube({
   version: "v3",
   auth: process.env.YOUTUBE_API_KEY,
 });
@@ -293,12 +293,12 @@ export async function syncPlaylist(playlistId: string): Promise<SyncResult> {
 
           if (updatedPlaylists.length === 0) {
             // Delete video if no longer in any playlist
-            await tx.videos.delete({
+            await tx.videos.deleteMany({
               where: { videoId: video.videoId },
             });
           } else {
             // Just remove from this playlist
-            await tx.videos.update({
+            await tx.videos.updateMany({
               where: { videoId: video.videoId },
               data: { playlists: updatedPlaylists },
             });

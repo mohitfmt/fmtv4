@@ -166,7 +166,7 @@ model system {
 
 model videos {
   id                      String               @id @default(auto()) @map("_id") @db.ObjectId
-  videoId                 String               @unique
+  videoId                 String               
   title                   String
   description             String
   publishedAt             DateTime             @db.Date
@@ -272,6 +272,22 @@ model VideoConfig {
   shortsPlaylist     String
   displayedPlaylists Json
   updatedAt          DateTime @updatedAt
+  sync               Json?    // Will store: { uploadsEtag, uploadsLastModified, uploadsPlaylistId, lastIdleCheck }
+}
+
+model PlaylistItems {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId  String
+  videoId     String
+  position    Int
+  title       String
+  addedAt     DateTime  @default(now())
+  removedAt   DateTime?
+  
+  @@unique([playlistId, videoId])
+  @@index([playlistId, position])
+  @@index([playlistId, removedAt])
+  @@map("playlistItems")
 }
 
 model Playlist {
@@ -293,12 +309,27 @@ model Playlist {
   itemCount    Int       @default(0)
   thumbnailUrl String?
   
-  // YouTube sync metadata (these are missing!)
+  // YouTube sync metadata
   lastSyncedAt DateTime? @db.Date
   syncVersion  Int       @default(1)
   privacyStatus String?
   publishedAt   DateTime? @db.Date
-
+  
+  // ADD THESE NEW FIELDS FOR SYNC:
+  etag              String?
+  lastModified      String?
+  fingerprint       String?
+  lastFingerprintAt DateTime?
+  syncInProgress    Boolean   @default(false)
+  lastSyncResult    Json?
+  syncLeaseUntil    DateTime?
+  syncLeaseOwner    String?
+  activeWindowUntil DateTime?
+  
+  @@index([isActive])
+  @@index([slug])
+  @@index([lastFingerprintAt])
+  @@index([syncLeaseUntil])
   @@map("playlists")
 }
 

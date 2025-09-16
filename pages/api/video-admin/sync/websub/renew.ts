@@ -1,151 +1,127 @@
 // pages/api/video-admin/sync/websub/renew.ts
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+const HUB_URL = "https://pubsubhubbub.appspot.com";
+
+export default withAdminApi(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const traceId = (req as any).traceId;
-  const session = (req as any).session;
+  const channelId = process.env.YOUTUBE_CHANNEL_ID!;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  if (!channelId || !appUrl) {
+    return res
+      .status(500)
+      .json({ error: "Missing YOUTUBE_CHANNEL_ID or NEXT_PUBLIC_APP_URL" });
+  }
 
-  try {
-    const channelId =
-      process.env.YOUTUBE_CHANNEL_ID || "UCm7Mkdl1a8g6ctmQMhhghiA";
-    const webhookUrl =
-      process.env.YOUTUBE_WEBHOOK_URL ||
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube-webhook`;
+  const callbackUrl = `${appUrl}/api/video-admin/sync/websub/callback`;
+  const topicUrl = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${channelId}`;
 
-    // Check current subscription status
-    const currentSub = await prisma.websub_subscriptions.findFirst({
-      where: { channelId },
-    });
+  // If the existing sub is still healthy for >24h, skip
+  const sub = await prisma.websub_subscriptions.findUnique({
+    where: { channelId },
+  });
+  const now = new Date();
+  const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const healthy =
+    sub &&
+    sub.status === "active" &&
+    sub.expiresAt &&
+    new Date(sub.expiresAt) > soon;
 
-    // Simulate webhook renewal (in production, this would call YouTube API)
-    const renewalResult = await simulateWebhookRenewal(channelId, webhookUrl);
-
-    if (renewalResult.success) {
-      // Update or create subscription record
-      const subscription = await prisma.websub_subscriptions.upsert({
-        where: {
-          channelId: channelId,
-        },
-        update: {
-          status: "active",
-          lastRenewal: new Date(),
-          expiresAt: new Date(Date.now() + 345600000), // 4 days from now (96 hours)
-          renewalCount: { increment: 1 },
-          webhookUrl: webhookUrl,
-          updatedAt: new Date(),
-        },
-        create: {
-          channelId: channelId,
-          webhookUrl: webhookUrl,
-          status: "active",
-          lastRenewal: new Date(),
-          expiresAt: new Date(Date.now() + 432000000), // 5 days from now
-          renewalCount: 1,
-        },
-      });
-
-      // Update websub stats
-      await prisma.websub_stats.upsert({
-        where: { id: "main" },
-        create: {
-          id: "main",
-          webhooksReceived: 0,
-          videosProcessed: 0,
-          updatedAt: new Date(),
-        },
-        update: {
-          updatedAt: new Date(),
-        },
-      });
-
-      // Log the renewal
-      await prisma.admin_activity_logs.create({
-        data: {
-          action: "WEBHOOK_RENEWED",
-          entityType: "websub",
-          userId: session.user?.email || session.user?.id || "system",
-          metadata: {
-            channelId,
-            webhookUrl,
-            expiresAt: subscription.expiresAt,
-            renewalCount: subscription.renewalCount,
-          },
-          ipAddress:
-            (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-            req.socket.remoteAddress,
-          userAgent: req.headers["user-agent"] || null,
-        },
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: "Webhook subscription renewed successfully",
-        data: {
-          channelId,
-          webhookUrl,
-          expiresAt: subscription.expiresAt?.toISOString(),
-          renewalCount: subscription.renewalCount,
-          status: subscription.status,
-        },
-        traceId,
-        timestamp: new Date().toISOString(),
-      });
-    } else {
-      throw new Error(
-        renewalResult.error || "Failed to renew webhook subscription"
-      );
-    }
-  } catch (error) {
-    console.error(`[${traceId}] Failed to renew webhook:`, error);
-
-    // Log the failure
-    await prisma.admin_activity_logs
-      .create({
-        data: {
-          action: "WEBHOOK_RENEWAL_FAILED",
-          entityType: "websub",
-          userId: session.user?.email || session.user?.id || "system",
-          metadata: {
-            error: error instanceof Error ? error.message : "Unknown error",
-          },
-        },
-      })
-      .catch(() => {}); // Ignore logging errors
-
-    return res.status(500).json({
-      success: false,
-      error: "Failed to renew webhook subscription",
-      message: error instanceof Error ? error.message : "Unknown error",
-      traceId,
+  if (healthy) {
+    return res.json({
+      success: true,
+      renewed: false,
+      status: sub.status,
+      expiresAt: sub.expiresAt,
     });
   }
-}
 
-// Simulate webhook renewal (replace with actual YouTube API call)
-async function simulateWebhookRenewal(channelId: string, webhookUrl: string) {
-  // In production, this would make an actual API call to YouTube PubSubHubbub
-  // For now, we'll simulate success after a short delay
+  // Ask hub to (re)subscribe; hub will verify via GET
+  const form = new URLSearchParams();
+  form.set("hub.mode", "subscribe");
+  form.set("hub.topic", topicUrl);
+  form.set("hub.callback", callbackUrl);
+  form.set("hub.lease_seconds", String(432000)); // 5 days
 
-  return new Promise<{ success: boolean; error?: string }>((resolve) => {
-    setTimeout(() => {
-      // Simulate 95% success rate
-      if (Math.random() > 0.05) {
-        resolve({ success: true });
-      } else {
-        resolve({
-          success: false,
-          error: "YouTube API temporarily unavailable",
-        });
-      }
-    }, 1000);
-  });
-}
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-export default withAdminApi(handler);
+  try {
+    const resp = await fetch(HUB_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+      signal: controller.signal,
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      return res
+        .status(502)
+        .json({ error: "Hub subscribe failed", status: resp.status, text });
+    }
+
+    // Mark as pending until callback GET confirms active
+    await prisma.websub_subscriptions.upsert({
+      where: { channelId },
+      create: {
+        channelId,
+        webhookUrl: callbackUrl,
+        status: "pending",
+        lastRenewal: now,
+        expiresAt: null,
+        renewalCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      },
+      update: {
+        status: "pending",
+        lastRenewal: now,
+        webhookUrl: callbackUrl,
+        updatedAt: now,
+      },
+    });
+
+    // Log admin activity
+    const userId =
+      (req.headers["x-admin-user"] as string) ||
+      ((req as any).session?.user?.email ?? (req as any).session?.user?.id) ||
+      "system";
+
+    await prisma.admin_activity_logs.create({
+      data: {
+        action: "WEBHOOK_RENEW_REQUESTED",
+        entityType: "websub",
+        userId,
+        metadata: { channelId, callbackUrl },
+        ipAddress:
+          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+          req.socket.remoteAddress ||
+          null,
+        userAgent: req.headers["user-agent"] || null,
+      },
+    });
+
+    return res.json({
+      success: true,
+      renewed: true,
+      message: "Renew request sent. Awaiting hub verification.",
+    });
+  } catch (e: any) {
+    return res
+      .status(500)
+      .json({ error: "Renew request error", details: e?.message || String(e) });
+  } finally {
+    clearTimeout(timeout);
+  }
+});

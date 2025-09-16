@@ -7,8 +7,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { formatDistanceToNow, subDays, format } from "date-fns";
 import {
-  motion,
-  AnimatePresence,
   Variants,
   MotionConfig,
   useReducedMotion,
@@ -19,8 +17,6 @@ import {
 import CountUp from "react-countup";
 import { cn } from "@/lib/utils";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -28,7 +24,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   Area,
   AreaChart,
 } from "recharts";

@@ -1,246 +1,199 @@
 // pages/api/video-admin/playlists/[id]/sync.ts
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
-import { syncPlaylist } from "@/lib/youtube-sync";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import {
+  fetchPlaylistItems,
+  rebuildPlaylist,
+  revalidatePaths,
+  purgeCloudflareCache,
+  acquirePlaylistLease,
+  shouldRevalidateHome,
+} from "@/lib/sync-helpers";
+import crypto from "crypto";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+type SuccessBody = {
+  success: true;
+  playlistId: string;
+  videosAdded: number;
+  videosUpdated: number;
+  videosRemoved: number;
+  fingerprint: string;
+};
+
+type ErrorBody = {
+  success: false;
+  error: string;
+};
+
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<SuccessBody | ErrorBody>
+) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method not allowed" });
+    return res
+      .status(405)
+      .json({ success: false, error: "Method not allowed" });
   }
 
-  const { id } = req.query;
-  const traceId = (req as any).traceId;
-  const session = (req as any).session;
+  const playlistId = String(req.query.id || "");
+  if (!playlistId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Missing playlist id" });
+  }
+
+  const requestId = crypto.randomUUID();
+  const now = new Date();
+
+  // who triggered this (for logs)
+  const userId =
+    (req.headers["x-admin-user"] as string) ||
+    (req.headers["x-user-id"] as string) ||
+    "manual";
+  const ipAddress =
+    (req.headers["x-forwarded-for"] as string) ||
+    req.socket.remoteAddress ||
+    "";
+  const userAgent = (req.headers["user-agent"] as string) || "";
 
   try {
-    // Validate playlist ID
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid playlist ID",
-        traceId,
-      });
+    // Acquire a 60s lease for this playlist
+    const leased = await acquirePlaylistLease(playlistId, requestId, 60_000);
+    if (!leased) {
+      return res
+        .status(409)
+        .json({ success: false, error: "Sync already in progress" });
     }
 
-    // Check if playlist exists
-    const playlist = await prisma.playlist.findUnique({
-      where: { playlistId: id },
+    // Mark in-progress
+    await prisma.playlist.update({
+      where: { playlistId },
+      data: { syncInProgress: true },
     });
 
-    if (!playlist) {
-      return res.status(404).json({
-        success: false,
-        error: "Playlist not found",
-        traceId,
-      });
-    }
+    // Pull current playlist items from YouTube and rebuild
+    const items = await fetchPlaylistItems(playlistId);
+    const result = await rebuildPlaylist(playlistId, items);
 
-    // Check if already syncing
-    const syncStatus = await prisma.syncStatus.findUnique({
-      where: { id: "main" },
-    });
-
-    if (syncStatus?.currentlySyncing) {
-      // Check if it's the same playlist
-      if (syncStatus.currentPlaylistId === playlist.playlistId) {
-        return res.status(200).json({
-          success: true,
-          message: `"${playlist.title}" is already syncing`,
-          playlistId: playlist.playlistId,
-          inProgress: true,
-          traceId,
-        });
-      }
-
-      // Another playlist is syncing
-      return res.status(409).json({
-        success: false,
-        error: "Another playlist sync is in progress",
-        message: `Currently syncing: ${syncStatus.currentPlaylistId}`,
-        queuePosition: 2, // Could implement a real queue system
-        traceId,
-      });
-    }
-
-    // Start sync - mark as syncing immediately
-    await prisma.syncStatus.upsert({
-      where: { id: "main" },
-      update: {
-        currentlySyncing: true,
-        currentPlaylistId: playlist.playlistId,
-        lastError: null,
+    // Write sync results back on the playlist
+    const updated = await prisma.playlist.update({
+      where: { playlistId },
+      data: {
+        fingerprint: result.fingerprint,
+        lastFingerprintAt: now,
+        itemCount: items.length,
+        lastSyncResult: {
+          videosAdded: result.videosAdded,
+          videosUpdated: result.videosUpdated,
+          videosRemoved: result.videosRemoved,
+          at: now.toISOString(),
+        },
+        syncInProgress: false,
+        syncLeaseUntil: now, // release lease
+        syncLeaseOwner: null,
+        updatedAt: now,
       },
-      create: {
-        id: "main",
-        currentlySyncing: true,
-        currentPlaylistId: playlist.playlistId,
-      },
+      select: { slug: true },
     });
 
-    // Log the sync start
+    // figure out which pages to revalidate
+    const paths = new Set<string>();
+    if (updated.slug) paths.add(`/videos/${updated.slug}`);
+
+    const feConfig = await prisma.videoConfig.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { heroPlaylist: true, shortsPlaylist: true },
+    });
+
+    if (
+      feConfig &&
+      shouldRevalidateHome(
+        playlistId,
+        feConfig.heroPlaylist,
+        feConfig.shortsPlaylist
+      )
+    ) {
+      paths.add("/videos");
+    }
+
+    if (paths.size > 0) {
+      await revalidatePaths(Array.from(paths));
+      const urls = Array.from(paths).map(
+        (p) => `${process.env.NEXT_PUBLIC_APP_URL}${p}`
+      );
+      await purgeCloudflareCache(urls);
+    }
+
+    // admin activity log
     await prisma.admin_activity_logs.create({
       data: {
-        action: "SYNC_PLAYLIST_START",
+        userId,
+        action: "SYNC_PLAYLIST_SUCCESS",
         entityType: "playlist",
-        userId: session.user?.email || session.user?.id || "system",
         metadata: {
-          playlistId: playlist.playlistId,
-          playlistName: playlist.title,
-          itemCount: playlist.itemCount,
-        },
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-          req.socket.remoteAddress,
-        userAgent: req.headers["user-agent"] || null,
+          playlistId,
+          result: {
+            fingerprint: result.fingerprint,
+            videosAdded: result.videosAdded,
+            videosUpdated: result.videosUpdated,
+            videosRemoved: result.videosRemoved,
+          },
+          requestId,
+        } as Prisma.InputJsonValue,
+        ipAddress,
+        userAgent,
       },
     });
 
-    // Execute sync asynchronously
-    syncPlaylist(playlist.playlistId)
-      .then(async (result) => {
-        // Record successful sync
-        await prisma.$transaction([
-          // Create sync history record
-          prisma.syncHistory.create({
-            data: {
-              playlistId: playlist.playlistId,
-              playlistName: playlist.title,
-              status: "success",
-              videosAdded: result.videosAdded || 0,
-              videosUpdated: result.videosUpdated || 0,
-              videosRemoved: result.videosRemoved || 0,
-              duration: result.duration || 0,
-            },
-          }),
+    // avoid spreading result.success to keep SuccessBody exact
+    const { success: _ignore, ...rest } = result;
 
-          // Update sync status
-          prisma.syncStatus.update({
-            where: { id: "main" },
-            data: {
-              currentlySyncing: false,
-              currentPlaylistId: null,
-              lastSync: new Date(),
-              totalSyncs: { increment: 1 },
-              lastError: null,
-            },
-          }),
-
-          // Update playlist's last sync time
-          prisma.playlist.update({
-            where: { playlistId: playlist.playlistId },
-            data: {
-              updatedAt: new Date(),
-              // If your schema has a lastSyncedAt field, uncomment:
-              // lastSyncedAt: new Date(),
-            },
-          }),
-
-          // Log successful sync
-          prisma.admin_activity_logs.create({
-            data: {
-              action: "SYNC_PLAYLIST_SUCCESS",
-              entityType: "playlist",
-              userId: session.user?.email || session.user?.id || "system",
-              metadata: {
-                playlistId: playlist.playlistId,
-                playlistName: playlist.title,
-                result: {
-                  videosAdded: result.videosAdded || 0,
-                  videosUpdated: result.videosUpdated || 0,
-                  videosRemoved: result.videosRemoved || 0,
-                  duration: result.duration || 0,
-                },
-              },
-            },
-          }),
-        ]);
-
-        console.log(
-          `[${traceId}] Sync completed successfully for ${playlist.title}`
-        );
-      })
-      .catch(async (error) => {
-        console.error(`[${traceId}] Sync failed for ${playlist.title}:`, error);
-
-        // Record failed sync
-        await prisma.$transaction([
-          // Create sync history record with error
-          prisma.syncHistory.create({
-            data: {
-              playlistId: playlist.playlistId,
-              playlistName: playlist.title,
-              status: "failed",
-              error: error.message || "Unknown error",
-              duration: 0,
-              videosAdded: 0,
-              videosUpdated: 0,
-              videosRemoved: 0,
-            },
-          }),
-
-          // Update sync status with error
-          prisma.syncStatus.update({
-            where: { id: "main" },
-            data: {
-              currentlySyncing: false,
-              currentPlaylistId: null,
-              lastError: error.message || "Unknown error",
-            },
-          }),
-
-          // Log failed sync
-          prisma.admin_activity_logs.create({
-            data: {
-              action: "SYNC_PLAYLIST_FAILED",
-              entityType: "playlist",
-              userId: session.user?.email || session.user?.id || "system",
-              metadata: {
-                playlistId: playlist.playlistId,
-                playlistName: playlist.title,
-                error: error.message || "Unknown error",
-              },
-            },
-          }),
-        ]);
-      });
-
-    // Return immediate response
-    return res.status(202).json({
+    return res.status(200).json({
       success: true,
-      message: `Started syncing "${playlist.title}"`,
-      playlistId: playlist.playlistId,
-      playlistName: playlist.title,
-      estimatedTime: playlist.itemCount
-        ? Math.ceil(playlist.itemCount / 50) * 2
-        : 5, // Rough estimate in seconds
-      traceId,
-      timestamp: new Date().toISOString(),
+      playlistId,
+      ...rest, // fingerprint, videosAdded, videosUpdated, videosRemoved
     });
-  } catch (error) {
-    console.error(`[${traceId}] Failed to trigger sync:`, error);
+  } catch (err: any) {
+    const message =
+      typeof err?.message === "string" ? err.message : "Sync failed";
 
-    // Reset sync status on error
-    await prisma.syncStatus
-      .update({
-        where: { id: "main" },
-        data: {
-          currentlySyncing: false,
-          currentPlaylistId: null,
-          lastError: error instanceof Error ? error.message : "Unknown error",
+    // best-effort: release lease and capture error on playlist
+    await prisma.playlist.updateMany({
+      where: { playlistId },
+      data: {
+        syncInProgress: false,
+        syncLeaseUntil: now,
+        syncLeaseOwner: null,
+        lastSyncResult: {
+          videosAdded: 0,
+          videosUpdated: 0,
+          videosRemoved: 0,
+          error: message,
+          at: now.toISOString(),
         },
-      })
-      .catch(() => {
-        // Ignore errors when resetting status
-      });
-
-    return res.status(500).json({
-      success: false,
-      error: "Failed to trigger sync",
-      message: error instanceof Error ? error.message : "Unknown error",
-      traceId,
+      },
     });
+
+    // log failure
+    await prisma.admin_activity_logs.create({
+      data: {
+        userId,
+        action: "SYNC_PLAYLIST_FAILURE",
+        entityType: "playlist",
+        metadata: {
+          playlistId,
+          error: message,
+          requestId,
+        } as Prisma.InputJsonValue,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    return res.status(500).json({ success: false, error: message });
   }
 }
 

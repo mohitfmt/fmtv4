@@ -1,205 +1,172 @@
-// pages/api/video-admin/playlists/[id].ts
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
-const updatePlaylistSchema = z.object({
-  isActive: z.boolean().optional(),
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(500).optional(),
-});
+type ErrorBody = { success: false; error: string };
+type GetBody =
+  | ErrorBody
+  | {
+      success: true;
+      playlist: {
+        playlistId: string;
+        title: string;
+        description: string | null;
+        visibility: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        slug: string | null;
+        channelId: string | null;
+        channelTitle: string | null;
+        itemCount: number;
+        thumbnailUrl: string | null;
+        lastSyncedAt: Date | null;
+        syncVersion: number;
+        privacyStatus: string | null;
+        publishedAt: Date | null;
+        etag: string | null;
+        lastModified: string | null;
+        fingerprint: string | null;
+        lastFingerprintAt: Date | null;
+        syncInProgress: boolean;
+        lastSyncResult: Prisma.InputJsonValue | null;
+        syncLeaseUntil: Date | null;
+        syncLeaseOwner: string | null;
+        activeWindowUntil: Date | null;
+      };
+    };
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { method } = req;
-  const traceId = (req as any).traceId;
+type PatchBody =
+  | ErrorBody
+  | {
+      success: true;
+      playlist: {
+        playlistId: string;
+        isActive: boolean;
+        activeWindowUntil: Date | null;
+        updatedAt: Date;
+      };
+    };
 
-  switch (method) {
-    case "GET":
-      return handleGetPlaylist(req, res, traceId);
-    case "PATCH":
-      return handleUpdatePlaylist(req, res, traceId);
-    default:
-      res.setHeader("Allow", ["GET", "PATCH"]);
-      return res.status(405).json({
-        success: false,
-        error: "Method not allowed",
-      });
-  }
-}
-
-async function handleGetPlaylist(
+async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
-  traceId: string
+  res: NextApiResponse<GetBody | PatchBody>
 ) {
-  try {
-    const { id } = req.query;
+  const playlistId = String(req.query.id || "");
+  if (!playlistId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Missing playlist id" });
+  }
 
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid playlist ID",
-        traceId,
-      });
-    }
-
+  if (req.method === "GET") {
     const playlist = await prisma.playlist.findUnique({
-      where: { playlistId: id },
+      where: { playlistId },
+      select: {
+        playlistId: true,
+        title: true,
+        description: true,
+        visibility: true,
+        createdAt: true,
+        updatedAt: true,
+        isActive: true,
+        slug: true,
+        channelId: true,
+        channelTitle: true,
+        itemCount: true,
+        thumbnailUrl: true,
+        lastSyncedAt: true,
+        syncVersion: true,
+        privacyStatus: true,
+        publishedAt: true,
+        etag: true,
+        lastModified: true,
+        fingerprint: true,
+        lastFingerprintAt: true,
+        syncInProgress: true,
+        lastSyncResult: true,
+        syncLeaseUntil: true,
+        syncLeaseOwner: true,
+        activeWindowUntil: true,
+      },
     });
 
     if (!playlist) {
-      return res.status(404).json({
-        success: false,
-        error: "Playlist not found",
-        traceId,
-      });
+      return res
+        .status(404)
+        .json({ success: false, error: "Playlist not found" });
     }
 
-    // Get recent sync history
-    const recentSync = await prisma.syncHistory.findFirst({
-      where: { playlistId: id },
-      orderBy: { timestamp: "desc" },
-      select: {
-        status: true,
-        videosAdded: true,
-        videosUpdated: true,
-        videosRemoved: true,
-        timestamp: true,
-        error: true,
-      },
-    });
-
-    // Check if currently syncing
-    const syncStatus = await prisma.syncStatus.findUnique({
-      where: { id: "main" },
-      select: {
-        currentlySyncing: true,
-        currentPlaylistId: true,
-      },
-    });
-
-    const isSyncing =
-      syncStatus?.currentlySyncing && syncStatus.currentPlaylistId === id;
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        ...playlist,
-        itemCount: playlist.itemCount || 0,
-        syncInProgress: isSyncing,
-        lastSyncResult: recentSync || null,
-      },
-      traceId,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error(`[${traceId}] Failed to fetch playlist:`, error);
-    return res.status(500).json({
-      success: false,
-      error: "Failed to fetch playlist",
-      message: error instanceof Error ? error.message : "Unknown error",
-      traceId,
-    });
+    return res.status(200).json({ success: true, playlist });
   }
-}
 
-async function handleUpdatePlaylist(
-  req: NextApiRequest,
-  res: NextApiResponse,
-  traceId: string
-) {
-  try {
-    const { id } = req.query;
-    const session = (req as any).session;
+  if (req.method === "PATCH") {
+    // We only allow toggling isActive from here to keep scope tight.
+    // (Add more fields later if you decide to expose them.)
+    const { isActive } = req.body as { isActive?: boolean };
 
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid playlist ID",
-        traceId,
-      });
+    if (typeof isActive !== "boolean") {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "Invalid body: isActive must be boolean",
+        });
     }
 
-    // Validate request body
-    const validation = updatePlaylistSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid request body",
-        details: validation.error.flatten(),
-        traceId,
-      });
+    const now = new Date();
+    const updateData: Record<string, any> = {
+      isActive,
+      updatedAt: now,
+    };
+
+    // Optional short active window when turning on (kept small to avoid surprises)
+    if (isActive) {
+      updateData.activeWindowUntil = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
+    } else {
+      updateData.activeWindowUntil = null;
     }
 
-    // Check if playlist exists
-    const existingPlaylist = await prisma.playlist.findUnique({
-      where: { playlistId: id },
-    });
-
-    if (!existingPlaylist) {
-      return res.status(404).json({
-        success: false,
-        error: "Playlist not found",
-        traceId,
-      });
-    }
-
-    // Update playlist
-    const updatedPlaylist = await prisma.playlist.update({
-      where: { playlistId: id },
-      data: {
-        ...validation.data,
-        updatedAt: new Date(),
+    const updated = await prisma.playlist.update({
+      where: { playlistId },
+      data: updateData,
+      select: {
+        playlistId: true,
+        isActive: true,
+        activeWindowUntil: true,
+        updatedAt: true,
       },
     });
 
-    // Log admin action
-    const actionType =
-      validation.data.isActive !== undefined
-        ? validation.data.isActive
-          ? "ACTIVATE_PLAYLIST"
-          : "DEACTIVATE_PLAYLIST"
-        : "UPDATE_PLAYLIST";
+    // audit log (match your collection + fields)
+    const userId =
+      (req.headers["x-admin-user"] as string) ||
+      (req.headers["x-user-id"] as string) ||
+      "system";
+    const ipAddress =
+      (req.headers["x-forwarded-for"] as string) ||
+      req.socket.remoteAddress ||
+      "";
+    const userAgent = (req.headers["user-agent"] as string) || "";
 
     await prisma.admin_activity_logs.create({
       data: {
-        action: actionType,
+        userId,
+        action: "UPDATE_PLAYLIST",
         entityType: "playlist",
-        userId: session.user?.email || session.user?.id || "system",
-        metadata: {
-          playlistId: updatedPlaylist.playlistId,
-          playlistName: updatedPlaylist.title,
-          changes: validation.data,
-          previousState: {
-            isActive: existingPlaylist.isActive,
-            title: existingPlaylist.title,
-            description: existingPlaylist.description,
-          },
-        },
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-          req.socket.remoteAddress,
-        userAgent: req.headers["user-agent"] || null,
+        metadata: { playlistId, isActive } as Prisma.InputJsonValue,
+        ipAddress,
+        userAgent,
+        timestamp: now,
       },
     });
 
-    return res.status(200).json({
-      success: true,
-      data: updatedPlaylist,
-      message: `Playlist "${updatedPlaylist.title}" updated successfully`,
-      traceId,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error(`[${traceId}] Failed to update playlist:`, error);
-    return res.status(500).json({
-      success: false,
-      error: "Failed to update playlist",
-      message: error instanceof Error ? error.message : "Unknown error",
-      traceId,
-    });
+    return res.status(200).json({ success: true, playlist: updated });
   }
+
+  res.setHeader("Allow", ["GET", "PATCH"]);
+  return res.status(405).json({ success: false, error: "Method not allowed" });
 }
 
 export default withAdminApi(handler);
