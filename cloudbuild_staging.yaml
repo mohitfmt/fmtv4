@@ -23,7 +23,7 @@ steps:
       # Use cached layers from previous builds
       - "--cache-from=asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest"
       - "--target=runner"
-      # Pass all build arguments
+      # build args (keep)
       - "--build-arg"
       - "NODE_ENV=production"
       - "--build-arg"
@@ -82,7 +82,7 @@ steps:
       - "CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}"
       - "--build-arg"
       - "SENDGRID_API_KEY=${_SENDGRID_API_KEY}"
-      # Tag with commit SHA and latest
+
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
       - "-t"
@@ -145,35 +145,45 @@ steps:
           --allow-unauthenticated \
           --set-env-vars="NODE_ENV=production" \
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
-          --set-env-vars="NODE_OPTIONS=--expose-gc" \
-          --set-env-vars="DATABASE_URL=${_DATABASE_URL}" \
-          --set-env-vars="NEXTAUTH_SECRET=${_NEXTAUTH_SECRET}" \
-          --set-env-vars="REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY}" \
-          --set-env-vars="NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN}" \
-          --set-env-vars="CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN}" \
-          --set-env-vars="CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID}" \
-          --set-env-vars="YOUTUBE_API_KEY=${_YOUTUBE_API_KEY}" \
-          --set-env-vars="WORDPRESS_API_URL=${_WORDPRESS_API_URL}" \
-          --set-env-vars="NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL}" \
-          --set-env-vars="NEXT_PUBLIC_CDN_URL=${_NEXT_PUBLIC_CDN_URL}" \
-          --set-env-vars="NEXT_PUBLIC_GCS_BUCKET=${_NEXT_PUBLIC_GCS_BUCKET}" \
-          --set-env-vars="NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID}" \
-          --set-env-vars="NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID}" \
-          --set-env-vars="NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID}" \
-          --set-env-vars="NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY}" \
-          --set-env-vars="NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST}" \
-          --set-env-vars="NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}" \
-          --set-env-vars="NEXT_PUBLIC_WORDPRESS_SECRET=${_NEXT_PUBLIC_WORDPRESS_SECRET}" \
-          --set-env-vars="NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN}" \
-          --set-env-vars="GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET}" \
-          --set-env-vars="REVALIDATION_TOKEN=${_REVALIDATION_TOKEN}" \
-          --set-env-vars="SYNC_KEY=${_SYNC_KEY}" \
-          --set-env-vars="CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY}" \
-          --set-env-vars="CHARTBEAT_HOST=${_CHARTBEAT_HOST}" \
-          --set-env-vars="NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}" \
-          --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
-          --set-env-vars="CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}" \
-          --set-env-vars="SENDGRID_API_KEY=${_SENDGRID_API_KEY}" \
+           --set-env-vars=NODE_OPTIONS=${_NODE_OPTIONS} \
+          # server-side envs
+          --set-env-vars=DATABASE_URL=${_DATABASE_URL} \
+          --set-env-vars=NEXTAUTH_SECRET=${_NEXTAUTH_SECRET} \
+          --set-env-vars=REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY} \
+          --set-env-vars=REVALIDATE_SECRET=${_REVALIDATE_SECRET} \
+          --set-env-vars=CRON_SECRET_KEY=${_CRON_SECRET_KEY} \
+          --set-env-vars=WORDPRESS_API_URL=${_WORDPRESS_API_URL} \
+          --set-env-vars=GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID} \
+          --set-env-vars=GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET} \
+          --set-env-vars=REVALIDATION_TOKEN=${_REVALIDATION_TOKEN} \
+          --set-env-vars=SYNC_KEY=${_SYNC_KEY} \
+          --set-env-vars=CLOUDFLARE_API_TOKEN=${_CLOUDFLARE_API_TOKEN} \
+          --set-env-vars=CLOUDFLARE_ZONE_ID=${_CLOUDFLARE_ZONE_ID} \
+          --set-env-vars=CHARTBEAT_API_KEY=${_CHARTBEAT_API_KEY} \
+          --set-env-vars=CHARTBEAT_HOST=${_CHARTBEAT_HOST} \
+          --set-env-vars=YOUTUBE_API_KEY=${_YOUTUBE_API_KEY} \
+          --set-env-vars=YOUTUBE_CHANNEL_ID=${_YOUTUBE_CHANNEL_ID} \
+          --set-env-vars=WEBSUB_SECRET=${_WEBSUB_SECRET} \
+          --set-env-vars=YOUTUBE_WEBHOOK_URL=${_YOUTUBE_WEBHOOK_URL} \
+          --set-env-vars=SENDGRID_API_KEY=${_SENDGRID_API_KEY} \
+          --set-env-vars=CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT} \
+          --set-env-vars=ADMIN_API_KEY=${_ADMIN_API_KEY} \
+          --set-env-vars=DEFAULT_PLAYLIST_ID=${_DEFAULT_PLAYLIST_ID} \
+          --set-env-vars=NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL} \
+          --set-env-vars=NEXT_PUBLIC_DOMAIN=${_NEXT_PUBLIC_DOMAIN} \
+          --set-env-vars=NEXT_PUBLIC_CDN_URL=${_NEXT_PUBLIC_CDN_URL} \
+          --set-env-vars=NEXT_PUBLIC_GCS_BUCKET=${_NEXT_PUBLIC_GCS_BUCKET} \
+          --set-env-vars=NEXT_PUBLIC_CMS_URL=${_NEXT_PUBLIC_CMS_URL} \
+          --set-env-vars=NEXT_PUBLIC_COMSCORE_ID=${_NEXT_PUBLIC_COMSCORE_ID} \
+          --set-env-vars=NEXT_PUBLIC_LOTAME_CLIENT_ID=${_NEXT_PUBLIC_LOTAME_CLIENT_ID} \
+          --set-env-vars=NEXT_PUBLIC_CB_UID=${_NEXT_PUBLIC_CB_UID} \
+          --set-env-vars=NEXT_PUBLIC_CHARTBEAT_API_KEY=${_NEXT_PUBLIC_CHARTBEAT_API_KEY} \
+          --set-env-vars=NEXT_PUBLIC_CHARTBEAT_HOST=${_NEXT_PUBLIC_CHARTBEAT_HOST} \
+          --set-env-vars=NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
+          --set-env-vars=NEXT_PUBLIC_WORDPRESS_SECRET=${_NEXT_PUBLIC_WORDPRESS_SECRET} \
+          --set-env-vars=NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN} \
+          --set-env-vars=NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV} \
+          --set-env-vars=NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}
           --timeout=300 \
           --service-account=${_SERVICE_ACCOUNT} \
           --quiet
@@ -194,11 +204,50 @@ steps:
           --region=${_REGION} \
           --quiet
 
-
 # Substitution variables
 substitutions:
   _REGION: asia-southeast1
   _SERVICE_NAME: fmt-v4
+
+  _ADMIN_API_KEY: ${_ADMIN_API_KEY}
+  _CHARTBEAT_API_KEY: ${_CHARTBEAT_API_KEY}
+  _CHARTBEAT_HOST: ${_CHARTBEAT_HOST}
+  _CLOUDFLARE_API_TOKEN: ${_CLOUDFLARE_API_TOKEN}
+  _CLOUDFLARE_ZONE_ID: ${_CLOUDFLARE_ZONE_ID}
+  _CONTACT_US_RECIPIENT: ${_CONTACT_US_RECIPIENT}
+  _CRON_SECRET_KEY: ${_CRON_SECRET_KEY}
+  _DATABASE_URL: ${_DATABASE_URL}
+  _GOOGLE_CLIENT_ID: ${_GOOGLE_CLIENT_ID}
+  _GOOGLE_CLIENT_SECRET: ${_GOOGLE_CLIENT_SECRET}
+  _NEXT_PUBLIC_APP_URL: ${_NEXT_PUBLIC_APP_URL}
+  _NEXT_PUBLIC_CB_UID: ${_NEXT_PUBLIC_CB_UID}
+  _NEXT_PUBLIC_CDN_URL: ${_NEXT_PUBLIC_CDN_URL}
+  _NEXT_PUBLIC_CHARTBEAT_API_KEY: ${_NEXT_PUBLIC_CHARTBEAT_API_KEY}
+  _NEXT_PUBLIC_CHARTBEAT_HOST: ${_NEXT_PUBLIC_CHARTBEAT_HOST}
+  _NEXT_PUBLIC_CMS_URL: ${_NEXT_PUBLIC_CMS_URL}
+  _NEXT_PUBLIC_COMSCORE_ID: ${_NEXT_PUBLIC_COMSCORE_ID}
+  _NEXT_PUBLIC_CRYPTO_IV: ${_NEXT_PUBLIC_CRYPTO_IV}
+  _NEXT_PUBLIC_CRYPTO_KEY: ${_NEXT_PUBLIC_CRYPTO_KEY}
+  _NEXT_PUBLIC_DOMAIN: ${_NEXT_PUBLIC_DOMAIN}
+  _NEXT_PUBLIC_GCS_BUCKET: ${_NEXT_PUBLIC_GCS_BUCKET}
+  _NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+  _NEXT_PUBLIC_LOTAME_CLIENT_ID: ${_NEXT_PUBLIC_LOTAME_CLIENT_ID}
+  _NEXT_PUBLIC_WORDPRESS_SECRET: ${_NEXT_PUBLIC_WORDPRESS_SECRET}
+  _NEXT_PUBLIC_WP_REFRESH_TOKEN: ${_NEXT_PUBLIC_WP_REFRESH_TOKEN}
+  _NEXTAUTH_SECRET: ${_NEXTAUTH_SECRET}
+  _NODE_OPTIONS: ${_NODE_OPTIONS}
+  _REVALIDATE_SECRET: ${_REVALIDATE_SECRET}
+  _REVALIDATE_SECRET_KEY: ${_REVALIDATE_SECRET_KEY}
+  _REVALIDATION_TOKEN: ${_REVALIDATION_TOKEN}
+  _SENDGRID_API_KEY: ${_SENDGRID_API_KEY}
+  _SYNC_KEY: ${_SYNC_KEY}
+  _WEBSUB_SECRET: ${_WEBSUB_SECRET}
+  _WORDPRESS_API_URL: ${_WORDPRESS_API_URL}
+  _YOUTUBE_API_KEY: ${_YOUTUBE_API_KEY}
+  _YOUTUBE_CHANNEL_ID: ${_YOUTUBE_CHANNEL_ID}
+  _YOUTUBE_WEBHOOK_URL: ${_YOUTUBE_WEBHOOK_URL}
+  # add this if you use it in code
+  _DEFAULT_PLAYLIST_ID: ${_DEFAULT_PLAYLIST_ID}
 
 # Build configuration
 options:

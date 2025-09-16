@@ -475,6 +475,7 @@ function extractActivityDetails(action: string, metadata: any): string | null {
 
 // Add TypeScript declaration for global cache
 declare global {
+  /* eslint no-var: "off" */
   var dashboardCache: Map<string, { data: any; timestamp: number }> | undefined;
 }
 

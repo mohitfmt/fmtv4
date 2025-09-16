@@ -27,6 +27,7 @@ import {
   FiLogOut,
   FiUser,
 } from "react-icons/fi";
+import Image from "next/image";
 
 interface MobileNavProps {
   isRefreshing?: boolean;
@@ -202,7 +203,7 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                 <div className="flex items-center justify-between p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     {session?.user?.image ? (
-                      <img
+                      <Image
                         src={session.user.image}
                         alt={session.user.name || "User"}
                         className="w-10 h-10 rounded-full border-2 border-primary/20"

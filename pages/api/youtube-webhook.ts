@@ -305,6 +305,7 @@ export default async function handler(
         const videoData = {
           videoId: entry.videoId,
           channelId: entry.channelId || "UCm7Mkdl1a8g6ctmQMhhghiA",
+          channelTitle: videoDetails.snippet.channelTitle || "", // Added required field
           title: videoDetails.snippet.title,
           description: videoDetails.snippet.description || "",
           publishedAt: new Date(videoDetails.snippet.publishedAt),
@@ -351,18 +352,18 @@ export default async function handler(
         };
 
         // Check if video exists to determine syncVersion
-        const existingVideo = await prisma.videos.findUnique({
+        const existingVideo = await prisma.videos.findMany({
           where: { videoId: entry.videoId },
           select: { syncVersion: true },
         });
 
         if (existingVideo) {
           // Update existing video - increment syncVersion
-          await prisma.videos.update({
+          await prisma.videos.updateMany({
             where: { videoId: entry.videoId },
             data: {
               ...videoData,
-              syncVersion: existingVideo.syncVersion + 1,
+              syncVersion: existingVideo[0].syncVersion + 1,
             },
           });
         } else {

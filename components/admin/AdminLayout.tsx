@@ -27,6 +27,7 @@ import {
   FiMonitor,
   FiChevronRight,
 } from "react-icons/fi";
+import Image from "next/image";
 
 // Logo component (simplified version)
 const LogoSVG = ({ className }: { className?: string }) => (
@@ -252,7 +253,7 @@ export default function AdminLayout({
               {session?.user && !isSidebarCollapsed && (
                 <div className="flex items-center gap-3 px-3 py-2 mb-2">
                   {session.user.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
                       alt={session.user.name || "User"}
                       className="w-8 h-8 rounded-full"

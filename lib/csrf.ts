@@ -115,5 +115,6 @@ export function getCSRFToken(req: any): string {
 
 // TypeScript global declarations
 declare global {
+  /* eslint no-var: "off" */
   var csrfCleanupInterval: NodeJS.Timeout | undefined;
 }
