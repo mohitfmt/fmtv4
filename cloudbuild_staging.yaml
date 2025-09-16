@@ -145,8 +145,7 @@ steps:
           --allow-unauthenticated \
           --set-env-vars="NODE_ENV=production" \
           --set-env-vars="NEXT_TELEMETRY_DISABLED=1" \
-           --set-env-vars=NODE_OPTIONS=${_NODE_OPTIONS} \
-          # server-side envs
+          --set-env-vars=NODE_OPTIONS=${_NODE_OPTIONS} \
           --set-env-vars=DATABASE_URL=${_DATABASE_URL} \
           --set-env-vars=NEXTAUTH_SECRET=${_NEXTAUTH_SECRET} \
           --set-env-vars=REVALIDATE_SECRET_KEY=${_REVALIDATE_SECRET_KEY} \
