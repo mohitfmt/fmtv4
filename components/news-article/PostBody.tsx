@@ -181,7 +181,7 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
             const width = Number(domNode.attribs?.width) || 0;
             const height = Number(domNode.attribs?.height) || 1;
             const aspectRatio =
-              width > 0 && height > 0 ? width / height : 16 / 9; // Default to 16:9 if invalid
+              width > 0 && height > 0 ? width / height : 16 / 10; // Default to 16:9 if invalid
             const isFloatingLeft =
               domNode.attribs?.class?.includes("alignleft") ?? false;
             const isFloatingRight =
@@ -213,8 +213,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
             firstImageProcessed = true;
 
             // Calculate height based on mobile width for better initial loading
-            const mobileHeight = Math.round(mobileWidth / aspectRatio);
-
+            // const mobileHeight = Math.round(mobileWidth / aspectRatio);
+            const desktopHeight = Math.round(desktopWidth / aspectRatio);
             return (
               <div
                 className="html-img-wrapper"
@@ -226,8 +226,8 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
                 <Image
                   src={domNode.attribs?.src}
                   alt={domNode.attribs?.alt ?? "Free Malaysia Today"}
-                  width={mobileWidth}
-                  height={mobileHeight}
+                  width={desktopWidth}
+                  height={desktopHeight}
                   className="html-img h-auto w-full"
                   loading={currentImageProcessed ? "lazy" : "eager"}
                   priority={!currentImageProcessed}

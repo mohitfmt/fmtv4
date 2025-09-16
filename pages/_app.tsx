@@ -285,6 +285,14 @@ export default function App({
         async
         defer
       />
+
+      {/* MGID Script - Load once globally */}
+      <Script
+        id="mgid-global-script"
+        src="https://jsc.mgid.com/site/903468.js"
+        strategy="afterInteractive"
+        async
+      />
       {/* Meta Pixel script using Next.js Script component */}
       <Script
         id="meta-pixel-init"

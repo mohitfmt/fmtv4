@@ -4,7 +4,7 @@ import NewsAuthor from "@/components/common/NewsAuthor";
 // import ShareButtons from "@/components/news-article/ShareButtons";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import CategorySidebar from "@/components/common/CategorySidebar";
-import React, { ReactNode, Suspense } from "react";
+import React, { ReactNode, Suspense, useEffect, useState } from "react";
 import {
   FollowPlatformsSkeleton,
   NewsletterSkeleton,
@@ -51,6 +51,20 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
   children,
 }) => {
   const fullUri = `${siteConfig.baseUrl}${post?.uri}`;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
     <>
       {/* Top Desktop Ad */}
@@ -159,13 +173,48 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
 
             <section className="mb-8">
               <div className="overflow-hidden text-center">
-                <AdSlot
+                {/* <AdSlot
                   targetingParams={dfpTargetingParams}
                   id="div-gpt-ad-1691483572864-0"
                   name="1x1_MG"
                   sizes={[1, 1]}
                   visibleOnDevices="both"
-                />
+                /> */}
+                {typeof window !== "undefined" && (
+                  <>
+                    {/* Desktop Widget */}
+                    {!isMobile && (
+                      <>
+                        <div
+                          data-type="_mgwidget"
+                          data-widget-id="1509834"
+                          data-src-id="${PUBLISHER_ID}"
+                        />
+                        <script
+                          dangerouslySetInnerHTML={{
+                            __html: `(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");`,
+                          }}
+                        />
+                      </>
+                    )}
+
+                    {/* Mobile Widget */}
+                    {isMobile && (
+                      <>
+                        <div
+                          data-type="_mgwidget"
+                          data-widget-id="1509838"
+                          data-src-id="${PUBLISHER_ID}"
+                        />
+                        <script
+                          dangerouslySetInnerHTML={{
+                            __html: `(function(w,q){w[q]=w[q]||[];w[q].push(["_mgc.load"])})(window,"_mgq");`,
+                          }}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="ads-medium-mobile">
@@ -237,17 +286,6 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
               sizes={[300, 600]}
               visibleOnDevices="onlyMobile"
               targetingParams={dfpTargetingParams}
-            />
-          </div>
-
-          {/* Not Working in both v3 and v4 */}
-          <div className="overflow-hidden text-center">
-            <AdSlot
-              targetingParams={dfpTargetingParams}
-              id="div-gpt-ad-1691483572864-0"
-              name="1x1_MG"
-              sizes={[1, 1]}
-              visibleOnDevices="onlyMobile"
             />
           </div>
         </div>
