@@ -90,7 +90,8 @@ async function handler(
     const syncState = (feConfig.sync as SyncState) || {};
 
     // 1) Channel uploads RSS (if channel id configured)
-    const channelId = process.env.YOUTUBE_CHANNEL_ID || "";
+    const channelId =
+      process.env.YOUTUBE_CHANNEL_ID || "UC2CzLwbhTiI8pTKNVyrOnJQ";
     if (channelId) {
       try {
         const uploadsRssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
@@ -341,7 +342,10 @@ async function handler(
       const paths = Array.from(affectedPaths);
       await revalidatePaths(paths);
 
-      const urls = paths.map((p) => `${process.env.NEXT_PUBLIC_APP_URL}${p}`);
+      const urls = paths.map(
+        (p) =>
+          `${process.env.NEXT_PUBLIC_APP_URL || "https://dev-v4.freemalaysiatoday.com"}${p}`
+      );
       await purgeCloudflareCache(urls);
     }
 
