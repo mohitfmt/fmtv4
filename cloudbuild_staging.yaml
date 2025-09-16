@@ -182,7 +182,7 @@ steps:
           --set-env-vars=NEXT_PUBLIC_WORDPRESS_SECRET=${_NEXT_PUBLIC_WORDPRESS_SECRET} \
           --set-env-vars=NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN} \
           --set-env-vars=NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV} \
-          --set-env-vars=NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}
+          --set-env-vars=NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY} \
           --timeout=300 \
           --service-account=${_SERVICE_ACCOUNT} \
           --quiet
