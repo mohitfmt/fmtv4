@@ -80,6 +80,10 @@ steps:
       - "CONTACT_US_RECIPIENT=${_CONTACT_US_RECIPIENT}"
       - "--build-arg"
       - "SENDGRID_API_KEY=${_SENDGRID_API_KEY}"
+      - "--build-arg"
+      - "NEXTAUTH_URL=${_NEXTAUTH_URL}"
+      - "--build-arg"
+      - "ADMIN_API_KEY=${_ADMIN_API_KEY}"
 
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
@@ -179,6 +183,7 @@ steps:
           --set-env-vars="NEXT_PUBLIC_WP_REFRESH_TOKEN=${_NEXT_PUBLIC_WP_REFRESH_TOKEN}" \
           --set-env-vars="NEXT_PUBLIC_CRYPTO_IV=${_NEXT_PUBLIC_CRYPTO_IV}" \
           --set-env-vars="NEXT_PUBLIC_CRYPTO_KEY=${_NEXT_PUBLIC_CRYPTO_KEY}" \
+          --set-env-vars="NEXTAUTH_URL=${_NEXTAUTH_URL}" \
           --timeout=300 \
           --service-account=${_SERVICE_ACCOUNT} \
           --quiet
