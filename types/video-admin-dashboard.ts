@@ -9,6 +9,7 @@ import type {
 import type { PerformanceMetrics } from "@/lib/dashboard/queries/performance-metrics";
 import type { ContentInsights } from "@/lib/dashboard/queries/content-insights";
 import type { ContentSuggestions } from "@/lib/dashboard/google-trends";
+import type { EngagementData } from "@/lib/dashboard/queries/engagement-data";
 
 // Re-export for convenience
 export type {
@@ -94,6 +95,7 @@ export interface DashboardStats {
   insights: ContentInsights;
   suggestions: ContentSuggestions;
   recentActivity: ActivityItem[];
+  engagementData: EngagementData[];
 }
 
 // API Response
@@ -114,13 +116,13 @@ export interface ChartDataPoint {
   label?: string;
 }
 
-export interface EngagementData {
-  date: string;
-  views: number;
-  likes: number;
-  comments: number;
-  engagement: number;
-}
+// export interface EngagementData {
+//   date: string;
+//   views: number;
+//   likes: number;
+//   comments: number;
+//   engagement: number;
+// }
 
 // Component Props Types
 export interface StatCardProps {

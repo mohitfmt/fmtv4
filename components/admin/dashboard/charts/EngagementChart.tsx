@@ -78,8 +78,7 @@ export function EngagementChart({
     );
   }
 
-  // Generate mock data if not provided
-  const chartData = data || generateMockData();
+  const chartData = data || [];
 
   const excellentThreshold =
     PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.EXCELLENT * 100;

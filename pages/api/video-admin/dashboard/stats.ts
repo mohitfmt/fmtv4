@@ -13,11 +13,17 @@ import {
 } from "@/lib/dashboard/queries/weekly-stats";
 import { getPerformanceMetrics } from "@/lib/dashboard/queries/performance-metrics";
 import { getContentInsights } from "@/lib/dashboard/queries/content-insights";
+
 import { getContentSuggestions } from "@/lib/dashboard/google-trends";
 
 // Import cache and constants
 import { getDashboardCache, rateLimiter } from "@/lib/dashboard/cache";
-import { CACHE_CONFIG, QUERY_CONFIG } from "@/lib/dashboard/constants";
+import {
+  CACHE_CONFIG,
+  CHART_CONFIG,
+  QUERY_CONFIG,
+} from "@/lib/dashboard/constants";
+import { getEngagementData } from "@/lib/dashboard/queries/engagement-data";
 
 // Types
 interface DashboardResponse {
@@ -334,8 +340,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Get content suggestions based on existing videos
     const videoTitles = existingVideos.map((v: any) => v.title);
-    const contentSuggestions = await getContentSuggestions(videoTitles);
+    const contentSuggestions = await getContentSuggestions();
 
+    const engagementData = await getEngagementData(
+      prisma,
+      CHART_CONFIG.ENGAGEMENT_DAYS
+    );
     // Determine sync status
     const syncStatusValue = syncStatus?.currentlySyncing
       ? "syncing"
@@ -415,6 +425,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       // AI suggestions
       suggestions: contentSuggestions,
+
+      engagementData,
 
       // Recent activity
       recentActivity,

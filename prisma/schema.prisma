@@ -366,3 +366,29 @@ model SyncStatus {
   
   @@map("syncStatus")
 }
+
+model TrendingTopic {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  keyword       String
+  source        String   // google_trends, youtube
+  volume        Int      // Search volume number
+  velocity      Float    // Rate of change percentage
+  firstSeen     DateTime
+  lastSeen      DateTime
+  peakVolume    Int?
+  region        String   // Primary region (MY)
+  regions       Json?    // Regional data object
+  relatedNews   Json?    // Related news articles array
+  ourVideos     String[] // Matched video IDs
+  category      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([keyword, source])
+  @@index([keyword])
+  @@index([source])
+  @@index([velocity])
+  @@index([lastSeen])
+  @@index([region])
+  @@map("trendingTopics")
+}

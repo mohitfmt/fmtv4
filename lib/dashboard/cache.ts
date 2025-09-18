@@ -50,7 +50,7 @@ export class DashboardCache<T = any> {
   /**
    * Get a value from the cache
    */
-  get(key: string): T | null {
+  get<U = T>(key: string): U | null {
     const entry = this.cache.get(key);
 
     if (!entry) {
@@ -66,7 +66,7 @@ export class DashboardCache<T = any> {
     // Update hit count
     entry.hits++;
 
-    return entry.data;
+    return entry.data as unknown as U;
   }
 
   /**
@@ -270,3 +270,5 @@ class RateLimiter {
 
 // Export singleton rate limiter
 export const rateLimiter = new RateLimiter();
+
+export const cache = getDashboardCache();

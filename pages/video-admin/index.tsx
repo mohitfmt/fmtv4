@@ -602,13 +602,14 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
             <div className="bg-card border rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-6">Engagement Metrics</h3>
               <EngagementChart
+                data={stats?.engagementData || []}
                 performanceMetrics={stats?.performance || undefined}
                 loading={loading && !stats}
               />
             </div>
           </div>
 
-          {/* Advanced Metrics Row */}
+          {/* Advanced Metrics Row 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <TrendingVideosCard
               videos={stats?.videos.trendingList || []}
@@ -625,6 +626,27 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
               loading={loading && !stats}
               onRefresh={handleManualRefresh}
             />
+          </div>
+          */}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <ContentSuggestionsCard
+                suggestions={stats?.suggestions || null}
+                loading={loading && !stats}
+                onRefresh={handleManualRefresh}
+              />
+            </div>
+            <div className="lg:col-span-1 space-y-6">
+              <PerformanceMetricsCard
+                metrics={stats?.performance || null}
+                loading={loading && !stats}
+              />
+              <TrendingVideosCard
+                videos={stats?.videos.trendingList || []}
+                loading={loading && !stats}
+              />
+            </div>
           </div>
 
           {/* Activity and System Status */}
