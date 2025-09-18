@@ -207,6 +207,8 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                         src={session.user.image}
                         alt={session.user.name || "User"}
                         className="w-10 h-10 rounded-full border-2 border-primary/20"
+                        width={40}
+                        height={40}
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">

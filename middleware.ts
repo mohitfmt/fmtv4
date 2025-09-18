@@ -1,63 +1,51 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-/**
- * Next.js middleware function to handle cache settings and tags
- * Optimized for high-frequency news publishing with better path detection
- * Includes debug headers for easier troubleshooting
- */
-
-// Define content types with appropriate cache durations for news site
+// Your existing cache duration configs remain unchanged
 const cacheDurations = {
   static: {
-    maxAge: 31536000, // 1 year for truly static content
+    maxAge: 31536000,
     staleWhileRevalidate: 0,
     staleIfError: 0,
   },
   article: {
-    maxAge: 30, // 30 seconds for article detail pages
-    staleWhileRevalidate: 300, // 5 minutes SWR
-    staleIfError: 1800, // 30 minutes SIE
+    maxAge: 30,
+    staleWhileRevalidate: 300,
+    staleIfError: 1800,
   },
   collection: {
-    maxAge: 20, // 20 seconds for category collection pages
-    staleWhileRevalidate: 120, // 2 minutes SWR
-    staleIfError: 600, // 10 minutes SIE
+    maxAge: 20,
+    staleWhileRevalidate: 120,
+    staleIfError: 600,
   },
   listing: {
-    maxAge: 20, // 20 seconds for section listing pages
-    staleWhileRevalidate: 120, // 2 minutes SWR
-    staleIfError: 600, // 10 minutes SIE
+    maxAge: 20,
+    staleWhileRevalidate: 120,
+    staleIfError: 600,
   },
   homepage: {
-    maxAge: 15, // 15 seconds for homepage
-    staleWhileRevalidate: 60, // 1 minute SWR
-    staleIfError: 300, // 5 minutes SIE
+    maxAge: 15,
+    staleWhileRevalidate: 60,
+    staleIfError: 300,
   },
 };
 
-// Improved content type detection with better path analysis
+// Your existing functions remain unchanged
 function getContentType(
   pathname: string
 ): "static" | "article" | "collection" | "listing" | "homepage" {
   if (pathname === "/") return "homepage";
-
-  // Check for article detail pages - they have a date pattern in the URL
-  // Pattern: /category/something/YYYY/MM/DD/slug/ or /category/something/subcategory/YYYY/MM/DD/slug/
   if (
     pathname.includes("/category/") &&
     /\/\d{4}\/\d{2}\/\d{2}\//.test(pathname)
   ) {
     return "article";
   }
-
-  // Check for category collection pages
-  // Pattern: /category/category/something/ or /category/something/
   if (pathname.includes("/category/")) {
     return "collection";
   }
-
-  // Check for main section pages
   if (
     pathname.match(
       /^\/(news|berita|business|opinion|world|sports|lifestyle|photos|videos|accelerator)\/?$/
@@ -65,18 +53,13 @@ function getContentType(
   ) {
     return "listing";
   }
-
   return "static";
 }
 
-// Apply cache tags based on path with improved detection for multi-level categories
 function applyCacheTags(response: NextResponse, pathname: string): string[] {
   const cacheTags = [];
-
-  // Always add page-specific tag for precise purging
   cacheTags.push(`path:${pathname}`);
 
-  // Add hierarchical tags for more granular control
   if (pathname === "/") {
     cacheTags.push("page:home");
   } else if (
@@ -88,20 +71,16 @@ function applyCacheTags(response: NextResponse, pathname: string): string[] {
     cacheTags.push(`section:${section}`);
     cacheTags.push("type:listing");
   } else if (pathname.includes("/category/")) {
-    // Extract category information
     const pathParts = pathname.split("/").filter(Boolean);
     const categoryIndex = pathParts.indexOf("category");
 
     if (categoryIndex !== -1 && pathParts.length > categoryIndex + 1) {
-      // Get the main category (first level after /category/)
       const category = pathParts[categoryIndex + 1];
       cacheTags.push(`category:${category}`);
 
-      // Check if this is an article detail page by looking for date pattern
       const isArticlePage = /\/\d{4}\/\d{2}\/\d{2}\//.test(pathname);
-
-      // Find the date pattern index to determine subcategory structure
       let datePatternIndex = -1;
+
       for (let i = 0; i < pathParts.length; i++) {
         if (
           /^\d{4}$/.test(pathParts[i]) &&
@@ -114,13 +93,10 @@ function applyCacheTags(response: NextResponse, pathname: string): string[] {
         }
       }
 
-      // Handle subcategories - all path parts between category and date pattern
       if (datePatternIndex > 0) {
-        // Add all subcategory levels
         for (let i = categoryIndex + 2; i < datePatternIndex; i++) {
           if (i < pathParts.length) {
             cacheTags.push(`subcategory:${pathParts[i]}`);
-            // Also add combined category path for more precise targeting
             if (i === categoryIndex + 2) {
               cacheTags.push(`category-path:${category}/${pathParts[i]}`);
             } else if (i === categoryIndex + 3) {
@@ -131,18 +107,14 @@ function applyCacheTags(response: NextResponse, pathname: string): string[] {
           }
         }
       } else if (pathParts.length > categoryIndex + 2) {
-        // For collection pages with subcategories
         cacheTags.push(`subcategory:${pathParts[categoryIndex + 2]}`);
         cacheTags.push(
           `category-path:${category}/${pathParts[categoryIndex + 2]}`
         );
       }
 
-      // Add content type tag
       if (isArticlePage) {
         cacheTags.push("type:article");
-
-        // Add date-based tags for article pages
         const datePattern = /\/(\d{4})\/(\d{2})\/(\d{2})\//;
         const dateMatch = pathname.match(datePattern);
         if (dateMatch) {
@@ -157,49 +129,101 @@ function applyCacheTags(response: NextResponse, pathname: string): string[] {
     }
   }
 
-  // Join all tags and set the Cache-Tag header
   response.headers.set("Cache-Tag", cacheTags.join(","));
-
   return cacheTags;
 }
 
-export function middleware(request: NextRequest) {
-  // Clone the response
+export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
-
-  // Get the pathname
   const { pathname } = request.nextUrl;
 
-  // Add debug header for request path
+  // Get the host
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    "";
+  const cleanHost = host.split(":")[0].toLowerCase();
+
+  // ===== VIDEO ADMIN PROTECTION START =====
+  if (
+    pathname.startsWith("/video-admin") ||
+    pathname.startsWith("/api/video-admin")
+  ) {
+    // Block video-admin on www subdomain
+    if (cleanHost.includes("www.") || cleanHost === "freemalaysiatoday.com") {
+      // Redirect to homepage on production domain
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // Only allow on dev-v4 or localhost
+    const isAllowedHost =
+      process.env.NODE_ENV === "development"
+        ? cleanHost === "localhost" ||
+          cleanHost === "dev-v4.freemalaysiatoday.com"
+        : cleanHost === "dev-v4.freemalaysiatoday.com";
+
+    if (!isAllowedHost) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // Check authentication for video-admin routes (except login page)
+    if (pathname !== "/video-admin/login") {
+      try {
+        const token = await getToken({
+          req: request,
+          secret: process.env.NEXTAUTH_SECRET,
+        });
+
+        // Check if user is authenticated and has correct domain
+        if (!token?.email || !token.email.endsWith("@freemalaysiatoday.com")) {
+          const loginUrl = new URL("/video-admin/login", request.url);
+          loginUrl.searchParams.set("callbackUrl", pathname);
+          return NextResponse.redirect(loginUrl);
+        }
+      } catch (error) {
+        // If token check fails, redirect to login
+        const loginUrl = new URL("/video-admin/login", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
+
+    // Set security headers for admin pages
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Referrer-Policy", "no-referrer");
+
+    return response;
+  }
+  // ===== VIDEO ADMIN PROTECTION END =====
+
+  // Your existing cache logic continues below...
   response.headers.set("X-Debug-Path", pathname);
 
-  // Skip middleware caching logic for video slug pages
   if (/^\/videos\/.+/.test(pathname)) {
     response.headers.set("X-Debug-Skip-Reason", "video-page");
     return response;
   }
 
-  // Skip for API routes except for revalidate (which needs custom headers)
   if (pathname.startsWith("/api/") && !pathname.includes("/api/revalidate")) {
     response.headers.set("X-Debug-Skip-Reason", "api-route");
     return response;
   }
 
-  // Check if user is logged in (has auth cookie)
   const hasAuthCookie = request.cookies.has("auth_token");
   response.headers.set(
     "X-Debug-Auth",
     hasAuthCookie ? "logged-in" : "anonymous"
   );
 
-  // For static assets, implement a smarter caching strategy
   if (/\.(jpg|jpeg|png|gif|webp|svg|ico|js|css)$/.test(pathname)) {
     const isArticleImage =
       pathname.includes("/wp-content/uploads/") &&
       request.headers.get("referer")?.includes("/category/");
 
     if (isArticleImage) {
-      // For images that might be updated (like article featured images)
       response.headers.set(
         "Cache-Control",
         "public, max-age=300, stale-while-revalidate=3600"
@@ -210,7 +234,6 @@ export function middleware(request: NextRequest) {
       );
       response.headers.set("X-Debug-Asset-Type", "article-image");
     } else {
-      // Other static assets get long-term caching
       response.headers.set(
         "Cache-Control",
         "public, max-age=31536000, immutable"
@@ -221,35 +244,33 @@ export function middleware(request: NextRequest) {
       );
       response.headers.set("X-Debug-Asset-Type", "static-asset");
     }
-
     return response;
   }
 
-  // For HTML content, apply different strategies based on content type and user state
   const contentType = getContentType(pathname);
   const { maxAge, staleWhileRevalidate, staleIfError } =
     cacheDurations[contentType];
 
-  // Add debug headers for content type and cache durations
   response.headers.set("X-Debug-Content-Type", contentType);
   response.headers.set("X-Debug-Cache-MaxAge", maxAge.toString());
   response.headers.set("X-Debug-Cache-SWR", staleWhileRevalidate.toString());
   response.headers.set("X-Debug-Cache-SIE", staleIfError.toString());
 
-  // For logged-in users, use shorter or no caching
   if (hasAuthCookie) {
     response.headers.set("Cache-Control", "private, no-cache");
     response.headers.set("Cloudflare-CDN-Cache-Control", "private, no-cache");
     response.headers.set("X-Debug-Cache-Policy", "private-no-cache");
   } else {
-    // For anonymous users, use the tiered caching strategy
-    const cacheControlValue = `public, max-age=${maxAge}${staleWhileRevalidate ? `, stale-while-revalidate=${staleWhileRevalidate}` : ""}${staleIfError ? `, stale-if-error=${staleIfError}` : ""}`;
+    const cacheControlValue = `public, max-age=${maxAge}${
+      staleWhileRevalidate
+        ? `, stale-while-revalidate=${staleWhileRevalidate}`
+        : ""
+    }${staleIfError ? `, stale-if-error=${staleIfError}` : ""}`;
 
     response.headers.set("Cache-Control", cacheControlValue);
     response.headers.set("Cloudflare-CDN-Cache-Control", cacheControlValue);
     response.headers.set("X-Debug-Cache-Policy", "tiered-public");
 
-    // Apply cache tags and add debug header
     const cacheTags = applyCacheTags(response, pathname);
     response.headers.set("X-Debug-Cache-Tags", cacheTags.join(","));
     response.headers.set(
@@ -258,28 +279,22 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // Add version header for client-side detection of fresh content
-  // Update every 10 seconds for high-frequency news site
   const versionTimestamp = Math.floor(Date.now() / 10000) * 10000;
   response.headers.set("x-fmt-version", versionTimestamp.toString());
   response.headers.set(
     "X-Debug-Version-Timestamp",
     versionTimestamp.toString()
   );
-
-  // Standard Vary header
   response.headers.set("Vary", "Accept-Encoding, Cookie, User-Agent");
-
-  // Add middleware version header for tracking deployments
-  response.headers.set("X-Middleware-Version", "1.0.0");
+  response.headers.set("X-Middleware-Version", "1.1.0");
 
   return response;
 }
 
-// Configure which paths this middleware runs on
 export const config = {
   matcher: [
-    // Match all paths except Next.js internals and API routes (except revalidate)
-    "/((?!_next/static|_next/image|favicon.ico|api/(?!revalidate)).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/(?!revalidate|video-admin)).*)",
+    "/video-admin/:path*",
+    "/api/video-admin/:path*",
   ],
 };

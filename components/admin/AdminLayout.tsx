@@ -28,28 +28,7 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import Image from "next/image";
-
-// Logo component (simplified version)
-const LogoSVG = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 40 40"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      width="40"
-      height="40"
-      rx="8"
-      fill="currentColor"
-      className="text-primary"
-    />
-    <path d="M12 20L18 14V26L12 20Z" fill="white" />
-    <path d="M22 14H28V16H22V14Z" fill="white" />
-    <path d="M22 19H26V21H22V19Z" fill="white" />
-    <path d="M22 24H28V26H22V24Z" fill="white" />
-  </svg>
-);
+import { LogoSVG } from "../ui/icons/LogoSVG";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -119,9 +98,32 @@ export default function AdminLayout({
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     sessionStorage.setItem("admin_signed_out", "true");
-    signOut({ callbackUrl: "/video-admin/login" });
+
+    // Clear all storage
+    localStorage.clear();
+    Object.keys(sessionStorage).forEach((key) => {
+      if (key !== "admin_signed_out") {
+        sessionStorage.removeItem(key);
+      }
+    });
+
+    // Clear cookies
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date(0).toUTCString() + ";path=/");
+    });
+
+    // Sign out and force account selection on next login
+    await signOut({
+      callbackUrl: "/video-admin/login",
+      redirect: false,
+    });
+
+    // Manual redirect to ensure clean state
+    window.location.href = "/video-admin/login";
   };
 
   const navItems = [
@@ -257,6 +259,8 @@ export default function AdminLayout({
                       src={session.user.image}
                       alt={session.user.name || "User"}
                       className="w-8 h-8 rounded-full"
+                      width={32}
+                      height={32}
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">

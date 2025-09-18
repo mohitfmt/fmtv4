@@ -1,385 +1,225 @@
 // pages/video-admin/index.tsx
 import { GetServerSideProps } from "next";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { formatDistanceToNow } from "date-fns";
-import {
-  Variants,
-  MotionConfig,
-  useReducedMotion,
-  LazyMotion,
-  domAnimation,
-  m,
-} from "framer-motion";
-import CountUp from "react-countup";
-import { cn } from "@/lib/utils";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
-
-import { withAdminPageSSR } from "@/lib/adminAuth";
+import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { withAdminPageSSR } from "@/lib/adminAuth";
 import { videoApiJson } from "@/lib/videoApi";
-
-// React Icons imports
-import { AiOutlineWarning } from "react-icons/ai";
-import {
-  MdRefresh,
-  MdStorage,
-  MdList,
-  MdSettings,
-  MdTrendingUp,
-  MdTrendingDown,
-} from "react-icons/md";
+import { formatDistanceToNow } from "date-fns";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { LazyMotion } from "framer-motion";
 import {
   FiActivity,
-  FiVideo,
+  FiAlertCircle,
+  FiCheckCircle,
   FiClock,
+  FiDatabase,
+  FiLayers,
+  FiRefreshCw,
+  FiTrendingUp,
+  FiVideo,
   FiWifiOff,
   FiZap,
-  FiAlertCircle,
-  FiTrendingUp as FiTrending,
 } from "react-icons/fi";
+import { cn } from "@/lib/utils";
 
-// TypeScript interfaces
-interface PageProps {
-  requiresAuth?: boolean;
-  unauthorized?: boolean;
-  userEmail?: string;
-  traceId?: string;
-  enableOneTap?: boolean;
-  session?: any;
-}
+// Import dashboard components
+import { StatsCard } from "@/components/admin/dashboard/cards/StatsCard";
+import { TrendingVideosCard } from "@/components/admin/dashboard/cards/TrendingVideosCard";
+import { PerformanceMetricsCard } from "@/components/admin/dashboard/cards/PerformanceMetricsCard";
+import { ContentSuggestionsCard } from "@/components/admin/dashboard/cards/ContentSuggestionsCard";
+import { ContentInsightsCard } from "@/components/admin/dashboard/cards/ContentInsightsCard";
+import { UploadHistoryChart } from "@/components/admin/dashboard/charts/UploadHistoryChart";
+import { EngagementChart } from "@/components/admin/dashboard/charts/EngagementChart";
 
-interface VideoUploadData {
-  date: string;
-  day: string;
-  videos: number;
-  lastWeek: number;
-}
+// Import constants
+import { REFRESH_CONFIG, CACHE_CONFIG } from "@/lib/dashboard/constants";
 
-interface DashboardStats {
-  videos: {
-    total: number;
-    lastAdded: string | null;
-    trending: number;
-    newToday: number;
-    thisWeek?: number;
-    lastWeek?: number;
-    uploadHistory?: VideoUploadData[];
-  };
-  playlists: {
-    total: number;
-    active: number;
-    inactive: number;
-  };
-  sync: {
-    status: "active" | "inactive" | "syncing";
-    lastSync: string | null;
-    nextSync: string | null;
-    currentlySyncing: boolean;
-    currentPlaylist: string | null;
-  };
-  cache: {
-    cdnHitRate: number;
-    lruUsage: number;
-    lastCleared: string | null;
-    totalCacheSize: number;
-    maxCacheSize: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    action: string;
-    entityType: string;
-    userId: string;
-    timestamp: string;
-  }>;
-}
+// Import types
+import type { DashboardStats } from "@/types/video-admin-dashboard";
+
+// Import animation features
+const loadFeatures = () =>
+  import("@/lib/framer-features").then((res) => res.default);
 
 interface DashboardResponse {
-  data: DashboardStats;
+  success: boolean;
+  data?: DashboardStats;
+  error?: string;
   traceId: string;
   timestamp: string;
+  cached?: boolean;
 }
 
-// Animation Variants
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1,
-    },
-  },
-};
+interface PageProps {
+  requiresAuth?: boolean;
+  traceId?: string;
+}
 
-const cardVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 15,
-    },
-  },
-};
+// Activity Item Component
+function ActivityItem({ activity }: { activity: any }) {
+  const getActivityIcon = () => {
+    if (activity.action.includes("sync"))
+      return <FiRefreshCw className="w-4 h-4" />;
+    if (activity.action.includes("cache"))
+      return <FiDatabase className="w-4 h-4" />;
+    if (activity.action.includes("success"))
+      return <FiCheckCircle className="w-4 h-4" />;
+    if (activity.action.includes("failed"))
+      return <FiAlertCircle className="w-4 h-4" />;
+    return <FiActivity className="w-4 h-4" />;
+  };
 
-// Custom Tooltip for Chart
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-popover border border-border rounded-lg shadow-lg p-3">
-        <p className="text-sm font-medium">{label}</p>
-        <div className="space-y-1 mt-2">
-          <p className="text-sm">
-            <span className="text-muted-foreground">This Week:</span>{" "}
-            <span className="font-semibold text-primary">
-              {payload[0].value} videos
-            </span>
-          </p>
-          {payload[1] && (
-            <p className="text-sm">
-              <span className="text-muted-foreground">Last Week:</span>{" "}
-              <span className="font-medium">{payload[1].value} videos</span>
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Week Comparison Component
-function WeekComparison({
-  thisWeek = 0,
-  lastWeek = 0,
-}: {
-  thisWeek: number;
-  lastWeek: number;
-}) {
-  const percentChange =
-    lastWeek > 0
-      ? ((thisWeek - lastWeek) / lastWeek) * 100
-      : thisWeek > 0
-        ? 100
-        : 0;
-  const isIncrease = thisWeek >= lastWeek;
-  const shouldReduceMotion = useReducedMotion();
+  const getActivityColor = () => {
+    if (
+      activity.action.includes("success") ||
+      activity.action.includes("completed")
+    )
+      return "bg-green-500/10 text-green-500";
+    if (activity.action.includes("failed") || activity.action.includes("error"))
+      return "bg-red-500/10 text-red-500";
+    return "bg-muted";
+  };
 
   return (
-    <LazyMotion features={domAnimation}>
-      <m.div
-        initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-card rounded-lg border border-border p-4"
+    <div className="flex gap-3 items-start">
+      <div
+        className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+          getActivityColor()
+        )}
       >
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground mb-2">
-              Weekly Comparison
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">This Week</span>
-                <span className="text-lg font-semibold">{thisWeek}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Last Week</span>
-                <span className="text-sm font-medium">{lastWeek}</span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "flex flex-col items-center justify-center ml-4 px-3 py-2 rounded-lg",
-              isIncrease ? "bg-green-500/10" : "bg-red-500/10"
-            )}
-          >
-            {isIncrease ? (
-              <MdTrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
-            ) : (
-              <MdTrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
-            )}
-            <span
-              className={cn(
-                "text-sm font-bold mt-1",
-                isIncrease
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-600 dark:text-red-400"
-              )}
-            >
-              {percentChange > 0 ? "+" : ""}
-              {percentChange.toFixed(0)}%
-            </span>
-          </div>
-        </div>
-      </m.div>
-    </LazyMotion>
+        {getActivityIcon()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{activity.action}</p>
+        {activity.details && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {activity.details}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground mt-1">
+          {activity.relativeTime} • {activity.userId}
+        </p>
+      </div>
+    </div>
   );
 }
 
-// Video Upload Graph Component
-function VideoUploadGraph({ data }: { data: VideoUploadData[] }) {
-  const shouldReduceMotion = useReducedMotion();
-  const [chartType, setChartType] = useState<"area" | "bar">("area");
+// System Status Component
+function SystemStatus({ stats }: { stats: DashboardStats | null }) {
+  if (!stats) return null;
 
   return (
-    <LazyMotion features={domAnimation}>
-      <m.div
-        initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-card rounded-lg border border-border p-4"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-base font-semibold">
-              Video Uploads - Last 7 Days
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Daily upload activity
-            </p>
+    <div className="bg-card border rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">System Status</h3>
+
+      <div className="space-y-4">
+        {/* Webhook Status */}
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full",
+                stats.sync.webhookActive ? "bg-green-500" : "bg-red-500"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-2 h-2 rounded-full animate-ping",
+                  stats.sync.webhookActive ? "bg-green-500" : "bg-red-500"
+                )}
+              />
+            </div>
+            <div>
+              <p className="text-sm font-medium">YouTube Webhook</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.sync.webhookActive ? "Active" : "Inactive"}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-1 p-1 bg-muted rounded-lg">
-            <button
-              onClick={() => setChartType("area")}
-              className={cn(
-                "px-2 py-1 text-xs rounded transition-colors",
-                chartType === "area"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-background/50"
-              )}
-            >
-              Area
-            </button>
-            <button
-              onClick={() => setChartType("bar")}
-              className={cn(
-                "px-2 py-1 text-xs rounded transition-colors",
-                chartType === "bar"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-background/50"
-              )}
-            >
-              Bar
-            </button>
+          {stats.sync.webhookExpiry && (
+            <span className="text-xs text-muted-foreground">
+              Expires{" "}
+              {formatDistanceToNow(new Date(stats.sync.webhookExpiry), {
+                addSuffix: true,
+              })}
+            </span>
+          )}
+        </div>
+
+        {/* Last Sync */}
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <FiClock className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Last Sync</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.sync.lastSync
+                  ? formatDistanceToNow(new Date(stats.sync.lastSync), {
+                      addSuffix: true,
+                    })
+                  : "Never"}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {stats.sync.totalSyncs || 0} total
+          </span>
+        </div>
+
+        {/* Cache Usage */}
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <FiDatabase className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Cache Usage</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.cache.formattedSize} / {stats.cache.formattedMaxSize}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${stats.cache.lruUsage || 0}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {stats.cache.lruUsage || 0}%
+            </span>
           </div>
         </div>
 
-        <div className="h-48 md:h-64 -mx-2">
-          <ResponsiveContainer width="100%" height="100%">
-            {chartType === "area" ? (
-              <AreaChart
-                data={data}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-              >
-                <defs>
-                  <linearGradient
-                    id="colorThisWeek"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient
-                    id="colorLastWeek"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="lastWeek"
-                  stroke="#94a3b8"
-                  fill="url(#colorLastWeek)"
-                  strokeWidth={1.5}
-                  name="Last Week"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="videos"
-                  stroke="#3b82f6"
-                  fill="url(#colorThisWeek)"
-                  strokeWidth={2}
-                  name="This Week"
-                />
-              </AreaChart>
-            ) : (
-              <BarChart
-                data={data}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="lastWeek" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="videos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
+        {/* CDN Hit Rate */}
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <FiZap className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">CDN Hit Rate</p>
+              <p className="text-xs text-muted-foreground">
+                Performance metric
+              </p>
+            </div>
+          </div>
+          <span
+            className={cn(
+              "text-lg font-semibold",
+              stats.cache.cdnHitRate >= 90
+                ? "text-green-500"
+                : stats.cache.cdnHitRate >= 70
+                  ? "text-yellow-500"
+                  : "text-red-500"
             )}
-          </ResponsiveContainer>
+          >
+            {stats.cache.cdnHitRate || 0}%
+          </span>
         </div>
-
-        <div className="flex items-center justify-center gap-4 mt-3">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full" />
-            <span className="text-xs text-muted-foreground">This Week</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-slate-400 rounded-full" />
-            <span className="text-xs text-muted-foreground">Last Week</span>
-          </div>
-        </div>
-      </m.div>
-    </LazyMotion>
+      </div>
+    </div>
   );
 }
 
@@ -396,31 +236,18 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isUserActive, setIsUserActive] = useState(true);
-  const [lastManualRefreshAt, setLastManualRefreshAt] = useState<Date | null>(
-    null
-  );
 
-  // For retry display
   const retryCountRef = useRef(0);
   const [retryCountView, setRetryCountView] = useState(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const refreshIntervalRef = useRef<NodeJS.Timeout>();
   const abortRef = useRef<AbortController>();
 
-  // Generate upload data from API response
-  const uploadData = useMemo(() => {
-    // Use real data from API
-    if (stats?.videos?.uploadHistory && stats.videos.uploadHistory.length > 0) {
-      return stats.videos.uploadHistory;
-    }
-
-    // Return empty array if no data yet (during loading)
-    return [];
-  }, [stats]);
-
-  // Calculate auto-refresh interval
+  // Auto-refresh interval
   const autoRefreshInterval = useMemo(() => {
-    return isUserActive ? 2 * 60 * 1000 : 5 * 60 * 1000;
+    return isUserActive
+      ? REFRESH_CONFIG.ACTIVE_INTERVAL
+      : REFRESH_CONFIG.INACTIVE_INTERVAL;
   }, [isUserActive]);
 
   // Load dashboard stats
@@ -446,7 +273,7 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
               const parsed = JSON.parse(cachedData);
               if (
                 parsed.timestamp &&
-                Date.now() - parsed.timestamp < 10 * 60 * 1000
+                Date.now() - parsed.timestamp < CACHE_CONFIG.SESSION_CACHE_TTL
               ) {
                 setStats(parsed.data);
                 setLastUpdated(new Date(parsed.timestamp));
@@ -463,18 +290,6 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
         );
 
         if (response?.data) {
-          // Log the API response in development
-          if (process.env.NODE_ENV === "development") {
-            console.log("Dashboard API Response:", {
-              thisWeek: response.data.videos.thisWeek,
-              lastWeek: response.data.videos.lastWeek,
-              uploadHistory: response.data.videos.uploadHistory,
-              trending: response.data.videos.trending,
-              newToday: response.data.videos.newToday,
-            });
-          }
-
-          // Set stats directly from API - NO MOCKING!
           setStats(response.data);
           setLastUpdated(new Date());
           setError(null);
@@ -482,6 +297,7 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
           setRetryCountView(0);
           setIsOffline(false);
 
+          // Cache the data
           sessionStorage.setItem(
             "video-admin-dashboard",
             JSON.stringify({
@@ -501,40 +317,32 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
             "You appear to be offline. Data will refresh when connection is restored."
           );
         } else {
-          setError(
-            `Failed to load dashboard statistics. Retry attempt: ${retryCountRef.current + 1}/3`
-          );
+          setError("Failed to load dashboard statistics. Retrying...");
 
-          if (retryCountRef.current < 3) {
-            const retryDelay = Math.min(
-              1000 * Math.pow(2, retryCountRef.current),
-              10000
-            );
+          // Retry logic
+          if (
+            !isRetry &&
+            retryCountRef.current < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS
+          ) {
+            retryCountRef.current++;
+            setRetryCountView(retryCountRef.current);
+
             retryTimeoutRef.current = setTimeout(() => {
-              retryCountRef.current++;
-              setRetryCountView(retryCountRef.current);
-              loadDashboardStats(true, true);
-            }, retryDelay);
-          } else {
-            setError(
-              "Failed to load dashboard statistics. Please refresh the page or contact support."
-            );
+              loadDashboardStats(silent, true);
+            }, REFRESH_CONFIG.RETRY_BASE_DELAY * retryCountRef.current);
           }
         }
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
         setRefreshing(false);
       }
     },
     []
   );
 
-  // Manual refresh handler
-  const handleRefresh = useCallback(() => {
-    setLastManualRefreshAt(new Date());
-    retryCountRef.current = 0;
-    setRetryCountView(0);
-    loadDashboardStats(true);
+  // Manual refresh
+  const handleManualRefresh = useCallback(async () => {
+    await loadDashboardStats(true);
   }, [loadDashboardStats]);
 
   // Initial load
@@ -542,8 +350,10 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
     loadDashboardStats();
   }, []);
 
-  // Auto refresh setup
+  // Auto-refresh
   useEffect(() => {
+    if (!isUserActive) return;
+
     refreshIntervalRef.current = setInterval(() => {
       loadDashboardStats(true);
     }, autoRefreshInterval);
@@ -553,44 +363,48 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [autoRefreshInterval, loadDashboardStats]);
+  }, [autoRefreshInterval, isUserActive, loadDashboardStats]);
 
-  // User activity detection
+  // User activity tracking
   useEffect(() => {
-    let activityTimeout: NodeJS.Timeout;
+    const handleActivity = () => setIsUserActive(true);
+    const handleInactivity = () => setIsUserActive(false);
 
-    const handleActivity = () => {
-      setIsUserActive(true);
-      clearTimeout(activityTimeout);
-      activityTimeout = setTimeout(
-        () => {
-          setIsUserActive(false);
-        },
-        10 * 60 * 1000
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimer);
+      handleActivity();
+      inactivityTimer = setTimeout(
+        handleInactivity,
+        REFRESH_CONFIG.INACTIVITY_TIMEOUT
       );
     };
 
-    const events = ["mousedown", "keydown", "scroll", "touchstart"];
-    events.forEach((event) => {
-      window.addEventListener(event, handleActivity);
-    });
+    window.addEventListener("mousemove", resetInactivityTimer);
+    window.addEventListener("keydown", resetInactivityTimer);
+    window.addEventListener("click", resetInactivityTimer);
+    window.addEventListener("scroll", resetInactivityTimer);
+    window.addEventListener("touchstart", resetInactivityTimer);
 
-    handleActivity();
+    resetInactivityTimer();
 
     return () => {
-      events.forEach((event) => {
-        window.removeEventListener(event, handleActivity);
-      });
-      clearTimeout(activityTimeout);
+      clearTimeout(inactivityTimer);
+      window.removeEventListener("mousemove", resetInactivityTimer);
+      window.removeEventListener("keydown", resetInactivityTimer);
+      window.removeEventListener("click", resetInactivityTimer);
+      window.removeEventListener("scroll", resetInactivityTimer);
+      window.removeEventListener("touchstart", resetInactivityTimer);
     };
   }, []);
 
-  // Online/Offline detection
+  // Network status
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
-      if (error?.includes("offline")) {
-        loadDashboardStats(true);
+      if (error) {
+        loadDashboardStats();
       }
     };
 
@@ -620,450 +434,251 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
     };
   }, []);
 
-  // Require auth check
   if (requiresAuth && !currentSession) {
     return null;
   }
 
-  // Loading state
-  if (loading && !stats) {
-    return (
-      <AdminLayout title="Dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-          </div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  // Error state
-  if (error && !stats) {
-    return (
-      <AdminLayout title="Dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center max-w-md">
-            <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2">Unable to load dashboard</p>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            {retryCountView > 0 && retryCountView < 3 && (
-              <p className="text-sm text-muted-foreground mb-4">
-                Retry attempt: {retryCountView}/3
-              </p>
-            )}
-            <button
-              onClick={handleRefresh}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1 mx-auto"
-              aria-busy={refreshing}
-              aria-live="polite"
-            >
-              <MdRefresh className="w-3 h-3" />
-              Try Again
-            </button>
-          </div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  // Main dashboard view
   return (
-    <>
+    <AdminLayout title="Dashboard">
       <Head>
-        <title>Dashboard - Video Admin</title>
-        <meta name="robots" content="noindex,nofollow,noarchive" />
+        <title>Video Admin Dashboard</title>
       </Head>
 
-      <AdminLayout
-        title="Dashboard"
-        description="Video management overview"
-        isRefreshing={refreshing}
-        onRefresh={handleRefresh}
-      >
-        <LazyMotion features={domAnimation}>
-          <MotionConfig reducedMotion="user">
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4 md:space-y-6"
-            >
-              {/* Status bar - Mobile optimized */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 sm:pb-0">
-                  {lastUpdated && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                      <FiClock className="w-3 h-3" />
-                      Updated{" "}
-                      {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-                    </div>
-                  )}
+      <LazyMotion features={loadFeatures}>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">
+                Video content management analytics
+              </p>
+            </div>
 
-                  {isUserActive ? (
-                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
-                      <FiZap className="w-3 h-3" />
-                      Active Mode
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
-                      <FiActivity className="w-3 h-3" />
-                      Idle Mode
-                    </div>
-                  )}
-
-                  {isOffline && (
-                    <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-500/10 px-3 py-1.5 rounded-full whitespace-nowrap">
-                      <FiWifiOff className="w-3 h-3" />
-                      Offline
-                    </div>
-                  )}
+            <div className="flex items-center gap-3">
+              {/* Network Status */}
+              {isOffline && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-full text-sm">
+                  <FiWifiOff className="w-4 h-4" />
+                  <span>Offline</span>
                 </div>
-              </div>
-
-              {/* Error Alert */}
-              {error && stats && (
-                <m.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3"
-                >
-                  <div className="flex items-start gap-2">
-                    <AiOutlineWarning className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-amber-900 dark:text-amber-200">
-                        {error}
-                      </p>
-                      {retryCountView > 0 && retryCountView < 3 && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                          Retry attempt: {retryCountView}/3
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </m.div>
               )}
 
-              {/* 7-Day Graph and Week Comparison with Hot/New metrics */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  {uploadData.length > 0 ? (
-                    <VideoUploadGraph data={uploadData} />
-                  ) : (
-                    <div className="bg-card rounded-lg border border-border p-8 flex items-center justify-center h-64">
-                      <p className="text-muted-foreground">
-                        No upload data available
-                      </p>
-                    </div>
-                  )}
+              {/* Sync Status */}
+              {stats?.sync.status === "syncing" && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-500 rounded-full text-sm">
+                  <FiRefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Syncing...</span>
                 </div>
-                <div className="space-y-4">
-                  <WeekComparison
-                    thisWeek={stats?.videos?.thisWeek || 0}
-                    lastWeek={stats?.videos?.lastWeek || 0}
-                  />
+              )}
 
-                  {/* Hot/Trending and New Today Cards - Using Real API Data */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <m.div
-                      initial={
-                        shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }
-                      }
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <FiTrending className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                          HOT
-                        </span>
-                      </div>
-                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                        <CountUp
-                          end={stats?.videos.trending || 0}
-                          duration={shouldReduceMotion ? 0 : 1.5}
-                        />
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Trending
-                      </p>
-                    </m.div>
-
-                    <m.div
-                      initial={
-                        shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }
-                      }
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <FiZap className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                          NEW
-                        </span>
-                      </div>
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        <CountUp
-                          end={stats?.videos.newToday || 0}
-                          duration={shouldReduceMotion ? 0 : 1.5}
-                        />
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Today
-                      </p>
-                    </m.div>
-                  </div>
+              {/* Last Updated */}
+              {lastUpdated && (
+                <div className="text-sm text-muted-foreground">
+                  Updated{" "}
+                  {formatDistanceToNow(lastUpdated, { addSuffix: true })}
                 </div>
-              </div>
+              )}
 
-              {/* Key Metrics - Responsive grid */}
-              <m.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              {/* Refresh Button */}
+              <button
+                onClick={handleManualRefresh}
+                disabled={refreshing || loading}
+                className={cn(
+                  "p-2 rounded-lg transition-colors",
+                  refreshing || loading
+                    ? "bg-muted cursor-not-allowed"
+                    : "bg-card hover:bg-muted"
+                )}
               >
-                {/* Total Videos */}
-                <m.div
-                  variants={shouldReduceMotion ? {} : cardVariants}
-                  className="bg-card rounded-lg border border-border p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Videos
-                    </p>
-                    <FiVideo className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-bold">
-                    <CountUp
-                      end={stats?.videos.total || 0}
-                      duration={shouldReduceMotion ? 0 : 1.5}
-                      separator=","
-                    />
-                  </p>
-                  {stats?.videos.newToday !== undefined && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      +{stats.videos.newToday} today
-                    </p>
+                <FiRefreshCw
+                  className={cn(
+                    "w-5 h-5",
+                    (refreshing || loading) && "animate-spin"
                   )}
-                </m.div>
+                />
+              </button>
+            </div>
+          </div>
 
-                {/* Active Playlists */}
-                <m.div
-                  variants={shouldReduceMotion ? {} : cardVariants}
-                  className="bg-card rounded-lg border border-border p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Active Playlists
-                    </p>
-                    <MdList className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-bold">
-                    <CountUp
-                      end={stats?.playlists.active || 0}
-                      duration={shouldReduceMotion ? 0 : 1.5}
-                    />
-                    <span className="text-lg text-muted-foreground">
-                      /{stats?.playlists.total || 0}
-                    </span>
-                  </p>
-                  <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                    <m.div
-                      className="h-full bg-green-600"
-                      initial={{ width: 0 }}
-                      animate={{
-                        width: `${
-                          stats?.playlists.total
-                            ? (stats.playlists.active / stats.playlists.total) *
-                              100
-                            : 0
-                        }%`,
-                      }}
-                      transition={
-                        shouldReduceMotion ? {} : { duration: 1, delay: 0.5 }
-                      }
-                    />
-                  </div>
-                </m.div>
-
-                {/* Sync Status */}
-                <m.div
-                  variants={shouldReduceMotion ? {} : cardVariants}
-                  className="bg-card rounded-lg border border-border p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Sync Status
-                    </p>
-                    <FiActivity className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <p
-                    className={cn(
-                      "text-lg font-semibold",
-                      stats?.sync.currentlySyncing &&
-                        "text-blue-600 dark:text-blue-400"
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <FiAlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-red-500">{error}</p>
+                  {retryCountView > 0 &&
+                    retryCountView < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS && (
+                      <p className="text-xs text-red-400 mt-1">
+                        Retry attempt: {retryCountView}/
+                        {REFRESH_CONFIG.RETRY_MAX_ATTEMPTS}
+                      </p>
                     )}
-                  >
-                    {stats?.sync.currentlySyncing
-                      ? "Syncing"
-                      : stats?.sync.status || "Unknown"}
-                  </p>
-                  {stats?.sync.lastSync && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(stats.sync.lastSync), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  )}
-                </m.div>
+                </div>
+              </div>
+            </div>
+          )}
 
-                {/* CDN Hit Rate */}
-                <m.div
-                  variants={shouldReduceMotion ? {} : cardVariants}
-                  className="bg-card rounded-lg border border-border p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      CDN Hit Rate
-                    </p>
-                    <MdStorage className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {stats?.cache.cdnHitRate || 0}%
-                  </p>
-                  <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                    <m.div
-                      className={cn(
-                        "h-full",
-                        (stats?.cache.cdnHitRate || 0) >= 80
-                          ? "bg-green-600"
-                          : (stats?.cache.cdnHitRate || 0) >= 60
-                            ? "bg-amber-600"
-                            : "bg-red-600"
-                      )}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${stats?.cache.cdnHitRate || 0}%` }}
-                      transition={
-                        shouldReduceMotion ? {} : { duration: 1, delay: 0.5 }
-                      }
-                    />
-                  </div>
-                </m.div>
-              </m.div>
+          {/* Main Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard
+              icon={FiVideo}
+              label="Total Videos"
+              value={stats?.videos.total || 0}
+              loading={loading && !stats}
+              color="primary"
+            />
 
-              {/* Quick Actions - Mobile optimized 2x2 grid on small screens */}
-              <div>
-                <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      href: "/video-admin/configuration",
-                      icon: MdSettings,
-                      label: "Settings",
-                      color: "text-blue-600",
-                    },
-                    {
-                      href: "/video-admin/playlists",
-                      icon: MdList,
-                      label: "Playlists",
-                      color: "text-green-600",
-                    },
-                    {
-                      href: "/video-admin/sync",
-                      icon: MdRefresh,
-                      label: "Sync",
-                      color: "text-purple-600",
-                    },
-                    {
-                      href: "/video-admin/cache",
-                      icon: MdStorage,
-                      label: "Cache",
-                      color: "text-amber-600",
-                    },
-                  ].map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <Link
-                        key={action.href}
-                        href={action.href}
-                        className={cn(
-                          "group flex flex-col items-center justify-center p-4 rounded-lg border border-border",
-                          "hover:bg-muted/50 hover:border-primary/50 transition-all",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        )}
-                      >
-                        <Icon className={cn("w-8 h-8 mb-2", action.color)} />
-                        <span className="text-sm font-medium">
-                          {action.label}
-                        </span>
-                      </Link>
-                    );
-                  })}
+            <StatsCard
+              icon={FiTrendingUp}
+              label="Videos This Week"
+              value={stats?.videos.thisWeek || 0}
+              trend={
+                stats && stats.videos.weekChange > 0
+                  ? "up"
+                  : (stats?.videos.weekChange ?? 0 < 0)
+                    ? "down"
+                    : "neutral"
+              }
+              trendValue={
+                stats ? `${Math.abs(stats.videos.weekChange)}%` : undefined
+              }
+              loading={loading && !stats}
+              color="success"
+            />
+
+            <StatsCard
+              icon={FiLayers}
+              label="Active Playlists"
+              value={`${stats?.playlists.active || 0}/${stats?.playlists.total || 0}`}
+              trend={
+                stats && stats.playlists.utilizationRate >= 80 ? "up" : "down"
+              }
+              trendValue={
+                stats ? `${stats.playlists.utilizationRate}%` : undefined
+              }
+              loading={loading && !stats}
+              color="warning"
+            />
+
+            <StatsCard
+              icon={FiActivity}
+              label="Cache Hit Rate"
+              value={`${stats?.cache.cdnHitRate || 0}%`}
+              trend={stats && stats.cache.cdnHitRate >= 90 ? "up" : "down"}
+              trendValue={stats?.cache.formattedSize}
+              loading={loading && !stats}
+              color={
+                stats && stats.cache.cdnHitRate >= 90 ? "success" : "danger"
+              }
+            />
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Upload History */}
+            <div className="bg-card border rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold">Upload History</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {stats?.videos.weekDates.thisWeek.start} -{" "}
+                    {stats?.videos.weekDates.thisWeek.end}
+                  </p>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Daily avg: {stats?.videos.dailyAverage || 0}
                 </div>
               </div>
 
-              {/* Recent Activity - Mobile optimized */}
-              {stats?.recentActivity && stats.recentActivity.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-3">
-                    Recent Activity
-                  </h2>
-                  <div className="bg-card rounded-lg border border-border">
-                    <div className="divide-y divide-border">
-                      {stats.recentActivity
-                        .slice(0, 5)
-                        .map((activity, index) => (
-                          <m.div
-                            key={activity.id}
-                            initial={
-                              shouldReduceMotion ? {} : { opacity: 0, x: -20 }
-                            }
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="p-3 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {activity.action}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {activity.entityType} • {activity.userId}
-                                </p>
-                              </div>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                {formatDistanceToNow(
-                                  new Date(activity.timestamp),
-                                  {
-                                    addSuffix: true,
-                                  }
-                                )}
-                              </span>
-                            </div>
-                          </m.div>
-                        ))}
+              <UploadHistoryChart
+                data={stats?.videos.uploadHistory || []}
+                loading={loading && !stats}
+              />
+            </div>
+
+            {/* Engagement Metrics */}
+            <div className="bg-card border rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-6">Engagement Metrics</h3>
+              <EngagementChart
+                performanceMetrics={stats?.performance || undefined}
+                loading={loading && !stats}
+              />
+            </div>
+          </div>
+
+          {/* Advanced Metrics Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <TrendingVideosCard
+              videos={stats?.videos.trendingList || []}
+              loading={loading && !stats}
+            />
+
+            <PerformanceMetricsCard
+              metrics={stats?.performance || null}
+              loading={loading && !stats}
+            />
+
+            <ContentSuggestionsCard
+              suggestions={stats?.suggestions || null}
+              loading={loading && !stats}
+              onRefresh={handleManualRefresh}
+            />
+          </div>
+
+          {/* Activity and System Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activity */}
+            <div className="bg-card border rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+
+              {loading && !stats ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="flex gap-3 items-start animate-pulse"
+                    >
+                      <div className="w-8 h-8 bg-muted rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                        <div className="h-3 bg-muted rounded w-1/2" />
+                      </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                  {stats?.recentActivity
+                    .slice(0, 10)
+                    .map((activity) => (
+                      <ActivityItem key={activity.id} activity={activity} />
+                    ))}
+
+                  {(!stats?.recentActivity ||
+                    stats.recentActivity.length === 0) && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No recent activity
+                    </p>
+                  )}
                 </div>
               )}
-            </m.div>
-          </MotionConfig>
-        </LazyMotion>
-      </AdminLayout>
-    </>
+            </div>
+
+            {/* System Status */}
+            <SystemStatus stats={stats} />
+          </div>
+          {/* Content Insights Full Width */}
+          <ContentInsightsCard
+            insights={stats?.insights || null}
+            loading={loading && !stats}
+          />
+        </div>
+      </LazyMotion>
+    </AdminLayout>
   );
 }
 
 // Server-side props
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR(
-  async (context) => {
-    return {
-      props: {
-        requiresAuth: true,
-        traceId: context.query.traceId || null,
-      },
-    };
-  }
-);
+export const getServerSideProps: GetServerSideProps = withAdminPageSSR();
