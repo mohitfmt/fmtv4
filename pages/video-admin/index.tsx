@@ -30,7 +30,7 @@ import { StatsCard } from "@/components/admin/dashboard/cards/StatsCard";
 import { TrendingVideosCard } from "@/components/admin/dashboard/cards/TrendingVideosCard";
 import { PerformanceMetricsCard } from "@/components/admin/dashboard/cards/PerformanceMetricsCard";
 import { ContentSuggestionsCard } from "@/components/admin/dashboard/cards/ContentSuggestionsCard";
-import { ContentInsightsCard } from "@/components/admin/dashboard/cards/ContentInsightsCard";
+// ContentInsightsCard import removed
 import { UploadHistoryChart } from "@/components/admin/dashboard/charts/UploadHistoryChart";
 import { EngagementChart } from "@/components/admin/dashboard/charts/EngagementChart";
 
@@ -58,429 +58,273 @@ interface PageProps {
   traceId?: string;
 }
 
-// Activity Item Component
-function ActivityItem({ activity }: { activity: any }) {
-  const getActivityIcon = () => {
-    if (activity.action.includes("sync"))
-      return <FiRefreshCw className="w-4 h-4" />;
-    if (activity.action.includes("cache"))
-      return <FiDatabase className="w-4 h-4" />;
-    if (activity.action.includes("success"))
-      return <FiCheckCircle className="w-4 h-4" />;
-    if (activity.action.includes("failed"))
-      return <FiAlertCircle className="w-4 h-4" />;
-    return <FiActivity className="w-4 h-4" />;
-  };
-
-  const getActivityColor = () => {
-    if (
-      activity.action.includes("success") ||
-      activity.action.includes("completed")
-    )
-      return "bg-green-500/10 text-green-500";
-    if (activity.action.includes("failed") || activity.action.includes("error"))
-      return "bg-red-500/10 text-red-500";
-    return "bg-muted";
-  };
-
-  return (
-    <div className="flex gap-3 items-start">
-      <div
-        className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-          getActivityColor()
-        )}
-      >
-        {getActivityIcon()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">{activity.action}</p>
-        {activity.details && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {activity.details}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground mt-1">
-          {activity.relativeTime} • {activity.userId}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// System Status Component
-function SystemStatus({ stats }: { stats: DashboardStats | null }) {
-  if (!stats) return null;
-
-  return (
-    <div className="bg-card border rounded-xl p-6">
-      <h3 className="text-lg font-semibold mb-4">System Status</h3>
-
-      <div className="space-y-4">
-        {/* Webhook Status */}
-        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "w-2 h-2 rounded-full",
-                stats.sync.webhookActive ? "bg-green-500" : "bg-red-500"
-              )}
-            >
-              <div
-                className={cn(
-                  "w-2 h-2 rounded-full animate-ping",
-                  stats.sync.webhookActive ? "bg-green-500" : "bg-red-500"
-                )}
-              />
-            </div>
-            <div>
-              <p className="text-sm font-medium">YouTube Webhook</p>
-              <p className="text-xs text-muted-foreground">
-                {stats.sync.webhookActive ? "Active" : "Inactive"}
-              </p>
-            </div>
-          </div>
-          {stats.sync.webhookExpiry && (
-            <span className="text-xs text-muted-foreground">
-              Expires{" "}
-              {formatDistanceToNow(new Date(stats.sync.webhookExpiry), {
-                addSuffix: true,
-              })}
-            </span>
-          )}
-        </div>
-
-        {/* Last Sync */}
-        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiClock className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Last Sync</p>
-              <p className="text-xs text-muted-foreground">
-                {stats.sync.lastSync
-                  ? formatDistanceToNow(new Date(stats.sync.lastSync), {
-                      addSuffix: true,
-                    })
-                  : "Never"}
-              </p>
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {stats.sync.totalSyncs || 0} total
-          </span>
-        </div>
-
-        {/* Cache Usage */}
-        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiDatabase className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Cache Usage</p>
-              <p className="text-xs text-muted-foreground">
-                {stats.cache.formattedSize} / {stats.cache.formattedMaxSize}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${stats.cache.lruUsage || 0}%` }}
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {stats.cache.lruUsage || 0}%
-            </span>
-          </div>
-        </div>
-
-        {/* CDN Hit Rate */}
-        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiZap className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">CDN Hit Rate</p>
-              <p className="text-xs text-muted-foreground">
-                Performance metric
-              </p>
-            </div>
-          </div>
-          <span
-            className={cn(
-              "text-lg font-semibold",
-              stats.cache.cdnHitRate >= 90
-                ? "text-green-500"
-                : stats.cache.cdnHitRate >= 70
-                  ? "text-yellow-500"
-                  : "text-red-500"
-            )}
-          >
-            {stats.cache.cdnHitRate || 0}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Main Dashboard Component
-export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
-  const { data: currentSession } = useSession();
+export default function VideoDashboard({ traceId }: PageProps) {
+  const { data: session } = useSession();
   const router = useRouter();
-  const shouldReduceMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
 
+  // State management
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
-  const [isUserActive, setIsUserActive] = useState(true);
-
-  const retryCountRef = useRef(0);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [retryCountView, setRetryCountView] = useState(0);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
-  const refreshIntervalRef = useRef<NodeJS.Timeout>();
-  const abortRef = useRef<AbortController>();
 
-  // Auto-refresh interval
-  const autoRefreshInterval = useMemo(() => {
-    return isUserActive
-      ? REFRESH_CONFIG.ACTIVE_INTERVAL
-      : REFRESH_CONFIG.INACTIVE_INTERVAL;
-  }, [isUserActive]);
+  // Refs for intervals and retries
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load dashboard stats
-  const loadDashboardStats = useCallback(
-    async (silent = false, isRetry = false) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+  // Fetch dashboard statistics
+  const fetchStats = useCallback(
+    async (isManualRefresh = false) => {
+      if (isManualRefresh) {
+        setRefreshing(true);
+        setError(null);
+      }
 
       try {
-        if (!silent) {
-          setLoading(true);
-          setError(null);
-        } else {
-          setRefreshing(true);
-        }
+        const response = await videoApiJson("/api/video-admin/dashboard/stats");
 
-        // Check cached data
-        if (!silent && !isRetry) {
-          const cachedData = sessionStorage.getItem("video-admin-dashboard");
-          if (cachedData) {
-            try {
-              const parsed = JSON.parse(cachedData);
-              if (
-                parsed.timestamp &&
-                Date.now() - parsed.timestamp < CACHE_CONFIG.SESSION_CACHE_TTL
-              ) {
-                setStats(parsed.data);
-                setLastUpdated(new Date(parsed.timestamp));
-              }
-            } catch (e) {
-              console.error("Failed to parse cached data:", e);
-            }
-          }
-        }
-
-        const response = await videoApiJson<DashboardResponse>(
-          "/api/video-admin/dashboard/stats",
-          { signal: controller.signal }
-        );
-
-        if (response?.data) {
+        if (response.success && response.data) {
           setStats(response.data);
-          setLastUpdated(new Date());
+          setLastUpdate(new Date());
           setError(null);
-          retryCountRef.current = 0;
           setRetryCountView(0);
-          setIsOffline(false);
-
-          // Cache the data
-          sessionStorage.setItem(
-            "video-admin-dashboard",
-            JSON.stringify({
-              data: response.data,
-              timestamp: Date.now(),
-            })
-          );
-        }
-      } catch (error: any) {
-        if (error.name === "AbortError") return;
-
-        console.error("Failed to load dashboard stats:", error);
-
-        if (!navigator.onLine || error?.message?.includes("fetch")) {
-          setIsOffline(true);
-          setError(
-            "You appear to be offline. Data will refresh when connection is restored."
-          );
         } else {
-          setError("Failed to load dashboard statistics. Retrying...");
+          throw new Error(response.error || "Failed to fetch dashboard stats");
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "An unexpected error occurred";
 
-          // Retry logic
-          if (
-            !isRetry &&
-            retryCountRef.current < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS
-          ) {
-            retryCountRef.current++;
-            setRetryCountView(retryCountRef.current);
+        console.error("Dashboard stats error:", errorMessage);
+        setError(errorMessage);
 
-            retryTimeoutRef.current = setTimeout(() => {
-              loadDashboardStats(silent, true);
-            }, REFRESH_CONFIG.RETRY_BASE_DELAY * retryCountRef.current);
-          }
+        // Retry logic
+        if (
+          !isManualRefresh &&
+          retryCountView < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS
+        ) {
+          setRetryCountView((prev) => prev + 1);
+          retryTimeoutRef.current = setTimeout(
+            () => fetchStats(),
+            REFRESH_CONFIG.RETRY_BASE_DELAY * Math.pow(2, retryCountView)
+          );
         }
       } finally {
-        if (!silent) setLoading(false);
+        setLoading(false);
         setRefreshing(false);
       }
     },
-    []
+    [retryCountView]
   );
 
-  // Manual refresh
-  const handleManualRefresh = useCallback(async () => {
-    await loadDashboardStats(true);
-  }, [loadDashboardStats]);
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(() => {
+    if (!refreshing && !loading) {
+      fetchStats(true);
+    }
+  }, [refreshing, loading, fetchStats]);
 
-  // Initial load
+  // Auto-refresh setup
   useEffect(() => {
-    loadDashboardStats();
-  }, []);
+    if (!autoRefreshEnabled) {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+      return;
+    }
 
-  // Auto-refresh
-  useEffect(() => {
-    if (!isUserActive) return;
-
-    refreshIntervalRef.current = setInterval(() => {
-      loadDashboardStats(true);
-    }, autoRefreshInterval);
+    refreshIntervalRef.current = setInterval(
+      () => fetchStats(),
+      REFRESH_CONFIG.ACTIVE_INTERVAL
+    );
 
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [autoRefreshInterval, isUserActive, loadDashboardStats]);
+  }, [autoRefreshEnabled, fetchStats]);
 
-  // User activity tracking
+  // Initial data fetch
   useEffect(() => {
-    const handleActivity = () => setIsUserActive(true);
-    const handleInactivity = () => setIsUserActive(false);
-
-    let inactivityTimer: NodeJS.Timeout;
-
-    const resetInactivityTimer = () => {
-      clearTimeout(inactivityTimer);
-      handleActivity();
-      inactivityTimer = setTimeout(
-        handleInactivity,
-        REFRESH_CONFIG.INACTIVITY_TIMEOUT
-      );
-    };
-
-    window.addEventListener("mousemove", resetInactivityTimer);
-    window.addEventListener("keydown", resetInactivityTimer);
-    window.addEventListener("click", resetInactivityTimer);
-    window.addEventListener("scroll", resetInactivityTimer);
-    window.addEventListener("touchstart", resetInactivityTimer);
-
-    resetInactivityTimer();
+    fetchStats();
 
     return () => {
-      clearTimeout(inactivityTimer);
-      window.removeEventListener("mousemove", resetInactivityTimer);
-      window.removeEventListener("keydown", resetInactivityTimer);
-      window.removeEventListener("click", resetInactivityTimer);
-      window.removeEventListener("scroll", resetInactivityTimer);
-      window.removeEventListener("touchstart", resetInactivityTimer);
-    };
-  }, []);
-
-  // Network status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOffline(false);
-      if (error) {
-        loadDashboardStats();
-      }
-    };
-
-    const handleOffline = () => {
-      setIsOffline(true);
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [error, loadDashboardStats]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
     };
   }, []);
 
-  if (requiresAuth && !currentSession) {
-    return null;
-  }
+  // Activity item component
+  const ActivityItem = ({ activity }: { activity: any }) => {
+    const getActivityIcon = () => {
+      switch (activity.entityType) {
+        case "video":
+          return <FiVideo className="w-4 h-4" />;
+        case "playlist":
+          return <FiLayers className="w-4 h-4" />;
+        case "sync":
+          return <FiRefreshCw className="w-4 h-4" />;
+        case "cache":
+          return <FiDatabase className="w-4 h-4" />;
+        default:
+          return <FiActivity className="w-4 h-4" />;
+      }
+    };
+
+    return (
+      <div className="flex gap-3 items-start group">
+        <div className="w-8 h-8 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          {getActivityIcon()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm">{activity.action}</p>
+          <p className="text-xs text-muted-foreground">
+            {activity.relativeTime}
+            {activity.details && ` • ${activity.details}`}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // System status component
+  const SystemStatus = ({ stats }: { stats: DashboardStats | null }) => (
+    <div className="bg-card border rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">System Status</h3>
+
+      <div className="space-y-4">
+        {/* Sync Status */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-3 h-3 rounded-full",
+                stats?.sync.status === "active"
+                  ? "bg-green-500 animate-pulse"
+                  : stats?.sync.status === "syncing"
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-gray-400"
+              )}
+            />
+            <span className="text-sm">Sync Status</span>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {stats?.sync.status || "Unknown"}
+          </span>
+        </div>
+
+        {/* WebSub Status */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-3 h-3 rounded-full",
+                stats?.sync.webhookActive ? "bg-green-500" : "bg-gray-400"
+              )}
+            />
+            <span className="text-sm">WebSub Webhook</span>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {stats?.sync.webhookActive ? "Active" : "Inactive"}
+          </span>
+        </div>
+
+        {/* Cache Performance */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-3 h-3 rounded-full",
+                (stats?.cache.cdnHitRate ?? 0) >= 90
+                  ? "bg-green-500"
+                  : (stats?.cache.cdnHitRate ?? 0) >= 70
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
+              )}
+            />
+            <span className="text-sm">Cache Performance</span>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {stats?.cache.cdnHitRate || 0}% Hit Rate
+          </span>
+        </div>
+
+        {/* Last Sync */}
+        {stats?.sync.lastSync && (
+          <div className="pt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              Last sync:{" "}
+              {formatDistanceToNow(new Date(stats.sync.lastSync), {
+                addSuffix: true,
+              })}
+            </p>
+            {stats.sync.nextSync && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Next sync:{" "}
+                {formatDistanceToNow(new Date(stats.sync.nextSync), {
+                  addSuffix: true,
+                })}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout>
       <Head>
-        <title>Video Admin Dashboard</title>
+        <title>Video Dashboard | Admin</title>
+        <meta name="description" content="Video content management dashboard" />
       </Head>
 
-      <LazyMotion features={loadFeatures}>
+      <LazyMotion features={loadFeatures} strict={prefersReducedMotion}>
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+              <h1 className="text-3xl font-bold">Video Dashboard</h1>
               <p className="text-muted-foreground mt-1">
-                Video content management analytics
+                Monitor and manage your video content
               </p>
+              {lastUpdate && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last updated{" "}
+                  {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Network Status */}
-              {isOffline && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-full text-sm">
-                  <FiWifiOff className="w-4 h-4" />
-                  <span>Offline</span>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                className={cn(
+                  "p-2 rounded-lg transition-colors",
+                  autoRefreshEnabled
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+                title={
+                  autoRefreshEnabled
+                    ? "Disable auto-refresh"
+                    : "Enable auto-refresh"
+                }
+              >
+                {autoRefreshEnabled ? (
+                  <FiZap className="w-5 h-5" />
+                ) : (
+                  <FiWifiOff className="w-5 h-5" />
+                )}
+              </button>
 
-              {/* Sync Status */}
-              {stats?.sync.status === "syncing" && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-500 rounded-full text-sm">
-                  <FiRefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Syncing...</span>
-                </div>
-              )}
-
-              {/* Last Updated */}
-              {lastUpdated && (
-                <div className="text-sm text-muted-foreground">
-                  Updated{" "}
-                  {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-                </div>
-              )}
-
-              {/* Refresh Button */}
               <button
                 onClick={handleManualRefresh}
                 disabled={refreshing || loading}
@@ -528,6 +372,10 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
               value={stats?.videos.total || 0}
               loading={loading && !stats}
               color="primary"
+              // New props for Videos Today feature
+              showTodayCount={true}
+              todayValue={stats?.videos.newToday || 0}
+              todayLoading={loading && !stats}
             />
 
             <StatsCard
@@ -609,26 +457,7 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
             </div>
           </div>
 
-          {/* Advanced Metrics Row 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <TrendingVideosCard
-              videos={stats?.videos.trendingList || []}
-              loading={loading && !stats}
-            />
-
-            <PerformanceMetricsCard
-              metrics={stats?.performance || null}
-              loading={loading && !stats}
-            />
-
-            <ContentSuggestionsCard
-              suggestions={stats?.suggestions || null}
-              loading={loading && !stats}
-              onRefresh={handleManualRefresh}
-            />
-          </div>
-          */}
-
+          {/* Advanced Metrics Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <ContentSuggestionsCard
@@ -691,11 +520,8 @@ export default function VideoDashboard({ requiresAuth, traceId }: PageProps) {
             {/* System Status */}
             <SystemStatus stats={stats} />
           </div>
-          {/* Content Insights Full Width */}
-          <ContentInsightsCard
-            insights={stats?.insights || null}
-            loading={loading && !stats}
-          />
+
+          {/* ContentInsightsCard has been removed from here */}
         </div>
       </LazyMotion>
     </AdminLayout>
