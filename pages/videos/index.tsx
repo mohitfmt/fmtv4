@@ -1,5 +1,4 @@
 // pages/videos/index.tsx
-// Need to change it according to the new schema // npx prisma generate 
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Image from "next/image";
@@ -11,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/common/AdSlot";
 import siteConfig from "@/constants/site-config";
 import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
-import { youTubePlaylists } from "@/constants/youtube-playlists";
 import { formatViewCount, formatDuration, getTimeAgo } from "@/lib/utils";
 import VideoSkeleton from "@/components/skeletons/VideoCardSkeleton";
 import type { Video, VideoHubData } from "@/types/video";
@@ -924,18 +922,22 @@ const VideosPage = ({
         {data.shorts.length > 0 && <ShortsRail shorts={data.shorts} />}
 
         {/* Playlist Sections with progressive loading */}
-        {youTubePlaylists.map((playlist) => {
-          const playlistData = data.playlists[playlist.playlistId];
-          if (!playlistData || playlistData.videos.length === 0) return null;
+        {Object.entries(data.playlists)
+          .sort(([, a], [, b]) => {
+            // Sort by position if available in future, for now maintain order from API
+            return 0;
+          })
+          .map(([playlistId, playlistData]) => {
+            if (!playlistData || playlistData.videos.length === 0) return null;
 
-          return (
-            <PlaylistSection
-              key={playlist.playlistId}
-              playlist={playlistData}
-              playlistId={playlist.playlistId}
-            />
-          );
-        })}
+            return (
+              <PlaylistSection
+                key={playlistId}
+                playlist={playlistData}
+                playlistId={playlistId}
+              />
+            );
+          })}
 
         {/* Bottom Desktop Ad */}
         <div className="ads-medium-desktop my-8">
