@@ -977,10 +977,8 @@ export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   try {
     // Fetch video data and channel info in parallel
     const [videoResponse, channelResponse] = await Promise.all([
-      fetch(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/api/videos/gallery?fresh=true`
-      ),
-      fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/videos/channel-info`),
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/videos/gallery?fresh=true`),
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/videos/channel-info`),
     ]);
 
     if (!videoResponse.ok) {
