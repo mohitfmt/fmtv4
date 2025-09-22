@@ -6,7 +6,7 @@ import type {
   WeeklyStats,
   UploadHistoryItem,
 } from "@/lib/dashboard/queries/weekly-stats";
-import type { PerformanceMetrics } from "@/lib/dashboard/queries/performance-metrics";
+import type { EnhancedPerformanceMetrics } from "@/lib/dashboard/queries/performance-metrics";
 // ContentInsights import removed
 import type { ContentSuggestions } from "@/lib/dashboard/google-trends";
 import type { EngagementData } from "@/lib/dashboard/queries/engagement-data";
@@ -16,7 +16,7 @@ export type {
   TrendingVideo,
   WeeklyStats,
   UploadHistoryItem,
-  PerformanceMetrics,
+  EnhancedPerformanceMetrics,
   // ContentInsights removed
   ContentSuggestions,
 };
@@ -91,7 +91,7 @@ export interface DashboardStats {
   playlists: PlaylistStats;
   sync: SyncStats;
   cache: CacheStats;
-  performance: PerformanceMetrics;
+  performance: EnhancedPerformanceMetrics;
   // insights: ContentInsights; // REMOVED
   suggestions: ContentSuggestions;
   recentActivity: ActivityItem[];

@@ -23,12 +23,12 @@ export const REFRESH_CONFIG = {
 // Database Query Configuration
 export const QUERY_CONFIG = {
   TIMEOUT_MS: 8000, // 8 seconds database timeout
-  TRENDING_DAYS_BACK: 7, // Look back 7 days for trending
+  TRENDING_DAYS_BACK: 14, // Look back 7 days for trending
   TRENDING_MIN_VIEWS: {
-    VIDEO: 10000, // Minimum views for trending video
-    SHORT: 50000, // Minimum views for trending short
+    VIDEO: 1000, // Minimum views for trending video
+    SHORT: 5000, // Minimum views for trending short
   },
-  TRENDING_LIMIT: 5, // Top 5 trending videos
+  TRENDING_LIMIT: 10, // Top 5 trending videos
   RECENT_ACTIVITY_LIMIT: 10, // Last 10 activities
   PERFORMANCE_TOP_LIMIT: 10, // Top 10 performers
 } as const;
@@ -59,9 +59,9 @@ export const PERFORMANCE_THRESHOLDS = {
     AVERAGE: 0.02, // 2%+ engagement
   },
   VIRAL_VELOCITY: {
-    HOT: 1000, // 1000+ views/hour
-    TRENDING: 500, // 500+ views/hour
-    RISING: 100, // 100+ views/hour
+    HOT: 100, // 1000+ views/hour
+    TRENDING: 50, // 500+ views/hour
+    RISING: 10, // 100+ views/hour
   },
   CACHE_HIT_RATE: {
     EXCELLENT: 90, // 90%+ hit rate

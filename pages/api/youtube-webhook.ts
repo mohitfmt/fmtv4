@@ -9,6 +9,10 @@ import {
   purgeCloudflareByUrls,
 } from "@/lib/cache/purge";
 import { clearVideoCache } from "./videos/gallery";
+import {
+  calculateVideoTier,
+  getEngagementRate,
+} from "@/lib/helpers/video-tier-calculator";
 
 const parseXML = promisify(parseString);
 
@@ -16,105 +20,6 @@ const parseXML = promisify(parseString);
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
-// // Verify WebSub signature
-// function verifySignature(req: NextApiRequest): boolean {
-//   const signature = req.headers["x-hub-signature"] as string;
-//   if (!signature || !process.env.WEBSUB_SECRET) {
-//     return false;
-//   }
-
-//   const [algorithm, hash] = signature.split("=");
-//   const hmac = crypto.createHmac(algorithm, process.env.WEBSUB_SECRET);
-
-//   // Use raw body for HMAC verification
-//   const rawBody = (req as any).rawBody || req.body;
-//   hmac.update(rawBody);
-
-//   const calculatedHash = hmac.digest("hex");
-
-//   // Constant-time comparison to prevent timing attacks
-//   return crypto.timingSafeEqual(
-//     Buffer.from(hash, "hex"),
-//     Buffer.from(calculatedHash, "hex")
-//   );
-// }
-
-// // Parse YouTube Atom feed
-// async function parseFeed(xmlData: string) {
-//   try {
-//     const result = (await parseXML(xmlData)) as any;
-//     const feed = result.feed;
-
-//     if (!feed || !feed.entry) {
-//       return [];
-//     }
-
-//     // Handle both single entry and array of entries
-//     const entries = Array.isArray(feed.entry) ? feed.entry : [feed.entry];
-
-//     return entries.map((entry: any) => ({
-//       videoId: entry["yt:videoId"]?.[0] || entry.id?.[0]?.split(":").pop(),
-//       channelId: entry["yt:channelId"]?.[0],
-//       title: entry.title?.[0],
-//       published: entry.published?.[0],
-//       updated: entry.updated?.[0],
-//       link:
-//         entry.link?.[0]?.$.href ||
-//         `https://www.youtube.com/watch?v=${entry["yt:videoId"]?.[0]}`,
-//     }));
-//   } catch (error) {
-//     console.error("[YouTube WebSub] Feed parsing error:", error);
-//     return [];
-//   }
-// }
-
-// // Fetch video details from YouTube API
-// async function fetchVideoDetails(videoId: string) {
-//   if (!process.env.YOUTUBE_API_KEY) {
-//     console.error("[YouTube WebSub] No YouTube API key configured");
-//     return null;
-//   }
-
-//   try {
-//     const response = await fetch(
-//       `https://www.googleapis.com/youtube/v3/videos?` +
-//         `part=snippet,statistics,contentDetails,status` +
-//         `&id=${videoId}` +
-//         `&key=${process.env.YOUTUBE_API_KEY}`
-//     );
-
-//     if (!response.ok) {
-//       throw new Error(`YouTube API error: ${response.status}`);
-//     }
-
-//     const data = await response.json();
-//     return data.items?.[0] || null;
-//   } catch (error) {
-//     console.error("[YouTube WebSub] Failed to fetch video details:", error);
-//     return null;
-//   }
-// }
-
-// // Calculate video tier
-// function calculateTier(
-//   viewCount: number,
-//   publishedAt: string,
-//   isShort: boolean
-// ) {
-//   const publishDate = new Date(publishedAt);
-//   const hoursSincePublish =
-//     (Date.now() - publishDate.getTime()) / (1000 * 60 * 60);
-
-//   if (hoursSincePublish < 24 && viewCount > 10000) return "hot";
-//   if (hoursSincePublish < 168 && viewCount > 5000) return "trending";
-//   if (hoursSincePublish < 168) return "recent";
-//   if (isShort && viewCount > 50000) return "viral-short";
-//   if (isShort && viewCount > 10000) return "popular-short";
-//   if (viewCount > 100000) return "evergreen";
-
-//   return "archive";
-// }
 
 // Verify WebSub signature
 function verifySignature(req: NextApiRequest): boolean {
@@ -188,26 +93,6 @@ async function fetchVideoDetails(videoId: string) {
     console.error("[YouTube WebSub] Failed to fetch video details:", error);
     return null;
   }
-}
-
-// Calculate video tier
-function calculateTier(
-  viewCount: number,
-  publishedAt: string,
-  isShort: boolean
-) {
-  const publishDate = new Date(publishedAt);
-  const hoursSincePublish =
-    (Date.now() - publishDate.getTime()) / (1000 * 60 * 60);
-
-  if (hoursSincePublish < 24 && viewCount > 10000) return "hot";
-  if (hoursSincePublish < 168 && viewCount > 5000) return "trending";
-  if (hoursSincePublish < 168) return "recent";
-  if (isShort && viewCount > 50000) return "viral-short";
-  if (isShort && viewCount > 10000) return "popular-short";
-  if (viewCount > 100000) return "evergreen";
-
-  return "archive";
 }
 
 export default async function handler(
@@ -295,10 +180,16 @@ export default async function handler(
         );
 
         // Calculate tier
-        const tier = calculateTier(
+        const engagementRate = getEngagementRate(
+          viewCount,
+          likeCount,
+          commentCount
+        );
+        const tier = calculateVideoTier(
           viewCount,
           videoDetails.snippet.publishedAt,
-          isShort
+          isShort,
+          engagementRate
         );
 
         // Prepare video data for Prisma - with ALL required fields

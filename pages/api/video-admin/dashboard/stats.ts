@@ -18,11 +18,7 @@ import { getContentSuggestions } from "@/lib/dashboard/google-trends";
 
 // Import cache and constants
 import { getDashboardCache, rateLimiter } from "@/lib/dashboard/cache";
-import {
-  CACHE_CONFIG,
-  CHART_CONFIG,
-  QUERY_CONFIG,
-} from "@/lib/dashboard/constants";
+import { CACHE_CONFIG } from "@/lib/dashboard/constants";
 import { getEngagementData } from "@/lib/dashboard/queries/engagement-data";
 
 // Types

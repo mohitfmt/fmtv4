@@ -1,55 +1,68 @@
+// pages/video-admin/playlists.tsx
 import { GetServerSideProps } from "next";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
-import {
-  RefreshCw,
-  ExternalLink,
-  Video,
-  Eye,
-  EyeOff,
-  Search,
-  Filter,
-  ChevronDown,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  PlayCircle,
-  Clock,
-  Hash,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
 import { videoApiJson } from "@/lib/videoApi";
-import { formatDistanceToNow } from "date-fns";
-import Image from "next/image";
+import {
+  FiRefreshCw,
+  FiSearch,
+  FiFilter,
+  FiGrid,
+  FiList,
+  FiVideo,
+  FiLoader,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiMoreVertical,
+  FiExternalLink,
+  FiZap,
+  FiStar,
+  FiChevronLeft,
+  FiChevronRight,
+  FiToggleLeft,
+  FiToggleRight,
+  FiCopy,
+  FiEye,
+  FiEyeOff,
+} from "react-icons/fi";
+import {
+  MdOutlineNewspaper,
+  MdSportsSoccer,
+  MdLiveTv,
+  MdOutlineSmartDisplay,
+  MdMusicNote,
+  MdSync,
+  MdSyncDisabled,
+  MdSyncProblem,
+  MdCheckBox,
+  MdCheckBoxOutlineBlank,
+  MdIndeterminateCheckBox,
+} from "react-icons/md";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface PageProps {
   requiresAuth?: boolean;
-  unauthorized?: boolean;
-  userEmail?: string;
-  traceId?: string;
-  enableOneTap?: boolean;
   session?: any;
 }
 
 interface Playlist {
-  id: string;
   playlistId: string;
   title: string;
   description?: string;
   itemCount: number;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
   isActive: boolean;
-  lastSynced?: string;
+  lastSyncedAt?: string;
   updatedAt?: string;
   createdAt?: string;
-  channelTitle?: string;
+  channelTitle?: string | null;
   syncInProgress?: boolean;
   lastSyncResult?: {
     videosAdded?: number;
@@ -67,43 +80,518 @@ interface PlaylistsResponse {
 }
 
 interface SyncResponse {
-  success: boolean;
-  message: string;
+  message?: string;
   playlistId?: string;
   queuePosition?: number;
 }
 
-export default function PlaylistsPage({
-  requiresAuth,
-  unauthorized,
-  userEmail,
-  session: serverSession,
-}: PageProps) {
-  const { data: session } = useSession();
-  const currentSession = session || serverSession;
-  // State Management
+// Utility functions
+const hashHue = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % 360;
+};
+
+const gradientFor = (id: string) => {
+  const h = hashHue(id);
+  const h2 = (h + 35) % 360;
+  return `linear-gradient(135deg, hsl(${h} 70% 45%) 0%, hsl(${h2} 70% 50%) 100%)`;
+};
+
+// Thumbnail with fallbacks
+const PlaylistThumbnail = ({
+  playlist,
+  index,
+  showThumbnails = true,
+}: {
+  playlist: Playlist;
+  index: number;
+  showThumbnails?: boolean;
+}) => {
+  const [imgError, setImgError] = useState(false);
+
+  const getPlaylistIcon = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("short") || t.includes("reel"))
+      return <FiZap className="w-8 h-8 text-purple-400" />;
+    if (t.includes("news"))
+      return <MdOutlineNewspaper className="w-8 h-8 text-blue-400" />;
+    if (t.includes("music"))
+      return <MdMusicNote className="w-8 h-8 text-pink-400" />;
+    if (t.includes("sport"))
+      return <MdSportsSoccer className="w-8 h-8 text-green-400" />;
+    if (t.includes("live"))
+      return <MdLiveTv className="w-8 h-8 text-red-400" />;
+    if (t.includes("exclusive"))
+      return <FiStar className="w-8 h-8 text-yellow-400" />;
+    return <MdOutlineSmartDisplay className="w-8 h-8 text-white/70" />;
+  };
+
+  if (!showThumbnails || !playlist.thumbnailUrl || imgError) {
+    return (
+      <div
+        className="relative aspect-video rounded-md overflow-hidden"
+        style={{ backgroundImage: gradientFor(playlist.playlistId) }}
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-background/70 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2 shadow-lg">
+            {getPlaylistIcon(playlist.title)}
+            <span className="font-medium text-sm truncate max-w-[12rem] text-white/90">
+              {playlist.title}
+            </span>
+          </div>
+        </div>
+        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white/90 text-xs">
+          <span className="flex items-center gap-1">
+            <FiVideo className="w-3 h-3" />
+            {playlist.itemCount.toLocaleString()}
+          </span>
+          {playlist.lastSyncedAt && (
+            <span className="flex items-center gap-1">
+              <MdSyncDisabled className="w-3 h-3" />
+              {formatDistanceToNow(new Date(playlist.lastSyncedAt), {
+                addSuffix: true,
+              })}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video rounded-md overflow-hidden bg-muted">
+      <Image
+        src={playlist.thumbnailUrl}
+        alt={playlist.title}
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+        className="object-cover"
+        priority={index < 4}
+        loading={index < 4 ? "eager" : "lazy"}
+        onError={() => setImgError(true)}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-2 left-2 right-2 text-white text-xs">
+          <p className="line-clamp-1">
+            {playlist.description || "No description"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Card Component (without animations)
+const PlaylistCard = ({
+  playlist,
+  isSelected,
+  onToggleSelect,
+  onSync,
+  onToggleActive,
+  viewMode,
+  index,
+  showThumbnails,
+}: {
+  playlist: Playlist;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onSync: () => void;
+  onToggleActive: () => void;
+  viewMode: "grid" | "list";
+  index: number;
+  showThumbnails: boolean;
+}) => {
+  const [showActions, setShowActions] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  const getPlaylistIcon = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("short") || t.includes("reel"))
+      return <FiZap className="w-5 h-5 text-purple-500" />;
+    if (t.includes("news"))
+      return <MdOutlineNewspaper className="w-5 h-5 text-blue-500" />;
+    if (t.includes("music"))
+      return <MdMusicNote className="w-5 h-5 text-pink-500" />;
+    if (t.includes("sport"))
+      return <MdSportsSoccer className="w-5 h-5 text-green-500" />;
+    if (t.includes("live"))
+      return <MdLiveTv className="w-5 h-5 text-red-500" />;
+    if (t.includes("exclusive"))
+      return <FiStar className="w-5 h-5 text-yellow-500" />;
+    return <MdOutlineSmartDisplay className="w-5 h-5 text-primary" />;
+  };
+
+  const getSyncStatusIcon = () => {
+    if (playlist.syncInProgress)
+      return <MdSync className="w-4 h-4 animate-spin text-blue-500" />;
+    if (playlist.lastSyncResult?.error)
+      return <MdSyncProblem className="w-4 h-4 text-red-500" />;
+    if (playlist.lastSyncedAt)
+      return <MdSyncDisabled className="w-4 h-4 text-green-500" />;
+    return <MdSyncDisabled className="w-4 h-4 text-gray-400" />;
+  };
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowActions(false);
+    };
+    if (showActions) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [showActions]);
+
+  if (viewMode === "list") {
+    return (
+      <div className="group">
+        <div
+          className={cn(
+            "flex items-center gap-4 p-4 bg-card rounded-lg border transition-all",
+            "hover:shadow-md hover:border-primary/30",
+            isSelected && "border-primary bg-primary/5"
+          )}
+        >
+          <button
+            onClick={onToggleSelect}
+            className="flex-shrink-0"
+            aria-label={isSelected ? "Deselect playlist" : "Select playlist"}
+          >
+            {isSelected ? (
+              <MdCheckBox className="w-5 h-5 text-primary" />
+            ) : (
+              <MdCheckBoxOutlineBlank className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+
+          <div className="relative w-20 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+            {!showThumbnails || !playlist.thumbnailUrl ? (
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{ backgroundImage: gradientFor(playlist.playlistId) }}
+              >
+                {getPlaylistIcon(playlist.title)}
+              </div>
+            ) : (
+              <Image
+                src={playlist.thumbnailUrl}
+                alt={playlist.title}
+                fill
+                sizes="80px"
+                className="object-cover"
+                loading="lazy"
+              />
+            )}
+            {playlist.syncInProgress && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <FiLoader className="w-6 h-6 text-white animate-spin" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {getPlaylistIcon(playlist.title)}
+              <h3 className="font-semibold truncate">{playlist.title}</h3>
+              {playlist.title.toLowerCase().includes("short") && (
+                <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded">
+                  Shorts
+                </span>
+              )}
+              <span
+                className={cn(
+                  "px-2 py-0.5 text-xs rounded",
+                  playlist.isActive
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                    : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
+                )}
+              >
+                {playlist.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <FiVideo className="w-3 h-3" />
+                {playlist.itemCount.toLocaleString()} videos
+              </span>
+              {playlist.channelTitle && <span>{playlist.channelTitle}</span>}
+              {playlist.lastSyncedAt && (
+                <span className="flex items-center gap-1">
+                  {getSyncStatusIcon()}
+                  {formatDistanceToNow(new Date(playlist.lastSyncedAt), {
+                    addSuffix: true,
+                  })}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onToggleActive}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                playlist.isActive
+                  ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                  : "bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400"
+              )}
+              aria-label={
+                playlist.isActive ? "Deactivate playlist" : "Activate playlist"
+              }
+            >
+              {playlist.isActive ? (
+                <FiToggleRight className="w-5 h-5" />
+              ) : (
+                <FiToggleLeft className="w-5 h-5" />
+              )}
+            </button>
+
+            <button
+              onClick={onSync}
+              disabled={playlist.syncInProgress}
+              className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+              aria-label="Sync playlist"
+            >
+              {playlist.syncInProgress ? (
+                <FiLoader className="w-4 h-4 animate-spin" />
+              ) : (
+                <FiRefreshCw className="w-4 h-4" />
+              )}
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowActions(!showActions)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label="More actions"
+              >
+                <FiMoreVertical className="w-4 h-4" />
+              </button>
+              {showActions && (
+                <div
+                  ref={actionsRef}
+                  className="absolute right-0 top-full mt-2 w-48 bg-card border rounded-lg shadow-lg z-10"
+                >
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(
+                          playlist.playlistId
+                        );
+                        toast.success("Playlist ID copied!");
+                      } catch {
+                        toast.error("Failed to copy ID");
+                      }
+                      setShowActions(false);
+                    }}
+                  >
+                    <FiCopy className="w-4 h-4" /> Copy ID
+                  </button>
+                  <a
+                    href={`https://www.youtube.com/playlist?list=${playlist.playlistId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                    onClick={() => setShowActions(false)}
+                  >
+                    <FiExternalLink className="w-4 h-4" /> View on YouTube
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group relative">
+      <div
+        className={cn(
+          "h-full bg-card rounded-lg border overflow-hidden transition-all",
+          "hover:shadow-lg hover:border-primary/30",
+          isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20"
+        )}
+      >
+        <PlaylistThumbnail
+          playlist={playlist}
+          index={index}
+          showThumbnails={showThumbnails}
+        />
+        {playlist.syncInProgress && (
+          <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-blue-500 text-white text-xs flex items-center gap-1">
+            <FiLoader className="w-3 h-3 animate-spin" /> Syncing
+          </div>
+        )}
+        <button
+          onClick={onToggleSelect}
+          className="absolute top-2 left-2 p-1.5 rounded-lg bg-white/90 dark:bg-black/90 backdrop-blur-sm shadow-lg"
+          aria-label={isSelected ? "Deselect playlist" : "Select playlist"}
+        >
+          {isSelected ? (
+            <MdCheckBox className="w-5 h-5 text-primary" />
+          ) : (
+            <MdCheckBoxOutlineBlank className="w-5 h-5" />
+          )}
+        </button>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {getPlaylistIcon(playlist.title)}
+              <h3 className="font-semibold truncate">{playlist.title}</h3>
+            </div>
+            <button
+              onClick={onToggleActive}
+              className={cn(
+                "p-1 rounded transition-colors flex-shrink-0",
+                playlist.isActive
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-gray-400"
+              )}
+              aria-label={playlist.isActive ? "Deactivate" : "Activate"}
+            >
+              {playlist.isActive ? (
+                <FiToggleRight className="w-5 h-5" />
+              ) : (
+                <FiToggleLeft className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Videos</span>
+              <span className="font-medium">
+                {playlist.itemCount.toLocaleString()}
+              </span>
+            </div>
+            {playlist.lastSyncedAt && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Last sync</span>
+                <span className="text-xs">
+                  {formatDistanceToNow(new Date(playlist.lastSyncedAt), {
+                    addSuffix: true,
+                  })}
+                </span>
+              </div>
+            )}
+            <div className="pt-2 border-t flex items-center justify-between">
+              <button
+                onClick={onSync}
+                disabled={playlist.syncInProgress}
+                className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
+              >
+                {playlist.syncInProgress ? (
+                  <>
+                    <FiLoader className="w-3 h-3 animate-spin" /> Syncing...
+                  </>
+                ) : (
+                  <>
+                    <FiRefreshCw className="w-3 h-3" /> Sync
+                  </>
+                )}
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(playlist.playlistId);
+                    toast.success("Playlist ID copied!");
+                  } catch {
+                    toast.error("Failed to copy ID");
+                  }
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <FiCopy className="w-3 h-3" /> Copy ID
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Skeleton
+const PlaylistSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => {
+  if (viewMode === "list") {
+    return (
+      <div className="flex items-center gap-4 p-4 bg-card rounded-lg border animate-pulse">
+        <div className="w-5 h-5 bg-muted rounded" />
+        <div className="w-20 h-12 bg-muted rounded" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-muted rounded w-1/3" />
+          <div className="h-3 bg-muted rounded w-1/4" />
+        </div>
+        <div className="flex gap-2">
+          <div className="w-10 h-10 bg-muted rounded-lg" />
+          <div className="w-10 h-10 bg-muted rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-card rounded-lg border overflow-hidden animate-pulse">
+      <div className="aspect-video bg-muted" />
+      <div className="p-4 space-y-2">
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-3 bg-muted rounded w-1/2" />
+        <div className="h-3 bg-muted rounded w-1/3" />
+      </div>
+    </div>
+  );
+};
+
+export default function PlaylistsPage({ requiresAuth }: PageProps) {
+  const { data: currentSession, status } = useSession();
+
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState<"videos" | "name" | "updated">("videos");
   const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(
     new Set()
   );
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalPages, setTotalPages] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const pollTimeoutRef = useRef<number | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch playlists with filters
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset page when filters/sort/pageSize change
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, filterActive, sortBy]);
+
+  // Robust loader
   const loadPlaylists = useCallback(
     async (silent = false) => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      const ac = new AbortController();
+      abortControllerRef.current = ac;
+
       try {
         if (!silent) {
           setLoading(true);
@@ -111,91 +599,133 @@ export default function PlaylistsPage({
         }
 
         const params = new URLSearchParams({
-          page: page.toString(),
-          limit: "12",
-          ...(searchTerm && { search: searchTerm }),
-          ...(filterActive !== null && { active: filterActive.toString() }),
+          page: String(page),
+          limit: String(pageSize),
+          ...(debouncedSearch && { search: debouncedSearch }),
+          ...(filterActive !== null && { active: String(filterActive) }),
           ...(sortBy && { sort: sortBy }),
         });
 
-        const response = await videoApiJson<PlaylistsResponse>(
-          `/api/video-admin/playlists?${params.toString()}`
+        const res = await videoApiJson<any>(
+          `/api/video-admin/playlists?${params.toString()}`,
+          { signal: ac.signal }
         );
 
-        if (response?.data) {
-          setPlaylists(response.data);
-          setTotalPages(Math.ceil(response.total / 12));
-          setTotalCount(response.total);
+        const body =
+          res &&
+          typeof res === "object" &&
+          "data" in res &&
+          !Array.isArray(res.data) &&
+          ("total" in res.data || "page" in res.data || "limit" in res.data)
+            ? (res.data as PlaylistsResponse)
+            : (res as PlaylistsResponse | undefined);
+
+        const items: Playlist[] = Array.isArray((body as any)?.data)
+          ? (body as any).data
+          : Array.isArray((body as any)?.playlists)
+            ? (body as any).playlists
+            : Array.isArray(body as any)
+              ? (body as any)
+              : [];
+
+        if (!Array.isArray(items)) {
+          console.error("Unexpected playlists payload:", res);
+          const msg = "Unexpected playlists payload";
+          setError(msg);
+          if (!silent) toast.error(msg);
+          return;
         }
-      } catch (error) {
-        console.error("Failed to load playlists:", error);
-        setError("Failed to load playlists. Please try again.");
+
+        const total = Number((body as any)?.total ?? items.length ?? 0);
+        const limit = Number((body as any)?.limit ?? pageSize ?? 12);
+
+        setPlaylists(items);
+        setTotalCount(total);
+        setTotalPages(Math.max(0, Math.ceil(total / Math.max(1, limit))));
+        setError(null);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          console.error("Failed to load playlists:", err);
+          const msg = err?.message || "Failed to load playlists";
+          setError(msg);
+          toast.error(msg);
+        }
       } finally {
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+          setInitialLoad(false);
+        }
       }
     },
-    [page, searchTerm, filterActive, sortBy]
+    [page, pageSize, debouncedSearch, filterActive, sortBy]
   );
 
-  // Initial load and refresh
+  // Load data when authenticated
   useEffect(() => {
-    if (currentSession) {
+    if (status === "authenticated") {
       loadPlaylists();
     }
-  }, [currentSession, loadPlaylists]);
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [status, loadPlaylists]);
 
-  // Auto-refresh every 30 seconds if any playlist is syncing
+  // Auto-refresh syncing items
   useEffect(() => {
-    const hasSyncing = playlists.some((p) => p.syncInProgress);
-    if (hasSyncing) {
-      const interval = setInterval(() => {
-        loadPlaylists(true);
-      }, 5000); // Check every 5 seconds when syncing
-      return () => clearInterval(interval);
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
     }
+    const hasSyncing = playlists.some((p) => p.syncInProgress);
+    if (!hasSyncing) return;
+
+    const started = Date.now();
+    let interval = 5000;
+
+    const refresh = () => {
+      loadPlaylists(true);
+      const elapsed = Date.now() - started;
+      if (elapsed > 30000 && interval < 30000) {
+        interval = Math.min(interval * 1.5, 30000);
+      }
+      pollTimeoutRef.current = window.setTimeout(refresh, interval);
+    };
+
+    pollTimeoutRef.current = window.setTimeout(refresh, interval);
+    return () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+    };
   }, [playlists, loadPlaylists]);
 
-  // Sync individual playlist
+  // Actions
   const syncPlaylist = async (playlistId: string, playlistName: string) => {
     setSyncing(playlistId);
-    setError(null);
-    setSuccessMessage(null);
-
     try {
       const response = await videoApiJson<SyncResponse>(
         `/api/video-admin/playlists/${playlistId}/sync`,
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
-
-      if (response?.success) {
-        setSuccessMessage(`Started syncing "${playlistName}"`);
-        // Mark playlist as syncing
+      if (response) {
+        toast.success(response.message || `Started syncing "${playlistName}"`);
         setPlaylists((prev) =>
           prev.map((p) =>
             p.playlistId === playlistId ? { ...p, syncInProgress: true } : p
           )
         );
-        // Reload after a delay to get updated status
         setTimeout(() => loadPlaylists(true), 2000);
       } else {
-        throw new Error(response?.message || "Sync failed");
+        throw new Error("No response from server");
       }
     } catch (error: any) {
-      console.error("Failed to sync playlist:", error);
-      setError(error.message || `Failed to sync "${playlistName}"`);
+      toast.error(error.message || `Failed to sync "${playlistName}"`);
     } finally {
       setSyncing(null);
-      // Clear messages after 5 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-        setError(null);
-      }, 5000);
     }
   };
 
-  // Toggle playlist active status
   const togglePlaylistStatus = async (playlist: Playlist) => {
     try {
       const response = await videoApiJson(
@@ -206,12 +736,10 @@ export default function PlaylistsPage({
           body: JSON.stringify({ isActive: !playlist.isActive }),
         }
       );
-
       if (response) {
-        setSuccessMessage(
+        toast.success(
           `${playlist.title} ${!playlist.isActive ? "activated" : "deactivated"}`
         );
-        // Update local state
         setPlaylists((prev) =>
           prev.map((p) =>
             p.playlistId === playlist.playlistId
@@ -219,730 +747,431 @@ export default function PlaylistsPage({
               : p
           )
         );
-        setTimeout(() => setSuccessMessage(null), 3000);
       }
-    } catch (error) {
-      console.error("Failed to toggle playlist status:", error);
-      setError(`Failed to update ${playlist.title}`);
-      setTimeout(() => setError(null), 3000);
+    } catch {
+      toast.error(`Failed to update ${playlist.title}`);
     }
   };
 
-  // Bulk sync selected playlists
   const bulkSync = async () => {
     if (selectedPlaylists.size === 0) {
-      setError("Please select playlists to sync");
-      setTimeout(() => setError(null), 3000);
+      toast.error("Please select playlists to sync");
       return;
     }
-
     setBulkSyncing(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const playlistId of selectedPlaylists) {
-      const playlist = playlists.find((p) => p.playlistId === playlistId);
-      if (!playlist) continue;
-
-      try {
-        await videoApiJson<SyncResponse>(
-          `/api/video-admin/playlists/${playlistId}/sync`,
-          {
-            method: "POST",
-          }
-        );
-        successCount++;
-        // Mark as syncing
-        setPlaylists((prev) =>
-          prev.map((p) =>
-            p.playlistId === playlistId ? { ...p, syncInProgress: true } : p
-          )
-        );
-      } catch (error) {
-        failCount++;
-        console.error(`Failed to sync ${playlist.title}:`, error);
-      }
-    }
-
-    setBulkSyncing(false);
+    const results = await Promise.allSettled(
+      [...selectedPlaylists].map((id) =>
+        videoApiJson<SyncResponse>(`/api/video-admin/playlists/${id}/sync`, {
+          method: "POST",
+        })
+      )
+    );
+    const succeeded = results.filter(
+      (r) => r.status === "fulfilled" && r.value
+    ).length;
+    const failed = results.length - succeeded;
+    if (failed > 0) toast.error(`Started ${succeeded} syncs, ${failed} failed`);
+    else toast.success(`Started syncing ${succeeded} playlists`);
     setSelectedPlaylists(new Set());
-
-    if (successCount > 0) {
-      setSuccessMessage(`Started syncing ${successCount} playlist(s)`);
-    }
-    if (failCount > 0) {
-      setError(`Failed to sync ${failCount} playlist(s)`);
-    }
-
-    // Reload after a delay
-    setTimeout(() => {
-      loadPlaylists(true);
-      setSuccessMessage(null);
-      setError(null);
-    }, 3000);
+    setBulkSyncing(false);
+    setTimeout(() => loadPlaylists(true), 2000);
   };
 
-  // Refresh all data
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadPlaylists();
-    setRefreshing(false);
-  };
-
-  // Toggle playlist selection
-  const toggleSelection = (playlistId: string) => {
-    setSelectedPlaylists((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(playlistId)) {
-        newSet.delete(playlistId);
-      } else {
-        newSet.add(playlistId);
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+        e.preventDefault();
+        if (selectedPlaylists.size === playlists.length)
+          setSelectedPlaylists(new Set());
+        else setSelectedPlaylists(new Set(playlists.map((p) => p.playlistId)));
       }
-      return newSet;
-    });
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, [playlists, selectedPlaylists]);
+
+  const toggleSelection = (playlistId: string) => {
+    const next = new Set(selectedPlaylists);
+    if (next.has(playlistId)) next.delete(playlistId);
+    else next.add(playlistId);
+    setSelectedPlaylists(next);
   };
 
-  // Select all visible playlists
   const selectAll = () => {
-    if (selectedPlaylists.size === playlists.length) {
+    if (selectedPlaylists.size === playlists.length)
       setSelectedPlaylists(new Set());
-    } else {
-      setSelectedPlaylists(new Set(playlists.map((p) => p.playlistId)));
-    }
+    else setSelectedPlaylists(new Set(playlists.map((p) => p.playlistId)));
   };
 
-  // Filter playlists based on search and filters
-  const filteredPlaylists = playlists.filter((playlist) => {
-    const matchesSearch =
-      !searchTerm ||
-      playlist.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      playlist.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  const stats = {
+    total: totalCount,
+    active: playlists.filter((p) => p.isActive).length,
+    syncing: playlists.filter((p) => p.syncInProgress).length,
+    totalVideos: playlists.reduce((sum, p) => sum + p.itemCount, 0),
+  };
 
-    const matchesFilter =
-      filterActive === null || playlist.isActive === filterActive;
-    const matchesVisibility = showInactive || playlist.isActive;
-
-    return matchesSearch && matchesFilter && matchesVisibility;
-  });
-  if (requiresAuth && !currentSession) {
-    return null;
-  }
-
-  // Render empty state
-  if (loading && playlists.length === 0) {
+  // Auth guard
+  if (requiresAuth && status === "unauthenticated") {
     return (
-      <AdminLayout
-        title="Playlist Management"
-        description="Manage YouTube playlists and sync videos"
-      >
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </AdminLayout>
+      <>
+        <Head>
+          <title>Playlists - FMT Admin</title>
+          <meta name="robots" content="noindex,nofollow,noarchive" />
+        </Head>
+        <AdminLayout title="Playlists" description="Manage YouTube playlists">
+          <div className="p-8 text-center text-muted-foreground">
+            Sign in required to view playlists.
+          </div>
+        </AdminLayout>
+      </>
     );
   }
+
+  // Show loading skeleton when data is loading
+  const showSkeleton = (loading && initialLoad) || status === "loading";
 
   return (
     <>
       <Head>
-        <title>Playlist Management - Video Admin</title>
+        <title>Playlists - FMT Video Admin</title>
         <meta name="robots" content="noindex,nofollow,noarchive" />
       </Head>
 
-      <AdminLayout
-        title="Playlist Management"
-        description="Manage YouTube playlists and sync videos"
-      >
-        {/* Alerts */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              <p className="text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-              <p className="text-green-800 dark:text-green-200">
-                {successMessage}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Playlists</p>
-                <p className="text-2xl font-bold">{totalCount}</p>
-              </div>
-              <PlayCircle className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold">
-                  {playlists.filter((p) => p.isActive).length}
-                </p>
-              </div>
-              <Eye className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Videos</p>
-                <p className="text-2xl font-bold">
-                  {playlists
-                    .reduce((sum, p) => sum + (p.itemCount || 0), 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-              <Video className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Syncing</p>
-                <p className="text-2xl font-bold">
-                  {playlists.filter((p) => p.syncInProgress).length}
-                </p>
-              </div>
-              <RefreshCw
-                className={cn(
-                  "w-8 h-8",
-                  playlists.some((p) => p.syncInProgress)
-                    ? "text-blue-500 animate-spin"
-                    : "text-gray-500"
-                )}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Controls Bar */}
-        <div className="mb-6 flex flex-col md:flex-row gap-4">
-          <div className="flex-1 flex gap-2">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search playlists..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            {/* Filter Active Status */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setFilterActive(
-                    filterActive === null
-                      ? true
-                      : filterActive === true
-                        ? false
-                        : null
-                  );
-                  setPage(1);
-                }}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors",
-                  filterActive !== null && "border-primary"
-                )}
-              >
-                <Filter className="w-4 h-4" />
-                <span className="hidden md:inline">
-                  {filterActive === null
-                    ? "All"
-                    : filterActive
-                      ? "Active"
-                      : "Inactive"}
-                </span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* Sort */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  const options: Array<"videos" | "name" | "updated"> = [
-                    "videos",
-                    "name",
-                    "updated",
-                  ];
-                  const currentIndex = options.indexOf(sortBy);
-                  setSortBy(options[(currentIndex + 1) % options.length]);
-                  setPage(1);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                <Hash className="w-4 h-4" />
-                <span className="hidden md:inline">
-                  Sort:{" "}
-                  {sortBy === "videos"
-                    ? "Videos"
-                    : sortBy === "name"
-                      ? "Name"
-                      : "Updated"}
-                </span>
-              </button>
-            </div>
-
-            {/* View Mode Toggle */}
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "px-3 py-2 transition-colors",
-                  viewMode === "grid"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card hover:bg-accent"
-                )}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "px-3 py-2 transition-colors",
-                  viewMode === "list"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card hover:bg-accent"
-                )}
-              >
-                List
-              </button>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Select All */}
-            {filteredPlaylists.length > 0 && (
-              <Button onClick={selectAll} variant="outline" size="sm">
-                {selectedPlaylists.size === playlists.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </Button>
-            )}
-
-            {/* Bulk Sync */}
-            {selectedPlaylists.size > 0 && (
-              <Button
-                onClick={bulkSync}
-                disabled={bulkSyncing}
-                variant="outline"
-                size="sm"
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                {bulkSyncing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Sync {selectedPlaylists.size} Selected
-              </Button>
-            )}
-
-            {/* Refresh */}
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw
-                className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")}
-              />
-              Refresh
-            </Button>
-          </div>
-        </div>
-
-        {/* Playlists Grid/List */}
-        {filteredPlaylists.length === 0 ? (
-          <div className="bg-card rounded-lg border border-border p-12 text-center">
-            <Info className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No playlists found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm || filterActive !== null
-                ? "Try adjusting your search or filters"
-                : "Sync playlists from YouTube to get started"}
-            </p>
-          </div>
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {filteredPlaylists.map((playlist) => (
-              <div
-                key={playlist.playlistId}
-                className={cn(
-                  "bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow",
-                  !playlist.isActive && "opacity-60",
-                  playlist.syncInProgress &&
-                    "ring-2 ring-blue-500 ring-opacity-50"
-                )}
-              >
-                {/* Checkbox for selection */}
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedPlaylists.has(playlist.playlistId)}
-                        onChange={() => toggleSelection(playlist.playlistId)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground line-clamp-1">
-                          {playlist.title}
-                        </h3>
-                        {playlist.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {playlist.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => togglePlaylistStatus(playlist)}
-                      className={cn(
-                        "p-1 rounded transition-colors",
-                        playlist.isActive
-                          ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
-                          : "text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-950/20"
-                      )}
-                      title={playlist.isActive ? "Active" : "Inactive"}
-                    >
-                      {playlist.isActive ? (
-                        <Eye className="w-5 h-5" />
-                      ) : (
-                        <EyeOff className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Thumbnail */}
-                {playlist.thumbnailUrl && (
-                  <div className="relative aspect-video bg-muted">
-                    <Image
-                      src={playlist.thumbnailUrl}
-                      alt={playlist.title}
-                      fill
-                      className="object-cover"
-                    />
-                    {playlist.syncInProgress && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <RefreshCw className="w-8 h-8 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Stats */}
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Video className="w-4 h-4" />
-                      {playlist.itemCount || 0} videos
-                    </span>
-                    {playlist.updatedAt && (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        {formatDistanceToNow(new Date(playlist.updatedAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    )}
-                  </div>
-
-                  {playlist.channelTitle && (
-                    <p className="text-xs text-muted-foreground">
-                      Channel: {playlist.channelTitle}
+      <AdminLayout title="Playlists" description="Manage YouTube playlists">
+        <div className="space-y-6">
+          {/* Header Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Total Playlists", value: stats.total, icon: FiGrid },
+              {
+                label: "Active",
+                value: stats.active,
+                icon: FiCheckCircle,
+                color: "text-green-600",
+              },
+              {
+                label: "Syncing",
+                value: stats.syncing,
+                icon: MdSync,
+                color: "text-blue-600",
+                spin: true,
+              },
+              {
+                label: "Total Videos",
+                value: stats.totalVideos.toLocaleString(),
+                icon: FiVideo,
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="p-4 bg-card rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {stat.label}
                     </p>
-                  )}
-
-                  {/* Last sync result */}
-                  {playlist.lastSyncResult && (
-                    <div className="pt-2 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Last sync:
-                        {playlist.lastSyncResult.error ? (
-                          <span className="text-red-600"> Failed</span>
-                        ) : (
-                          <span className="text-green-600">
-                            {" "}
-                            +{playlist.lastSyncResult.videosAdded ||
-                              0} added,{" "}
-                            {playlist.lastSyncResult.videosUpdated || 0} updated
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="p-4 border-t border-border flex gap-2">
-                  <Button
-                    onClick={() =>
-                      syncPlaylist(playlist.playlistId, playlist.title)
-                    }
-                    disabled={
-                      syncing === playlist.playlistId ||
-                      playlist.syncInProgress ||
-                      bulkSyncing
-                    }
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    {syncing === playlist.playlistId ||
-                    playlist.syncInProgress ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Sync
-                      </>
+                    <p className={cn("text-2xl font-bold", stat.color)}>
+                      {stat.value}
+                    </p>
+                  </div>
+                  <stat.icon
+                    className={cn(
+                      "w-8 h-8",
+                      stat.color || "text-muted-foreground/30",
+                      stat.spin && "animate-spin"
                     )}
-                  </Button>
-
-                  <Button
-                    onClick={() =>
-                      window.open(
-                        `https://youtube.com/playlist?list=${playlist.playlistId}`,
-                        "_blank"
-                      )
-                    }
-                    size="sm"
-                    variant="ghost"
-                    className="px-2"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
+                  />
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/50">
-                <tr>
-                  <th className="p-4 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedPlaylists.size === playlists.length}
-                      onChange={selectAll}
-                    />
-                  </th>
-                  <th className="p-4 text-left">Playlist</th>
-                  <th className="p-4 text-center">Videos</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-left">Last Updated</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPlaylists.map((playlist) => (
-                  <tr
-                    key={playlist.playlistId}
-                    className={cn(
-                      "border-b border-border hover:bg-muted/50 transition-colors",
-                      !playlist.isActive && "opacity-60"
-                    )}
-                  >
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedPlaylists.has(playlist.playlistId)}
-                        onChange={() => toggleSelection(playlist.playlistId)}
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium">{playlist.title}</p>
-                        {playlist.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {playlist.description}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="inline-flex items-center gap-1">
-                        <Video className="w-4 h-4 text-muted-foreground" />
-                        {playlist.itemCount || 0}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      {playlist.syncInProgress ? (
-                        <span className="inline-flex items-center gap-1 text-blue-600">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Syncing
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => togglePlaylistStatus(playlist)}
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs",
-                            playlist.isActive
-                              ? "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                              : "bg-gray-100 text-gray-700 dark:bg-gray-950/30 dark:text-gray-400"
-                          )}
-                        >
-                          {playlist.isActive ? (
-                            <>
-                              <Eye className="w-3 h-3" /> Active
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="w-3 h-3" /> Inactive
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      {playlist.updatedAt && (
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(playlist.updatedAt), {
-                            addSuffix: true,
-                          })}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          onClick={() =>
-                            syncPlaylist(playlist.playlistId, playlist.title)
-                          }
-                          disabled={
-                            syncing === playlist.playlistId ||
-                            playlist.syncInProgress ||
-                            bulkSyncing
-                          }
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <RefreshCw
-                            className={cn(
-                              "w-4 h-4",
-                              (syncing === playlist.playlistId ||
-                                playlist.syncInProgress) &&
-                                "animate-spin"
-                            )}
-                          />
-                        </Button>
-                        <Button
-                          onClick={() =>
-                            window.open(
-                              `https://youtube.com/playlist?list=${playlist.playlistId}`,
-                              "_blank"
-                            )
-                          }
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {(page - 1) * 12 + 1} to {Math.min(page * 12, totalCount)}{" "}
-              of {totalCount} playlists
-            </p>
+          {/* Toolbar */}
+          <div className="sticky top-0 z-10 flex flex-col lg:flex-row gap-4 p-4 bg-card rounded-lg border backdrop-blur-sm">
+            <div className="flex-1 flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1 max-w-md">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search playlists... (Press / to focus)"
+                  className="w-full pl-10 pr-4 py-2 bg-background border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowFilters(!showFilters)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <FiFilter className="w-4 h-4 mr-2" />
+                  Filters
+                  {filterActive !== null && (
+                    <span className="ml-2 px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-full">
+                      1
+                    </span>
+                  )}
+                </Button>
+
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="px-3 py-1 bg-background border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                >
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                  <option value={48}>48</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
+              {selectedPlaylists.size > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedPlaylists.size} selected
+                  </span>
+                  <Button
+                    onClick={bulkSync}
+                    disabled={bulkSyncing}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {bulkSyncing ? (
+                      <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FiRefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Sync Selected
+                  </Button>
+                </>
+              )}
+
               <Button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                size="sm"
+                onClick={selectAll}
                 variant="outline"
+                size="sm"
+                title="Ctrl/Cmd + A"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
+                {selectedPlaylists.size === playlists.length ? (
+                  <MdCheckBoxOutlineBlank className="w-4 h-4 mr-2" />
+                ) : selectedPlaylists.size > 0 ? (
+                  <MdIndeterminateCheckBox className="w-4 h-4 mr-2" />
+                ) : (
+                  <MdCheckBox className="w-4 h-4 mr-2" />
+                )}
+                {selectedPlaylists.size === playlists.length ? "None" : "All"}
               </Button>
 
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = i + 1;
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      className={cn(
-                        "w-8 h-8 rounded-md transition-colors",
-                        pageNum === page
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                {totalPages > 5 && <span className="px-2">...</span>}
+              <div className="flex bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === "grid"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground"
+                  )}
+                  aria-label="Grid view"
+                >
+                  <FiGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === "list"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground"
+                  )}
+                  aria-label="List view"
+                >
+                  <FiList className="w-4 h-4" />
+                </button>
               </div>
 
               <Button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                size="sm"
+                onClick={() => setShowThumbnails(!showThumbnails)}
                 variant="outline"
+                size="icon"
+                title="Toggle thumbnails"
               >
-                Next
-                <ChevronRight className="w-4 h-4" />
+                {showThumbnails ? (
+                  <FiEye className="w-4 h-4" />
+                ) : (
+                  <FiEyeOff className="w-4 h-4" />
+                )}
+              </Button>
+
+              <Button
+                onClick={() => loadPlaylists()}
+                variant="outline"
+                size="icon"
+                disabled={loading}
+                aria-label="Refresh"
+              >
+                <FiRefreshCw
+                  className={cn("w-4 h-4", loading && "animate-spin")}
+                />
               </Button>
             </div>
           </div>
-        )}
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="p-4 bg-card rounded-lg border space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Status
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        setFilterActive(filterActive === true ? null : true)
+                      }
+                      className={cn(
+                        "flex-1 py-2 px-3 rounded-lg border transition-colors",
+                        filterActive === true
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      Active
+                    </button>
+                    <button
+                      onClick={() =>
+                        setFilterActive(filterActive === false ? null : false)
+                      }
+                      className={cn(
+                        "flex-1 py-2 px-3 rounded-lg border transition-colors",
+                        filterActive === false
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      Inactive
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="w-full p-2 bg-background border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  >
+                    <option value="videos">Video Count</option>
+                    <option value="name">Name</option>
+                    <option value="updated">Recently Updated</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && !loading && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <FiAlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <p className="text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* List */}
+          {showSkeleton ? (
+            <div
+              className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "space-y-2"
+              )}
+            >
+              {Array.from({ length: pageSize }).map((_, i) => (
+                <PlaylistSkeleton key={i} viewMode={viewMode} />
+              ))}
+            </div>
+          ) : playlists.length > 0 ? (
+            <div
+              className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "space-y-2"
+              )}
+            >
+              {playlists.map((playlist, index) => (
+                <PlaylistCard
+                  key={playlist.playlistId}
+                  playlist={playlist}
+                  isSelected={selectedPlaylists.has(playlist.playlistId)}
+                  onToggleSelect={() => toggleSelection(playlist.playlistId)}
+                  onSync={() =>
+                    syncPlaylist(playlist.playlistId, playlist.title)
+                  }
+                  onToggleActive={() => togglePlaylistStatus(playlist)}
+                  viewMode={viewMode}
+                  index={index}
+                  showThumbnails={showThumbnails}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FiVideo className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">
+                No playlists found
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {searchTerm || filterActive !== null
+                  ? "Try adjusting your filters"
+                  : "Sync playlists from YouTube to get started"}
+              </p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+                variant="outline"
+                size="sm"
+              >
+                <FiChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="px-4 py-2 text-sm">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || loading}
+                variant="outline"
+                size="sm"
+              >
+                <FiChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </AdminLayout>
     </>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR(
-  async (context) => {
-    return {
-      props: {
-        requiresAuth: true,
-      },
-    };
-  }
-);
+export const getServerSideProps: GetServerSideProps<PageProps> =
+  withAdminPageSSR();

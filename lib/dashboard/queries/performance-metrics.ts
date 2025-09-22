@@ -1,32 +1,120 @@
-// lib/dashboard/queries/performance-metrics.ts
+// lib/dashboard/queries/performance-metrics-enhanced.ts
 import { PrismaClient } from "@prisma/client";
-import { subDays } from "date-fns";
-import { PERFORMANCE_THRESHOLDS } from "../constants";
+import { subDays, subHours } from "date-fns";
 
-export interface PerformanceMetrics {
+export interface EnhancedPerformanceMetrics {
+  // Core metrics
   averageEngagement: number;
   averageViews: number;
   averageLikes: number;
-  viralVideos: number; // Count of videos with high velocity
+  viralVideos: number;
   engagementTrend: "up" | "down" | "stable";
   topCategories: { category: string; count: number; avgViews: number }[];
-  watchTimeEstimate: number; // Total estimated minutes watched
-  performanceScore: number; // 0-100 overall score
+  watchTimeEstimate: number;
+  performanceScore: number;
+
+  // New motivational metrics
+  weekOverWeekGrowth: number;
+  viewsPerVideo: number;
+  bestPerformingHour: string;
+  momentumScore: number;
+  risingStars: number;
+  achievements: Achievement[];
+  topPerformers: VideoHighlight[];
+  publishingConsistency: number;
+  averageVelocity: number;
 }
 
-export interface VideoPerformance {
+export interface Achievement {
+  icon: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+  progress?: number;
+}
+
+export interface VideoHighlight {
   videoId: string;
   title: string;
-  views: number;
-  likes: number;
-  comments: number;
-  engagement: number;
-  performanceRating: "excellent" | "good" | "average" | "poor";
+  metric: string;
+  value: number | string;
+  badge?: string;
 }
 
-/**
- * Extract statistics from video JSON fields
- */
+// Clean playlist name to category
+function getCleanCategory(playlistTitle: string): string {
+  if (!playlistTitle) return "Uncategorized";
+
+  // Remove common prefixes and clean up
+  const cleaned = playlistTitle
+    .replace(/^FMT\s*[-–]\s*/i, "") // Remove "FMT -" or "FMT –"
+    .replace(/^FMT\s+/i, "") // Remove "FMT "
+    .replace(/\s*[-–]\s*FMT$/i, "") // Remove trailing "- FMT"
+    .replace(/\s+/g, " ") // Normalize spaces
+    .trim();
+
+  // Special mappings
+  const mappings: Record<string, string> = {
+    "Citra FMT": "Citra",
+    "Sorotan berita": "Sorotan",
+    "FMT News": "News",
+    "FMT Lifestyle": "Lifestyle",
+    "FMT Sports": "Sports",
+    "FMT Entertainment": "Entertainment",
+    "FMT Business": "Business",
+  };
+
+  return mappings[playlistTitle] || cleaned || "General";
+}
+
+// Get category from video's playlists
+async function getCategoryFromVideo(
+  video: any,
+  prisma: PrismaClient
+): Promise<string> {
+  if (video.playlists && video.playlists.length > 0) {
+    // Get the first playlist's title
+    const playlist = await prisma.playlist.findFirst({
+      where: {
+        playlistId: { in: video.playlists },
+        isActive: true,
+      },
+      select: { title: true },
+      orderBy: { itemCount: "desc" }, // Prefer larger playlists
+    });
+
+    if (playlist?.title) {
+      return getCleanCategory(playlist.title);
+    }
+  }
+
+  // Fallback to YouTube category
+  return getCategoryName(video.categoryId);
+}
+
+// Map YouTube category IDs to names
+function getCategoryName(categoryId: string): string {
+  const categories: Record<string, string> = {
+    "1": "Film & Animation",
+    "2": "Autos & Vehicles",
+    "10": "Music",
+    "15": "Pets & Animals",
+    "17": "Sports",
+    "19": "Travel & Events",
+    "20": "Gaming",
+    "22": "People & Blogs",
+    "23": "Comedy",
+    "24": "Entertainment",
+    "25": "News & Politics",
+    "26": "Howto & Style",
+    "27": "Education",
+    "28": "Science & Technology",
+  };
+
+  return categories[categoryId] || "General";
+}
+
+// Extract stats from video
 function extractStats(video: any): {
   views: number;
   likes: number;
@@ -45,9 +133,7 @@ function extractStats(video: any): {
   return { views, likes, comments };
 }
 
-/**
- * Calculate engagement rate
- */
+// Calculate engagement rate
 function calculateEngagementRate(
   views: number,
   likes: number,
@@ -57,33 +143,17 @@ function calculateEngagementRate(
   return Number((((likes + comments) / views) * 100).toFixed(2));
 }
 
-/**
- * Rate performance based on engagement
- */
-function ratePerformance(
-  engagement: number
-): "excellent" | "good" | "average" | "poor" {
-  if (engagement >= PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.EXCELLENT * 100)
-    return "excellent";
-  if (engagement >= PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.GOOD * 100)
-    return "good";
-  if (engagement >= PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.AVERAGE * 100)
-    return "average";
-  return "poor";
-}
-
-/**
- * Get overall performance metrics
- */
+// Main enhanced performance metrics function
 export async function getPerformanceMetrics(
   prisma: PrismaClient
-): Promise<PerformanceMetrics> {
+): Promise<EnhancedPerformanceMetrics> {
   try {
-    // Get videos from last 30 days for metrics
     const thirtyDaysAgo = subDays(new Date(), 30);
     const sevenDaysAgo = subDays(new Date(), 7);
+    const fourteenDaysAgo = subDays(new Date(), 14);
+    const twentyFourHoursAgo = subHours(new Date(), 24);
 
-    // Fetch recent videos
+    // Fetch recent videos with extended data
     const recentVideos = await prisma.videos.findMany({
       where: {
         publishedAt: {
@@ -92,56 +162,86 @@ export async function getPerformanceMetrics(
       },
       select: {
         videoId: true,
+        title: true,
         statistics: true,
         categoryId: true,
         contentDetails: true,
         publishedAt: true,
+        playlists: true,
+        tier: true,
+        isShort: true,
       },
     });
 
-    // Calculate aggregate metrics
+    // Calculate core metrics
     let totalViews = 0;
     let totalLikes = 0;
     let totalComments = 0;
     let viralCount = 0;
     let totalWatchTime = 0;
+    let risingStarsCount = 0;
     const categoryMap = new Map<string, { count: number; views: number }>();
+    const hourlyDistribution = new Map<number, number>();
+    const topPerformers: VideoHighlight[] = [];
 
-    recentVideos.forEach((video) => {
+    // Process each video
+    for (const video of recentVideos) {
       const { views, likes, comments } = extractStats(video);
 
       totalViews += views;
       totalLikes += likes;
       totalComments += comments;
 
-      // Check if viral (high velocity)
+      // Check if viral
       const hoursSincePublish = Math.max(
         1,
         (Date.now() - new Date(video.publishedAt).getTime()) / (1000 * 60 * 60)
       );
       const velocity = views / hoursSincePublish;
 
-      if (velocity >= PERFORMANCE_THRESHOLDS.VIRAL_VELOCITY.TRENDING) {
+      // More lenient viral threshold
+      if (velocity >= 50 || video.tier === "hot" || video.tier === "trending") {
         viralCount++;
       }
 
-      // Estimate watch time (assume 50% average view duration)
-      if (
-        typeof video.contentDetails === "object" &&
-        video.contentDetails?.durationSeconds
-      ) {
-        const estimatedViewDuration =
-          Number(video.contentDetails.durationSeconds) * 0.5;
-        totalWatchTime += (views * estimatedViewDuration) / 60; // Convert to minutes
+      // Check for rising stars (rapid recent growth)
+      if (hoursSincePublish < 72 && velocity >= 20) {
+        risingStarsCount++;
       }
 
-      // Track by category
-      const category = video.categoryId || "uncategorized";
+      // Track publishing hour
+      const publishHour = new Date(video.publishedAt).getHours();
+      hourlyDistribution.set(
+        publishHour,
+        (hourlyDistribution.get(publishHour) || 0) + views
+      );
+
+      // Estimate watch time
+      if (video.contentDetails?.durationSeconds) {
+        const estimatedViewDuration =
+          Number(video.contentDetails.durationSeconds) * 0.5;
+        totalWatchTime += (views * estimatedViewDuration) / 60;
+      }
+
+      // Get category from playlist
+      const category = await getCategoryFromVideo(video, prisma);
       const catData = categoryMap.get(category) || { count: 0, views: 0 };
       catData.count++;
       catData.views += views;
       categoryMap.set(category, catData);
-    });
+
+      // Track top performers
+      const engagement = calculateEngagementRate(views, likes, comments);
+      if (engagement > 5) {
+        topPerformers.push({
+          videoId: video.videoId,
+          title: video.title.substring(0, 50),
+          metric: "High Engagement",
+          value: `${engagement.toFixed(1)}%`,
+          badge: engagement > 10 ? "🏆" : "⭐",
+        });
+      }
+    }
 
     const videoCount = recentVideos.length || 1;
     const averageEngagement = calculateEngagementRate(
@@ -151,31 +251,70 @@ export async function getPerformanceMetrics(
     );
     const averageViews = Math.round(totalViews / videoCount);
     const averageLikes = Math.round(totalLikes / videoCount);
+    const averageVelocity = totalViews / (videoCount * 24 * 30); // Average views per hour
 
-    // Get videos from last 7 days for trend comparison
+    // Calculate week-over-week growth
     const lastWeekVideos = recentVideos.filter(
       (v) => new Date(v.publishedAt) >= sevenDaysAgo
     );
-
-    const lastWeekStats = lastWeekVideos.reduce(
-      (acc, video) => {
-        const { views, likes, comments } = extractStats(video);
-        return {
-          views: acc.views + views,
-          likes: acc.likes + likes,
-          comments: acc.comments + comments,
-        };
-      },
-      { views: 0, likes: 0, comments: 0 }
+    const previousWeekVideos = recentVideos.filter(
+      (v) =>
+        new Date(v.publishedAt) >= fourteenDaysAgo &&
+        new Date(v.publishedAt) < sevenDaysAgo
     );
 
-    const lastWeekEngagement = calculateEngagementRate(
-      lastWeekStats.views,
-      lastWeekStats.likes,
-      lastWeekStats.comments
-    );
+    const lastWeekViews = lastWeekVideos.reduce((sum, v) => {
+      const { views } = extractStats(v);
+      return sum + views;
+    }, 0);
 
-    // Determine trend
+    const previousWeekViews = previousWeekVideos.reduce((sum, v) => {
+      const { views } = extractStats(v);
+      return sum + views;
+    }, 0);
+
+    const weekOverWeekGrowth =
+      previousWeekViews > 0
+        ? ((lastWeekViews - previousWeekViews) / previousWeekViews) * 100
+        : 0;
+
+    // Find best performing hour
+    let bestHour = 0;
+    let maxHourViews = 0;
+    hourlyDistribution.forEach((views, hour) => {
+      if (views > maxHourViews) {
+        maxHourViews = views;
+        bestHour = hour;
+      }
+    });
+    const bestPerformingHour = `${bestHour}:00 - ${(bestHour + 1) % 24}:00`;
+
+    // Calculate momentum score (0-100)
+    let momentumScore = 50; // Base
+
+    if (weekOverWeekGrowth > 20) momentumScore += 20;
+    else if (weekOverWeekGrowth > 10) momentumScore += 15;
+    else if (weekOverWeekGrowth > 0) momentumScore += 10;
+    else if (weekOverWeekGrowth < -10) momentumScore -= 10;
+
+    if (viralCount > 2) momentumScore += 15;
+    else if (viralCount > 0) momentumScore += 10;
+
+    if (risingStarsCount > 3) momentumScore += 15;
+    else if (risingStarsCount > 1) momentumScore += 10;
+
+    momentumScore = Math.min(100, Math.max(0, momentumScore));
+
+    // Determine engagement trend
+    const lastWeekEngagement =
+      lastWeekVideos.length > 0
+        ? calculateEngagementRate(
+            lastWeekViews,
+            lastWeekVideos.reduce((sum, v) => sum + extractStats(v).likes, 0),
+            lastWeekVideos.reduce((sum, v) => sum + extractStats(v).comments, 0)
+          )
+        : 0;
+
     let engagementTrend: "up" | "down" | "stable" = "stable";
     if (lastWeekEngagement > averageEngagement * 1.1) engagementTrend = "up";
     else if (lastWeekEngagement < averageEngagement * 0.9)
@@ -184,43 +323,83 @@ export async function getPerformanceMetrics(
     // Process top categories
     const topCategories = Array.from(categoryMap.entries())
       .map(([category, data]) => ({
-        category: getCategoryName(category),
+        category: category,
         count: data.count,
         avgViews: Math.round(data.views / data.count),
       }))
       .sort((a, b) => b.avgViews - a.avgViews)
       .slice(0, 5);
 
-    // Calculate performance score (0-100)
-    let performanceScore = 50; // Base score
+    // Calculate performance score
+    let performanceScore = 50;
 
-    // Engagement factor (up to 30 points)
-    if (
-      averageEngagement >=
-      PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.EXCELLENT * 100
-    )
-      performanceScore += 30;
-    else if (
-      averageEngagement >=
-      PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.GOOD * 100
-    )
-      performanceScore += 20;
-    else if (
-      averageEngagement >=
-      PERFORMANCE_THRESHOLDS.ENGAGEMENT_RATE.AVERAGE * 100
-    )
-      performanceScore += 10;
+    if (averageEngagement >= 10) performanceScore += 30;
+    else if (averageEngagement >= 5) performanceScore += 20;
+    else if (averageEngagement >= 2) performanceScore += 10;
 
-    // Viral factor (up to 20 points)
     const viralRate = viralCount / videoCount;
     performanceScore += Math.min(20, viralRate * 100);
 
-    // Trend factor (up to 10 points)
     if (engagementTrend === "up") performanceScore += 10;
     else if (engagementTrend === "stable") performanceScore += 5;
 
-    // Cap at 100
     performanceScore = Math.min(100, Math.round(performanceScore));
+
+    // Calculate achievements
+    const achievements: Achievement[] = [
+      {
+        icon: "🚀",
+        title: "Viral Creator",
+        description: "Create a viral video",
+        unlocked: viralCount > 0,
+        progress: Math.min(100, viralCount * 100),
+      },
+      {
+        icon: "💎",
+        title: "Engagement Master",
+        description: "Reach 5% average engagement",
+        unlocked: averageEngagement >= 5,
+        progress: Math.min(100, (averageEngagement / 5) * 100),
+      },
+      {
+        icon: "🔥",
+        title: "Hot Streak",
+        description: "3+ trending videos",
+        unlocked: viralCount >= 3,
+        progress: Math.min(100, (viralCount / 3) * 100),
+      },
+      {
+        icon: "📈",
+        title: "Growing Channel",
+        description: "Positive week-over-week growth",
+        unlocked: weekOverWeekGrowth > 0,
+        progress: Math.min(100, Math.abs(weekOverWeekGrowth)),
+      },
+      {
+        icon: "⚡",
+        title: "Speed Demon",
+        description: "High velocity content",
+        unlocked: averageVelocity > 100,
+        progress: Math.min(100, (averageVelocity / 100) * 100),
+      },
+      {
+        icon: "🎯",
+        title: "Consistent Creator",
+        description: "Regular publishing schedule",
+        unlocked: lastWeekVideos.length >= 3,
+        progress: Math.min(100, (lastWeekVideos.length / 3) * 100),
+      },
+    ];
+
+    // Calculate publishing consistency
+    const publishingConsistency =
+      lastWeekVideos.length >= 3
+        ? 100
+        : lastWeekVideos.length === 2
+          ? 66
+          : lastWeekVideos.length === 1
+            ? 33
+            : 0;
 
     return {
       averageEngagement,
@@ -231,9 +410,19 @@ export async function getPerformanceMetrics(
       topCategories,
       watchTimeEstimate: Math.round(totalWatchTime),
       performanceScore,
+      weekOverWeekGrowth: Math.round(weekOverWeekGrowth),
+      viewsPerVideo: averageViews,
+      bestPerformingHour,
+      momentumScore,
+      risingStars: risingStarsCount,
+      achievements,
+      topPerformers: topPerformers.slice(0, 5),
+      publishingConsistency,
+      averageVelocity: Math.round(averageVelocity),
     };
   } catch (error) {
-    console.error("Failed to get performance metrics:", error);
+    console.error("Failed to get enhanced performance metrics:", error);
+    // Return default values
     return {
       averageEngagement: 0,
       averageViews: 0,
@@ -243,71 +432,15 @@ export async function getPerformanceMetrics(
       topCategories: [],
       watchTimeEstimate: 0,
       performanceScore: 0,
+      weekOverWeekGrowth: 0,
+      viewsPerVideo: 0,
+      bestPerformingHour: "Unknown",
+      momentumScore: 0,
+      risingStars: 0,
+      achievements: [],
+      topPerformers: [],
+      publishingConsistency: 0,
+      averageVelocity: 0,
     };
   }
-}
-
-/**
- * Get individual video performance
- */
-export async function getVideoPerformance(
-  prisma: PrismaClient,
-  limit = 10
-): Promise<VideoPerformance[]> {
-  try {
-    const videos = await prisma.videos.findMany({
-      orderBy: {
-        publishedAt: "desc",
-      },
-      take: limit,
-      select: {
-        videoId: true,
-        title: true,
-        statistics: true,
-      },
-    });
-
-    return videos.map((video) => {
-      const { views, likes, comments } = extractStats(video);
-      const engagement = calculateEngagementRate(views, likes, comments);
-
-      return {
-        videoId: video.videoId,
-        title: video.title,
-        views,
-        likes,
-        comments,
-        engagement,
-        performanceRating: ratePerformance(engagement),
-      };
-    });
-  } catch (error) {
-    console.error("Failed to get video performance:", error);
-    return [];
-  }
-}
-
-/**
- * Map category IDs to readable names
- */
-function getCategoryName(categoryId: string): string {
-  const categories: { [key: string]: string } = {
-    "1": "Film & Animation",
-    "2": "Autos & Vehicles",
-    "10": "Music",
-    "15": "Pets & Animals",
-    "17": "Sports",
-    "19": "Travel & Events",
-    "20": "Gaming",
-    "22": "People & Blogs",
-    "23": "Comedy",
-    "24": "Entertainment",
-    "25": "News & Politics",
-    "26": "Howto & Style",
-    "27": "Education",
-    "28": "Science & Technology",
-    uncategorized: "Uncategorized",
-  };
-
-  return categories[categoryId] || `Category ${categoryId}`;
 }

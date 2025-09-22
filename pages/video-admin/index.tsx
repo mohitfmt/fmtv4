@@ -1,6 +1,6 @@
 // pages/video-admin/index.tsx
 import { GetServerSideProps } from "next";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -13,8 +13,6 @@ import { LazyMotion } from "framer-motion";
 import {
   FiActivity,
   FiAlertCircle,
-  FiCheckCircle,
-  FiClock,
   FiDatabase,
   FiLayers,
   FiRefreshCw,
@@ -35,7 +33,7 @@ import { UploadHistoryChart } from "@/components/admin/dashboard/charts/UploadHi
 import { EngagementChart } from "@/components/admin/dashboard/charts/EngagementChart";
 
 // Import constants
-import { REFRESH_CONFIG, CACHE_CONFIG } from "@/lib/dashboard/constants";
+import { REFRESH_CONFIG } from "@/lib/dashboard/constants";
 
 // Import types
 import type { DashboardStats } from "@/types/video-admin-dashboard";
