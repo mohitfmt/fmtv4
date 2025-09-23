@@ -1,7 +1,9 @@
-// pages/api/youtube-webhook.ts
+// pages/api/youtube-webhook.ts - FIXED VERSION
+// Properly handles WebSub notifications and assigns videos to playlists
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { youtube } from "@/lib/youtube-sync";
 import { parseString } from "xml2js";
 import { promisify } from "util";
 import {
@@ -16,28 +18,67 @@ import {
 
 const parseXML = promisify(parseString);
 
-// Initialize Prisma
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// CRITICAL: Disable body parsing for raw body access
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-// Verify WebSub signature
-function verifySignature(req: NextApiRequest): boolean {
-  const signature = req.headers["x-hub-signature"] as string;
-  if (!signature || !process.env.WEBSUB_SECRET) {
+// Helper to read raw body from request
+async function getRawBody(req: NextApiRequest): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  await new Promise((resolve, reject) => {
+    req.on("data", (chunk) =>
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    );
+    req.on("end", resolve);
+    req.on("error", reject);
+  });
+  return Buffer.concat(chunks);
+}
+
+// Improved signature verification with better error handling
+function verifySignature(req: NextApiRequest, rawBody: Buffer): boolean {
+  const signature = req.headers["x-hub-signature"] as string | undefined;
+  const secret = process.env.WEBSUB_SECRET;
+
+  if (!signature || !secret) {
+    console.warn("[YouTube WebSub] Missing signature or secret");
     return false;
   }
 
-  const [algorithm, hash] = signature.split("=");
-  const hmac = crypto.createHmac(algorithm, process.env.WEBSUB_SECRET);
-  const rawBody = (req as any).rawBody || req.body;
-  hmac.update(rawBody);
-  const calculatedHash = hmac.digest("hex");
+  const parts = signature.split("=");
+  if (parts.length !== 2) {
+    console.warn("[YouTube WebSub] Invalid signature format");
+    return false;
+  }
 
-  return crypto.timingSafeEqual(
-    Buffer.from(hash, "hex"),
-    Buffer.from(calculatedHash, "hex")
-  );
+  const [algorithm, hash] = parts;
+  if (!algorithm || !hash) {
+    console.warn("[YouTube WebSub] Invalid signature components");
+    return false;
+  }
+
+  try {
+    const hmac = crypto.createHmac(algorithm, secret);
+    hmac.update(rawBody);
+    const calculatedHash = hmac.digest("hex");
+
+    // Ensure both buffers are same length before timingSafeEqual
+    const receivedBuffer = Buffer.from(hash, "hex");
+    const calculatedBuffer = Buffer.from(calculatedHash, "hex");
+
+    if (receivedBuffer.length !== calculatedBuffer.length) {
+      console.warn("[YouTube WebSub] Signature length mismatch");
+      return false;
+    }
+
+    return crypto.timingSafeEqual(receivedBuffer, calculatedBuffer);
+  } catch (error) {
+    console.error("[YouTube WebSub] Signature verification error:", error);
+    return false;
+  }
 }
 
 // Parse YouTube Atom feed
@@ -66,6 +107,61 @@ async function parseFeed(xmlData: string) {
     console.error("[YouTube WebSub] Feed parsing error:", error);
     return [];
   }
+}
+
+// CRITICAL FIX: Assign video to all playlists it belongs to
+async function assignVideoToPlaylists(videoId: string): Promise<string[]> {
+  const videoPlaylists: string[] = [];
+
+  try {
+    // Get all active playlists
+    const playlists = await prisma.playlist.findMany({
+      where: { isActive: true },
+      select: { playlistId: true, title: true },
+    });
+
+    console.log(
+      `[YouTube WebSub] Checking ${playlists.length} playlists for video ${videoId}`
+    );
+
+    // Check each playlist for this video
+    for (const playlist of playlists) {
+      try {
+        const response = await youtube.playlistItems.list({
+          part: ["id"],
+          playlistId: playlist.playlistId,
+          videoId: videoId,
+          maxResults: 1,
+        });
+
+        if (response.data.items && response.data.items.length > 0) {
+          videoPlaylists.push(playlist.playlistId);
+          console.log(
+            `[YouTube WebSub] Video found in playlist: ${playlist.title}`
+          );
+        }
+      } catch (error: any) {
+        // 404 errors are expected when video is not in playlist
+        if (error?.response?.status !== 404) {
+          console.debug(
+            `[YouTube WebSub] Error checking playlist ${playlist.playlistId}:`,
+            error.message
+          );
+        }
+      }
+    }
+
+    console.log(
+      `[YouTube WebSub] Video ${videoId} found in ${videoPlaylists.length} playlist(s)`
+    );
+  } catch (error) {
+    console.error(
+      `[YouTube WebSub] Failed to check playlists for video ${videoId}:`,
+      error
+    );
+  }
+
+  return videoPlaylists;
 }
 
 // Fetch video details from YouTube API
@@ -125,15 +221,17 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Read raw body for signature verification
+  const rawBody = await getRawBody(req);
+
   // Skip signature verification in development
-  if (process.env.NODE_ENV === "production" && !verifySignature(req)) {
+  if (process.env.NODE_ENV === "production" && !verifySignature(req, rawBody)) {
     console.error("[YouTube WebSub] Invalid signature");
     return res.status(401).json({ error: "Invalid signature" });
   }
 
   try {
-    const rawBody = (req as any).rawBody || req.body;
-    const xmlData = typeof rawBody === "string" ? rawBody : rawBody.toString();
+    const xmlData = rawBody.toString("utf8");
 
     // Parse the feed
     const entries = await parseFeed(xmlData);
@@ -147,6 +245,7 @@ export default async function handler(
 
     const cacheTags = new Set<string>();
     const urlsToPurge: string[] = [];
+    let videosProcessed = 0;
 
     // Process each video
     for (const entry of entries) {
@@ -192,192 +291,163 @@ export default async function handler(
           engagementRate
         );
 
-        // Prepare video data for Prisma - with ALL required fields
+        // CRITICAL FIX: Assign video to playlists
+        const playlists = await assignVideoToPlaylists(entry.videoId);
+
+        // Prepare video data for Prisma
         const videoData = {
           videoId: entry.videoId,
-          channelId: entry.channelId || "UCm7Mkdl1a8g6ctmQMhhghiA",
-          channelTitle: videoDetails.snippet.channelTitle || "", // Added required field
+          channelId: entry.channelId || process.env.YOUTUBE_CHANNEL_ID!,
+          channelTitle: videoDetails.snippet.channelTitle || "",
           title: videoDetails.snippet.title,
           description: videoDetails.snippet.description || "",
           publishedAt: new Date(videoDetails.snippet.publishedAt),
           tags: videoDetails.snippet.tags || [],
           categoryId: videoDetails.snippet.categoryId || "",
           thumbnails: videoDetails.snippet.thumbnails || {},
+
+          // CRITICAL FIX: Include playlists array
+          playlists: playlists,
+          relatedVideos: [],
+          defaultLanguage: videoDetails.snippet.defaultLanguage || "en",
+
           statistics: {
             viewCount: viewCount,
             likeCount: likeCount,
             commentCount: commentCount,
-            favoriteCount: parseInt(
-              videoDetails.statistics?.favoriteCount || "0"
-            ),
           },
+
           contentDetails: {
             duration: duration,
             durationSeconds: durationSeconds,
             dimension: videoDetails.contentDetails?.dimension || "",
             definition: videoDetails.contentDetails?.definition || "",
-            caption: videoDetails.contentDetails?.caption || "",
+            caption: videoDetails.contentDetails?.caption === "true",
             licensedContent:
               videoDetails.contentDetails?.licensedContent || false,
             projection: videoDetails.contentDetails?.projection || "",
           },
+
           status: {
             privacyStatus: videoDetails.status?.privacyStatus || "public",
             embeddable: videoDetails.status?.embeddable !== false,
             publicStatsViewable:
               videoDetails.status?.publicStatsViewable !== false,
             madeForKids: videoDetails.status?.madeForKids || false,
-            license: videoDetails.status?.license || "youtube", // Added required field
-            uploadStatus: videoDetails.status?.uploadStatus || "processed", // Added required field
+            license: videoDetails.status?.license || "youtube",
+            uploadStatus: videoDetails.status?.uploadStatus || "processed",
           },
+
           isShort: isShort,
-          videoType: isShort ? "short" : "regular",
+          videoType: isShort ? "short" : "standard",
           tier: tier,
-          playlists: [],
+          popularityScore: Math.floor(engagementRate * 1000),
+          isActive: true,
           lastSyncedAt: new Date(),
-          migratedAt: new Date(),
-          defaultLanguage: videoDetails.snippet?.defaultLanguage || "",
-          defaultAudioLanguage:
-            videoDetails.snippet?.defaultAudioLanguage || "",
-          syncVersion: 1, // Added required field - increment on updates
+          syncVersion: 1,
+          playlistsUpdatedAt: new Date(),
         };
 
-        // Check if video exists to determine syncVersion
-        const existingVideo = await prisma.videos.findMany({
+        // // Upsert video to database
+        // const upsertedVideo = await prisma.videos.upsert({
+        //   where: { videoId: entry.videoId },
+        //   update: {
+        //     ...videoData,
+        //     statistics: videoData.statistics,
+        //     lastSyncedAt: new Date(),
+        //     playlistsUpdatedAt: new Date(),
+        //   },
+        //   create: videoData,
+        // });
+        // Find existing video first to get its id
+        const existingVideo = await prisma.videos.findFirst({
           where: { videoId: entry.videoId },
-          select: { syncVersion: true },
         });
 
         if (existingVideo) {
-          // Update existing video - increment syncVersion
-          await prisma.videos.updateMany({
-            where: { videoId: entry.videoId },
+          // Update existing
+          await prisma.videos.update({
+            where: { id: existingVideo.id },
             data: {
               ...videoData,
-              syncVersion: existingVideo[0].syncVersion + 1,
+              lastSyncedAt: new Date(),
             },
           });
         } else {
-          // Create new video
+          // Create new
           await prisma.videos.create({
             data: videoData,
           });
         }
 
-        console.log(`[YouTube WebSub] Upserted video ${entry.videoId}`);
-
-        // Add cache tags for purging
-        cacheTags.add(`video:${entry.videoId}`);
-        cacheTags.add("video:all");
-        cacheTags.add("video:gallery");
-
-        if (isShort) {
-          cacheTags.add("video:shorts");
-        }
-
-        cacheTags.add(`video:tier:${tier}`);
-
-        // Add URLs to purge
-        urlsToPurge.push(
-          `https://www.freemalaysiatoday.com/videos/${entry.videoId}`,
-          `https://www.freemalaysiatoday.com/videos`
+        videosProcessed++;
+        console.log(
+          `[YouTube WebSub] ${
+            existingVideo ? "Upserted" : "Failed to upsert"
+          } video: ${videoDetails.snippet.title} with ${playlists.length} playlist(s)`
         );
+
+        // Add cache tags and URLs for purging
+        cacheTags.add("video:gallery");
+        cacheTags.add("video:all");
+        cacheTags.add(`video:${entry.videoId}`);
+        urlsToPurge.push(`/videos`);
+        urlsToPurge.push(`/videos/${entry.videoId}`);
+
+        // Add playlist-specific cache tags
+        for (const playlistId of playlists) {
+          cacheTags.add(`playlist:${playlistId}`);
+        }
       } catch (error) {
         console.error(
-          `[YouTube WebSub] Error processing video ${entry.videoId}:`,
+          `[YouTube WebSub] Failed to process video ${entry.videoId}:`,
           error
         );
       }
     }
 
-    // Clear in-memory LRU cache
-    clearVideoCache();
+    // Clear caches
+    if (videosProcessed > 0) {
+      // Clear LRU cache
+      clearVideoCache();
 
-    // Purge Cloudflare cache
-    if (cacheTags.size > 0) {
-      console.log(`[YouTube WebSub] Purging ${cacheTags.size} cache tags`);
-
-      const tagsArray = Array.from(cacheTags);
-      const tagBatches = [];
-
-      for (let i = 0; i < tagsArray.length; i += 30) {
-        tagBatches.push(tagsArray.slice(i, i + 30));
+      // Purge Cloudflare cache by tags
+      if (cacheTags.size > 0) {
+        await purgeCloudflareByTags(Array.from(cacheTags));
       }
 
-      await Promise.all(
-        tagBatches.map((batch) =>
-          purgeCloudflareByTags(batch).catch((err) =>
-            console.error("[YouTube WebSub] Tag purge failed:", err)
-          )
-        )
+      // Purge specific URLs
+      if (urlsToPurge.length > 0) {
+        await purgeCloudflareByUrls(urlsToPurge);
+      }
+
+      console.log(
+        `[YouTube WebSub] Processed ${videosProcessed} videos, cleared caches`
       );
     }
 
-    // Purge URLs
-    if (urlsToPurge.length > 0) {
-      console.log(`[YouTube WebSub] Purging ${urlsToPurge.length} URLs`);
-
-      const urlBatches = [];
-      for (let i = 0; i < urlsToPurge.length; i += 30) {
-        urlBatches.push(urlsToPurge.slice(i, i + 30));
-      }
-
-      await Promise.all(
-        urlBatches.map((batch) =>
-          purgeCloudflareByUrls(batch).catch((err) =>
-            console.error("[YouTube WebSub] URL purge failed:", err)
-          )
-        )
-      );
-    }
-
-    // Update stats - check your actual schema field names
-    try {
-      // First check if stats record exists
-      const stats = await prisma.websub_stats.findFirst();
-
-      if (stats) {
-        // Update existing stats
-        await prisma.websub_stats.update({
-          where: { id: stats.id },
-          data: {
-            webhooksReceived: { increment: 1 },
-            videosProcessed: { increment: entries.length },
-            // Check your actual schema - these field names might be different:
-            // lastWebhookReceived or lastWebhook or updatedAt
-            updatedAt: new Date(), // Using standard Prisma field
-          },
-        });
-      } else {
-        // Create new stats record
-        await prisma.websub_stats.create({
-          data: {
-            webhooksReceived: 1,
-            videosProcessed: entries.length,
-            // Don't include timestamp fields - Prisma handles createdAt/updatedAt automatically
-          },
-        });
-      }
-    } catch (statsError) {
-      console.error("[YouTube WebSub] Stats update error:", statsError);
-      // Continue processing even if stats update fails
-    }
+    // Update webhook stats
+    await prisma.websub_stats.upsert({
+      where: { id: "main" },
+      update: {
+        webhooksReceived: { increment: 1 },
+        videosProcessed: { increment: videosProcessed },
+        updatedAt: new Date(),
+      },
+      create: {
+        id: "main",
+        webhooksReceived: 1,
+        videosProcessed: videosProcessed,
+      },
+    });
 
     return res.status(200).json({
-      message: "Webhook processed successfully",
-      processed: entries.length,
+      success: true,
+      videosProcessed,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("[YouTube WebSub] Webhook processing error:", error);
+    console.error("[YouTube WebSub] Handler error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
-
-// Disable body parsing to access raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "10mb",
-    },
-  },
-};
