@@ -1,9 +1,9 @@
-// middleware.ts
+// middleware.ts - PRODUCTION VERSION (COMPLETE)
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// Your existing cache duration configs remain unchanged
+// Cache duration configs
 const cacheDurations = {
   static: {
     maxAge: 31536000,
@@ -32,7 +32,6 @@ const cacheDurations = {
   },
 };
 
-// Your existing functions remain unchanged
 function getContentType(
   pathname: string
 ): "static" | "article" | "collection" | "listing" | "homepage" {
@@ -149,48 +148,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/video-admin") ||
     pathname.startsWith("/api/video-admin")
   ) {
-    // Add debug headers for EVERY admin request
-    response.headers.set("X-Debug-Host", cleanHost);
-    response.headers.set("X-Debug-Path", pathname);
-    response.headers.set("X-Debug-NODE_ENV", process.env.NODE_ENV || "not-set");
-
-    // Log all cookies present
-    const allCookies = request.cookies.getAll();
-    response.headers.set(
-      "X-Debug-All-Cookies",
-      allCookies.map((c) => c.name).join("|")
-    );
-
-    // Check for NextAuth cookies specifically
-    const sessionCookie = request.cookies.get("next-auth.session-token");
-    const secureSessionCookie = request.cookies.get(
-      "__Secure-next-auth.session-token"
-    );
-
-    response.headers.set(
-      "X-Debug-Session-Cookie",
-      sessionCookie ? "present" : "missing"
-    );
-    response.headers.set(
-      "X-Debug-Secure-Session-Cookie",
-      secureSessionCookie ? "present" : "missing"
-    );
-
-    // Check environment variables
-    response.headers.set(
-      "X-Debug-Has-NEXTAUTH_SECRET",
-      process.env.NEXTAUTH_SECRET ? "yes" : "no"
-    );
-    response.headers.set(
-      "X-Debug-Has-AUTH_SECRET",
-      process.env.AUTH_SECRET ? "yes" : "no"
-    );
-    response.headers.set(
-      "X-Debug-NEXTAUTH_URL",
-      process.env.NEXTAUTH_URL || "not-set"
-    );
-    response.headers.set("X-Debug-AUTH_URL", process.env.AUTH_URL || "not-set");
-
     // Block production domain
     if (cleanHost.includes("www.") || cleanHost === "freemalaysiatoday.com") {
       return NextResponse.redirect(new URL("/", request.url));
@@ -204,89 +161,42 @@ export async function middleware(request: NextRequest) {
         : cleanHost === "dev-v4.freemalaysiatoday.com";
 
     if (!isAllowedHost) {
-      response.headers.set("X-Debug-Block-Reason", "host-not-allowed");
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Skip auth check for login and auth routes
+    // Skip auth check for login and auth routes - THIS IS CRITICAL!
     const exemptPaths = [
       "/video-admin/login",
       "/api/auth/",
-      "/api/video-admin/debug", // Add debug endpoint
+      "/api/video-admin/debug", // Keep debug endpoint accessible
     ];
 
     const isExempt = exemptPaths.some((path) => pathname.startsWith(path));
-    response.headers.set("X-Debug-Is-Exempt", isExempt.toString());
 
+    // Only check authentication if NOT exempt
     if (!isExempt) {
-      let tokenCheckResult = "not-attempted";
-      let tokenError = "none";
-      let token = null;
-
       try {
-        // Try with AUTH_SECRET first (NextAuth v5)
-        token = await getToken({
+        const token = await getToken({
           req: request,
-          secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-          // Don't override cookieName - let it auto-detect
+          secret: process.env.NEXTAUTH_SECRET,
         });
 
-        if (token) {
-          tokenCheckResult = "success";
-          response.headers.set(
-            "X-Debug-Token-Email",
-            (token.email as string) || "no-email"
-          );
-        } else {
-          tokenCheckResult = "null-token";
-
-          // Try different secret combinations for debugging
-          if (!token && process.env.NEXTAUTH_SECRET) {
-            const token2 = await getToken({
-              req: request,
-              secret: process.env.NEXTAUTH_SECRET,
-            });
-            if (token2) {
-              tokenCheckResult = "worked-with-NEXTAUTH_SECRET";
-              token = token2;
-            }
-          }
-
-          if (!token && process.env.AUTH_SECRET) {
-            const token3 = await getToken({
-              req: request,
-              secret: process.env.AUTH_SECRET,
-            });
-            if (token3) {
-              tokenCheckResult = "worked-with-AUTH_SECRET";
-              token = token3;
-            }
-          }
+        // Check if user is authenticated and has correct domain
+        if (!token?.email || !token.email.endsWith("@freemalaysiatoday.com")) {
+          const loginUrl = new URL("/video-admin/login", request.url);
+          loginUrl.searchParams.set("callbackUrl", pathname);
+          return NextResponse.redirect(loginUrl);
         }
       } catch (error) {
-        tokenCheckResult = "error";
-        tokenError = error instanceof Error ? error.message : "unknown-error";
         console.error("[Middleware] Token check error:", error);
-      }
-
-      response.headers.set("X-Debug-Token-Check", tokenCheckResult);
-      response.headers.set("X-Debug-Token-Error", tokenError);
-
-      // Check if user is authenticated and has correct domain
-      if (!token?.email || !token.email.endsWith("@freemalaysiatoday.com")) {
-        response.headers.set(
-          "X-Debug-Redirect-Reason",
-          !token ? "no-token" : "wrong-domain"
-        );
+        // If token check fails, redirect to login
         const loginUrl = new URL("/video-admin/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }
-
-      response.headers.set("X-Debug-Auth-Success", "true");
     }
 
-    // Set security headers
+    // Set security headers for admin pages
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
     response.headers.set("Cache-Control", "private, no-store");
     response.headers.set("X-Frame-Options", "DENY");
@@ -297,7 +207,7 @@ export async function middleware(request: NextRequest) {
   }
   // ===== VIDEO ADMIN PROTECTION END =====
 
-  // Your existing cache logic continues below...
+  // ===== CACHE LOGIC START =====
   response.headers.set("X-Debug-Path", pathname);
 
   if (/^\/videos\/.+/.test(pathname)) {
