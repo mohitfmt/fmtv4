@@ -225,7 +225,8 @@ export default function VideoAdminLogin() {
             {justSignedOut && (
               <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  You have been signed out successfully
+                  You have been signed out successfully. Please refresh the page
+                  to login again.
                 </p>
               </div>
             )}
