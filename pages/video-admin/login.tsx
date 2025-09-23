@@ -1,4 +1,4 @@
-// pages/video-admin/login.tsx
+// pages/video-admin/login.tsx - FIXED VERSION
 import { GetServerSideProps } from "next";
 import { useSession, signIn } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +9,6 @@ import { Shield, Loader2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/router";
 import { LogoSVG } from "@/components/ui/icons/LogoSVG";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function VideoAdminLogin() {
   const { data: session, status } = useSession();
@@ -19,9 +18,9 @@ export default function VideoAdminLogin() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const oneTapRef = useRef<HTMLDivElement>(null);
+  const [justSignedOut, setJustSignedOut] = useState(false);
 
   // Check if user just signed out
-  const [justSignedOut, setJustSignedOut] = useState(false);
   useEffect(() => {
     if (sessionStorage.getItem("admin_signed_out") === "true") {
       setJustSignedOut(true);
@@ -33,12 +32,18 @@ export default function VideoAdminLogin() {
     }
   }, []);
 
-  // Check for session and redirect
+  // Check for session and redirect - SIMPLIFIED
   useEffect(() => {
-    if (session?.user?.email?.endsWith("@freemalaysiatoday.com")) {
-      router.replace((router.query.callbackUrl as string) || "/video-admin");
+    if (
+      status === "authenticated" &&
+      session?.user?.email?.endsWith("@freemalaysiatoday.com")
+    ) {
+      const callbackUrl =
+        (router.query.callbackUrl as string) || "/video-admin";
+      // Use window.location for more reliable redirect
+      window.location.href = callbackUrl;
     }
-  }, [session, router]);
+  }, [session, status, router.query.callbackUrl]);
 
   // Check for errors
   useEffect(() => {
@@ -50,14 +55,19 @@ export default function VideoAdminLogin() {
     }
   }, [router.query]);
 
-  // Initialize Google One Tap
+  // Initialize Google One Tap - SIMPLIFIED
   useEffect(() => {
-    if (oneTapLoaded && !session && !justSignedOut && window.google) {
+    if (
+      oneTapLoaded &&
+      status === "unauthenticated" &&
+      !justSignedOut &&
+      window.google
+    ) {
       try {
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
           callback: handleOneTapResponse,
-          auto_select: false, // Don't auto-select after logout
+          auto_select: false,
           cancel_on_tap_outside: false,
           context: "signin",
           ux_mode: "popup",
@@ -83,17 +93,27 @@ export default function VideoAdminLogin() {
         console.error("One Tap init error:", error);
       }
     }
-  }, [oneTapLoaded, session, justSignedOut, theme]);
+  }, [oneTapLoaded, status, justSignedOut, theme]);
 
   const handleOneTapResponse = async (response: any) => {
     setIsSigningIn(true);
     setError(null);
     try {
-      await signIn("google-onetap", {
+      const result = await signIn("google-onetap", {
         idToken: response.credential,
         callbackUrl: (router.query.callbackUrl as string) || "/video-admin",
-        redirect: true,
+        redirect: false, // Handle redirect manually
       });
+
+      if (result?.ok) {
+        // Manual redirect for reliability
+        const callbackUrl =
+          (router.query.callbackUrl as string) || "/video-admin";
+        window.location.href = callbackUrl;
+      } else {
+        setError("Sign in failed. Please try again.");
+        setIsSigningIn(false);
+      }
     } catch (error) {
       setError("Sign in failed. Please try again.");
       setIsSigningIn(false);
@@ -103,24 +123,54 @@ export default function VideoAdminLogin() {
   const handleSignIn = async () => {
     setIsSigningIn(true);
     setError(null);
-    await signIn("google", {
-      callbackUrl: (router.query.callbackUrl as string) || "/video-admin",
-      prompt: justSignedOut ? "select_account" : undefined,
-    });
+
+    try {
+      const result = await signIn("google", {
+        callbackUrl: (router.query.callbackUrl as string) || "/video-admin",
+        prompt: justSignedOut ? "select_account" : undefined,
+        redirect: false, // Handle redirect manually
+      });
+
+      if (result?.ok) {
+        // Manual redirect for reliability
+        const callbackUrl =
+          (router.query.callbackUrl as string) || "/video-admin";
+        window.location.href = callbackUrl;
+      } else {
+        setError("Sign in failed. Please try again.");
+        setIsSigningIn(false);
+      }
+    } catch (error) {
+      setError("Sign in failed. Please try again.");
+      setIsSigningIn(false);
+    }
   };
 
   // Loading state while checking session
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
+        <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Checking authentication...</p>
-        </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Already authenticated
+  if (
+    status === "authenticated" &&
+    session?.user?.email?.endsWith("@freemalaysiatoday.com")
+  ) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            Redirecting to admin portal...
+          </p>
+        </div>
       </div>
     );
   }
@@ -139,38 +189,18 @@ export default function VideoAdminLogin() {
       />
 
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <motion.div
-          className="max-w-md w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div
-            className="text-center mb-8"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
             <LogoSVG className="h-20 mx-auto" />
             <h1 className="text-3xl font-bold text-foreground mt-4">
               Video Admin Portal
             </h1>
             <p className="text-muted-foreground mt-2">Staff access only</p>
-          </motion.div>
+          </div>
 
-          <motion.div
-            className="bg-card rounded-lg shadow-lg border border-border p-8"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
+          <div className="bg-card rounded-lg shadow-lg border border-border p-8">
             <div className="text-center mb-6">
-              <motion.div
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-              >
-                <Shield className="w-12 h-12 text-red-600 mx-auto mb-3" />
-              </motion.div>
+              <Shield className="w-12 h-12 text-red-600 mx-auto mb-3" />
               <h2 className="text-xl font-semibold text-foreground">
                 Sign In Required
               </h2>
@@ -179,38 +209,29 @@ export default function VideoAdminLogin() {
               </p>
             </div>
 
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md"
-                >
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600" />
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      {error}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-
-              {justSignedOut && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md"
-                >
-                  <p className="text-sm text-green-800 dark:text-green-200">
-                    You have been signed out successfully
+            {/* Error messages */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    {error}
                   </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            )}
+
+            {/* Success message for sign out */}
+            {justSignedOut && (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  You have been signed out successfully
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
+              {/* Google One Tap button container */}
               <div ref={oneTapRef} className="flex justify-center" />
 
               <div className="relative">
@@ -222,6 +243,7 @@ export default function VideoAdminLogin() {
                 </div>
               </div>
 
+              {/* Manual sign in button */}
               <Button
                 onClick={handleSignIn}
                 disabled={isSigningIn}
@@ -258,14 +280,22 @@ export default function VideoAdminLogin() {
                 )}
               </Button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+
+          {/* Debug info in development */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+              <p>Status: {status}</p>
+              <p>Session Email: {session?.user?.email || "None"}</p>
+              <p>Callback URL: {router.query.callbackUrl || "None"}</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
 }
 
-// No SSR needed for login page
 export const getServerSideProps: GetServerSideProps = async () => {
   return { props: {} };
 };
