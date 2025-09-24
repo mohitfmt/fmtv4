@@ -166,7 +166,7 @@ model system {
 
 model videos {
   id                      String               @id @default(auto()) @map("_id") @db.ObjectId
-  videoId                 String               
+  videoId                 String               @unique
   title                   String
   description             String
   publishedAt             DateTime             @db.Date
@@ -203,9 +203,6 @@ model videos {
   playlistsUpdatedAt      DateTime?           @db.Date
   relatedVideosUpdatedAt  DateTime?           @db.Date
   
-  // Remove the duplicate viewCount field
-  
-  @@index([videoId])
   @@index([publishedAt])
   @@index([playlists])
   @@index([tier, publishedAt])

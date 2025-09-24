@@ -278,251 +278,255 @@ export default function VideoDashboard({ traceId }: PageProps) {
   );
 
   return (
-    <AdminLayout>
+    <>
       <Head>
         <title>Video Dashboard | Admin</title>
         <meta name="description" content="Video content management dashboard" />
+        <meta name="robots" content="noindex,nofollow,noarchive" />
       </Head>
-
-      <LazyMotion features={loadFeatures} strict={prefersReducedMotion}>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Video Dashboard</h1>
-              <p className="text-muted-foreground mt-1">
-                Monitor and manage your video content
-              </p>
-              {lastUpdate && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Last updated{" "}
-                  {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+      <AdminLayout>
+        <LazyMotion features={loadFeatures} strict={prefersReducedMotion}>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Video Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Monitor and manage your video content
                 </p>
-              )}
-            </div>
+                {lastUpdate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Last updated{" "}
+                    {formatDistanceToNow(lastUpdate, { addSuffix: true })}
+                  </p>
+                )}
+              </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  autoRefreshEnabled
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
-                )}
-                title={
-                  autoRefreshEnabled
-                    ? "Disable auto-refresh"
-                    : "Enable auto-refresh"
-                }
-              >
-                {autoRefreshEnabled ? (
-                  <FiZap className="w-5 h-5" />
-                ) : (
-                  <FiWifiOff className="w-5 h-5" />
-                )}
-              </button>
-
-              <button
-                onClick={handleManualRefresh}
-                disabled={refreshing || loading}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  refreshing || loading
-                    ? "bg-muted cursor-not-allowed"
-                    : "bg-card hover:bg-muted"
-                )}
-              >
-                <FiRefreshCw
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
                   className={cn(
-                    "w-5 h-5",
-                    (refreshing || loading) && "animate-spin"
+                    "p-2 rounded-lg transition-colors",
+                    autoRefreshEnabled
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
                   )}
-                />
-              </button>
-            </div>
-          </div>
+                  title={
+                    autoRefreshEnabled
+                      ? "Disable auto-refresh"
+                      : "Enable auto-refresh"
+                  }
+                >
+                  {autoRefreshEnabled ? (
+                    <FiZap className="w-5 h-5" />
+                  ) : (
+                    <FiWifiOff className="w-5 h-5" />
+                  )}
+                </button>
 
-          {/* Error State */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <FiAlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-red-500">{error}</p>
-                  {retryCountView > 0 &&
-                    retryCountView < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS && (
-                      <p className="text-xs text-red-400 mt-1">
-                        Retry attempt: {retryCountView}/
-                        {REFRESH_CONFIG.RETRY_MAX_ATTEMPTS}
+                <button
+                  onClick={handleManualRefresh}
+                  disabled={refreshing || loading}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    refreshing || loading
+                      ? "bg-muted cursor-not-allowed"
+                      : "bg-card hover:bg-muted"
+                  )}
+                >
+                  <FiRefreshCw
+                    className={cn(
+                      "w-5 h-5",
+                      (refreshing || loading) && "animate-spin"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <FiAlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-red-500">{error}</p>
+                    {retryCountView > 0 &&
+                      retryCountView < REFRESH_CONFIG.RETRY_MAX_ATTEMPTS && (
+                        <p className="text-xs text-red-400 mt-1">
+                          Retry attempt: {retryCountView}/
+                          {REFRESH_CONFIG.RETRY_MAX_ATTEMPTS}
+                        </p>
+                      )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Main Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                icon={FiVideo}
+                label="Total Videos"
+                value={stats?.videos.total || 0}
+                loading={loading && !stats}
+                color="primary"
+                // New props for Videos Today feature
+                showTodayCount={true}
+                todayValue={stats?.videos.newToday || 0}
+                todayLoading={loading && !stats}
+              />
+
+              <StatsCard
+                icon={FiTrendingUp}
+                label="Videos This Week"
+                value={stats?.videos.thisWeek || 0}
+                trend={
+                  stats && stats.videos.weekChange > 0
+                    ? "up"
+                    : (stats?.videos.weekChange ?? 0 < 0)
+                      ? "down"
+                      : "neutral"
+                }
+                trendValue={
+                  stats ? `${Math.abs(stats.videos.weekChange)}%` : undefined
+                }
+                loading={loading && !stats}
+                color="success"
+              />
+
+              <StatsCard
+                icon={FiLayers}
+                label="Active Playlists"
+                value={`${stats?.playlists.active || 0}/${stats?.playlists.total || 0}`}
+                trend={
+                  stats && stats.playlists.utilizationRate >= 80 ? "up" : "down"
+                }
+                trendValue={
+                  stats ? `${stats.playlists.utilizationRate}%` : undefined
+                }
+                loading={loading && !stats}
+                color="warning"
+              />
+
+              <StatsCard
+                icon={FiActivity}
+                label="Cache Hit Rate"
+                value={`${stats?.cache.cdnHitRate || 0}%`}
+                trend={stats && stats.cache.cdnHitRate >= 90 ? "up" : "down"}
+                trendValue={stats?.cache.formattedSize}
+                loading={loading && !stats}
+                color={
+                  stats && stats.cache.cdnHitRate >= 90 ? "success" : "danger"
+                }
+              />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upload History */}
+              <div className="bg-card border rounded-xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold">Upload History</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {stats?.videos.weekDates.thisWeek.start} -{" "}
+                      {stats?.videos.weekDates.thisWeek.end}
+                    </p>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Daily avg: {stats?.videos.dailyAverage || 0}
+                  </div>
+                </div>
+
+                <UploadHistoryChart
+                  data={stats?.videos.uploadHistory || []}
+                  loading={loading && !stats}
+                />
+              </div>
+
+              {/* Engagement Metrics */}
+              <div className="bg-card border rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-6">
+                  Engagement Metrics
+                </h3>
+                <EngagementChart
+                  data={stats?.engagementData || []}
+                  performanceMetrics={stats?.performance || undefined}
+                  loading={loading && !stats}
+                />
+              </div>
+            </div>
+
+            {/* Advanced Metrics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <ContentSuggestionsCard
+                  suggestions={stats?.suggestions || null}
+                  loading={loading && !stats}
+                  onRefresh={handleManualRefresh}
+                />
+              </div>
+              <div className="lg:col-span-1 space-y-6">
+                <PerformanceMetricsCard
+                  metrics={stats?.performance || null}
+                  loading={loading && !stats}
+                />
+                <TrendingVideosCard
+                  videos={stats?.videos.trendingList || []}
+                  loading={loading && !stats}
+                />
+              </div>
+            </div>
+
+            {/* Activity and System Status */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activity */}
+              <div className="bg-card border rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+
+                {loading && !stats ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="flex gap-3 items-start animate-pulse"
+                      >
+                        <div className="w-8 h-8 bg-muted rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    {stats?.recentActivity
+                      .slice(0, 10)
+                      .map((activity) => (
+                        <ActivityItem key={activity.id} activity={activity} />
+                      ))}
+
+                    {(!stats?.recentActivity ||
+                      stats.recentActivity.length === 0) && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No recent activity
                       </p>
                     )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Main Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard
-              icon={FiVideo}
-              label="Total Videos"
-              value={stats?.videos.total || 0}
-              loading={loading && !stats}
-              color="primary"
-              // New props for Videos Today feature
-              showTodayCount={true}
-              todayValue={stats?.videos.newToday || 0}
-              todayLoading={loading && !stats}
-            />
-
-            <StatsCard
-              icon={FiTrendingUp}
-              label="Videos This Week"
-              value={stats?.videos.thisWeek || 0}
-              trend={
-                stats && stats.videos.weekChange > 0
-                  ? "up"
-                  : (stats?.videos.weekChange ?? 0 < 0)
-                    ? "down"
-                    : "neutral"
-              }
-              trendValue={
-                stats ? `${Math.abs(stats.videos.weekChange)}%` : undefined
-              }
-              loading={loading && !stats}
-              color="success"
-            />
-
-            <StatsCard
-              icon={FiLayers}
-              label="Active Playlists"
-              value={`${stats?.playlists.active || 0}/${stats?.playlists.total || 0}`}
-              trend={
-                stats && stats.playlists.utilizationRate >= 80 ? "up" : "down"
-              }
-              trendValue={
-                stats ? `${stats.playlists.utilizationRate}%` : undefined
-              }
-              loading={loading && !stats}
-              color="warning"
-            />
-
-            <StatsCard
-              icon={FiActivity}
-              label="Cache Hit Rate"
-              value={`${stats?.cache.cdnHitRate || 0}%`}
-              trend={stats && stats.cache.cdnHitRate >= 90 ? "up" : "down"}
-              trendValue={stats?.cache.formattedSize}
-              loading={loading && !stats}
-              color={
-                stats && stats.cache.cdnHitRate >= 90 ? "success" : "danger"
-              }
-            />
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Upload History */}
-            <div className="bg-card border rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold">Upload History</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {stats?.videos.weekDates.thisWeek.start} -{" "}
-                    {stats?.videos.weekDates.thisWeek.end}
-                  </p>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Daily avg: {stats?.videos.dailyAverage || 0}
-                </div>
+                  </div>
+                )}
               </div>
 
-              <UploadHistoryChart
-                data={stats?.videos.uploadHistory || []}
-                loading={loading && !stats}
-              />
+              {/* System Status */}
+              <SystemStatus stats={stats} />
             </div>
 
-            {/* Engagement Metrics */}
-            <div className="bg-card border rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-6">Engagement Metrics</h3>
-              <EngagementChart
-                data={stats?.engagementData || []}
-                performanceMetrics={stats?.performance || undefined}
-                loading={loading && !stats}
-              />
-            </div>
+            {/* ContentInsightsCard has been removed from here */}
           </div>
-
-          {/* Advanced Metrics Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <ContentSuggestionsCard
-                suggestions={stats?.suggestions || null}
-                loading={loading && !stats}
-                onRefresh={handleManualRefresh}
-              />
-            </div>
-            <div className="lg:col-span-1 space-y-6">
-              <PerformanceMetricsCard
-                metrics={stats?.performance || null}
-                loading={loading && !stats}
-              />
-              <TrendingVideosCard
-                videos={stats?.videos.trendingList || []}
-                loading={loading && !stats}
-              />
-            </div>
-          </div>
-
-          {/* Activity and System Status */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Activity */}
-            <div className="bg-card border rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-
-              {loading && !stats ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="flex gap-3 items-start animate-pulse"
-                    >
-                      <div className="w-8 h-8 bg-muted rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                  {stats?.recentActivity
-                    .slice(0, 10)
-                    .map((activity) => (
-                      <ActivityItem key={activity.id} activity={activity} />
-                    ))}
-
-                  {(!stats?.recentActivity ||
-                    stats.recentActivity.length === 0) && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No recent activity
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* System Status */}
-            <SystemStatus stats={stats} />
-          </div>
-
-          {/* ContentInsightsCard has been removed from here */}
-        </div>
-      </LazyMotion>
-    </AdminLayout>
+        </LazyMotion>
+      </AdminLayout>
+    </>
   );
 }
 

@@ -1,6 +1,14 @@
-// pages/video-admin/configuration.tsx - FIXED VERSION
+// pages/video-admin/configuration.tsx - PRODUCTION OPTIMIZED VERSION
 import { GetServerSideProps } from "next";
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  createContext,
+  useContext,
+  useCallback,
+  useMemo,
+} from "react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { withAdminPageSSR } from "@/lib/adminAuth";
@@ -27,40 +35,22 @@ import {
   FiHome,
   FiPlayCircle,
   FiZap,
-  FiShield,
-  FiActivity,
   FiChevronDown,
   FiSearch,
-  FiMusic,
-  FiFilm,
-  FiGrid,
-  FiEye,
-  FiEyeOff,
-  FiShuffle,
   FiStar,
-  FiClock,
-  FiBarChart2,
   FiLayers,
+  FiRotateCcw,
+  FiCopy,
+  FiLock,
+  FiAlertTriangle,
 } from "react-icons/fi";
-import {
-  MdOutlineNewspaper,
-  MdSportsSoccer,
-  MdLiveTv,
-  MdOutlineSmartDisplay,
-} from "react-icons/md";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { formatDistanceToNow } from "date-fns";
-
-interface PageProps {
-  requiresAuth?: boolean;
-  session?: any;
-}
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface VideoConfig {
   homepage: {
     playlistId: string;
-    fallbackPlaylistId?: string;
   };
   videoPage: {
     heroPlaylistId: string;
@@ -81,13 +71,93 @@ interface Playlist {
   channelTitle?: string | null;
   isActive: boolean;
   updatedAt?: string;
+  lastSyncedAt?: string;
   syncInProgress?: boolean;
 }
 
+// Cache Context for Playlist Data
+interface PlaylistCacheContextType {
+  playlists: Playlist[];
+  loading: boolean;
+  lastFetch: Date | null;
+  refreshPlaylists: () => Promise<void>;
+}
+
+const PlaylistCacheContext = createContext<PlaylistCacheContextType>({
+  playlists: [],
+  loading: false,
+  lastFetch: null,
+  refreshPlaylists: async () => {},
+});
+
+// Cache Provider Component
+const PlaylistCacheProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastFetch, setLastFetch] = useState<Date | null>(null);
+  const cacheTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const refreshPlaylists = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (loading) return;
+
+    // Check cache age (5 minutes)
+    if (lastFetch && Date.now() - lastFetch.getTime() < 5 * 60 * 1000) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await videoApiJson<{
+        success: boolean;
+        playlists: Playlist[];
+      }>("/api/video-admin/playlists?limit=100&active=true");
+
+      if (response?.success && Array.isArray(response.playlists)) {
+        // Filter out playlists with 0 videos
+        const activePlaylists = response.playlists.filter(
+          (p) => p.itemCount > 0
+        );
+        setPlaylists(activePlaylists);
+        setLastFetch(new Date());
+      }
+    } catch (error) {
+      console.error("Failed to fetch playlists:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, lastFetch]);
+
+  // Auto-refresh cache every 5 minutes
+  useEffect(() => {
+    refreshPlaylists();
+    cacheTimeoutRef.current = setInterval(refreshPlaylists, 5 * 60 * 1000);
+
+    return () => {
+      if (cacheTimeoutRef.current) {
+        clearInterval(cacheTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <PlaylistCacheContext.Provider
+      value={{ playlists, loading, lastFetch, refreshPlaylists }}
+    >
+      {children}
+    </PlaylistCacheContext.Provider>
+  );
+};
+
+const usePlaylistCache = () => useContext(PlaylistCacheContext);
+
 const MIN_PLAYLIST_SECTIONS = 5;
 const MAX_PLAYLIST_SECTIONS = 8;
+const DEFAULT_DISPLAY_LIMIT = 6; // Multiple of 3 for grid layout
 
-// Fixed Animation Variants with proper types
+// Animation Variants
 const pageVariants: Variants = {
   initial: { opacity: 0 },
   animate: {
@@ -99,27 +169,13 @@ const pageVariants: Variants = {
   },
 };
 
-const itemVariants: Variants = {
-  initial: { opacity: 0, y: 20 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4 },
-  },
-};
-
-const scaleVariants: Variants = {
-  initial: { scale: 0.9, opacity: 0 },
-  animate: { scale: 1, opacity: 1 },
-  tap: { scale: 0.98 },
-  hover: { scale: 1.02 },
-};
-
-// Enhanced Playlist Selector Component
+// Enhanced Playlist Selector with Duplicate Prevention
 const PlaylistSelector = ({
   value,
   onChange,
   playlists,
+  usedPlaylists,
+  currentSection,
   placeholder = "Select a playlist",
   label,
   icon: Icon,
@@ -129,6 +185,8 @@ const PlaylistSelector = ({
   value: string;
   onChange: (value: string) => void;
   playlists: Playlist[];
+  usedPlaylists?: { playlistId: string; section: string }[];
+  currentSection?: string;
   placeholder?: string;
   label?: string;
   icon?: any;
@@ -136,36 +194,51 @@ const PlaylistSelector = ({
   disabled?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedPlaylist = playlists.find((p) => p.playlistId === value);
 
-  const filteredPlaylists = playlists.filter((p) => {
-    const searchLower = search.toLowerCase();
-    return (
-      p.title.toLowerCase().includes(searchLower) ||
-      p.channelTitle?.toLowerCase().includes(searchLower) ||
-      p.playlistId.toLowerCase().includes(searchLower)
+  // Filter playlists and check for duplicates
+  const filteredPlaylists = useMemo(() => {
+    return playlists
+      .filter((p) => p.itemCount > 0) // Hide playlists with 0 videos
+      .filter(
+        (p) =>
+          p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.playlistId.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .map((playlist) => {
+        const usedIn = usedPlaylists?.find(
+          (u) =>
+            u.playlistId === playlist.playlistId && u.section !== currentSection
+        );
+        return {
+          ...playlist,
+          isUsed: !!usedIn,
+          usedInSection: usedIn?.section,
+        };
+      });
+  }, [playlists, searchTerm, usedPlaylists, currentSection]);
+
+  // Smart suggestions based on playlist metrics
+  const getSmartSuggestion = (playlist: Playlist): string | null => {
+    if (!playlist.lastSyncedAt) return null;
+
+    const daysSinceSync = Math.floor(
+      (Date.now() - new Date(playlist.lastSyncedAt).getTime()) /
+        (1000 * 60 * 60 * 24)
     );
-  });
 
-  const isShorts = (title: string) =>
-    title?.toLowerCase().includes("short") ||
-    title?.toLowerCase().includes("reel");
+    if (daysSinceSync > 30) {
+      return `Not updated in ${daysSinceSync} days`;
+    }
 
-  const getPlaylistIcon = (title: string) => {
-    const titleLower = title.toLowerCase();
-    if (isShorts(title)) return <FiZap className="w-4 h-4" />;
-    if (titleLower.includes("news"))
-      return <MdOutlineNewspaper className="w-4 h-4" />;
-    if (titleLower.includes("music")) return <FiMusic className="w-4 h-4" />;
-    if (titleLower.includes("sport"))
-      return <MdSportsSoccer className="w-4 h-4" />;
-    if (titleLower.includes("live")) return <MdLiveTv className="w-4 h-4" />;
-    if (titleLower.includes("exclusive")) return <FiStar className="w-4 h-4" />;
-    return <MdOutlineSmartDisplay className="w-4 h-4" />;
+    if (playlist.itemCount === 0) {
+      return "Empty playlist";
+    }
+
+    return null;
   };
 
   useEffect(() => {
@@ -178,342 +251,193 @@ const PlaylistSelector = ({
       }
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <motion.div
-      initial="initial"
-      animate="animate"
-      variants={itemVariants}
-      className="relative"
-      ref={dropdownRef}
-    >
+    <div className="space-y-2" ref={dropdownRef}>
       {label && (
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
-            <label className="text-sm font-medium">{label}</label>
-          </div>
-          {helper && (
-            <span className="text-xs text-muted-foreground italic">
-              {helper}
-            </span>
-          )}
-        </div>
+        <label className="text-sm font-medium mb-2 flex items-center gap-2">
+          {Icon && <Icon className="w-4 h-4" />}
+          {label}
+        </label>
       )}
 
-      <motion.button
-        whileTap="tap"
-        whileHover="hover"
-        variants={scaleVariants}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={cn(
-          "w-full p-4 bg-card border rounded-lg transition-all relative overflow-hidden group",
-          "hover:border-primary/50 hover:shadow-md",
-          disabled && "opacity-50 cursor-not-allowed",
-          isOpen && "border-primary shadow-md ring-1 ring-primary/20"
-        )}
-      >
-        <div className="relative flex items-center gap-3">
-          {selectedPlaylist ? (
-            <>
-              {selectedPlaylist.thumbnailUrl ? (
-                <div className="relative w-12 h-12 rounded-md overflow-hidden bg-muted">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={cn(
+            "w-full p-3 bg-background border rounded-lg",
+            "focus:outline-none focus:ring-1 focus:ring-primary/30",
+            "flex items-center justify-between transition-all",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            {selectedPlaylist ? (
+              <>
+                {selectedPlaylist.thumbnailUrl && (
                   <Image
                     src={selectedPlaylist.thumbnailUrl}
                     alt={selectedPlaylist.title}
-                    fill
-                    className="object-cover"
+                    width={40}
+                    height={30}
+                    className="rounded object-cover"
+                  />
+                )}
+                <div className="text-left">
+                  <div className="font-medium">{selectedPlaylist.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedPlaylist.itemCount} videos
+                  </div>
+                </div>
+              </>
+            ) : (
+              <span className="text-muted-foreground">{placeholder}</span>
+            )}
+          </div>
+          <FiChevronDown
+            className={cn(
+              "w-5 h-5 transition-transform",
+              isOpen && "rotate-180"
+            )}
+          />
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute z-50 w-full mt-2 bg-background border rounded-lg shadow-lg overflow-hidden"
+            >
+              <div className="p-2 border-b">
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search playlists..."
+                    className="w-full pl-9 pr-3 py-2 bg-muted/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
-              ) : (
-                <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
-                  {getPlaylistIcon(selectedPlaylist.title)}
-                </div>
-              )}
-
-              <div className="flex-1 text-left">
-                <div className="flex items-center gap-2">
-                  {getPlaylistIcon(selectedPlaylist.title)}
-                  <p className="font-semibold">{selectedPlaylist.title}</p>
-                  {isShorts(selectedPlaylist.title) && (
-                    <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded">
-                      Shorts
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 mt-1">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <FiFilm className="w-3 h-3" />
-                    {selectedPlaylist.itemCount.toLocaleString()} videos
-                  </span>
-                  {selectedPlaylist.channelTitle && (
-                    <span className="text-xs text-muted-foreground">
-                      {selectedPlaylist.channelTitle}
-                    </span>
-                  )}
-                </div>
               </div>
 
-              <motion.div
-                animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <FiChevronDown className="w-5 h-5 text-muted-foreground" />
-              </motion.div>
-            </>
-          ) : (
-            <>
-              <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
-                <FiGrid className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-muted-foreground">{placeholder}</p>
-              </div>
-              <FiChevronDown className="w-5 h-5 text-muted-foreground" />
-            </>
-          )}
-        </div>
-      </motion.button>
+              <div className="max-h-[300px] overflow-y-auto">
+                {filteredPlaylists.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    No playlists found
+                  </div>
+                ) : (
+                  filteredPlaylists.map((playlist) => {
+                    const suggestion = getSmartSuggestion(playlist);
+                    const isDisabled = playlist.isUsed;
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 bg-card border rounded-lg shadow-xl overflow-hidden"
-          >
-            {/* Search Bar */}
-            <div className="p-3 border-b bg-muted/20">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search playlists..."
-                  className="w-full pl-10 pr-4 py-2 bg-background border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* Playlists List */}
-            <div className="max-h-[320px] overflow-y-auto">
-              {filteredPlaylists.length > 0 ? (
-                <div className="p-2">
-                  {filteredPlaylists.map((playlist, index) => (
-                    <motion.div
-                      key={playlist.playlistId}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      onMouseEnter={() => setHoveredId(playlist.playlistId)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      onClick={() => {
-                        onChange(playlist.playlistId);
-                        setIsOpen(false);
-                        setSearch("");
-                      }}
-                      className={cn(
-                        "p-3 rounded-md cursor-pointer transition-all",
-                        "hover:bg-accent",
-                        hoveredId === playlist.playlistId && "bg-accent",
-                        value === playlist.playlistId &&
-                          "bg-primary/10 border border-primary/20"
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        {playlist.thumbnailUrl ? (
-                          <div className="relative w-14 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                            <Image
-                              src={playlist.thumbnailUrl}
-                              alt={playlist.title}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                            {getPlaylistIcon(playlist.title)}
-                          </div>
+                    return (
+                      <button
+                        key={playlist.playlistId}
+                        type="button"
+                        onClick={() => {
+                          if (!isDisabled) {
+                            onChange(playlist.playlistId);
+                            setIsOpen(false);
+                            setSearchTerm("");
+                          }
+                        }}
+                        disabled={isDisabled}
+                        className={cn(
+                          "w-full p-3 hover:bg-muted/50 transition-colors",
+                          "flex items-center gap-3 text-left",
+                          value === playlist.playlistId && "bg-muted",
+                          isDisabled && "opacity-50 cursor-not-allowed"
                         )}
-
+                      >
+                        {playlist.thumbnailUrl && (
+                          <Image
+                            src={playlist.thumbnailUrl}
+                            alt={playlist.title}
+                            width={48}
+                            height={36}
+                            className="rounded object-cover flex-shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            {getPlaylistIcon(playlist.title)}
-                            <p className="font-medium">{playlist.title}</p>
-                            {isShorts(playlist.title) && (
-                              <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded">
-                                Shorts
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <FiFilm className="w-3 h-3" />
-                              {playlist.itemCount.toLocaleString()}
+                            <span className="font-medium truncate">
+                              {playlist.title}
                             </span>
-                            {playlist.channelTitle && (
-                              <span className="text-xs text-muted-foreground">
-                                {playlist.channelTitle}
-                              </span>
+                            {isDisabled && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-xs">
+                                <FiLock className="w-3 h-3" />
+                                Used in {playlist.usedInSection}
+                              </div>
                             )}
-                            {playlist.updatedAt && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <FiClock className="w-3 h-3" />
-                                {formatDistanceToNow(
-                                  new Date(playlist.updatedAt),
-                                  { addSuffix: true }
-                                )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {playlist.itemCount} videos
+                            </span>
+                            {suggestion && (
+                              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                <FiInfo className="w-3 h-3" />
+                                {suggestion}
                               </span>
                             )}
                           </div>
-
-                          {playlist.syncInProgress && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <FiLoader className="w-3 h-3 animate-spin text-primary" />
-                              <span className="text-xs text-primary">
-                                Syncing...
-                              </span>
-                            </div>
-                          )}
                         </div>
-
-                        {value === playlist.playlistId && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="flex-shrink-0"
-                          >
-                            <FiCheckCircle className="w-5 h-5 text-primary" />
-                          </motion.div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <FiSearch className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    No playlists found
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Stats Footer */}
-            <div className="p-3 border-t bg-muted/20">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{filteredPlaylists.length} playlists available</span>
-                <span className="flex items-center gap-1">
-                  <FiBarChart2 className="w-3 h-3" />
-                  {filteredPlaylists
-                    .reduce((sum, p) => sum + p.itemCount, 0)
-                    .toLocaleString()}{" "}
-                  total videos
-                </span>
+                      </button>
+                    );
+                  })
+                )}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-};
-
-// Stats Card Component
-const StatsCard = ({
-  title,
-  value,
-  icon: Icon,
-  delay = 0,
-}: {
-  title: string;
-  value: string | number;
-  icon: any;
-  delay?: number;
-}) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5 }}
-      whileHover={{ scale: 1.02 }}
-      className="relative p-6 bg-card rounded-lg border overflow-hidden group"
-    >
-      <div className="relative flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold mt-1">{value}</p>
-        </div>
-        <div className="p-3 rounded-lg bg-muted">
-          <Icon className="w-6 h-6 text-muted-foreground" />
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </motion.div>
+
+      {helper && <p className="text-xs text-muted-foreground mt-1">{helper}</p>}
+    </div>
   );
 };
 
-export default function ConfigurationPage({ requiresAuth }: PageProps) {
+function ConfigurationPage({ requiresAuth }: { requiresAuth?: boolean }) {
   const { data: currentSession } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<VideoConfig | null>(null);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [bulkDisplayLimit, setBulkDisplayLimit] = useState(
+    DEFAULT_DISPLAY_LIMIT
+  );
+
+  // Use playlist cache
+  const { playlists, refreshPlaylists } = usePlaylistCache();
 
   useEffect(() => {
     if (currentSession) {
-      loadData();
+      loadConfig();
     }
   }, [currentSession]);
 
-  const loadData = async () => {
+  const loadConfig = async () => {
     setLoading(true);
     try {
       const configResponse = await videoApiJson<{ data: VideoConfig }>(
         "/api/video-admin/config"
       );
+
       if (configResponse?.data) {
         setConfig(configResponse.data);
       }
-
-      const playlistsResponse = await videoApiJson<{
-        success: boolean;
-        playlists: Playlist[];
-        pagination: any;
-      }>("/api/video-admin/playlists?limit=100&active=true");
-
-      if (
-        playlistsResponse?.success &&
-        Array.isArray(playlistsResponse.playlists)
-      ) {
-        setPlaylists(playlistsResponse.playlists);
-
-        if (playlistsResponse.playlists.length === 0) {
-          showMessage(
-            "No active playlists found. Please sync playlists from YouTube first.",
-            "error"
-          );
-        }
-      }
     } catch (error) {
-      console.error("Failed to load data:", error);
+      console.error("Failed to load configuration:", error);
       showMessage("Failed to load configuration", "error");
     } finally {
       setLoading(false);
@@ -532,8 +456,55 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
     );
   };
 
+  // Validate display limit is multiple of 3
+  const validateDisplayLimit = (value: number): number => {
+    if (value % 3 !== 0) {
+      const rounded = Math.round(value / 3) * 3;
+      return Math.max(3, Math.min(rounded, 99));
+    }
+    return value;
+  };
+
+  // Get used playlists for duplicate prevention
+  const usedPlaylists = useMemo(() => {
+    if (!config) return [];
+
+    const used: { playlistId: string; section: string }[] = [];
+
+    if (config.homepage.playlistId) {
+      used.push({
+        playlistId: config.homepage.playlistId,
+        section: "Homepage",
+      });
+    }
+    if (config.videoPage.heroPlaylistId) {
+      used.push({
+        playlistId: config.videoPage.heroPlaylistId,
+        section: "Hero",
+      });
+    }
+    if (config.videoPage.shortsPlaylistId) {
+      used.push({
+        playlistId: config.videoPage.shortsPlaylistId,
+        section: "Shorts",
+      });
+    }
+
+    return used;
+  }, [config]);
+
   const saveConfig = async () => {
     if (!config) return;
+
+    // Validate display limits
+    const hasInvalidLimits = config.videoPage.displayedPlaylists.some(
+      (p) => p.maxVideos % 3 !== 0
+    );
+
+    if (hasInvalidLimits) {
+      showMessage("Display limits must be multiples of 3", "error");
+      return;
+    }
 
     if (config.videoPage.displayedPlaylists.length < MIN_PLAYLIST_SECTIONS) {
       showMessage(
@@ -569,13 +540,14 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
     if (
       !config ||
       config.videoPage.displayedPlaylists.length >= MAX_PLAYLIST_SECTIONS
-    )
+    ) {
       return;
+    }
 
     const newPlaylist = {
       playlistId: playlists[0]?.playlistId || "",
       position: config.videoPage.displayedPlaylists.length + 1,
-      maxVideos: 10,
+      maxVideos: DEFAULT_DISPLAY_LIMIT,
     };
 
     setConfig({
@@ -616,405 +588,439 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
     });
   };
 
-  const shufflePlaylists = () => {
-    if (!config || !playlists.length) return;
+  // Bulk Operations
+  const applyDisplayLimitToAll = () => {
+    if (!config) return;
 
-    const shuffled = [...config.videoPage.displayedPlaylists].sort(
-      () => Math.random() - 0.5
-    );
-    shuffled.forEach((p, i) => (p.position = i + 1));
+    const validLimit = validateDisplayLimit(bulkDisplayLimit);
+
+    const updated = config.videoPage.displayedPlaylists.map((p) => ({
+      ...p,
+      maxVideos: validLimit,
+    }));
 
     setConfig({
       ...config,
       videoPage: {
         ...config.videoPage,
-        displayedPlaylists: shuffled,
+        displayedPlaylists: updated,
       },
     });
 
-    showMessage("Playlists shuffled!", "success");
+    showMessage(
+      `Applied display limit of ${validLimit} to all sections`,
+      "success"
+    );
   };
 
-  if (requiresAuth && !currentSession) {
-    return null;
-  }
+  const resetToDefaults = () => {
+    if (!playlists.length) return;
+
+    // Default configuration - FMT News appears 3 times intentionally:
+    // 1. Homepage playlist
+    // 2. Hero section playlist
+    // 3. First displayed playlist
+    // This is the correct default setup as per requirements
+
+    // Find specific playlists for default configuration
+    const fmtNews = playlists.find((p) => p.title === "FMT News");
+    const fmtReels = playlists.find((p) => p.title === "FMT Reels");
+    const fmtLifestyle = playlists.find((p) => p.title === "FMT Lifestyle");
+    const fmtSpecialReport = playlists.find(
+      (p) => p.title === "FMT Special Report"
+    );
+    const fmtExclusive = playlists.find((p) => p.title === "FMT Exclusive");
+    const fmtBusiness = playlists.find((p) => p.title === "FMT Business");
+    const fmtCarzilla = playlists.find((p) => p.title === "FMT Carzilla");
+
+    // If we can't find the specific playlists, fall back to first available ones
+    const defaultDisplayedPlaylists = [];
+
+    // Build the default displayed playlists in order
+    if (fmtNews) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtNews.playlistId,
+        position: 1,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    if (fmtLifestyle) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtLifestyle.playlistId,
+        position: 2,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    if (fmtSpecialReport) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtSpecialReport.playlistId,
+        position: 3,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    if (fmtExclusive) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtExclusive.playlistId,
+        position: 4,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    if (fmtBusiness) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtBusiness.playlistId,
+        position: 5,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    if (fmtCarzilla) {
+      defaultDisplayedPlaylists.push({
+        playlistId: fmtCarzilla.playlistId,
+        position: 6,
+        maxVideos: DEFAULT_DISPLAY_LIMIT,
+      });
+    }
+
+    // If we don't have exactly 6, fill with other playlists
+    if (defaultDisplayedPlaylists.length < 6) {
+      const usedIds = new Set(
+        defaultDisplayedPlaylists.map((p) => p.playlistId)
+      );
+      const availablePlaylists = playlists.filter(
+        (p) => !usedIds.has(p.playlistId)
+      );
+
+      while (
+        defaultDisplayedPlaylists.length < 6 &&
+        availablePlaylists.length > 0
+      ) {
+        const playlist = availablePlaylists.shift();
+        if (playlist) {
+          defaultDisplayedPlaylists.push({
+            playlistId: playlist.playlistId,
+            position: defaultDisplayedPlaylists.length + 1,
+            maxVideos: DEFAULT_DISPLAY_LIMIT,
+          });
+        }
+      }
+    }
+
+    setConfig({
+      homepage: {
+        playlistId: fmtNews?.playlistId || playlists[0]?.playlistId || "",
+      },
+      videoPage: {
+        heroPlaylistId: fmtNews?.playlistId || playlists[0]?.playlistId || "",
+        shortsPlaylistId:
+          fmtReels?.playlistId || playlists[1]?.playlistId || "",
+        displayedPlaylists: defaultDisplayedPlaylists,
+      },
+    });
+
+    showMessage("Configuration reset to defaults", "success");
+  };
 
   if (loading) {
     return (
-      <AdminLayout title="Configuration" description="Loading configuration...">
+      <AdminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="text-center space-y-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <FiSettings className="w-16 h-16 text-primary mx-auto" />
-            </motion.div>
-            <p className="text-muted-foreground">Loading configuration...</p>
-          </motion.div>
+          <FiLoader className="w-8 h-8 animate-spin text-primary" />
         </div>
       </AdminLayout>
     );
   }
 
-  const totalVideos =
-    config?.videoPage?.displayedPlaylists?.reduce((sum, item) => {
-      const playlist = playlists.find((p) => p.playlistId === item.playlistId);
-      return sum + Math.min(item.maxVideos, playlist?.itemCount || 0);
-    }, 0) || 0;
-
-  const totalAvailableVideos = playlists.reduce(
-    (sum, p) => sum + p.itemCount,
-    0
-  );
-
   return (
     <>
       <Head>
-        <title>Video Configuration - FMT Admin</title>
+        <title>Video Configuration - Admin</title>
         <meta name="robots" content="noindex,nofollow,noarchive" />
       </Head>
-
-      <AdminLayout
-        title="Video Configuration"
-        description="Configure homepage and video page layouts"
-      >
+      <AdminLayout>
         <LazyMotion features={domAnimation}>
           <motion.div
+            variants={pageVariants}
             initial="initial"
             animate="animate"
-            variants={pageVariants}
-            className="space-y-6"
+            className="max-w-7xl mx-auto p-6 space-y-6"
           >
-            {/* Header - Clean design without gradients */}
-            <motion.div
-              variants={itemVariants}
-              className="relative p-6 bg-card rounded-lg border shadow-sm"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <FiSettings className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold">
-                      Video Configuration
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Manage your video content layout
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 sm:flex-initial"
-                  >
-                    {showAdvanced ? (
-                      <FiEyeOff className="w-4 h-4 mr-2" />
-                    ) : (
-                      <FiEye className="w-4 h-4 mr-2" />
-                    )}
-                    <span>{showAdvanced ? "Simple" : "Advanced"}</span>
-                  </Button>
-
-                  <Button
-                    onClick={saveConfig}
-                    disabled={saving || !config || playlists.length === 0}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    {saving ? (
-                      <>
-                        <FiLoader className="w-4 h-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <FiSave className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
+            {/* Header with Bulk Operations */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold flex items-center gap-3">
+                  <FiSettings className="w-8 h-8" />
+                  Video Configuration
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Configure homepage and video page layouts
+                </p>
               </div>
-            </motion.div>
 
-            {/* Messages */}
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={resetToDefaults}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FiRotateCcw className="w-4 h-4" />
+                  Reset to Defaults
+                </Button>
+                <Button
+                  onClick={() => refreshPlaylists()}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FiLoader className="w-4 h-4" />
+                  Refresh Playlists
+                </Button>
+                <Button
+                  onClick={saveConfig}
+                  disabled={saving || !config}
+                  className="flex items-center gap-2"
+                >
+                  {saving ? (
+                    <FiLoader className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FiSave className="w-4 h-4" />
+                  )}
+                  {saving ? "Saving..." : "Save Configuration"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Alert Messages */}
             <AnimatePresence>
               {message && (
                 <motion.div
-                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
                   className={cn(
-                    "p-4 rounded-lg border flex items-center gap-3",
-                    messageType === "error"
-                      ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900"
-                      : "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900"
+                    "p-4 rounded-lg flex items-center gap-3",
+                    messageType === "success"
+                      ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                      : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
                   )}
                 >
-                  {messageType === "error" ? (
-                    <FiAlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  {messageType === "success" ? (
+                    <FiCheckCircle className="w-5 h-5" />
                   ) : (
-                    <FiCheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <FiAlertCircle className="w-5 h-5" />
                   )}
-                  <span
-                    className={
-                      messageType === "error"
-                        ? "text-red-700 dark:text-red-300"
-                        : "text-green-700 dark:text-green-300"
-                    }
-                  >
-                    {message}
-                  </span>
+                  {message}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Statistics - Clean cards without gradients */}
-            {playlists.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard
-                  title="Total Playlists"
-                  value={playlists.length}
-                  icon={FiLayers}
-                  delay={0}
-                />
-                <StatsCard
-                  title="Active Sections"
-                  value={`${config?.videoPage?.displayedPlaylists?.length || 0}/${MAX_PLAYLIST_SECTIONS}`}
-                  icon={FiActivity}
-                  delay={0.1}
-                />
-                <StatsCard
-                  title="Videos to Display"
-                  value={totalVideos.toLocaleString()}
-                  icon={FiPlayCircle}
-                  delay={0.2}
-                />
-                <StatsCard
-                  title="Total Available"
-                  value={totalAvailableVideos.toLocaleString()}
-                  icon={FiVideo}
-                  delay={0.3}
-                />
-              </div>
-            )}
-
-            {playlists.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-8 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <FiAlertCircle className="w-16 h-16 text-amber-600 dark:text-amber-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-200">
-                    No Playlists Available
-                  </h3>
-                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 max-w-md">
-                    Please sync playlists from YouTube first, then return to
-                    configure them.
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
+            {config && (
               <>
                 {/* Homepage Configuration */}
-                <motion.div
-                  variants={itemVariants}
-                  className="bg-card rounded-lg border p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <FiHome className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Homepage Videos</h3>
+                <motion.div className="bg-card rounded-lg border p-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <FiHome className="w-6 h-6 text-primary" />
+                    <h2 className="text-xl font-semibold">
+                      Homepage Configuration
+                    </h2>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <PlaylistSelector
-                      value={config?.homepage.playlistId || ""}
-                      onChange={(value) =>
-                        setConfig((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                homepage: {
-                                  ...prev.homepage,
-                                  playlistId: value,
-                                },
-                              }
-                            : null
-                        )
-                      }
-                      playlists={playlists}
-                      label="Primary Playlist"
-                      icon={FiPlayCircle}
-                      helper="Main content"
-                    />
-
-                    <PlaylistSelector
-                      value={config?.homepage.fallbackPlaylistId || ""}
-                      onChange={(value) =>
-                        setConfig((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                homepage: {
-                                  ...prev.homepage,
-                                  fallbackPlaylistId: value,
-                                },
-                              }
-                            : null
-                        )
-                      }
-                      playlists={playlists}
-                      label="Fallback Playlist"
-                      icon={FiShield}
-                      helper="Backup content"
-                    />
-                  </div>
+                  <PlaylistSelector
+                    value={config.homepage.playlistId}
+                    onChange={(value) =>
+                      setConfig({
+                        ...config,
+                        homepage: { ...config.homepage, playlistId: value },
+                      })
+                    }
+                    playlists={playlists}
+                    usedPlaylists={usedPlaylists}
+                    currentSection="Homepage"
+                    label="Main Homepage Playlist"
+                    icon={FiVideo}
+                    helper="First 5 videos will be displayed. If fewer than 5 videos, the system will auto-supplement with latest videos."
+                  />
                 </motion.div>
 
                 {/* Video Page Configuration */}
-                <motion.div
-                  variants={itemVariants}
-                  className="bg-card rounded-lg border p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <FiVideo className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Video Page Layout</h3>
-                    {showAdvanced && (
-                      <motion.button
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={shufflePlaylists}
-                        className="ml-auto p-2 bg-muted rounded-lg hover:bg-accent transition-colors"
-                      >
-                        <FiShuffle className="w-4 h-4" />
-                      </motion.button>
-                    )}
+                <motion.div className="bg-card rounded-lg border p-6 space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <FiPlayCircle className="w-6 h-6 text-primary" />
+                    <h2 className="text-xl font-semibold">
+                      Video Page Configuration
+                    </h2>
                   </div>
 
                   {/* Hero & Shorts */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <PlaylistSelector
-                      value={config?.videoPage.heroPlaylistId || ""}
+                      value={config.videoPage.heroPlaylistId}
                       onChange={(value) =>
-                        setConfig((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                videoPage: {
-                                  ...prev.videoPage,
-                                  heroPlaylistId: value,
-                                },
-                              }
-                            : null
-                        )
+                        setConfig({
+                          ...config,
+                          videoPage: {
+                            ...config.videoPage,
+                            heroPlaylistId: value,
+                          },
+                        })
                       }
                       playlists={playlists}
-                      label="Hero Playlist"
+                      usedPlaylists={usedPlaylists}
+                      currentSection="Hero"
+                      label="Hero Section Playlist"
                       icon={FiStar}
-                      helper="Featured content"
+                      helper="Featured prominently at the top of the video page"
                     />
 
                     <PlaylistSelector
-                      value={config?.videoPage.shortsPlaylistId || ""}
+                      value={config.videoPage.shortsPlaylistId}
                       onChange={(value) =>
-                        setConfig((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                videoPage: {
-                                  ...prev.videoPage,
-                                  shortsPlaylistId: value,
-                                },
-                              }
-                            : null
-                        )
+                        setConfig({
+                          ...config,
+                          videoPage: {
+                            ...config.videoPage,
+                            shortsPlaylistId: value,
+                          },
+                        })
                       }
                       playlists={playlists}
-                      label="Shorts Playlist"
+                      usedPlaylists={usedPlaylists}
+                      currentSection="Shorts"
+                      label="Shorts Section Playlist"
                       icon={FiZap}
-                      helper="Quick videos"
+                      helper="Quick, engaging short-form content"
                     />
                   </div>
 
-                  {/* Displayed Playlists */}
-                  <div className="border-t pt-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                      <div>
-                        <h4 className="font-semibold">Displayed Playlists</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {config?.videoPage.displayedPlaylists.length || 0} of{" "}
-                          {MIN_PLAYLIST_SECTIONS}-{MAX_PLAYLIST_SECTIONS}{" "}
-                          sections configured
-                        </p>
+                  {/* Displayed Playlists with Bulk Operations */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium flex items-center gap-2">
+                        <FiLayers className="w-5 h-5" />
+                        Displayed Playlists (
+                        {config.videoPage.displayedPlaylists.length})
+                      </h3>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+                          <input
+                            type="number"
+                            value={bulkDisplayLimit}
+                            onChange={(e) =>
+                              setBulkDisplayLimit(
+                                parseInt(e.target.value) ||
+                                  DEFAULT_DISPLAY_LIMIT
+                              )
+                            }
+                            onBlur={(e) =>
+                              setBulkDisplayLimit(
+                                validateDisplayLimit(
+                                  parseInt(e.target.value) ||
+                                    DEFAULT_DISPLAY_LIMIT
+                                )
+                              )
+                            }
+                            min="3"
+                            max="99"
+                            step="3"
+                            className="w-16 px-2 py-1 bg-background rounded text-sm"
+                          />
+                          <Button
+                            onClick={applyDisplayLimitToAll}
+                            size="sm"
+                            variant="ghost"
+                            className="flex items-center gap-1"
+                          >
+                            <FiCopy className="w-3 h-3" />
+                            Apply to All
+                          </Button>
+                        </div>
+
+                        {config.videoPage.displayedPlaylists.length <
+                          MAX_PLAYLIST_SECTIONS && (
+                          <Button
+                            onClick={addDisplayedPlaylist}
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <FiPlus className="w-4 h-4" />
+                            Add Playlist
+                          </Button>
+                        )}
                       </div>
-                      <Button
-                        onClick={addDisplayedPlaylist}
-                        disabled={
-                          !config ||
-                          config.videoPage.displayedPlaylists.length >=
-                            MAX_PLAYLIST_SECTIONS
-                        }
-                        size="sm"
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                      >
-                        <FiPlus className="w-4 h-4 mr-1" />
-                        Add Section
-                      </Button>
                     </div>
 
-                    <AnimatePresence mode="popLayout">
-                      <div className="space-y-3">
-                        {config?.videoPage.displayedPlaylists.map(
+                    <div className="space-y-3">
+                      <AnimatePresence>
+                        {config.videoPage.displayedPlaylists.map(
                           (item, index) => {
                             const playlist = playlists.find(
                               (p) => p.playlistId === item.playlistId
                             );
+
                             return (
                               <motion.div
                                 key={`${item.playlistId}-${index}`}
-                                layout
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                transition={{ duration: 0.3 }}
-                                className="group"
+                                className="bg-muted/30 rounded-lg p-4"
                               >
-                                <div className="p-4 bg-muted/30 rounded-lg border hover:border-primary/30 transition-all">
-                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                                      {index + 1}
-                                    </div>
+                                <div className="flex items-start gap-4">
+                                  <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full text-sm font-medium">
+                                    {index + 1}
+                                  </div>
 
-                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-                                      <div className="sm:col-span-2">
-                                        <PlaylistSelector
-                                          value={item.playlistId}
-                                          onChange={(value) => {
+                                  <div className="flex-1 grid md:grid-cols-2 gap-4">
+                                    <PlaylistSelector
+                                      value={item.playlistId}
+                                      onChange={(value) => {
+                                        const updated = [
+                                          ...config.videoPage
+                                            .displayedPlaylists,
+                                        ];
+                                        updated[index] = {
+                                          ...updated[index],
+                                          playlistId: value,
+                                        };
+                                        setConfig({
+                                          ...config,
+                                          videoPage: {
+                                            ...config.videoPage,
+                                            displayedPlaylists: updated,
+                                          },
+                                        });
+                                      }}
+                                      playlists={playlists}
+                                      placeholder="Select playlist..."
+                                    />
+
+                                    <div>
+                                      <label className="text-sm font-medium mb-2 block">
+                                        Display Limit
+                                      </label>
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="number"
+                                          min="3"
+                                          max="99"
+                                          step="3"
+                                          value={item.maxVideos}
+                                          onChange={(e) => {
+                                            const value =
+                                              parseInt(e.target.value) ||
+                                              DEFAULT_DISPLAY_LIMIT;
                                             const updated = [
                                               ...config.videoPage
                                                 .displayedPlaylists,
                                             ];
                                             updated[index] = {
                                               ...updated[index],
-                                              playlistId: value,
+                                              maxVideos: value,
                                             };
                                             setConfig({
                                               ...config,
@@ -1024,29 +1030,18 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
                                               },
                                             });
                                           }}
-                                          playlists={playlists}
-                                          placeholder="Select playlist..."
-                                        />
-                                      </div>
-
-                                      <div>
-                                        <label className="text-sm font-medium mb-2 block">
-                                          Display Limit
-                                        </label>
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          max="50"
-                                          value={item.maxVideos}
-                                          onChange={(e) => {
+                                          onBlur={(e) => {
+                                            const value = validateDisplayLimit(
+                                              parseInt(e.target.value) ||
+                                                DEFAULT_DISPLAY_LIMIT
+                                            );
                                             const updated = [
                                               ...config.videoPage
                                                 .displayedPlaylists,
                                             ];
                                             updated[index] = {
                                               ...updated[index],
-                                              maxVideos:
-                                                parseInt(e.target.value) || 10,
+                                              maxVideos: value,
                                             };
                                             setConfig({
                                               ...config,
@@ -1058,84 +1053,82 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
                                           }}
                                           className="w-full p-3 bg-background border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30"
                                         />
+                                        {item.maxVideos % 3 !== 0 && (
+                                          <Tooltip>
+                                            <FiAlertTriangle className="w-5 h-5 text-amber-500" />
+                                            Must be multiple of 3 for grid
+                                            layout
+                                          </Tooltip>
+                                        )}
                                       </div>
+                                      {playlist &&
+                                        item.maxVideos > playlist.itemCount && (
+                                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                            Limited to {playlist.itemCount}{" "}
+                                            available videos
+                                          </p>
+                                        )}
                                     </div>
-
-                                    <motion.button
-                                      whileTap={{ scale: 0.9 }}
-                                      whileHover={{ scale: 1.1 }}
-                                      onClick={() =>
-                                        removeDisplayedPlaylist(index)
-                                      }
-                                      disabled={
-                                        config.videoPage.displayedPlaylists
-                                          .length <= MIN_PLAYLIST_SECTIONS
-                                      }
-                                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                      <FiTrash2 className="w-4 h-4" />
-                                    </motion.button>
                                   </div>
 
-                                  {playlist && (
-                                    <motion.div
-                                      initial={{ opacity: 0, height: 0 }}
-                                      animate={{ opacity: 1, height: "auto" }}
-                                      className="mt-3 pl-12 flex flex-wrap items-center gap-4 text-xs text-muted-foreground"
-                                    >
-                                      <span className="flex items-center gap-1">
-                                        <FiEye className="w-3 h-3" />
-                                        Will display:{" "}
-                                        <strong>
-                                          {Math.min(
-                                            item.maxVideos,
-                                            playlist.itemCount
-                                          )}
-                                        </strong>{" "}
-                                        videos
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <FiFilm className="w-3 h-3" />
-                                        Available:{" "}
-                                        <strong>
-                                          {playlist.itemCount.toLocaleString()}
-                                        </strong>{" "}
-                                        videos
-                                      </span>
-                                      {item.maxVideos > playlist.itemCount && (
-                                        <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                          <FiInfo className="w-3 h-3" />
-                                          Limited by availability
-                                        </span>
-                                      )}
-                                    </motion.div>
-                                  )}
+                                  <button
+                                    onClick={() =>
+                                      removeDisplayedPlaylist(index)
+                                    }
+                                    disabled={
+                                      config.videoPage.displayedPlaylists
+                                        .length <= MIN_PLAYLIST_SECTIONS
+                                    }
+                                    className={cn(
+                                      "p-2 rounded-lg transition-colors",
+                                      config.videoPage.displayedPlaylists
+                                        .length <= MIN_PLAYLIST_SECTIONS
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : "hover:bg-destructive/10 text-destructive"
+                                    )}
+                                  >
+                                    <FiTrash2 className="w-5 h-5" />
+                                  </button>
                                 </div>
                               </motion.div>
                             );
                           }
                         )}
-                      </div>
-                    </AnimatePresence>
+                      </AnimatePresence>
+                    </div>
 
-                    {config &&
-                      config.videoPage.displayedPlaylists.length <
-                        MIN_PLAYLIST_SECTIONS && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg flex items-start gap-3"
-                        >
-                          <FiInfo className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-amber-700 dark:text-amber-300">
-                            Add{" "}
-                            {MIN_PLAYLIST_SECTIONS -
-                              config.videoPage.displayedPlaylists.length}{" "}
-                            more section(s) to meet the minimum requirement for
-                            optimal layout
-                          </p>
-                        </motion.div>
-                      )}
+                    {config.videoPage.displayedPlaylists.length <
+                      MIN_PLAYLIST_SECTIONS && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg flex items-start gap-3"
+                      >
+                        <FiInfo className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Add{" "}
+                          {MIN_PLAYLIST_SECTIONS -
+                            config.videoPage.displayedPlaylists.length}{" "}
+                          more section(s) to meet the minimum requirement for
+                          optimal layout
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {config.videoPage.displayedPlaylists.length >=
+                      MAX_PLAYLIST_SECTIONS && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg flex items-start gap-3"
+                      >
+                        <FiInfo className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          Maximum of {MAX_PLAYLIST_SECTIONS} playlist sections
+                          reached
+                        </p>
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               </>
@@ -1147,5 +1140,15 @@ export default function ConfigurationPage({ requiresAuth }: PageProps) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<PageProps> =
-  withAdminPageSSR();
+// Wrap with cache provider
+export default function ConfigurationPageWithCache(props: {
+  requiresAuth?: boolean;
+}) {
+  return (
+    <PlaylistCacheProvider>
+      <ConfigurationPage {...props} />
+    </PlaylistCacheProvider>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps = withAdminPageSSR();

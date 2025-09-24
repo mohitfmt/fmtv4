@@ -1,55 +1,56 @@
-// pages/api/video-admin/config.ts
+// pages/api/video-admin/config.ts - OPTIMIZED VERSION WITHOUT FALLBACK
 import { NextApiRequest, NextApiResponse } from "next";
 import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { configCache } from "@/lib/cache/video-cache-registry";
+import { LRUCache } from "lru-cache";
 
+// Configuration validation schema
 const configSchema = z.object({
   homepage: z.object({
-    playlistId: z.string(),
-    fallbackPlaylistId: z.string().optional(),
+    playlistId: z.string().min(1, "Homepage playlist is required"),
+    fallbackPlaylistId: z.string().optional(), // Keep it optional
   }),
   videoPage: z.object({
-    heroPlaylistId: z.string(),
-    shortsPlaylistId: z.string(),
+    heroPlaylistId: z.string().min(1, "Hero playlist is required"),
+    shortsPlaylistId: z.string().min(1, "Shorts playlist is required"),
     displayedPlaylists: z
       .array(
         z.object({
-          playlistId: z.string(),
-          position: z.number(),
-          maxVideos: z.number().min(1).max(50),
+          playlistId: z.string().min(1),
+          position: z.number().min(1).max(8),
+          maxVideos: z
+            .number()
+            .min(3)
+            .max(99)
+            .refine((val) => val % 3 === 0, {
+              message: "Display limit must be a multiple of 3",
+            }),
         })
       )
-      .min(5)
-      .max(8), // Enforce min 5, max 8 playlist sections
+      .min(5, "Minimum 5 playlist sections required")
+      .max(8, "Maximum 8 playlist sections allowed"),
   }),
 });
 
-// Your specified default playlists
-const DEFAULT_PLAYLIST_IDS = [
-  "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl",
-  "PLKe9JQ8opkEBA3B18pmiK2B5nE95A74qI",
-  "PLKe9JQ8opkED1GXiSi3Q6kPc5ttqISipf",
-  "PLKe9JQ8opkECd7X7RJ6WjKEW9TX39kERS",
-  "PLKe9JQ8opkECLh07v3VLtdPDaD4PJ_VqB",
-  "PLKe9JQ8opkECFhIRt6ARjHweZoDAdWxv-",
-];
+// Cache configuration for 30 minutes
+const configCache = new LRUCache<string, any>({
+  max: 10,
+  ttl: 1000 * 60 * 30, // 30 minutes
+});
 
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const { method } = req;
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const traceId = (req as any).traceId;
 
-  switch (method) {
-    case "GET":
-      return handleGetConfig(req, res, traceId);
-    case "POST":
-      return handleUpdateConfig(req, res, traceId);
-    default:
-      res.setHeader("Allow", ["GET", "POST"]);
-      return res.status(405).json({ error: "Method not allowed" });
+  if (req.method === "GET") {
+    return handleGetConfig(req, res, traceId);
+  } else if (req.method === "POST") {
+    return handleUpdateConfig(req, res, traceId);
+  } else {
+    res.setHeader("Allow", ["GET", "POST"]);
+    return res.status(405).json({ error: "Method not allowed" });
   }
-};
+}
 
 async function handleGetConfig(
   req: NextApiRequest,
@@ -64,84 +65,48 @@ async function handleGetConfig(
       return res.status(200).json({
         data: cached,
         traceId,
+        cached: true,
       });
     }
 
-    // Using your VideoConfig model
-    let config = await prisma.videoConfig.findFirst();
+    // Fetch configuration from database
+    const config = await prisma.videoConfig.findFirst();
 
     if (!config) {
-      console.log(
-        "No config found, creating default configuration with your specified playlists..."
-      );
-
-      // Try to get actual playlists from database to verify they exist
-      const existingPlaylists = await prisma.playlist.findMany({
-        where: {
-          playlistId: { in: DEFAULT_PLAYLIST_IDS },
-        },
-        orderBy: { itemCount: "desc" },
-      });
-
-      // If we have playlists in DB, use them; otherwise use the IDs directly
-      const playlistIds =
-        existingPlaylists.length > 0
-          ? existingPlaylists.map((p) => p.playlistId)
-          : DEFAULT_PLAYLIST_IDS;
-
-      // Look for a shorts playlist (one with "shorts" or "reel" in the name)
-      let shortsPlaylistId = playlistIds[1]; // Default to second playlist
-      const shortsPlaylist = existingPlaylists.find(
-        (p) =>
-          p.title.toLowerCase().includes("short") ||
-          p.title.toLowerCase().includes("reel")
-      );
-      if (shortsPlaylist) {
-        shortsPlaylistId = shortsPlaylist.playlistId;
-      }
-
-      // Create the default configuration with 6 displayed playlists
+      // Return default configuration if none exists
       const defaultConfig = {
         homepage: {
-          playlistId: playlistIds[0], // First playlist for homepage
-          fallbackPlaylistId: playlistIds[1], // Second as fallback
+          playlistId: "",
+          fallbackPlaylistId: "",
         },
         videoPage: {
-          heroPlaylistId: playlistIds[0], // First playlist for hero
-          shortsPlaylistId: shortsPlaylistId,
-          displayedPlaylists: DEFAULT_PLAYLIST_IDS.map((playlistId, index) => ({
-            playlistId: playlistId,
-            position: index + 1,
-            maxVideos: 10,
-          })),
+          heroPlaylistId: "",
+          shortsPlaylistId: "",
+          displayedPlaylists: [],
         },
       };
 
-      config = await prisma.videoConfig.create({
-        data: {
-          homepagePlaylist: defaultConfig.homepage.playlistId,
-          fallbackPlaylist: defaultConfig.homepage.fallbackPlaylistId,
-          heroPlaylist: defaultConfig.videoPage.heroPlaylistId,
-          shortsPlaylist: defaultConfig.videoPage.shortsPlaylistId,
-          displayedPlaylists: defaultConfig.videoPage.displayedPlaylists,
-        },
+      return res.status(200).json({
+        data: defaultConfig,
+        traceId,
+        isDefault: true,
       });
     }
 
-    // Transform to expected format
+    // Transform to API format
     const configData = {
       homepage: {
-        playlistId: config.homepagePlaylist,
-        fallbackPlaylistId: config.fallbackPlaylist,
+        playlistId: config.homepagePlaylist || "",
+        fallbackPlaylistId: config.fallbackPlaylist || "",
       },
       videoPage: {
-        heroPlaylistId: config.heroPlaylist,
-        shortsPlaylistId: config.shortsPlaylist,
-        displayedPlaylists: config.displayedPlaylists as any,
+        heroPlaylistId: config.heroPlaylist || "",
+        shortsPlaylistId: config.shortsPlaylist || "",
+        displayedPlaylists: (config.displayedPlaylists as any) || [],
       },
     };
 
-    // Cache for 30 minutes
+    // Cache the configuration
     configCache.set("main", configData);
 
     res.setHeader("X-Cache", "MISS");
@@ -166,94 +131,111 @@ async function handleUpdateConfig(
   try {
     const session = (req as any).session;
 
+    // Validate request body
     const validation = configSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({
         error: "Invalid configuration",
-        details: validation.error,
+        details: validation.error.flatten(),
         traceId,
       });
     }
 
     const { homepage, videoPage } = validation.data;
 
-    // Validate that the number of displayed playlists is between 5 and 8
-    if (
-      videoPage.displayedPlaylists.length < 5 ||
-      videoPage.displayedPlaylists.length > 8
-    ) {
+    // Additional validation: Check for duplicate playlists within same section
+    const heroShortsDuplicate =
+      videoPage.heroPlaylistId === videoPage.shortsPlaylistId;
+    if (heroShortsDuplicate) {
       return res.status(400).json({
-        error: "Video page must have between 5 and 8 playlist sections",
+        error: "Hero and Shorts sections cannot use the same playlist",
         traceId,
       });
     }
 
-    // Find existing config
-    const existingConfig = await prisma.videoConfig.findFirst();
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Find or create config
+      const existingConfig = await tx.videoConfig.findFirst();
 
-    let config;
-    if (existingConfig) {
-      // Update existing
-      config = await prisma.videoConfig.update({
-        where: { id: existingConfig.id },
+      let config;
+      if (existingConfig) {
+        // Update existing config
+        config = await tx.videoConfig.update({
+          where: { id: existingConfig.id },
+          data: {
+            homepagePlaylist: homepage.playlistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId,
+            heroPlaylist: videoPage.heroPlaylistId,
+            shortsPlaylist: videoPage.shortsPlaylistId,
+            displayedPlaylists: videoPage.displayedPlaylists,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        // Create new config
+        config = await tx.videoConfig.create({
+          data: {
+            homepagePlaylist: homepage.playlistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId,
+            heroPlaylist: videoPage.heroPlaylistId,
+            shortsPlaylist: videoPage.shortsPlaylistId,
+            displayedPlaylists: videoPage.displayedPlaylists,
+          },
+        });
+      }
+
+      // Log the configuration change
+      await tx.admin_activity_logs.create({
         data: {
-          homepagePlaylist: homepage.playlistId,
-          fallbackPlaylist: homepage.fallbackPlaylistId,
-          heroPlaylist: videoPage.heroPlaylistId,
-          shortsPlaylist: videoPage.shortsPlaylistId,
-          displayedPlaylists: videoPage.displayedPlaylists,
-          updatedAt: new Date(),
+          action: "CONFIG_UPDATE",
+          entityType: "video_config",
+          userId: session.user?.email || session.user?.id || "system",
+          metadata: {
+            configId: config.id,
+            homepage: homepage.playlistId,
+            hero: videoPage.heroPlaylistId,
+            shorts: videoPage.shortsPlaylistId,
+            displayedCount: videoPage.displayedPlaylists.length,
+            displayLimits: videoPage.displayedPlaylists.map((p) => p.maxVideos),
+          },
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+            req.socket.remoteAddress,
+          userAgent: req.headers["user-agent"] || null,
         },
       });
-    } else {
-      // Create new
-      config = await prisma.videoConfig.create({
-        data: {
-          homepagePlaylist: homepage.playlistId,
-          fallbackPlaylist: homepage.fallbackPlaylistId,
-          heroPlaylist: videoPage.heroPlaylistId,
-          shortsPlaylist: videoPage.shortsPlaylistId,
-          displayedPlaylists: videoPage.displayedPlaylists,
-        },
-      });
-    }
 
-    // Clear cache
-    configCache.delete("main");
-
-    // Log admin action using correct model name
-    await prisma.admin_activity_logs.create({
-      data: {
-        userId: session.user.id || session.user.email,
-        action: "UPDATE_CONFIG",
-        entityType: "config",
-        metadata: validation.data,
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string) ||
-          req.socket.remoteAddress,
-        userAgent: req.headers["user-agent"] || null,
-      },
+      return config;
     });
 
-    // Transform back to expected format
-    const configData = {
+    // Clear cache after successful update
+    configCache.clear();
+
+    // Return updated configuration
+    const updatedConfig = {
       homepage: {
-        playlistId: config.homepagePlaylist,
-        fallbackPlaylistId: config.fallbackPlaylist,
+        playlistId: result.homepagePlaylist || "",
+        fallbackPlaylistId: result.fallbackPlaylist || "",
       },
       videoPage: {
-        heroPlaylistId: config.heroPlaylist,
-        shortsPlaylistId: config.shortsPlaylist,
-        displayedPlaylists: config.displayedPlaylists,
+        heroPlaylistId: result.heroPlaylist || "",
+        shortsPlaylistId: result.shortsPlaylist || "",
+        displayedPlaylists: (result.displayedPlaylists as any) || [],
       },
     };
 
     return res.status(200).json({
-      data: configData,
+      data: updatedConfig,
+      message: "Configuration updated successfully",
       traceId,
     });
   } catch (error) {
     console.error(`[${traceId}] Failed to update config:`, error);
+
+    // Clear cache on error to prevent stale data
+    configCache.clear();
+
     return res.status(500).json({
       error: "Failed to update configuration",
       traceId,
