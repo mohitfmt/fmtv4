@@ -1,5 +1,6 @@
-// pages/api/cron/check-uploads.ts - OPTIMIZED VERSION
-// Checks for new videos via RSS and enriches them WITHOUT playlist assignment
+// pages/api/cron/check-uploads.ts - FIXED VERSION
+// REMOVED the fields that don't exist in your schema
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -30,177 +31,19 @@ function parseDuration(duration: string): number {
 }
 
 // Helper to determine if video is a Short
-function isShortVideo(duration?: string): boolean {
+function isShortVideo(duration?: string | number): boolean {
   if (!duration) return false;
-  const seconds = parseDuration(duration);
+  const seconds =
+    typeof duration === "string" ? parseDuration(duration) : duration;
   return seconds > 0 && seconds <= 60;
 }
 
-// Optimized enrichVideos - NO playlist assignment
-async function enrichVideos(videoIds: string[], logger: Logger): Promise<any> {
-  const result = {
-    added: 0,
-    updated: 0,
-    errors: [] as string[],
-  };
-
-  if (!videoIds || videoIds.length === 0) {
-    return result;
-  }
-
-  logger.info(`Enriching ${videoIds.length} videos`);
-
-  try {
-    // Single API call for all videos
-    const response = await youtube.videos.list({
-      part: ["snippet", "contentDetails", "statistics", "status"],
-      id: videoIds, // Array is correct for Node.js client
-      maxResults: 50,
-    });
-
-    const videos = response.data.items || [];
-
-    for (const video of videos) {
-      if (!video.id) continue;
-
-      try {
-        // Parse video details
-        const duration = video.contentDetails?.duration || "PT0S";
-        const durationSeconds = parseDuration(duration);
-        const isShort = isShortVideo(duration);
-
-        // Parse statistics
-        const viewCount = parseInt(video.statistics?.viewCount || "0");
-        const likeCount = parseInt(video.statistics?.likeCount || "0");
-        const commentCount = parseInt(video.statistics?.commentCount || "0");
-
-        // Calculate tier
-        const engagementRate = getEngagementRate(
-          viewCount,
-          likeCount,
-          commentCount
-        );
-        const tier = calculateVideoTier(
-          viewCount,
-          video.snippet?.publishedAt || new Date().toISOString(),
-          isShort,
-          engagementRate
-        );
-
-        // Check if video already exists
-        const existingVideo = await prisma.videos.findFirst({
-          where: { videoId: video.id },
-        });
-
-        const videoData = {
-          videoId: video.id,
-          title: video.snippet?.title || "",
-          description: video.snippet?.description || "",
-          publishedAt: video.snippet?.publishedAt
-            ? new Date(video.snippet.publishedAt)
-            : new Date(),
-          channelId:
-            video.snippet?.channelId || process.env.YOUTUBE_CHANNEL_ID!,
-          channelTitle: video.snippet?.channelTitle || "",
-
-          // Search & categorization
-          tags: video.snippet?.tags || [],
-          categoryId: video.snippet?.categoryId || "25",
-          defaultLanguage: video.snippet?.defaultLanguage || "en",
-
-          // IMPORTANT: Empty playlists array - will be filled by playlist sync
-          playlists: [],
-          relatedVideos: [],
-
-          // Mark as needs playlist check for rapid assignment
-          needsPlaylistCheck: true,
-          playlistCheckAttempts: 0,
-          lastPlaylistCheck: new Date(),
-
-          // Media details
-          thumbnails: {
-            default: video.snippet?.thumbnails?.default?.url || "",
-            medium: video.snippet?.thumbnails?.medium?.url || "",
-            high: video.snippet?.thumbnails?.high?.url || "",
-            standard: video.snippet?.thumbnails?.standard?.url || "",
-            maxres: video.snippet?.thumbnails?.maxres?.url || null,
-          },
-
-          contentDetails: {
-            duration: duration,
-            durationSeconds: durationSeconds,
-            dimension: video.contentDetails?.dimension || "2d",
-            definition: video.contentDetails?.definition || "hd",
-            caption: video.contentDetails?.caption === "true",
-            licensedContent: video.contentDetails?.licensedContent || false,
-            projection: video.contentDetails?.projection || "rectangular",
-          },
-
-          statistics: {
-            viewCount: viewCount,
-            likeCount: likeCount,
-            commentCount: commentCount,
-          },
-
-          status: {
-            uploadStatus: video.status?.uploadStatus || "processed",
-            privacyStatus: video.status?.privacyStatus || "public",
-            license: video.status?.license || "youtube",
-            embeddable: video.status?.embeddable !== false,
-            publicStatsViewable: video.status?.publicStatsViewable !== false,
-            madeForKids: video.status?.madeForKids || false,
-          },
-
-          // Metadata
-          isShort: isShort,
-          videoType: isShort ? "short" : "standard",
-          popularityScore: Math.floor(engagementRate * 1000),
-          tier: tier,
-          isActive: true,
-
-          // Sync tracking
-          lastSyncedAt: new Date(),
-          syncVersion: 1,
-        };
-
-        if (existingVideo) {
-          // Update existing video
-          await prisma.videos.updateMany({
-            where: { videoId: video.id },
-            data: videoData as any,
-          });
-          result.updated++;
-          logger.debug(`Updated video: ${video.snippet?.title}`);
-        } else {
-          // Create new video
-          await prisma.videos.create({
-            data: videoData as any,
-          });
-          result.added++;
-          logger.info(
-            `Added new video: ${video.snippet?.title} (needs playlist assignment)`
-          );
-        }
-      } catch (error: any) {
-        logger.error(`Failed to process video ${video.id}`, {
-          error: error.message,
-        });
-        result.errors.push(`Video ${video.id}: ${error.message}`);
-      }
-    }
-
-    // Clear cache after adding/updating videos
-    if (result.added > 0 || result.updated > 0) {
-      const { clearVideoCache } = await import("../videos/gallery");
-      clearVideoCache();
-      logger.info("Cleared video gallery cache");
-    }
-  } catch (error: any) {
-    logger.error("Failed to enrich videos", { error: error.message });
-    result.errors.push(`Enrichment: ${error.message}`);
-  }
-
-  return result;
+// Helper to find video by videoId
+async function findVideoByVideoId(prisma: any, videoId: string) {
+  return await prisma.videos.findFirst({
+    where: { videoId },
+    select: { id: true },
+  });
 }
 
 export default async function handler(
@@ -212,7 +55,7 @@ export default async function handler(
   const logger = new Logger("CHECK-UPLOADS", traceId);
 
   logger.info("========================================");
-  logger.info("Starting uploads check (OPTIMIZED)");
+  logger.info("Starting uploads check via RSS");
 
   // Validate auth
   if (!isAuthorized(req)) {
@@ -237,7 +80,7 @@ export default async function handler(
     });
   }
 
-  const results: any = {
+  const results = {
     uploadsChecked: false,
     newVideos: 0,
     updatedVideos: 0,
@@ -246,130 +89,218 @@ export default async function handler(
 
   try {
     const channelId = process.env.YOUTUBE_CHANNEL_ID!;
-    logger.info(`Channel ID: ${channelId}`);
 
-    // Get saved ETags from videoConfig
-    const config = await prisma.videoConfig.findFirst({
-      orderBy: { updatedAt: "desc" },
+    // Get uploads playlist ID (it's UU + channel ID suffix)
+    const uploadsPlaylistId = "UU" + channelId.substring(2);
+    logger.info(`Checking uploads playlist: ${uploadsPlaylistId}`);
+
+    // Fetch recent videos from the uploads playlist
+    const response = await youtube.playlistItems.list({
+      part: ["snippet"],
+      playlistId: uploadsPlaylistId,
+      maxResults: 20, // Check last 20 videos
     });
 
-    const sync = (config?.sync as any) || {};
-
-    // Check RSS feed
-    const uploadsRssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-    const check = await checkRSSFeed(
-      uploadsRssUrl,
-      sync.uploadsEtag,
-      sync.uploadsLastModified,
-      logger
+    const playlistItems = response.data.items || [];
+    logger.info(
+      `Found ${playlistItems.length} recent videos in uploads playlist`
     );
 
-    results.uploadsChecked = true;
-
-    if (check.error) {
-      results.errors.push(`RSS check: ${check.error}`);
-    }
-
-    if (check.changed && check.videoIds && check.videoIds.length > 0) {
-      logger.warn(`Feed changed! Processing ${check.videoIds.length} videos`);
-
-      // Check which videos are actually new
-      const existingVideos = await prisma.videos.findMany({
-        where: {
-          videoId: { in: check.videoIds },
-        },
-        select: {
-          id: true,
-          videoId: true,
-        },
+    if (playlistItems.length === 0) {
+      return res.json({
+        success: true,
+        traceId,
+        duration: Date.now() - startTime,
+        results,
       });
-
-      const existingVideoIds = new Set(existingVideos.map((v) => v.videoId));
-      const trulyNew = check.videoIds.filter((id) => !existingVideoIds.has(id));
-
-      logger.info(
-        `Found ${trulyNew.length} new videos, ${existingVideoIds.size} already in database`
-      );
-
-      if (trulyNew.length > 0) {
-        // Limit to 10 videos per run to control quota
-        const toEnrich = trulyNew.slice(0, 10);
-        if (trulyNew.length > 10) {
-          logger.warn(
-            `Limiting enrichment to 10 videos (${trulyNew.length - 10} deferred)`
-          );
-        }
-
-        const enrichResult = await enrichVideos(toEnrich, logger);
-        results.newVideos = enrichResult.added;
-        results.updatedVideos = enrichResult.updated;
-        results.errors.push(...enrichResult.errors);
-      }
-
-      // Update ETags for next check
-      if (config) {
-        const newSync = {
-          ...sync,
-          uploadsEtag: check.etag,
-          uploadsLastModified: check.lastModified,
-          lastUploadsCheck: new Date().toISOString(),
-        };
-
-        await prisma.videoConfig.update({
-          where: { id: config.id },
-          data: { sync: newSync as Prisma.InputJsonValue },
-        });
-
-        logger.success("Updated ETags for next check");
-      }
-    } else {
-      logger.info("No changes in RSS feed");
     }
 
-    // Log activity
-    await prisma.admin_activity_logs.create({
-      data: {
-        userId: "cron",
-        action: "CHECK_UPLOADS_OPTIMIZED",
-        entityType: "system",
-        metadata: {
-          traceId,
-          channelId,
-          changed: check.changed,
-          newVideos: results.newVideos,
-          updatedVideos: results.updatedVideos,
-          errorCount: results.errors.length,
-        } as Prisma.InputJsonValue,
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string) ||
-          req.socket.remoteAddress ||
-          "",
-        userAgent: req.headers["user-agent"] || "cron",
-      },
+    // Extract video IDs
+    const videoIds = playlistItems
+      .map((item) => item.snippet?.resourceId?.videoId)
+      .filter(Boolean) as string[];
+
+    // Fetch full video details
+    const videosResponse = await youtube.videos.list({
+      part: ["snippet", "contentDetails", "statistics", "status"],
+      id: videoIds,
     });
 
+    const videos = videosResponse.data.items || [];
+    results.uploadsChecked = true;
+
+    // Process each video
+    for (const video of videos) {
+      try {
+        if (!video.id || !video.snippet) continue;
+
+        // Check if video exists
+        const existing = await findVideoByVideoId(prisma, video.id);
+
+        // Parse video data
+        const duration = video.contentDetails?.duration || "PT0S";
+        const durationSeconds = parseDuration(duration);
+        const isShort = isShortVideo(durationSeconds);
+
+        const viewCount = parseInt(video.statistics?.viewCount || "0");
+        const likeCount = parseInt(video.statistics?.likeCount || "0");
+        const commentCount = parseInt(video.statistics?.commentCount || "0");
+
+        if (existing) {
+          // Update existing video
+          await prisma.videos.update({
+            where: { id: existing.id },
+            data: {
+              title: video.snippet.title || "",
+              description: video.snippet.description || "",
+              tags: video.snippet.tags || [],
+
+              thumbnails: {
+                default: video.snippet.thumbnails?.default?.url || "",
+                medium: video.snippet.thumbnails?.medium?.url || "",
+                high: video.snippet.thumbnails?.high?.url || "",
+                standard: video.snippet.thumbnails?.standard?.url || "",
+                maxres: video.snippet.thumbnails?.maxres?.url || null,
+              },
+
+              statistics: {
+                viewCount,
+                likeCount,
+                commentCount,
+              },
+
+              status: {
+                uploadStatus: video.status?.uploadStatus || "processed",
+                privacyStatus: video.status?.privacyStatus || "public",
+                license: video.status?.license || "youtube",
+                embeddable: video.status?.embeddable !== false,
+                publicStatsViewable:
+                  video.status?.publicStatsViewable !== false,
+                madeForKids: video.status?.madeForKids || false,
+              },
+
+              popularityScore: viewCount + likeCount * 10 + commentCount * 5,
+              tier: calculateVideoTier(
+                viewCount,
+                video.snippet.publishedAt || new Date(),
+                isShort,
+                getEngagementRate(viewCount, likeCount, commentCount)
+              ),
+
+              lastSyncedAt: new Date(),
+              syncVersion: { increment: 1 },
+            },
+          });
+
+          results.updatedVideos++;
+          logger.debug(`Updated video: ${video.snippet.title}`);
+        } else {
+          // Create new video - WITHOUT the fields that don't exist!
+          await prisma.videos.create({
+            data: {
+              videoId: video.id,
+              title: video.snippet.title || "",
+              description: video.snippet.description || "",
+              publishedAt: video.snippet.publishedAt
+                ? new Date(video.snippet.publishedAt)
+                : new Date(),
+              channelId: video.snippet.channelId || channelId,
+              channelTitle: video.snippet.channelTitle || "",
+
+              // Search & categorization
+              tags: video.snippet.tags || [],
+              categoryId: video.snippet.categoryId || "25",
+              defaultLanguage: video.snippet.defaultLanguage || "en",
+
+              // Empty playlists - will be filled by playlist sync
+              playlists: [],
+              relatedVideos: [],
+
+              // Media details
+              thumbnails: {
+                default: video.snippet.thumbnails?.default?.url || "",
+                medium: video.snippet.thumbnails?.medium?.url || "",
+                high: video.snippet.thumbnails?.high?.url || "",
+                standard: video.snippet.thumbnails?.standard?.url || "",
+                maxres: video.snippet.thumbnails?.maxres?.url || null,
+              },
+
+              contentDetails: {
+                duration: duration,
+                durationSeconds: durationSeconds,
+                dimension: video.contentDetails?.dimension || "2d",
+                definition: video.contentDetails?.definition || "hd",
+                caption: video.contentDetails?.caption === "true",
+                licensedContent: video.contentDetails?.licensedContent || false,
+                projection: video.contentDetails?.projection || "rectangular",
+              },
+
+              statistics: {
+                viewCount: viewCount,
+                likeCount: likeCount,
+                commentCount: commentCount,
+              },
+
+              status: {
+                uploadStatus: video.status?.uploadStatus || "processed",
+                privacyStatus: video.status?.privacyStatus || "public",
+                license: video.status?.license || "youtube",
+                embeddable: video.status?.embeddable !== false,
+                publicStatsViewable:
+                  video.status?.publicStatsViewable !== false,
+                madeForKids: video.status?.madeForKids || false,
+              },
+
+              // Metadata
+              isShort: isShort,
+              videoType: isShort ? "short" : "standard",
+              popularityScore: viewCount + likeCount * 10 + commentCount * 5,
+              tier: calculateVideoTier(
+                viewCount,
+                video.snippet.publishedAt || new Date(),
+                isShort,
+                getEngagementRate(viewCount, likeCount, commentCount)
+              ),
+              isActive: true,
+              lastSyncedAt: new Date(),
+              syncVersion: 1,
+            },
+          });
+
+          results.newVideos++;
+          logger.success(`Added new video: ${video.snippet.title}`, {
+            videoId: video.id,
+            duration: `${durationSeconds}s`,
+            isShort,
+          });
+        }
+      } catch (error: any) {
+        logger.error(`Failed to process video ${video.id}`, {
+          error: error.message,
+        });
+        results.errors.push(`Video ${video.id}: ${error.message}`);
+      }
+    }
+
     const duration = Date.now() - startTime;
-    logger.info("========================================");
-    logger.success("Uploads check complete (OPTIMIZED)", {
-      duration,
+    logger.success("Uploads check complete", {
+      duration: `${duration}ms`,
       newVideos: results.newVideos,
       updatedVideos: results.updatedVideos,
       errors: results.errors.length,
-      note: "Videos marked for playlist assignment via rapid-assign",
     });
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       traceId,
       duration,
-      partial: results.errors.length > 0,
       results,
     });
   } catch (error: any) {
     const duration = Date.now() - startTime;
     logger.error("Uploads check failed", {
       error: error.message,
-      duration,
+      stack: error.stack,
     });
 
     return res.status(500).json({
@@ -377,6 +308,11 @@ export default async function handler(
       traceId,
       duration,
       errors: [error.message],
+      results,
     });
   }
 }
+
+export const config = {
+  maxDuration: 30,
+};

@@ -1,187 +1,118 @@
-// ALTERNATIVE SOLUTION: Using ONLY Existing Fields (No Schema Changes, No New Tables)
-// pages/api/cron/youtube-rapid-assign-zero-changes.ts
+// pages/api/cron/youtube-rapid-assign.ts
+// CORRECT VERSION - Using your actual imports and project structure
 
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { youtube } from "@/lib/youtube-sync";
+import { google } from "googleapis";
 import {
   isAuthorized,
+  Logger,
   generateTraceId,
   CronResponse,
-  Logger,
-  checkRSSFeed,
+  validateEnvironment,
 } from "./_helpers";
 
-// Use syncVersion as attempt counter (it's already there!)
-const MAX_SYNC_VERSION = 20; // After 20 attempts, stop trying
-
-// Use playlistsUpdatedAt to track last check time
-const MIN_CHECK_INTERVAL = 30 * 1000; // 30 seconds between checks
-
-// Only try for videos less than 24 hours old
-const MAX_VIDEO_AGE = 24 * 60 * 60 * 1000;
-
-// Check RSS for all critical playlists
-async function checkAllPlaylistRSS(
-  logger: Logger
-): Promise<Map<string, boolean>> {
-  const changes = new Map<string, boolean>();
-
-  try {
-    const feConfig = await prisma.videoConfig.findFirst({
-      orderBy: { updatedAt: "desc" },
-    });
-
-    if (!feConfig) return changes;
-
-    const displayed = Array.isArray(feConfig.displayedPlaylists)
-      ? (feConfig.displayedPlaylists as any[])
-      : [];
-
-    const criticalIds = [
-      feConfig.heroPlaylist,
-      feConfig.shortsPlaylist,
-      ...displayed.map((p) => p?.playlistId).filter(Boolean),
-    ].filter(Boolean) as string[];
-
-    for (const playlistId of criticalIds) {
-      const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
-      const playlist = await prisma.playlist.findFirst({
-        where: { playlistId },
-        select: { etag: true, lastModified: true },
-      });
-
-      const check = await checkRSSFeed(
-        rssUrl,
-        playlist?.etag,
-        playlist?.lastModified,
-        logger
-      );
-
-      if (check.changed) {
-        changes.set(playlistId, true);
-
-        if (playlist) {
-          await prisma.playlist.update({
-            where: { playlistId },
-            data: {
-              etag: check.etag || null,
-              lastModified: check.lastModified || null,
-            },
-          });
-        }
-      }
-    }
-  } catch (error: any) {
-    logger.error(`RSS check failed: ${error.message}`);
-  }
-
-  return changes;
-}
-
-// Assign video to playlists
-async function assignVideoToChangedPlaylists(
-  videoId: string,
-  changedPlaylists: Set<string>,
-  logger: Logger
-): Promise<string[]> {
-  const assignedPlaylists: string[] = [];
-
-  for (const playlistId of changedPlaylists) {
-    try {
-      const response = await youtube.playlistItems.list({
-        part: ["contentDetails"],
-        playlistId,
-        maxResults: 50,
-      });
-
-      const videoIds = (response.data.items || [])
-        .map((item) => item.contentDetails?.videoId)
-        .filter(Boolean) as string[];
-
-      if (videoIds.includes(videoId)) {
-        assignedPlaylists.push(playlistId);
-        logger.info(`Video ${videoId} found in playlist ${playlistId}`);
-      }
-    } catch (error: any) {
-      logger.error(`Failed to check playlist ${playlistId}: ${error.message}`);
-    }
-  }
-
-  return assignedPlaylists;
-}
+const youtube = google.youtube({
+  version: "v3",
+  auth: process.env.YOUTUBE_API_KEY,
+});
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<CronResponse>
 ) {
-  const traceId = generateTraceId();
-  const startTime = Date.now();
-  const logger = new Logger("RAPID-ASSIGN", traceId);
-
-  logger.info("========================================");
-  logger.info("Starting rapid playlist assignment (zero changes)");
-
-  // Validate auth
+  // Auth check first
   if (!isAuthorized(req)) {
-    logger.error("Unauthorized request");
     return res.status(401).json({
       success: false,
-      traceId,
-      duration: Date.now() - startTime,
-      errors: ["Unauthorized"],
+      traceId: "unauthorized",
+      duration: 0,
+      errors: ["Unauthorized - use x-cron-key header"],
     });
   }
 
-  const results = {
+  // Validate environment
+  const missingEnv = validateEnvironment();
+  if (missingEnv.length > 0) {
+    return res.status(500).json({
+      success: false,
+      traceId: "env-error",
+      duration: 0,
+      errors: [`Missing env vars: ${missingEnv.join(", ")}`],
+    });
+  }
+
+  const startTime = Date.now();
+  const traceId = generateTraceId();
+  const logger = new Logger("RAPID-ASSIGN", traceId);
+
+  logger.info("========================================");
+  logger.info("Starting rapid playlist assignment");
+
+  // Properly typed results object
+  const results: {
+    videosProcessed: number;
+    videosAssigned: number;
+    playlistsChecked: number;
+    apiCalls: number;
+    errors: string[]; // Explicitly typed as string array
+  } = {
     videosProcessed: 0,
     videosAssigned: 0,
-    videosSkipped: 0,
     playlistsChecked: 0,
     apiCalls: 0,
-    errors: [] as string[],
+    errors: [],
   };
 
   try {
-    const now = new Date();
-    const ageLimit = new Date(now.getTime() - MAX_VIDEO_AGE);
-    const checkInterval = new Date(now.getTime() - MIN_CHECK_INTERVAL);
+    // SIMPLE QUERY: Find videos from last 24 hours with empty playlists
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Find videos that need playlist assignment using ONLY existing fields
     const needsAssignment = await prisma.videos.findMany({
       where: {
-        AND: [
-          { playlists: { isEmpty: true } }, // No playlists assigned
-          { publishedAt: { gte: ageLimit } }, // Recent videos only
-          { isActive: true },
-          { syncVersion: { lt: MAX_SYNC_VERSION } }, // Haven't tried too many times
-          {
-            OR: [
-              { playlistsUpdatedAt: null }, // Never checked
-              { playlistsUpdatedAt: { lt: checkInterval } }, // Not checked recently
-            ],
-          },
-        ],
+        isActive: true,
+        publishedAt: {
+          gte: oneDayAgo, // Last 24 hours
+        },
+        playlists: {
+          isEmpty: true, // Only videos with NO playlists
+        },
       },
-      orderBy: [
-        { syncVersion: "asc" }, // Prioritize videos with fewer attempts
-        { publishedAt: "desc" }, // Then by recency
-      ],
-      take: 5, // Process up to 5 videos per run
       select: {
         id: true,
         videoId: true,
         title: true,
         publishedAt: true,
         playlists: true,
-        syncVersion: true,
-        playlistsUpdatedAt: true,
       },
+      orderBy: { publishedAt: "desc" },
+      take: 20, // Process up to 20 videos per run
+    });
+
+    logger.info(`Found ${needsAssignment.length} videos with empty playlists`, {
+      count: needsAssignment.length,
+      videos: needsAssignment.slice(0, 5).map((v) => ({
+        // Show first 5 only
+        videoId: v.videoId,
+        title: v.title.substring(0, 40),
+        hoursAgo: Math.round((Date.now() - v.publishedAt.getTime()) / 3600000),
+      })),
     });
 
     if (needsAssignment.length === 0) {
-      logger.info("No videos need playlist assignment");
-      return res.status(200).json({
+      // Debug: Check if there are ANY videos with empty playlists
+      const totalEmpty = await prisma.videos.count({
+        where: {
+          isActive: true,
+          playlists: { isEmpty: true },
+        },
+      });
+
+      logger.info(
+        `No recent videos need assignment. Total with empty playlists: ${totalEmpty}`
+      );
+
+      return res.json({
         success: true,
         traceId,
         duration: Date.now() - startTime,
@@ -189,156 +120,181 @@ export default async function handler(
       });
     }
 
+    // Get FE config for critical playlists
+    const feConfig = await prisma.videoConfig.findFirst({
+      orderBy: { updatedAt: "desc" },
+    });
+
+    if (!feConfig) {
+      throw new Error(
+        "No VideoConfig found - please configure playlists first"
+      );
+    }
+
+    // Extract playlist IDs - handle various formats
+    const displayed = Array.isArray(feConfig.displayedPlaylists)
+      ? (feConfig.displayedPlaylists as any[])
+      : [];
+
+    const playlistIds = [
+      feConfig.homepagePlaylist,
+      feConfig.fallbackPlaylist,
+      feConfig.heroPlaylist,
+      feConfig.shortsPlaylist,
+      ...displayed.map((p: any) => p?.playlistId).filter(Boolean),
+    ].filter(Boolean) as string[];
+
+    // Remove duplicates
+    const uniquePlaylistIds = [...new Set(playlistIds)];
+
     logger.info(
-      `Found ${needsAssignment.length} videos needing playlist assignment`
+      `Checking ${uniquePlaylistIds.length} unique playlists for our videos`
     );
 
-    // Check RSS for all critical playlists
-    const playlistChanges = await checkAllPlaylistRSS(logger);
-    results.playlistsChecked = playlistChanges.size;
+    // Fetch videos from each playlist
+    const allPlaylistVideos = new Map<string, string[]>();
 
-    const changedPlaylists = new Set(
-      Array.from(playlistChanges.entries())
-        .filter(([_, changed]) => changed)
-        .map(([id, _]) => id)
-    );
+    for (const playlistId of uniquePlaylistIds) {
+      try {
+        logger.debug(`Fetching playlist ${playlistId}...`);
 
-    if (changedPlaylists.size === 0) {
-      logger.info("No playlist changes detected, incrementing sync versions");
-
-      // Use syncVersion as our attempt counter
-      for (const video of needsAssignment) {
-        await prisma.videos.update({
-          where: { id: video.id },
-          data: {
-            syncVersion: video.syncVersion + 1,
-            playlistsUpdatedAt: new Date(), // Mark as checked
-          },
+        const response = await youtube.playlistItems.list({
+          part: ["contentDetails"],
+          playlistId,
+          maxResults: 50, // Get latest 50 videos
         });
 
-        if (video.syncVersion + 1 >= MAX_SYNC_VERSION) {
-          logger.warn(
-            `Video "${video.title}" reached max attempts (${MAX_SYNC_VERSION}), giving up`
+        results.apiCalls++;
+        results.playlistsChecked++;
+
+        const videoIds = (response.data.items || [])
+          .map((item) => item.contentDetails?.videoId)
+          .filter(Boolean) as string[];
+
+        allPlaylistVideos.set(playlistId, videoIds);
+
+        // Check if any of our videos are in this playlist
+        const foundCount = needsAssignment.filter((v) =>
+          videoIds.includes(v.videoId)
+        ).length;
+
+        if (foundCount > 0) {
+          logger.success(
+            `Playlist ${playlistId} contains ${foundCount} of our videos`
           );
+        }
+      } catch (error: any) {
+        const errorMsg = `Playlist ${playlistId} fetch failed: ${error.message}`;
+        logger.error(errorMsg);
+        results.errors.push(errorMsg); // Now properly typed as string[]
+      }
+    }
+
+    // Assign each video to its playlists
+    for (const video of needsAssignment) {
+      results.videosProcessed++;
+      const foundInPlaylists: string[] = [];
+
+      // Check which playlists contain this video
+      for (const [playlistId, videoIds] of allPlaylistVideos.entries()) {
+        if (videoIds.includes(video.videoId)) {
+          foundInPlaylists.push(playlistId);
         }
       }
 
-      return res.status(200).json({
-        success: true,
-        traceId,
-        duration: Date.now() - startTime,
-        results,
-      });
-    }
-
-    logger.info(
-      `${changedPlaylists.size} playlists have changes, checking for our videos`
-    );
-
-    // Process each video
-    for (const video of needsAssignment) {
-      results.videosProcessed++;
-
-      // Skip if checked too recently (shouldn't happen with our query, but safety check)
-      if (
-        video.playlistsUpdatedAt &&
-        video.playlistsUpdatedAt.getTime() > checkInterval.getTime()
-      ) {
-        results.videosSkipped++;
-        logger.info(`Skipping "${video.title}" - checked too recently`);
-        continue;
-      }
-
-      // Check if this video is in any of the changed playlists
-      const assignedPlaylists = await assignVideoToChangedPlaylists(
-        video.videoId,
-        changedPlaylists,
-        logger
-      );
-
-      results.apiCalls += changedPlaylists.size;
-
-      if (assignedPlaylists.length > 0) {
-        // Found playlists! Update the video
+      // Update the video
+      if (foundInPlaylists.length > 0) {
         await prisma.videos.update({
           where: { id: video.id },
           data: {
-            playlists: assignedPlaylists,
+            playlists: foundInPlaylists,
             playlistsUpdatedAt: new Date(),
-            syncVersion: 1, // Reset to 1 since we found it
+            syncVersion: 2, // Mark as successfully synced
           },
         });
 
         results.videosAssigned++;
 
-        const timeToAssign = Math.round(
-          (Date.now() - video.publishedAt.getTime()) / 1000
-        );
-
         logger.success(
-          `Assigned video "${video.title}" to ${assignedPlaylists.length} playlists`,
+          `Assigned "${video.title}" to ${foundInPlaylists.length} playlist(s)`,
           {
             videoId: video.videoId,
-            playlists: assignedPlaylists,
-            timeToAssign: `${timeToAssign} seconds`,
-            attempts: video.syncVersion + 1,
+            playlists: foundInPlaylists,
+            ageInHours: Math.round(
+              (Date.now() - video.publishedAt.getTime()) / 3600000
+            ),
           }
         );
       } else {
-        // No playlists found yet, increment syncVersion (our attempt counter)
+        // Mark as checked but no playlists found yet
         await prisma.videos.update({
           where: { id: video.id },
           data: {
-            syncVersion: video.syncVersion + 1,
-            playlistsUpdatedAt: new Date(), // Mark as checked
+            playlistsUpdatedAt: new Date(),
+            syncVersion: { increment: 1 }, // Increment attempt counter
           },
         });
 
+        const ageInMinutes = Math.round(
+          (Date.now() - video.publishedAt.getTime()) / 60000
+        );
         logger.info(
-          `No playlists found for "${video.title}" yet (attempt ${video.syncVersion + 1}/${MAX_SYNC_VERSION})`
+          `No playlists yet for "${video.title}" (${ageInMinutes} mins old)`
         );
       }
     }
 
     // Clear cache if we assigned videos
     if (results.videosAssigned > 0) {
-      const { clearVideoCache } = await import("../videos/gallery");
-      clearVideoCache();
-      logger.info("Cleared video gallery cache");
+      try {
+        // Try to clear cache - use whatever method works in your setup
+        const endpoints = [
+          {
+            url: "/api/cache/purge-cdn",
+            token: process.env.CACHE_PURGE_TOKEN,
+          },
+          {
+            url: "/api/videos/gallery",
+            token: process.env.CRON_SECRET_KEY,
+            params: "?action=clear-cache",
+          },
+        ];
+
+        for (const endpoint of endpoints) {
+          if (!endpoint.token) continue;
+
+          try {
+            const url = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}${endpoint.url}${endpoint.params || ""}`;
+            await fetch(url, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${endpoint.token}`,
+                "x-cron-key": endpoint.token,
+              },
+            });
+            logger.info(`Cache cleared via ${endpoint.url}`);
+            break; // Stop after first successful clear
+          } catch (e) {
+            // Try next method
+          }
+        }
+      } catch (e) {
+        logger.warn("Cache clear failed - will clear on next request");
+      }
     }
 
-    // Log activity
-    await prisma.admin_activity_logs.create({
-      data: {
-        userId: "cron",
-        action: "RAPID_ASSIGN_ZERO_CHANGES",
-        entityType: "system",
-        metadata: {
-          traceId,
-          results,
-        },
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string) ||
-          req.socket.remoteAddress ||
-          "",
-        userAgent: req.headers["user-agent"] || "cron",
-      },
-    });
-
     const duration = Date.now() - startTime;
-    logger.success("Rapid assignment complete (zero changes version)", {
-      duration,
+
+    logger.success("Rapid assignment complete", {
+      duration: `${duration}ms`,
       videosProcessed: results.videosProcessed,
       videosAssigned: results.videosAssigned,
-      videosSkipped: results.videosSkipped,
+      playlistsChecked: results.playlistsChecked,
       apiCalls: results.apiCalls,
-      efficiency:
-        results.apiCalls > 0
-          ? `${((results.videosAssigned / results.apiCalls) * 100).toFixed(1)}% hit rate`
-          : "N/A",
+      hasErrors: results.errors.length > 0,
     });
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       traceId,
       duration,
@@ -348,7 +304,7 @@ export default async function handler(
     const duration = Date.now() - startTime;
     logger.error("Rapid assignment failed", {
       error: error.message,
-      duration,
+      stack: error.stack,
     });
 
     return res.status(500).json({
@@ -356,6 +312,11 @@ export default async function handler(
       traceId,
       duration,
       errors: [error.message],
+      results,
     });
   }
 }
+
+export const config = {
+  maxDuration: 30,
+};
