@@ -3,7 +3,6 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { youtube } from "@/lib/youtube-sync";
 import {
   isAuthorized,
@@ -11,7 +10,6 @@ import {
   generateTraceId,
   CronResponse,
   Logger,
-  checkRSSFeed,
 } from "./_helpers";
 import {
   calculateVideoTier,
