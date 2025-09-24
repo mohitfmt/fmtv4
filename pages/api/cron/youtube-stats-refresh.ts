@@ -1,5 +1,5 @@
-// pages/api/cron/youtube-stats-refresh.ts
-// Refreshes statistics for recent and popular videos every 5 minutes
+// pages/api/cron/youtube-stats-refresh.ts - OPTIMIZED VERSION
+// Refreshes statistics for last 50 videos in ONE API call
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { youtube } from "@/lib/youtube-sync";
@@ -10,10 +10,7 @@ import {
   CronResponse,
   Logger,
 } from "./_helpers";
-import {
-  calculateVideoTier,
-  getEngagementRate,
-} from "@/lib/helpers/video-tier-calculator";
+import { getEngagementRate } from "@/lib/helpers/video-tier-calculator";
 
 export default async function handler(
   req: NextApiRequest,
@@ -24,7 +21,7 @@ export default async function handler(
   const logger = new Logger("STATS-REFRESH", traceId);
 
   logger.info("========================================");
-  logger.info("Starting video statistics refresh");
+  logger.info("Starting video statistics refresh (OPTIMIZED)");
 
   // Validate auth
   if (!isAuthorized(req)) {
@@ -51,24 +48,19 @@ export default async function handler(
 
   const results = {
     videosUpdated: 0,
-    recentVideos: 0,
-    popularVideos: 0,
+    apiCalls: 0,
     errors: [] as string[],
   };
 
   try {
-    // Get videos that need statistics updates
-    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const cutoff1h = new Date(Date.now() - 60 * 60 * 1000);
-
-    // Priority 1: Videos published in last 24 hours
+    // Get last 50 videos sorted by publishedAt
+    // This covers ~3 days of content (12-15 videos/day)
     const recentVideos = await prisma.videos.findMany({
       where: {
-        publishedAt: { gte: cutoff24h },
         isActive: true,
       },
       orderBy: { publishedAt: "desc" },
-      take: 20,
+      take: 50,
       select: {
         id: true,
         videoId: true,
@@ -76,42 +68,8 @@ export default async function handler(
       },
     });
 
-    results.recentVideos = recentVideos.length;
-
-    // Priority 2: Popular videos not updated recently
-    const popularVideos = await prisma.videos.findMany({
-      where: {
-        tier: { in: ["hot", "trending", "A"] },
-        isActive: true,
-        OR: [
-          { lastSyncedAt: { lte: cutoff1h } },
-          { lastSyncedAt: null }, // Include never-synced videos
-        ],
-      },
-      orderBy: [
-        { popularityScore: "desc" }, // Better ordering
-        { publishedAt: "desc" },
-      ],
-      take: 10,
-      select: {
-        id: true,
-        videoId: true,
-        publishedAt: true,
-      },
-    });
-
-    results.popularVideos = popularVideos.length;
-
-    // Combine and deduplicate video IDs
-    const videoMap = new Map<string, any>();
-    [...recentVideos, ...popularVideos].forEach((video) => {
-      videoMap.set(video.videoId, video);
-    });
-
-    const videosToUpdate = Array.from(videoMap.values());
-
-    if (videosToUpdate.length === 0) {
-      logger.info("No videos need statistics update");
+    if (recentVideos.length === 0) {
+      logger.info("No videos to update");
       return res.status(200).json({
         success: true,
         traceId,
@@ -120,116 +78,119 @@ export default async function handler(
       });
     }
 
-    logger.info(`Updating statistics for ${videosToUpdate.length} videos`, {
-      recentCount: results.recentVideos,
-      popularCount: results.popularVideos,
-    });
+    logger.info(`Updating statistics for ${recentVideos.length} recent videos`);
 
-    // Batch fetch statistics from YouTube API (max 50 per request)
-    for (let i = 0; i < videosToUpdate.length; i += 50) {
-      const batch = videosToUpdate.slice(i, i + 50);
-      const videoIds = batch.map((v) => v.videoId);
+    // OPTIMIZED: Single API call for all 50 videos
+    const videoIds = recentVideos.map((v) => v.videoId);
 
-      try {
-        const response = await youtube.videos.list({
-          part: ["statistics", "contentDetails"],
-          id: videoIds, // FIX: Must be comma-separated string
-          maxResults: 50,
-        });
+    try {
+      const response = await youtube.videos.list({
+        part: ["statistics"],
+        id: videoIds, // Array for Node.js client
+        maxResults: 50,
+      });
 
-        const videoItems = response.data.items || [];
-        logger.debug(`Fetched statistics for ${videoItems.length} videos`);
+      results.apiCalls = 1; // Just ONE API call!
 
-        // Update each video in database
-        for (const videoData of videoItems) {
-          if (!videoData.id) continue;
+      const videoItems = response.data.items || [];
+      logger.debug(
+        `Fetched statistics for ${videoItems.length} videos with 1 API call`
+      );
 
-          const viewCount = parseInt(videoData.statistics?.viewCount || "0");
-          const likeCount = parseInt(videoData.statistics?.likeCount || "0");
-          const commentCount = parseInt(
-            videoData.statistics?.commentCount || "0"
-          );
+      // Update each video in database
+      for (const videoData of videoItems) {
+        if (!videoData.id) continue;
 
-          // Find the original video to get publishedAt for tier calculation
-          const originalVideo = videosToUpdate.find(
-            (v) => v.videoId === videoData.id
-          );
-          if (!originalVideo) continue;
+        const viewCount = parseInt(videoData.statistics?.viewCount || "0");
+        const likeCount = parseInt(videoData.statistics?.likeCount || "0");
+        const commentCount = parseInt(
+          videoData.statistics?.commentCount || "0"
+        );
 
-          // Calculate engagement rate and tier
-          const engagementRate = getEngagementRate(
-            viewCount,
-            likeCount,
-            commentCount
-          );
-          const isShort = videoData.contentDetails?.duration
-            ? parseDuration(videoData.contentDetails.duration) <= 60
-            : false;
+        // Find the original video to get publishedAt for tier calculation
+        const originalVideo = recentVideos.find(
+          (v) => v.videoId === videoData.id
+        );
+        if (!originalVideo) continue;
 
-          const tier = calculateVideoTier(
-            viewCount,
-            originalVideo.publishedAt.toISOString(),
-            isShort,
-            engagementRate
-          );
+        // Calculate engagement rate and tier
+        const engagementRate = getEngagementRate(
+          viewCount,
+          likeCount,
+          commentCount
+        );
 
-          try {
-            await prisma.videos.updateMany({
-              where: { videoId: videoData.id },
-              data: {
-                statistics: {
-                  viewCount,
-                  likeCount,
-                  commentCount,
-                },
-                tier,
-                popularityScore: Math.floor(engagementRate * 1000), // Store as integer
-                lastSyncedAt: new Date(),
-              },
-            });
-            results.videosUpdated++;
-          } catch (updateError: any) {
-            logger.error(`Failed to update video ${videoData.id}`, {
-              error: updateError.message,
-            });
-            results.errors.push(
-              `Update ${videoData.id}: ${updateError.message}`
-            );
-          }
+        // Simple tier calculation based on age and views
+        const ageInHours =
+          (Date.now() - originalVideo.publishedAt.getTime()) / (1000 * 60 * 60);
+        let tier = "standard";
+
+        if (ageInHours < 24) {
+          // For videos < 24 hours old
+          if (viewCount > 10000) tier = "hot";
+          else if (viewCount > 5000) tier = "trending";
+          else if (viewCount > 1000) tier = "A";
+        } else if (ageInHours < 72) {
+          // For videos 1-3 days old
+          if (viewCount > 50000) tier = "hot";
+          else if (viewCount > 20000) tier = "trending";
+          else if (viewCount > 5000) tier = "A";
+        } else {
+          // Older videos
+          if (viewCount > 100000) tier = "hot";
+          else if (viewCount > 50000) tier = "trending";
+          else if (viewCount > 10000) tier = "A";
         }
 
-        // Handle videos that weren't returned (might be deleted/private)
-        const returnedIds = new Set(videoItems.map((v: any) => v.id));
-        const missingVideos = batch.filter((v) => !returnedIds.has(v.videoId));
-
-        if (missingVideos.length > 0) {
-          logger.warn(
-            `${missingVideos.length} videos not found in API response`
-          );
-          // Mark these videos as inactive
-          for (const video of missingVideos) {
-            await prisma.videos.updateMany({
-              where: { videoId: video.videoId },
-              data: {
-                isActive: false,
-                tier: "D",
-                lastSyncedAt: new Date(),
+        try {
+          await prisma.videos.updateMany({
+            where: { videoId: videoData.id },
+            data: {
+              statistics: {
+                viewCount,
+                likeCount,
+                commentCount,
               },
-            });
-          }
+              tier,
+              popularityScore: Math.floor(engagementRate * 1000),
+              lastSyncedAt: new Date(),
+            },
+          });
+          results.videosUpdated++;
+        } catch (updateError: any) {
+          logger.error(`Failed to update video ${videoData.id}`, {
+            error: updateError.message,
+          });
+          results.errors.push(`Update ${videoData.id}: ${updateError.message}`);
         }
-      } catch (apiError: any) {
-        logger.error(`YouTube API error for batch`, {
-          error: apiError.message,
-          batch: batch.map((v) => v.videoId),
-        });
-        results.errors.push(`API batch: ${apiError.message}`);
       }
 
-      // Add small delay between batches to avoid rate limiting
-      if (i + 50 < videosToUpdate.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      // Handle videos that weren't returned (might be deleted/private)
+      const returnedIds = new Set(videoItems.map((v) => v.id));
+      const missingVideos = recentVideos.filter(
+        (v) => !returnedIds.has(v.videoId)
+      );
+
+      if (missingVideos.length > 0) {
+        logger.warn(
+          `${missingVideos.length} videos not found in API response, marking as inactive`
+        );
+        for (const video of missingVideos) {
+          await prisma.videos.updateMany({
+            where: { videoId: video.videoId },
+            data: {
+              isActive: false,
+              tier: "D",
+              lastSyncedAt: new Date(),
+            },
+          });
+        }
       }
+    } catch (apiError: any) {
+      logger.error(`YouTube API error`, {
+        error: apiError.message,
+      });
+      results.errors.push(`API: ${apiError.message}`);
     }
 
     // Clear cache if we updated videos
@@ -243,11 +204,12 @@ export default async function handler(
     await prisma.admin_activity_logs.create({
       data: {
         userId: "cron",
-        action: "STATS_REFRESH",
+        action: "STATS_REFRESH_OPTIMIZED",
         entityType: "system",
         metadata: {
           traceId,
           results,
+          videosChecked: recentVideos.length,
         },
         ipAddress:
           (req.headers["x-forwarded-for"] as string) ||
@@ -258,9 +220,11 @@ export default async function handler(
     });
 
     const duration = Date.now() - startTime;
-    logger.success("Statistics refresh complete", {
+    logger.success("Statistics refresh complete (OPTIMIZED)", {
       duration,
       videosUpdated: results.videosUpdated,
+      apiCalls: results.apiCalls,
+      quotaSaved: "Used only 1 API call for 50 videos!",
       errors: results.errors.length,
     });
 
@@ -285,16 +249,4 @@ export default async function handler(
       errors: [error.message],
     });
   }
-}
-
-// Helper function to parse ISO 8601 duration to seconds
-function parseDuration(duration: string): number {
-  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 0;
-
-  const hours = parseInt(match[1] || "0");
-  const minutes = parseInt(match[2] || "0");
-  const seconds = parseInt(match[3] || "0");
-
-  return hours * 3600 + minutes * 60 + seconds;
 }
