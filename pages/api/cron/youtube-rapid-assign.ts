@@ -213,6 +213,28 @@ export default async function handler(
           },
         });
 
+        // Increment itemCount for each playlist the video was added to
+        for (const playlistId of foundInPlaylists) {
+          try {
+            await prisma.playlist.update({
+              where: { playlistId },
+              data: {
+                itemCount: { increment: 1 },
+                updatedAt: new Date(),
+              },
+            });
+            logger.debug(`Incremented count for playlist ${playlistId}`);
+          } catch (err: any) {
+            // Don't fail the whole operation if count update fails
+            logger.error(
+              `Failed to increment count for playlist ${playlistId}`,
+              {
+                error: err.message,
+              }
+            );
+          }
+        }
+
         results.videosAssigned++;
 
         logger.success(
