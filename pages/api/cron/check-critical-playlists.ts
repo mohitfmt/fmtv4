@@ -50,7 +50,6 @@ async function updatePlaylistOrder(
     await prisma.playlist.update({
       where: { playlistId },
       data: {
-        itemCount: videoIds.length,
         lastFingerprintAt: new Date(),
         updatedAt: new Date(),
       },

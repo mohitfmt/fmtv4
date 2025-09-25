@@ -16,10 +16,9 @@ interface VerificationResult {
 
 // Helper to check if request is authorized (cron secret or admin)
 function isAuthorized(req: NextApiRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET_KEY;
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecret && req.headers["x-cron-key"] === cronSecret) {
     return true;
   }
 
@@ -54,25 +53,25 @@ export default async function handler(
   }
 
   // Check if it's Saturday (considering timezone)
-  const now = new Date();
-  const malaysiaTime = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" })
-  );
-  const dayOfWeek = malaysiaTime.getDay();
+  // const now = new Date();
+  // const malaysiaTime = new Date(
+  //   now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" })
+  // );
+  // const dayOfWeek = malaysiaTime.getDay();
 
-  // Allow manual trigger or Saturday only
-  const forceRun = req.query.force === "true";
-  if (dayOfWeek !== 6 && !forceRun) {
-    console.log(
-      `[${traceId}] Not Saturday (day ${dayOfWeek}), skipping unless forced`
-    );
-    return res.status(200).json({
-      success: true,
-      message: "Verification only runs on Saturdays",
-      dayOfWeek,
-      traceId,
-    });
-  }
+  // // Allow manual trigger or Saturday only
+  // const forceRun = req.query.force === "true";
+  // if (dayOfWeek !== 6 && !forceRun) {
+  //   console.log(
+  //     `[${traceId}] Not Saturday (day ${dayOfWeek}), skipping unless forced`
+  //   );
+  //   return res.status(200).json({
+  //     success: true,
+  //     message: "Verification only runs on Saturdays",
+  //     dayOfWeek,
+  //     traceId,
+  //   });
+  // }
 
   try {
     // Check if YouTube API key is configured
