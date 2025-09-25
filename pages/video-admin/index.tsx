@@ -29,8 +29,8 @@ import { TrendingVideosCard } from "@/components/admin/dashboard/cards/TrendingV
 import { PerformanceMetricsCard } from "@/components/admin/dashboard/cards/PerformanceMetricsCard";
 import { ContentSuggestionsCard } from "@/components/admin/dashboard/cards/ContentSuggestionsCard";
 // ContentInsightsCard import removed
-import { UploadHistoryChart } from "@/components/admin/dashboard/charts/UploadHistoryChart";
-import { EngagementChart } from "@/components/admin/dashboard/charts/EngagementChart";
+import UploadHistoryChart from "@/components/admin/dashboard/charts/UploadHistoryChart";
+import EngagementChart from "@/components/admin/dashboard/charts/EngagementChart";
 
 // Import constants
 import { REFRESH_CONFIG } from "@/lib/dashboard/constants";
@@ -459,14 +459,7 @@ export default function VideoDashboard({ traceId }: PageProps) {
             </div>
 
             {/* Advanced Metrics Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <ContentSuggestionsCard
-                  suggestions={stats?.suggestions || null}
-                  loading={loading && !stats}
-                  onRefresh={handleManualRefresh}
-                />
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="lg:col-span-1 space-y-6">
                 <PerformanceMetricsCard
                   metrics={stats?.performance || null}
@@ -475,6 +468,13 @@ export default function VideoDashboard({ traceId }: PageProps) {
                 <TrendingVideosCard
                   videos={stats?.videos.trendingList || []}
                   loading={loading && !stats}
+                />
+              </div>
+              <div>
+                <ContentSuggestionsCard
+                  suggestions={stats?.suggestions || null}
+                  loading={loading && !stats}
+                  onRefresh={handleManualRefresh}
                 />
               </div>
             </div>

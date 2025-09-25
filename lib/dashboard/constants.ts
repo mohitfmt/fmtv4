@@ -28,7 +28,7 @@ export const QUERY_CONFIG = {
     VIDEO: 1000, // Minimum views for trending video
     SHORT: 5000, // Minimum views for trending short
   },
-  TRENDING_LIMIT: 10, // Top 5 trending videos
+  TRENDING_LIMIT: 5, // Top 5 trending videos
   RECENT_ACTIVITY_LIMIT: 10, // Last 10 activities
   PERFORMANCE_TOP_LIMIT: 10, // Top 10 performers
 } as const;

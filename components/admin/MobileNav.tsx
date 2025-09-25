@@ -18,7 +18,6 @@ import {
   FiSettings,
   FiList,
   FiRefreshCw,
-  FiDatabase,
   FiMenu,
   FiX,
   FiSun,
@@ -26,6 +25,7 @@ import {
   FiMonitor,
   FiLogOut,
   FiUser,
+  FiTrash2,
 } from "react-icons/fi";
 import Image from "next/image";
 
@@ -37,13 +37,12 @@ interface MobileNavProps {
 const bottomNavItems = [
   { href: "/video-admin", icon: FiHome, label: "Dashboard" },
   { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
-  { href: "/video-admin/sync", icon: FiRefreshCw, label: "Sync" },
+  { href: "/video-admin/purge-video", icon: FiTrash2, label: "Purge" },
   { href: "/video-admin/configuration", icon: FiSettings, label: "Settings" },
 ];
 
-const drawerItems = [
-  { href: "/video-admin/cache", icon: FiDatabase, label: "Cache Management" },
-];
+// Remove the drawerItems array entirely or make it empty:
+const drawerItems: never[] = [];
 
 export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
   const router = useRouter();
@@ -239,7 +238,7 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Additional Tools
                     </p>
-                    {drawerItems.map((item) => {
+                    {/* {drawerItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = router.pathname === item.href;
 
@@ -259,7 +258,7 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                           </span>
                         </Link>
                       );
-                    })}
+                    })} */}
                   </div>
 
                   {/* Theme Selector in Drawer */}

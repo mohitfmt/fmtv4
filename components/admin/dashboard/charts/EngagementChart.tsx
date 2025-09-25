@@ -62,7 +62,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function EngagementChart({
+export default function EngagementChart({
   data,
   performanceMetrics,
   loading,

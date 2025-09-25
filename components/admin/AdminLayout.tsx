@@ -19,13 +19,13 @@ import {
   FiSettings,
   FiList,
   FiRefreshCw,
-  FiDatabase,
   FiLogOut,
   FiUser,
   FiSun,
   FiMoon,
   FiMonitor,
   FiChevronRight,
+  FiTrash2,
 } from "react-icons/fi";
 import Image from "next/image";
 import { LogoSVG } from "../ui/icons/LogoSVG";
@@ -134,8 +134,7 @@ export default function AdminLayout({
       label: "Configuration",
     },
     { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
-    { href: "/video-admin/sync", icon: FiRefreshCw, label: "Sync Control" },
-    { href: "/video-admin/cache", icon: FiDatabase, label: "Cache" },
+    { href: "/video-admin/purge-video", icon: FiTrash2, label: "Purge Video" },
   ];
 
   // Show loading state when navigating

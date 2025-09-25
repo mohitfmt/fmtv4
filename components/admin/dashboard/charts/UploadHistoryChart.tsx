@@ -50,7 +50,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function UploadHistoryChart({ data, loading }: UploadHistoryChartProps) {
+export default function UploadHistoryChart({
+  data,
+  loading,
+}: UploadHistoryChartProps) {
   if (loading) {
     return (
       <div className="h-64 flex items-center justify-center">
