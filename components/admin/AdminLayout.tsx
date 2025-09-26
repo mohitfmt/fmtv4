@@ -12,6 +12,8 @@ import {
 } from "framer-motion";
 import { useTheme } from "next-themes";
 import MobileNav from "./MobileNav";
+import { useAuth } from "@/contexts/AuthContext";
+import Cookies from "js-cookie";
 
 // Icons
 import {
@@ -97,32 +99,22 @@ export default function AdminLayout({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { logout } = useAuth();
 
   const handleSignOut = async () => {
+    // Set flag for login page to know user signed out
     sessionStorage.setItem("admin_signed_out", "true");
-
-    // Clear all storage
-    localStorage.clear();
-    Object.keys(sessionStorage).forEach((key) => {
-      if (key !== "admin_signed_out") {
-        sessionStorage.removeItem(key);
-      }
-    });
-
-    // Clear cookies
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date(0).toUTCString() + ";path=/");
-    });
-
-    // Sign out and force account selection on next login
-    await signOut({
-      callbackUrl: "/video-admin/login",
-      redirect: false,
-    });
-
-    // Manual redirect to ensure clean state
+    // Clear admin cookie
+    Cookies.remove("admin_auth");
+    // Clear localStorage admin flag
+    localStorage.removeItem("adminUser");
+    // Clear auth context
+    logout();
+    // Remove NextAuth session (if it exists, won't error if not)
+    if (typeof signOut === "function") {
+      await signOut({ redirect: false }).catch(() => {});
+    }
+    // Redirect to login page
     window.location.href = "/video-admin/login";
   };
 

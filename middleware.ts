@@ -1,7 +1,6 @@
 // middleware.ts - PRODUCTION VERSION (COMPLETE)
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 // Cache duration configs
 const cacheDurations = {
@@ -152,57 +151,38 @@ export async function middleware(request: NextRequest) {
     if (cleanHost.includes("www.") || cleanHost === "freemalaysiatoday.com") {
       return NextResponse.redirect(new URL("/", request.url));
     }
-
     // Only allow on dev-v4 or localhost
     const isAllowedHost =
       process.env.NODE_ENV === "development"
         ? cleanHost === "localhost" ||
           cleanHost === "dev-v4.freemalaysiatoday.com"
         : cleanHost === "dev-v4.freemalaysiatoday.com";
-
     if (!isAllowedHost) {
       return NextResponse.redirect(new URL("/", request.url));
     }
-
-    // Skip auth check for login and auth routes - THIS IS CRITICAL!
+    // Skip auth check for login and auth routes
     const exemptPaths = [
       "/video-admin/login",
-      "/api/auth/",
+      "/api/auth/sync-user", // Keep this for AuthContext sync
       "/api/video-admin/debug", // Keep debug endpoint accessible
     ];
-
     const isExempt = exemptPaths.some((path) => pathname.startsWith(path));
-
     // Only check authentication if NOT exempt
     if (!isExempt) {
-      try {
-        const token = await getToken({
-          req: request,
-          secret: process.env.NEXTAUTH_SECRET,
-        });
-
-        // Check if user is authenticated and has correct domain
-        if (!token?.email || !token.email.endsWith("@freemalaysiatoday.com")) {
-          const loginUrl = new URL("/video-admin/login", request.url);
-          loginUrl.searchParams.set("callbackUrl", pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-      } catch (error) {
-        console.error("[Middleware] Token check error:", error);
-        // If token check fails, redirect to login
+      // Simple cookie check instead of JWT token
+      const hasAdminAuth = request.cookies.has("admin_auth");
+      if (!hasAdminAuth) {
         const loginUrl = new URL("/video-admin/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }
     }
-
     // Set security headers for admin pages
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
     response.headers.set("Cache-Control", "private, no-store");
     response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("Referrer-Policy", "no-referrer");
-
     return response;
   }
   // ===== VIDEO ADMIN PROTECTION END =====

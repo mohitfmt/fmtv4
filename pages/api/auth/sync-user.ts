@@ -68,7 +68,5 @@ export default async function handler(
       message: "Internal Server Error while syncing user data.",
       error,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
