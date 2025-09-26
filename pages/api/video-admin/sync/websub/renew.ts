@@ -1,11 +1,11 @@
 // pages/api/video-admin/sync/websub/renew.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
+
 import { prisma } from "@/lib/prisma";
 
 const HUB_URL = "https://pubsubhubbub.appspot.com";
 
-export default withAdminApi(async function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -124,4 +124,4 @@ export default withAdminApi(async function handler(
   } finally {
     clearTimeout(timeout);
   }
-});
+}

@@ -1,6 +1,5 @@
 // pages/api/video-admin/dashboard/stats.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { getAllCaches } from "@/lib/cache/video-cache-registry";
 import { formatDistanceToNow } from "date-fns";
@@ -342,4 +341,4 @@ async function handler(
   }
 }
 
-export default withAdminApi(handler);
+export default handler;

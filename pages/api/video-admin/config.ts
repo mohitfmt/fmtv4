@@ -1,6 +1,5 @@
 // pages/api/video-admin/config.ts - OPTIMIZED VERSION WITHOUT FALLBACK
 import { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { LRUCache } from "lru-cache";
@@ -243,4 +242,4 @@ async function handleUpdateConfig(
   }
 }
 
-export default withAdminApi(handler);
+export default handler;

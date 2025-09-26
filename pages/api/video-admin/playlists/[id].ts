@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
@@ -169,4 +168,4 @@ async function handler(
   return res.status(405).json({ success: false, error: "Method not allowed" });
 }
 
-export default withAdminApi(handler);
+export default handler;

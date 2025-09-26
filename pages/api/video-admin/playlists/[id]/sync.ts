@@ -1,6 +1,5 @@
 // pages/api/video-admin/playlists/[id]/sync.ts - SMART COUNT VERSION
 import { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { youtube } from "@/lib/youtube-sync";
 import { syncPlaylist } from "@/lib/youtube-sync";
@@ -370,4 +369,4 @@ async function performFullSync(
   }
 }
 
-export default withAdminApi(handler);
+export default handler;

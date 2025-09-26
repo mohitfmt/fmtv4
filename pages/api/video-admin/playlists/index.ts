@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
 type ErrorBody = { success: false; error: string };
@@ -124,4 +123,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse<ListBody>) {
   });
 }
 
-export default withAdminApi(handler);
+export default handler;

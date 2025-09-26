@@ -1,6 +1,5 @@
 // pages/api/video-admin/purge-video.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { withAdminApi } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import {
   playlistCache,
@@ -273,4 +272,4 @@ async function purgeByTags(videoId: string): Promise<void> {
   }
 }
 
-export default withAdminApi(handler);
+export default handler;
