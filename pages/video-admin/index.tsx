@@ -1,11 +1,8 @@
 // pages/video-admin/index.tsx
-import { GetServerSideProps } from "next";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { withAdminPageSSR } from "@/lib/adminAuth";
 import { videoApiJson } from "@/lib/videoApi";
 import { formatDistanceToNow } from "date-fns";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -37,6 +34,7 @@ import { REFRESH_CONFIG } from "@/lib/dashboard/constants";
 
 // Import types
 import type { DashboardStats } from "@/types/video-admin-dashboard";
+import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 
 // Import animation features
 const loadFeatures = () =>
@@ -57,7 +55,7 @@ interface PageProps {
 }
 
 export default function VideoDashboard({ traceId }: PageProps) {
-  const { data: session } = useSession();
+  const { user, isAuthorized, isChecking } = useVideoAdminAuth();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
 
@@ -158,6 +156,16 @@ export default function VideoDashboard({ traceId }: PageProps) {
       }
     };
   }, []);
+
+  if (isChecking || !isAuthorized) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // Activity item component
   const ActivityItem = ({ activity }: { activity: any }) => {
@@ -529,6 +537,3 @@ export default function VideoDashboard({ traceId }: PageProps) {
     </>
   );
 }
-
-// Server-side props
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR();

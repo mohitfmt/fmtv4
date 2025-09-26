@@ -1,5 +1,4 @@
 // pages/video-admin/configuration.tsx - PRODUCTION OPTIMIZED VERSION
-import { GetServerSideProps } from "next";
 import {
   useState,
   useEffect,
@@ -11,10 +10,9 @@ import {
 } from "react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
 import { videoApiJson } from "@/lib/videoApi";
+import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 import {
   motion,
   AnimatePresence,
@@ -406,8 +404,8 @@ const PlaylistSelector = ({
   );
 };
 
-function ConfigurationPage({ requiresAuth }: { requiresAuth?: boolean }) {
-  const { data: currentSession } = useSession();
+function ConfigurationPageContent() {
+  const { user, isAuthorized, isChecking } = useVideoAdminAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<VideoConfig | null>(null);
@@ -421,10 +419,10 @@ function ConfigurationPage({ requiresAuth }: { requiresAuth?: boolean }) {
   const { playlists, refreshPlaylists } = usePlaylistCache();
 
   useEffect(() => {
-    if (currentSession) {
+    if (isAuthorized && user) {
       loadConfig();
     }
-  }, [currentSession]);
+  }, [isAuthorized, user]);
 
   const loadConfig = async () => {
     setLoading(true);
@@ -493,6 +491,15 @@ function ConfigurationPage({ requiresAuth }: { requiresAuth?: boolean }) {
     return used;
   }, [config]);
 
+  if (isChecking || !isAuthorized) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
   const saveConfig = async () => {
     if (!config) return;
 
@@ -1141,14 +1148,10 @@ function ConfigurationPage({ requiresAuth }: { requiresAuth?: boolean }) {
 }
 
 // Wrap with cache provider
-export default function ConfigurationPageWithCache(props: {
-  requiresAuth?: boolean;
-}) {
+export default function ConfigurationPage() {
   return (
     <PlaylistCacheProvider>
-      <ConfigurationPage {...props} />
+      <ConfigurationPageContent />
     </PlaylistCacheProvider>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR();

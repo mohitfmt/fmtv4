@@ -1,11 +1,9 @@
 // pages/video-admin/purge-video.tsx
-import { GetServerSideProps } from "next";
+
 import { useState } from "react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
-import { useSession } from "next-auth/react";
 import {
   Trash2,
   AlertTriangle,
@@ -17,6 +15,7 @@ import {
   Hash,
 } from "lucide-react";
 import { videoApiJson } from "@/lib/videoApi";
+import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 
 interface PageProps {
   requiresAuth?: boolean;
@@ -41,8 +40,7 @@ export default function PurgeVideoPage({
   userEmail,
   session: serverSession,
 }: PageProps) {
-  const { data: session } = useSession();
-  const currentSession = session || serverSession;
+  const { user, isAuthorized, isChecking } = useVideoAdminAuth();
 
   const [videoInput, setVideoInput] = useState("");
   const [purging, setPurging] = useState(false);
@@ -50,6 +48,16 @@ export default function PurgeVideoPage({
   const [success, setSuccess] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<PurgeResult | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+
+  if (isChecking || !isAuthorized) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const handlePurge = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +116,7 @@ export default function PurgeVideoPage({
     },
   ];
 
-  if (requiresAuth && !currentSession) {
+  if (requiresAuth && !user) {
     return null;
   }
 
@@ -319,5 +327,3 @@ export default function PurgeVideoPage({
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = withAdminPageSSR();

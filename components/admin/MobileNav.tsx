@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useSession, signOut } from "next-auth/react";
 import {
   motion,
   AnimatePresence,
@@ -11,6 +10,8 @@ import {
 } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/contexts/AuthContext";
+import Cookies from "js-cookie";
 
 // Icons
 import {
@@ -46,10 +47,10 @@ const drawerItems: never[] = [];
 
 export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
   const router = useRouter();
-  const { data: session } = useSession();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -76,9 +77,17 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
     };
   }, [isDrawerOpen]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    // Set flag for login page to know user signed out
     sessionStorage.setItem("admin_signed_out", "true");
-    signOut({ callbackUrl: "/video-admin/login" });
+    // Clear admin cookie
+    Cookies.remove("admin_auth");
+    // Clear localStorage admin flag
+    localStorage.removeItem("adminUser");
+    // Clear auth context
+    logout();
+    // Redirect to login page
+    window.location.href = "/video-admin/login";
   };
 
   const getThemeIcon = () => {
@@ -201,10 +210,10 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between p-4 border-b border-border">
                   <div className="flex items-center gap-3">
-                    {session?.user?.image ? (
+                    {user?.picture ? (
                       <Image
-                        src={session.user.image}
-                        alt={session.user.name || "User"}
+                        src={user.picture}
+                        alt={user.name || "User"}
                         className="w-10 h-10 rounded-full border-2 border-primary/20"
                         width={40}
                         height={40}
@@ -216,10 +225,10 @@ export default function MobileNav({ isRefreshing, onRefresh }: MobileNavProps) {
                     )}
                     <div>
                       <p className="text-sm font-semibold">
-                        {session?.user?.name || "Admin"}
+                        {user?.name || "Admin"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {session?.user?.email}
+                        {user?.email}
                       </p>
                     </div>
                   </div>

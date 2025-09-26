@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   const session = (req as any).session;
   const traceId = (req as any).traceId;
 
@@ -10,4 +13,4 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     user: session?.user?.email,
     traceId,
   });
-};
+}

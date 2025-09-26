@@ -1,6 +1,5 @@
 // components/admin/AdminLayout.tsx
 import { useState, useEffect, ReactNode } from "react";
-import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { cn } from "@/lib/utils";
@@ -95,11 +94,10 @@ export default function AdminLayout({
   isRefreshing,
   onRefresh,
 }: AdminLayoutProps) {
-  const { data: session } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleSignOut = async () => {
     // Set flag for login page to know user signed out
@@ -110,10 +108,6 @@ export default function AdminLayout({
     localStorage.removeItem("adminUser");
     // Clear auth context
     logout();
-    // Remove NextAuth session (if it exists, won't error if not)
-    if (typeof signOut === "function") {
-      await signOut({ redirect: false }).catch(() => {});
-    }
     // Redirect to login page
     window.location.href = "/video-admin/login";
   };
@@ -243,12 +237,12 @@ export default function AdminLayout({
             {/* Sidebar Footer */}
             <div className="p-3 border-t border-border">
               {/* User Info */}
-              {session?.user && !isSidebarCollapsed && (
+              {user && !isSidebarCollapsed && (
                 <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                  {session.user.image ? (
+                  {user.picture ? (
                     <Image
-                      src={session.user.image}
-                      alt={session.user.name || "User"}
+                      src={user.picture}
+                      alt={user.name || "User"}
                       className="w-8 h-8 rounded-full"
                       width={32}
                       height={32}
@@ -259,11 +253,9 @@ export default function AdminLayout({
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">
-                      {session.user.name}
-                    </p>
+                    <p className="text-xs font-medium truncate">{user.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {session.user.email}
+                      {user.email}
                     </p>
                   </div>
                 </div>

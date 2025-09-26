@@ -1,10 +1,8 @@
 // pages/video-admin/playlists.tsx
-import { GetServerSideProps } from "next";
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { withAdminPageSSR } from "@/lib/adminAuth";
 import { Button } from "@/components/ui/button";
 import { videoApiJson } from "@/lib/videoApi";
 import {
@@ -46,6 +44,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 
 interface PageProps {
   requiresAuth?: boolean;
@@ -544,9 +543,8 @@ const PlaylistSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => {
   );
 };
 
-export default function PlaylistsPage({ requiresAuth }: PageProps) {
-  const { data: currentSession, status } = useSession();
-
+export default function PlaylistsPage() {
+  const { user, isAuthorized, isChecking } = useVideoAdminAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -818,26 +816,17 @@ export default function PlaylistsPage({ requiresAuth }: PageProps) {
     totalVideos: playlists.reduce((sum, p) => sum + p.itemCount, 0),
   };
 
-  // Auth guard
-  if (requiresAuth && status === "unauthenticated") {
-    return (
-      <>
-        <Head>
-          <title>Playlists - FMT Admin</title>
-          <meta name="robots" content="noindex,nofollow,noarchive" />
-        </Head>
-        <AdminLayout title="Playlists" description="Manage YouTube playlists">
-          <div className="p-8 text-center text-muted-foreground">
-            Sign in required to view playlists.
-          </div>
-        </AdminLayout>
-      </>
-    );
-  }
-
   // Show loading skeleton when data is loading
   const showSkeleton = (loading && initialLoad) || status === "loading";
-
+  if (isChecking || !isAuthorized) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
   return (
     <>
       <Head>
@@ -1172,6 +1161,3 @@ export default function PlaylistsPage({ requiresAuth }: PageProps) {
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps<PageProps> =
-  withAdminPageSSR();
