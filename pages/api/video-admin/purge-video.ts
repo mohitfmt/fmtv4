@@ -14,7 +14,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const traceId = (req as any).traceId;
-  const session = (req as any).session;
+  // const session = (req as any).session;
+  const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
   const { videoInput } = req.body;
 
   if (!videoInput) {
@@ -128,7 +129,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       data: {
         action: "PURGE_VIDEO",
         entityType: "video",
-        userId: session.user?.email || session.user?.id || "system",
+        userId: userEmail,
         metadata: {
           videoId,
           videoTitle: video?.title,

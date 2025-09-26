@@ -94,6 +94,7 @@ export default function VideoAdminLogin() {
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
       });
+      Cookies.set("user_email", userData.email);
 
       // Set admin-specific flag in localStorage
       localStorage.setItem("adminUser", "true");

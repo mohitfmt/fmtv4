@@ -95,8 +95,8 @@ export default async function handler(
     // Log admin activity
     const userId =
       (req.headers["x-admin-user"] as string) ||
-      ((req as any).session?.user?.email ?? (req as any).session?.user?.id) ||
-      "system";
+      req.cookies?.user_email ||
+      "admin@freemalaysiatoday.com";
 
     await prisma.admin_activity_logs.create({
       data: {

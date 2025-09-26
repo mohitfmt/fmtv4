@@ -13,7 +13,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id: playlistId } = req.query;
   const { fullCount = false } = req.body; // Force full count if needed
   const traceId = (req as any).traceId;
-  const session = (req as any).session;
+  // const session = (req as any).session;
+  const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
 
   if (!playlistId || typeof playlistId !== "string") {
     return res.status(400).json({
@@ -99,7 +100,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       data: {
         action: "SYNC_PLAYLIST_START",
         entityType: "playlist",
-        userId: session.user?.email || session.user?.id || "system",
+        userId: userEmail,
         metadata: {
           playlistId,
           playlistTitle: playlist.title,
@@ -166,7 +167,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       data: {
         action: "SYNC_PLAYLIST_COMPLETE",
         entityType: "playlist",
-        userId: session.user?.email || session.user?.id || "system",
+        userId: userEmail,
         metadata: {
           playlistId,
           strategy: syncStrategy,

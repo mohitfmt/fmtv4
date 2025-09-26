@@ -128,7 +128,9 @@ async function handleUpdateConfig(
   traceId: string
 ) {
   try {
-    const session = (req as any).session;
+    // const session = (req as any).session;
+
+    const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
 
     // Validate request body
     const validation = configSchema.safeParse(req.body);
@@ -189,7 +191,7 @@ async function handleUpdateConfig(
         data: {
           action: "CONFIG_UPDATE",
           entityType: "video_config",
-          userId: session.user?.email || session.user?.id || "system",
+          userId: userEmail || "system",
           metadata: {
             configId: config.id,
             homepage: homepage.playlistId,

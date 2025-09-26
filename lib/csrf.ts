@@ -69,16 +69,17 @@ export function csrfProtection(
     return true;
   }
 
-  const sessionId = req.session?.user?.email || req.headers["x-session-id"];
+  // const sessionId = req.session?.user?.email || req.headers["x-session-id"];
+  const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
 
-  if (!sessionId) {
-    // In lenient mode, allow requests without session
-    if (!options.strict) {
-      console.warn("[CSRF] Request without session, allowing in lenient mode");
-      return true;
-    }
-    return false;
-  }
+  // if (!sessionId) {
+  //   // In lenient mode, allow requests without session
+  //   if (!options.strict) {
+  //     console.warn("[CSRF] Request without session, allowing in lenient mode");
+  //     return true;
+  //   }
+  //   return false;
+  // }
 
   const token = req.headers[CSRF_TOKEN_HEADER] || req.body?.csrfToken;
 
@@ -91,26 +92,27 @@ export function csrfProtection(
     return false;
   }
 
-  return validateCSRFToken(sessionId, token);
+  return validateCSRFToken(userEmail, token);
 }
 
 /**
  * Get or create CSRF token for client
  */
 export function getCSRFToken(req: any): string {
-  const sessionId = req.session?.user?.email || req.headers["x-session-id"];
+  // const sessionId = req.session?.user?.email || req.headers["x-session-id"];
+  const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
 
-  if (!sessionId) {
+  if (!userEmail) {
     // Generate a temporary token for non-authenticated users
     return crypto.randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
   }
 
-  const existing = tokenStore.get(sessionId);
+  const existing = tokenStore.get(userEmail);
   if (existing && Date.now() < existing.expires) {
     return existing.token;
   }
 
-  return generateCSRFToken(sessionId);
+  return generateCSRFToken(userEmail);
 }
 
 // TypeScript global declarations
