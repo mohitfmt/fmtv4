@@ -17,15 +17,6 @@ import {
 import { videoApiJson } from "@/lib/videoApi";
 import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 
-interface PageProps {
-  requiresAuth?: boolean;
-  unauthorized?: boolean;
-  userEmail?: string;
-  traceId?: string;
-  enableOneTap?: boolean;
-  session?: any;
-}
-
 interface PurgeResult {
   videoId: string;
   removedFromPlaylists: number;
@@ -34,12 +25,7 @@ interface PurgeResult {
   deletedFromDB: boolean;
 }
 
-export default function PurgeVideoPage({
-  requiresAuth,
-  unauthorized,
-  userEmail,
-  session: serverSession,
-}: PageProps) {
+export default function PurgeVideoPage() {
   const { user, isAuthorized, isChecking } = useVideoAdminAuth();
 
   const [videoInput, setVideoInput] = useState("");
@@ -116,8 +102,14 @@ export default function PurgeVideoPage({
     },
   ];
 
-  if (requiresAuth && !user) {
-    return null;
+  if (!isAuthorized || !user) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (

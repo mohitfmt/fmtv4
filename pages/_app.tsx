@@ -13,7 +13,6 @@ import Head from "next/head";
 // import siteConfig from "@/constants/site-config";
 import Script from "next/script";
 import { useRouter } from "next/router";
-import { SessionProvider } from "next-auth/react";
 
 const preloadGPTScript = () => {
   const link = document.createElement("link");
@@ -97,13 +96,11 @@ export default function App({
   );
 
   const finalContent = isAdminRoute ? (
-    <SessionProvider session={session}>
-      <div className={`${bitter.variable} ${rhd.variable} ${roboto.variable}`}>
-        <div className="min-h-screen bg-background text-foreground">
-          <Component {...pageProps} />
-        </div>
+    <div className={`${bitter.variable} ${rhd.variable} ${roboto.variable}`}>
+      <div className="min-h-screen bg-background text-foreground">
+        <Component {...pageProps} />
       </div>
-    </SessionProvider>
+    </div>
   ) : (
     content
   );

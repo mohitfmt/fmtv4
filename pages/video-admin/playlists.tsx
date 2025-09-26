@@ -46,11 +46,6 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
 
-interface PageProps {
-  requiresAuth?: boolean;
-  session?: any;
-}
-
 interface Playlist {
   playlistId: string;
   title: string;
@@ -169,6 +164,7 @@ const PlaylistThumbnail = ({
         priority={index < 4}
         loading={index < 4 ? "eager" : "lazy"}
         onError={() => setImgError(true)}
+        unoptimized
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="absolute bottom-2 left-2 right-2 text-white text-xs">
@@ -279,6 +275,7 @@ const PlaylistCard = ({
                 sizes="80px"
                 className="object-cover"
                 loading="lazy"
+                unoptimized
               />
             )}
             {playlist.syncInProgress && (
@@ -660,13 +657,13 @@ export default function PlaylistsPage() {
 
   // Load data when authenticated
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isAuthorized && user) {
       loadPlaylists();
     }
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [status, loadPlaylists]);
+  }, [isAuthorized, user, loadPlaylists]);
 
   // Auto-refresh syncing items
   useEffect(() => {

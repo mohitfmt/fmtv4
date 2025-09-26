@@ -49,12 +49,7 @@ interface DashboardResponse {
   cached?: boolean;
 }
 
-interface PageProps {
-  requiresAuth?: boolean;
-  traceId?: string;
-}
-
-export default function VideoDashboard({ traceId }: PageProps) {
+export default function VideoDashboard() {
   const { user, isAuthorized, isChecking } = useVideoAdminAuth();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
