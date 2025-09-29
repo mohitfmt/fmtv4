@@ -209,7 +209,7 @@ export default function DesktopShortsView({
 
         {!hasMore && shorts.length > 0 && (
           <div className="mt-8 text-center text-muted-foreground">
-            You've reached the end
+            You have reached the end
           </div>
         )}
       </div>

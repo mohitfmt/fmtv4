@@ -577,6 +577,7 @@ const VideosPage = ({
               .filter(([_, playlist]) => playlist && playlist.videos.length > 0)
               .map(([playlistId, playlistData]) => (
                 <PlaylistSection
+                  key={playlistId}
                   playlist={playlistData}
                   playlistId={playlistId}
                 />

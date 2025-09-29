@@ -5,6 +5,7 @@ import Script from "next/script";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 // Lazy load components for better performance
 const DesktopShortsView = dynamic(
@@ -191,11 +192,11 @@ export default function ShortsPage({
         <div className="w-16 h-16 mx-auto mb-4 text-red-600">⚡</div>
         <h1 className="text-2xl font-bold mb-2">Unable to load shorts</h1>
         <p className="text-muted-foreground">{error}</p>
-        <a href="/videos" className="inline-block mt-4">
+        <Link href="/videos" className="inline-block mt-4">
           <button className="px-6 py-2 bg-primary text-white rounded-lg">
             Back to Videos
           </button>
-        </a>
+        </Link>
       </div>
     );
   }

@@ -3,7 +3,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  FaPlay,
   FaPause,
   FaEye,
   FaShare,
