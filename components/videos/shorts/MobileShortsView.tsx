@@ -334,7 +334,7 @@ export default function MobileShortsView({
                     {!hasInteracted && isMuted && (
                       <div className="absolute -left-20 top-1/2 -translate-y-1/2">
                         <div className="bg-white text-black text-xs px-2 py-1 rounded animate-bounce">
-                          👈 Tap for sound
+                          Tap for sound 👉
                         </div>
                       </div>
                     )}
@@ -342,7 +342,9 @@ export default function MobileShortsView({
                 </div>
 
                 {/* Bottom Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-black/80 to-transparent z-20">
+                {/* <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-black/80 to-transparent z-20"> */}
+                {/* Bottom Info */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 mr-20 pb-6 z-20">
                   <div className="mb-4">
                     {video.channelTitle && (
                       <p className="text-white font-semibold mb-2">
@@ -363,7 +365,7 @@ export default function MobileShortsView({
                   </div>
 
                   {/* Open in new tab button (more useful than Watch Full Video) */}
-                  <Link
+                  {/* <Link
                     href={`/videos/${video.videoId}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -371,7 +373,7 @@ export default function MobileShortsView({
                     <button className="w-full bg-white/10 backdrop-blur text-white py-2.5 rounded-lg font-medium border border-white/20 hover:bg-white/20 transition-colors">
                       Open in Full Player ↗
                     </button>
-                  </Link>
+                  </Link> */}
                 </div>
               </>
             )}
