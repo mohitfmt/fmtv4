@@ -213,8 +213,8 @@ export default async function handler(
 
     // Clear cache if playlists changed
     if (results.changed > 0) {
-      const { clearVideoCache } = await import("../videos/gallery");
-      clearVideoCache();
+      const { invalidateGalleryCache } = await import("../videos/gallery");
+      invalidateGalleryCache();
       logger.info("Cleared video gallery cache");
     }
 

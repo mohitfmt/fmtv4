@@ -1,249 +1,343 @@
 // pages/api/videos/gallery.ts
-// Updated version that fetches configuration from MongoDB
+// Reads playlist configuration from VideoConfig in MongoDB
+// Shorts = ANY videos in the designated shorts playlist (duration doesn't matter)
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { LRUCache } from "lru-cache";
+import { galleryCache } from "@/lib/cache/video-cache-registry";
 
-// Cache configuration - keep existing
-const galleryCache = new LRUCache<string, any>({
-  max: 10,
-  ttl: 1000 * 60 * 5, // 5 minutes
-  allowStale: false,
-  updateAgeOnGet: false,
-});
-
-// IMPORTANT: Keep the exact same transform function to maintain compatibility
-function transformVideo(video: any) {
+// Transform video data to match frontend expectations
+function transformVideo(video: any): any {
   return {
     videoId: video.videoId,
     title: video.title,
-    description: video.description,
-    publishedAt: video.publishedAt.toISOString(), // Convert Date to string for serialization
-    channelId: video.channelId,
-    // Note: channelTitle is NOT part of the Video type, so we don't include it here
+    description:
+      video.description?.substring(0, 200) +
+      (video.description?.length > 200 ? "..." : ""),
+    publishedAt: video.publishedAt,
+    channelId: video.channelId || "",
+    channelTitle: video.channelTitle || "",
     thumbnails: video.thumbnails || {},
-    duration: video.contentDetails?.duration || "",
+    duration: video.contentDetails?.duration || "PT0S",
     durationSeconds: video.contentDetails?.durationSeconds || 0,
-    statistics: video.statistics || {
-      viewCount: 0,
-      likeCount: 0,
-      commentCount: 0,
+    statistics: {
+      viewCount: String(video.statistics?.viewCount || 0),
+      likeCount: String(video.statistics?.likeCount || 0),
+      commentCount: String(video.statistics?.commentCount || 0),
     },
     isShort: video.isShort || false,
-    tier: video.tier || "standard",
-    tags: video.tags || [],
-    categoryId: video.categoryId || "",
     playlists: video.playlists || [],
+    categoryId: video.categoryId || "",
+    tags: video.tags || [],
+    tier: video.tier || "standard",
   };
+}
+
+// Base filter for all video queries - ensures only public, active videos
+function getBaseVideoFilter(search?: string) {
+  const baseFilter: any = {
+    isActive: true,
+    status: {
+      is: {
+        privacyStatus: "public",
+        uploadStatus: "processed",
+      },
+    },
+  };
+
+  // Add search if provided
+  if (search && search.trim()) {
+    baseFilter.OR = [
+      { title: { contains: search.trim(), mode: "insensitive" } },
+      { description: { contains: search.trim(), mode: "insensitive" } },
+      { tags: { has: search.trim() } },
+    ];
+  }
+
+  return baseFilter;
 }
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Only allow GET
   if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { fresh = "false" } = req.query;
-  const cacheKey = "gallery-main";
-
-  // Check cache first (unless fresh is requested)
-  if (fresh !== "true") {
-    const cached = galleryCache.get(cacheKey);
-    if (cached) {
-      res.setHeader("X-Cache", "HIT");
-      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
-      return res.status(200).json(cached);
-    }
-  }
-
   try {
-    // Get configuration from MongoDB
-    const config = await prisma.videoConfig.findFirst();
+    // Parse query parameters
+    const {
+      fresh = "false",
+      search = "",
+      page = "1",
+      limit = "12",
+    } = req.query;
 
-    let heroPlaylistId: string;
-    let shortsPlaylistId: string;
-    let displayedPlaylists: any[];
+    const shouldRefresh = fresh === "true";
+    const searchTerm = String(search).trim();
+    const pageNum = Math.max(1, parseInt(String(page)) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(String(limit)) || 12));
+    const skip = (pageNum - 1) * limitNum;
 
-    if (config) {
-      // Use configuration from database
-      heroPlaylistId = config.heroPlaylist;
-      shortsPlaylistId = config.shortsPlaylist;
-      displayedPlaylists = (config.displayedPlaylists as any[]) || [];
-    } else {
-      // Fallback to default playlists if no config exists
-      const defaultPlaylists = await prisma.playlist.findMany({
-        where: { isActive: true },
-        orderBy: { itemCount: "desc" },
-        take: 8,
-      });
+    // Cache key includes search and pagination
+    const cacheKey = `gallery:${searchTerm}:${pageNum}:${limitNum}`;
 
-      if (defaultPlaylists.length === 0) {
-        return res.status(500).json({
-          error: "No playlists configured",
-          message:
-            "Please configure playlists in admin panel or sync from YouTube",
-        });
+    // Check cache first (unless fresh data requested)
+    if (!shouldRefresh && !searchTerm) {
+      const cached = galleryCache.get(cacheKey);
+      if (cached) {
+        res.setHeader("X-Cache", "HIT");
+        res.setHeader("Cache-Control", "public, max-age=60, s-maxage=180");
+        return res.status(200).json(cached);
       }
-
-      // Use first playlist as hero, look for shorts playlist
-      heroPlaylistId = defaultPlaylists[0].playlistId;
-      const shortsPlaylist = defaultPlaylists.find(
-        (p) =>
-          p.title.toLowerCase().includes("short") ||
-          p.title.toLowerCase().includes("reel")
-      );
-      shortsPlaylistId =
-        shortsPlaylist?.playlistId ||
-        defaultPlaylists[1]?.playlistId ||
-        heroPlaylistId;
-
-      // Use first 5-8 playlists as displayed
-      displayedPlaylists = defaultPlaylists.slice(0, 6).map((p, index) => ({
-        playlistId: p.playlistId,
-        position: index + 1,
-        enabled: true,
-        maxVideos: 10,
-      }));
     }
 
-    // Filter and sort displayed playlists
-    const activePlaylists = displayedPlaylists
-      .filter((p) => p.enabled !== false)
-      .sort((a, b) => a.position - b.position);
+    // FIXED: Get playlist configurations from database instead of hardcoded values
+    const videoConfig = await prisma.videoConfig.findFirst();
 
-    // Build queries
+    if (!videoConfig) {
+      console.error("[Gallery API] No video configuration found in database");
+      return res.status(500).json({
+        error: "Video configuration not found",
+        message: "Please configure video settings in admin panel",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const heroPlaylistId = videoConfig.heroPlaylist;
+    const shortsPlaylistId = videoConfig.shortsPlaylist;
+
+    // Type cast the Json field to expected structure
+    interface PlaylistConfig {
+      playlistId: string;
+      position: number;
+      maxVideos: number;
+    }
+
+    const playlistConfigs: PlaylistConfig[] = Array.isArray(
+      videoConfig.displayedPlaylists
+    )
+      ? ((videoConfig.displayedPlaylists as any[]).filter(
+          (item) => item && typeof item === "object" && "playlistId" in item
+        ) as PlaylistConfig[])
+      : [];
+
+    // Build base filter
+    const baseFilter = getBaseVideoFilter(searchTerm);
+
+    // Fetch data in parallel for performance
     const queries: Promise<any>[] = [];
-    const playlistMetaMap = new Map<
-      string,
-      { title: string; position: number }
-    >();
 
-    // 1. Total video count
-    queries.push(prisma.videos.count());
-
-    // 2. Hero videos (featured content)
+    // 1. Total count for stats (with filter)
     queries.push(
-      prisma.videos.findMany({
-        where: {
-          playlists: { has: heroPlaylistId },
-        },
-        orderBy: [
-          { tier: "asc" }, // hot/trending first
-          { publishedAt: "desc" },
-        ],
-        take: 10,
+      prisma.videos.count({
+        where: baseFilter,
       })
     );
 
-    // 3. Shorts
+    // 2. Hero section - Latest videos from hero playlist
     queries.push(
       prisma.videos.findMany({
         where: {
-          playlists: { has: shortsPlaylistId },
-          isShort: true,
+          ...baseFilter,
+          playlists: searchTerm ? undefined : { has: heroPlaylistId },
         },
-        orderBy: { publishedAt: "desc" },
-        take: 12,
+        orderBy: { publishedAt: "desc" }, // LATEST VIDEOS FIRST, no tier
+        take: 6,
       })
     );
 
-    // 4. Today's new videos
+    // 3. Shorts - Simply get videos from shorts playlist (no duration filtering)
+    if (!searchTerm && shortsPlaylistId) {
+      queries.push(
+        prisma.videos.findMany({
+          where: {
+            ...baseFilter,
+            playlists: { has: shortsPlaylistId },
+          },
+          orderBy: { publishedAt: "desc" },
+          take: 12,
+        })
+      );
+    } else {
+      queries.push(Promise.resolve([])); // Empty shorts when searching
+    }
+
+    // 4. Today's new videos count
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     queries.push(
       prisma.videos.count({
         where: {
+          ...baseFilter,
           publishedAt: { gte: today },
         },
       })
     );
 
-    // 5. Fetch videos for each configured playlist
-    for (const playlistConfig of activePlaylists) {
-      const playlistMeta = await prisma.playlist.findFirst({
-        where: { playlistId: playlistConfig.playlistId },
-        select: { title: true, playlistId: true },
-      });
+    // 5. Fetch videos for each playlist (with pagination)
+    const playlistQueries: Promise<any>[] = [];
+    const playlistMetaMap = new Map<
+      string,
+      { title: string; position: number; maxVideos: number }
+    >();
 
-      if (playlistMeta) {
-        playlistMetaMap.set(playlistConfig.playlistId, {
-          title: playlistMeta.title,
-          position: playlistConfig.position,
+    if (!searchTerm) {
+      // Normal playlist loading when not searching
+      for (const config of playlistConfigs) {
+        const playlistMeta = await prisma.playlist.findFirst({
+          where: {
+            playlistId: config.playlistId,
+            isActive: true,
+          },
+          select: { title: true, playlistId: true },
         });
 
-        queries.push(
-          prisma.videos.findMany({
-            where: {
-              playlists: { has: playlistConfig.playlistId },
-            },
-            orderBy: { publishedAt: "desc" },
-            take: playlistConfig.maxVideos || 10,
-          })
-        );
+        if (playlistMeta) {
+          playlistMetaMap.set(config.playlistId, {
+            title: playlistMeta.title,
+            position: config.position,
+            maxVideos: config.maxVideos || 12,
+          });
+
+          // Paginated query for each playlist
+          playlistQueries.push(
+            prisma.videos.findMany({
+              where: {
+                ...baseFilter,
+                playlists: { has: config.playlistId },
+              },
+              orderBy: { publishedAt: "desc" },
+              take: config.maxVideos || limitNum,
+              skip: 0, // Always start from beginning for each playlist
+            })
+          );
+
+          // Count total for this playlist
+          playlistQueries.push(
+            prisma.videos.count({
+              where: {
+                ...baseFilter,
+                playlists: { has: config.playlistId },
+              },
+            })
+          );
+        }
       }
+    } else {
+      // When searching, just get paginated search results
+      playlistQueries.push(
+        prisma.videos.findMany({
+          where: baseFilter,
+          orderBy: { publishedAt: "desc" },
+          take: limitNum * 3,
+          skip: skip,
+        })
+      );
     }
 
     // Execute all queries in parallel
-    const results = await Promise.all(queries);
-
-    // Destructure results
     const [totalCount, heroVideos, shorts, todayVideos, ...playlistResults] =
-      results;
+      await Promise.all([...queries, ...playlistQueries]);
 
-    // Build playlists object - maintaining exact structure for compatibility
+    // Build playlists object
     const playlists: any = {};
-    let resultIndex = 0;
 
-    for (const playlistConfig of activePlaylists) {
-      const meta = playlistMetaMap.get(playlistConfig.playlistId);
-      if (meta && playlistResults[resultIndex]) {
-        const videos = playlistResults[resultIndex] as any[];
-        playlists[playlistConfig.playlistId] = {
-          name: meta.title,
-          videos: videos.map(transformVideo),
-        };
-        resultIndex++;
+    if (!searchTerm) {
+      // Normal playlist structure
+      let resultIndex = 0;
+      for (const config of playlistConfigs) {
+        const meta = playlistMetaMap.get(config.playlistId);
+        if (meta && playlistResults[resultIndex]) {
+          const videos = playlistResults[resultIndex] as any[];
+          const total = playlistResults[resultIndex + 1] as number;
+
+          playlists[config.playlistId] = {
+            name: meta.title,
+            videos: videos.map(transformVideo),
+            pagination: {
+              page: 1, // Each playlist starts from page 1
+              limit: meta.maxVideos,
+              total: total,
+              hasMore: meta.maxVideos < total,
+            },
+          };
+          resultIndex += 2;
+        }
       }
+    } else {
+      // Search results as single "playlist"
+      const searchResults = playlistResults[0] as any[];
+      playlists.searchResults = {
+        name: `Search Results for "${searchTerm}"`,
+        videos: searchResults.map(transformVideo),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: totalCount,
+          hasMore: skip + limitNum < totalCount,
+        },
+      };
     }
 
-    // Build response - exact same structure as original
+    // Build response
     const responseData = {
       hero: Array.isArray(heroVideos) ? heroVideos.map(transformVideo) : [],
       shorts: Array.isArray(shorts) ? shorts.map(transformVideo) : [],
       playlists,
       stats: {
         totalVideos: totalCount,
-        todayViews: 0, // Calculate from analytics if needed
+        todayViews: 0, // Would need analytics integration
         newToday: todayVideos,
       },
+      search: {
+        term: searchTerm || null,
+        results: searchTerm ? totalCount : null,
+      },
+      pagination: {
+        current: pageNum,
+        limit: limitNum,
+        total: Math.ceil(totalCount / limitNum),
+      },
+      timestamp: new Date().toISOString(),
     };
 
-    // Cache the response
-    galleryCache.set(cacheKey, responseData);
+    // Cache the response (only for non-search results)
+    if (!searchTerm) {
+      galleryCache.set(cacheKey, responseData);
+    }
 
-    // Set headers
-    res.setHeader("X-Cache", "MISS");
-    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=86400");
+    // Set cache headers
+    res.setHeader("X-Cache", searchTerm ? "BYPASS" : "MISS");
+    res.setHeader(
+      "Cache-Control",
+      searchTerm
+        ? "private, no-cache"
+        : "public, max-age=60, s-maxage=180, stale-while-revalidate=86400"
+    );
+    res.setHeader("Cache-Tag", "video:gallery,video:latest");
 
     return res.status(200).json(responseData);
   } catch (error: any) {
     console.error("[Video Gallery API] Error:", error);
-    galleryCache.clear();
+
+    // Clear cache on error
+    if (error.message?.includes("cache")) {
+      galleryCache.clear();
+    }
 
     return res.status(500).json({
       error: "Failed to fetch video data",
       message:
         process.env.NODE_ENV === "development" ? error.message : undefined,
+      timestamp: new Date().toISOString(),
     });
   }
 }
 
-// Export cache clear function for use in other modules
-export function clearVideoCache() {
+// Export cache utilities
+export function invalidateGalleryCache() {
   galleryCache.clear();
-  console.log("[Video Gallery API] Cache cleared");
+  console.log("[Gallery API] Cache invalidated");
 }

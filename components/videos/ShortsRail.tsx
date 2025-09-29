@@ -1,22 +1,28 @@
+// components/videos/ShortsRail.tsx
+// Displays videos from the designated "shorts" playlist
+// Duration doesn't matter - any video in the shorts playlist is considered a "short"
 import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Play, Eye, Sparkles } from "lucide-react";
+import {
+  FaPlay,
+  FaEye,
+  FaChevronLeft,
+  FaChevronRight,
+  FaArrowRight,
+} from "react-icons/fa";
+import { BsLightningChargeFill } from "react-icons/bs";
 import { Button } from "@/components/ui/button";
-import { formatViewCount } from "@/lib/utils";
+import { formatViewCount, formatDuration } from "@/lib/utils";
 import type { Video } from "@/types/video";
 
 const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const [isVisible, setIsVisible] = useState(false);
-  const observerRef = useRef<IntersectionObserver>();
 
-  // Filter shorts to only include videos between 5 and 60 seconds
-  const validShorts = shorts.filter((video) => {
-    const duration = video.durationSeconds || parseInt(video.duration) || 0;
-    return duration > 5 && duration < 60;
-  });
+  // Display up to 12 videos from shorts playlist, with "View More" as 13th item
+  const displayShorts = shorts.slice(0, 12);
 
   // Lazy load the entire component
   useEffect(() => {
@@ -48,7 +54,7 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
     }
   };
 
-  // Thumbnail priority list for Shorts
+  // Thumbnail priority list for Shorts (frame0.jpg for vertical videos)
   const getThumbnailPriorityList = (videoId: string) => [
     `https://i.ytimg.com/vi/${videoId}/frame0.jpg`,
     `https://i.ytimg.com/vi/${videoId}/oar2.jpg`,
@@ -70,7 +76,7 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
     }));
   };
 
-  if (validShorts.length === 0) {
+  if (displayShorts.length === 0) {
     return null;
   }
 
@@ -78,11 +84,9 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
     <section className="my-8" aria-label="Shorts Videos">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-red-600" />
+          <BsLightningChargeFill className="w-6 h-6 text-red-600" />
           <h2 className="text-2xl font-bold">Shorts</h2>
-          <span className="text-sm text-muted-foreground">
-            Quick videos ({validShorts.length})
-          </span>
+          <span className="text-sm text-muted-foreground">Quick videos</span>
         </div>
         <div className="flex gap-2">
           <Button
@@ -90,18 +94,16 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
             size="icon"
             onClick={() => scroll("left")}
             aria-label="Scroll left"
-            disabled={validShorts.length <= 1}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <FaChevronLeft className="w-4 h-4" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={() => scroll("right")}
             aria-label="Scroll right"
-            disabled={validShorts.length <= 1}
           >
-            <ChevronRight className="w-4 h-4" />
+            <FaChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -111,10 +113,11 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
         className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {validShorts.map((short, index) => (
+        {/* Display shorts in 9:16 vertical format (180px × 320px) */}
+        {displayShorts.map((short) => (
           <article
             key={short.videoId}
-            className="flex-shrink-0 w-[250px] group"
+            className="flex-shrink-0 w-[180px] group"
           >
             <Link href={`/videos/${short.videoId}`} prefetch={false}>
               <div className="relative aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden">
@@ -123,7 +126,7 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
                     src={getShortsThumbnailUrl(short)}
                     alt={short.title}
                     fill
-                    sizes="250px"
+                    sizes="180px"
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                     onError={() => handleImageError(short.videoId)}
@@ -131,35 +134,56 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
                   />
                 )}
 
+                {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
+                {/* Play button on hover */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="bg-black/60 rounded-full p-3">
-                    <Play className="w-6 h-6 text-white fill-white" />
+                  <div className="bg-white/90 rounded-full p-3">
+                    <FaPlay className="w-5 h-5 text-black ml-0.5" />
                   </div>
                 </div>
 
+                {/* Video info at bottom */}
                 <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                  <h3 className="text-sm font-semibold line-clamp-2 mb-1">
+                  <h3 className="text-xs font-semibold line-clamp-2 mb-1">
                     {short.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-white/90">
-                    <Eye className="w-3 h-3" />
+                  <div className="flex items-center gap-1.5 text-xs text-white/90">
+                    <FaEye className="w-3 h-3" />
                     <span>
-                      {formatViewCount(short.statistics?.viewCount || 0)} views
+                      {formatViewCount(short.statistics?.viewCount || 0)}
                     </span>
                   </div>
                 </div>
 
-                <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 rounded text-white text-xs font-medium">
-                  {short.durationSeconds ||
-                    Math.floor(parseInt(short.duration) || 0)}
-                  s
+                {/* Duration badge */}
+                <div className="absolute top-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-white text-xs font-medium">
+                  {formatDuration(short.duration)}
                 </div>
               </div>
             </Link>
           </article>
         ))}
+
+        {/* "View More" as 13th item if there are more than 12 shorts */}
+        {shorts.length > 12 && (
+          <div className="flex-shrink-0 w-[180px]">
+            <Link href="/videos/shorts" prefetch={false}>
+              <div className="relative aspect-[9/16] bg-gradient-to-br from-red-600 to-red-800 rounded-lg overflow-hidden flex flex-col items-center justify-center group cursor-pointer">
+                <div className="text-white text-center p-4">
+                  <div className="bg-white/20 rounded-full p-3 mb-3 mx-auto w-fit group-hover:scale-110 transition-transform">
+                    <FaArrowRight className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-sm mb-1">View More</p>
+                  <p className="text-xs opacity-90">
+                    {shorts.length - 12}+ shorts
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

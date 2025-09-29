@@ -55,7 +55,8 @@ export interface Video {
     | "evergreen"
     | "archive"
     | "viral-short"
-    | "popular-short";
+    | "popular-short"
+    | "featured";
   playlists?: string[];
 
   // Optional fields from Prisma
