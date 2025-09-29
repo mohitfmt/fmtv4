@@ -108,6 +108,11 @@ export default async function handler(
     const heroPlaylistId = videoConfig.heroPlaylist;
     const shortsPlaylistId = videoConfig.shortsPlaylist;
 
+    const shortsPlaylistInfo = await prisma.playlist.findFirst({
+      where: { playlistId: shortsPlaylistId },
+    });
+    const shortsTotalCount = shortsPlaylistInfo?.itemCount || 0;
+
     // Type cast the Json field to expected structure
     interface PlaylistConfig {
       playlistId: string;
@@ -285,6 +290,7 @@ export default async function handler(
     const responseData = {
       hero: Array.isArray(heroVideos) ? heroVideos.map(transformVideo) : [],
       shorts: Array.isArray(shorts) ? shorts.map(transformVideo) : [],
+      shortsTotalCount,
       playlists,
       stats: {
         totalVideos: totalCount,

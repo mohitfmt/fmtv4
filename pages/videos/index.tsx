@@ -4,7 +4,6 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import dynamic from "next/dynamic";
 import {
   FaPlay,
   FaEye,
@@ -21,12 +20,13 @@ import { formatViewCount, formatDuration, getTimeAgo } from "@/lib/utils";
 import VideoSkeleton from "@/components/skeletons/VideoCardSkeleton";
 import type { Video } from "@/types/video";
 import { useDebounce } from "@/hooks/useDebounce";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import ShortsRail from "@/components/videos/ShortsRail";
 
 // Types
 interface VideoHubData {
   hero: Video[];
   shorts: Video[];
+  shortsTotalCount?: number;
   playlists: Record<
     string,
     {
@@ -52,14 +52,6 @@ interface ChannelInfo {
   customUrl?: string;
   lastFetched: Date;
 }
-
-// Lazy load heavy components
-const ShortsRail = dynamic(() => import("@/components/videos/ShortsRail"), {
-  loading: () => (
-    <div className="h-[360px] animate-pulse bg-muted rounded-lg" />
-  ),
-  ssr: false,
-});
 
 // Hero Carousel Component
 const HeroCarousel = ({ videos }: { videos: Video[] }) => {
@@ -571,32 +563,23 @@ const VideosPage = ({
             {/* Hero Carousel */}
             {data.hero.length > 0 && (
               <section aria-label="Featured Videos" className="mb-8">
-                <ErrorBoundary
-                  fallback={<div>Unable to load featured videos</div>}
-                >
-                  <HeroCarousel videos={data.hero} />
-                </ErrorBoundary>
+                <HeroCarousel videos={data.hero} />
               </section>
             )}
 
-            {/* Shorts Rail - positioned directly under hero */}
-            {data.shorts && data.shorts.length > 0 && (
-              <ShortsRail shorts={data.shorts} />
-            )}
+            <ShortsRail
+              shorts={data.shorts}
+              totalCount={data.shortsTotalCount}
+            />
 
             {/* Playlist Sections - 3-column grid */}
             {Object.entries(data.playlists)
               .filter(([_, playlist]) => playlist && playlist.videos.length > 0)
               .map(([playlistId, playlistData]) => (
-                <ErrorBoundary
-                  key={playlistId}
-                  fallback={<div>Unable to load playlist</div>}
-                >
-                  <PlaylistSection
-                    playlist={playlistData}
-                    playlistId={playlistId}
-                  />
-                </ErrorBoundary>
+                <PlaylistSection
+                  playlist={playlistData}
+                  playlistId={playlistId}
+                />
               ))}
           </>
         )}
@@ -655,6 +638,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       });
     }
 
+    // Sort shorts videos by publishedAt only (no tier sorting)
+    if (videoData.shorts) {
+      videoData.shorts.sort((a: Video, b: Video) => {
+        return (
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+      });
+    }
+
     // Sort playlist videos by publishedAt only
     if (videoData.playlists) {
       Object.values(videoData.playlists).forEach((playlist: any) => {
@@ -669,7 +661,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       });
     }
 
-    console.log("[Videos Page] Data fetched successfully", videoData);
     return {
       props: {
         data: videoData,

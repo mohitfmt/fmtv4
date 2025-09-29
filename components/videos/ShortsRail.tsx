@@ -16,13 +16,21 @@ import { Button } from "@/components/ui/button";
 import { formatViewCount, formatDuration } from "@/lib/utils";
 import type { Video } from "@/types/video";
 
-const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
+const ShortsRail = ({
+  shorts,
+  totalCount,
+}: {
+  shorts: Video[];
+  totalCount?: number; // Optional for backward compatibility
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const [isVisible, setIsVisible] = useState(false);
 
   // Display up to 12 videos from shorts playlist, with "View More" as 13th item
   const displayShorts = shorts.slice(0, 12);
+
+  const actualTotalCount = totalCount || shorts.length;
 
   // Lazy load the entire component
   useEffect(() => {
@@ -117,7 +125,7 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
         {displayShorts.map((short) => (
           <article
             key={short.videoId}
-            className="flex-shrink-0 w-[180px] group"
+            className="flex-shrink-0 w-[250px] group"
           >
             <Link href={`/videos/${short.videoId}`} prefetch={false}>
               <div className="relative aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden">
@@ -146,7 +154,7 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
 
                 {/* Video info at bottom */}
                 <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                  <h3 className="text-xs font-semibold line-clamp-2 mb-1">
+                  <h3 className="font-semibold line-clamp-2 mb-1">
                     {short.title}
                   </h3>
                   <div className="flex items-center gap-1.5 text-xs text-white/90">
@@ -167,17 +175,17 @@ const ShortsRail = ({ shorts }: { shorts: Video[] }) => {
         ))}
 
         {/* "View More" as 13th item if there are more than 12 shorts */}
-        {shorts.length > 12 && (
-          <div className="flex-shrink-0 w-[180px]">
+        {actualTotalCount > 12 && (
+          <div className="flex-shrink-0 w-[250px]">
             <Link href="/videos/shorts" prefetch={false}>
-              <div className="relative aspect-[9/16] bg-gradient-to-br from-red-600 to-red-800 rounded-lg overflow-hidden flex flex-col items-center justify-center group cursor-pointer">
+              <div className="relative aspect-[9/16] bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg overflow-hidden flex flex-col items-center justify-center group cursor-pointer">
                 <div className="text-white text-center p-4">
                   <div className="bg-white/20 rounded-full p-3 mb-3 mx-auto w-fit group-hover:scale-110 transition-transform">
                     <FaArrowRight className="w-6 h-6" />
                   </div>
-                  <p className="font-bold text-sm mb-1">View More</p>
-                  <p className="text-xs opacity-90">
-                    {shorts.length - 12}+ shorts
+                  <p className="font-bold text-3xl mb-1">View More</p>
+                  <p className="text-2xl font-bitter opacity-90">
+                    {actualTotalCount}+ Shorts
                   </p>
                 </div>
               </div>

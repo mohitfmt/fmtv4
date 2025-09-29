@@ -28,19 +28,10 @@ function parseDuration(duration: string): number {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-// Helper to determine if video is a Short
-function isShortVideo(duration?: string | number): boolean {
-  if (!duration) return false;
-  const seconds =
-    typeof duration === "string" ? parseDuration(duration) : duration;
-  return seconds > 0 && seconds <= 60;
-}
-
-// Helper to find video by videoId
 async function findVideoByVideoId(prisma: any, videoId: string) {
   return await prisma.videos.findFirst({
     where: { videoId },
-    select: { id: true },
+    select: { id: true, playlists: true }, // ADDED playlists
   });
 }
 
@@ -51,6 +42,10 @@ export default async function handler(
   const traceId = generateTraceId();
   const startTime = Date.now();
   const logger = new Logger("CHECK-UPLOADS", traceId);
+  const videoConfig = await prisma.videoConfig.findFirst({
+    orderBy: { updatedAt: "desc" },
+  });
+  const shortsPlaylistId = videoConfig?.shortsPlaylist;
 
   logger.info("========================================");
   logger.info("Starting uploads check via RSS");
@@ -138,7 +133,10 @@ export default async function handler(
         // Parse video data
         const duration = video.contentDetails?.duration || "PT0S";
         const durationSeconds = parseDuration(duration);
-        const isShort = isShortVideo(durationSeconds);
+        let isShort = false;
+        if (existing && existing.playlists && shortsPlaylistId) {
+          isShort = existing.playlists.includes(shortsPlaylistId);
+        }
 
         const viewCount = parseInt(video.statistics?.viewCount || "0");
         const likeCount = parseInt(video.statistics?.likeCount || "0");

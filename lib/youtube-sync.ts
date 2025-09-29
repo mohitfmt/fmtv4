@@ -14,6 +14,12 @@ interface SyncResult {
   errors: string[];
 }
 
+async function getVideoConfig() {
+  return await prisma.videoConfig.findFirst({
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 /**
  * Sync all playlists or specific playlist IDs
  */
@@ -128,6 +134,8 @@ export async function syncPlaylist(playlistId: string): Promise<SyncResult> {
   };
 
   try {
+    const videoConfig = await getVideoConfig();
+    const shortsPlaylistId = videoConfig?.shortsPlaylist;
     // Start a transaction for better consistency
     await prisma.$transaction(async (tx) => {
       // Fetch all videos from the YouTube playlist
@@ -187,7 +195,11 @@ export async function syncPlaylist(playlistId: string): Promise<SyncResult> {
         // Check if it's a YouTube Short
         const duration = video.contentDetails?.duration || "";
         const durationSeconds = parseDuration(duration);
-        const isShort = durationSeconds > 0 && durationSeconds <= 60;
+        const existingVideo = existingVideoMap.get(video.id);
+        const currentPlaylists = existingVideo?.playlists || [playlistId];
+        const isShort = shortsPlaylistId
+          ? currentPlaylists.includes(shortsPlaylistId)
+          : false;
 
         const videoData = {
           title: video.snippet?.title || "",
@@ -234,7 +246,7 @@ export async function syncPlaylist(playlistId: string): Promise<SyncResult> {
           syncVersion: 2,
         };
 
-        const existingVideo = existingVideoMap.get(video.id);
+        // const existingVideo = existingVideoMap.get(video.id);
 
         if (existingVideo) {
           // Update existing video
