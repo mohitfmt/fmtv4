@@ -1,5 +1,7 @@
 // pages/videos/shorts.tsx
-import { GetServerSideProps } from "next";
+// MODIFIED: Converted from SSR to ISR for better performance
+
+import { GetStaticProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import { useState, useEffect } from "react";
@@ -102,41 +104,20 @@ function generateVideoSchema(
       {
         "@type": "InteractionCounter",
         interactionType: "https://schema.org/WatchAction",
-        userInteractionCount: video.statistics.viewCount,
-      },
-      {
-        "@type": "InteractionCounter",
-        interactionType: "https://schema.org/LikeAction",
-        userInteractionCount: video.statistics.likeCount,
-      },
-      {
-        "@type": "InteractionCounter",
-        interactionType: "https://schema.org/CommentAction",
-        userInteractionCount: video.statistics.commentCount,
+        userInteractionCount: parseInt(video.statistics.viewCount) || 0,
       },
     ],
     publisher: {
       "@type": "Organization",
-      name: channelInfo.name,
+      name: channelInfo?.name || "Free Malaysia Today",
       logo: {
         "@type": "ImageObject",
-        url: channelInfo.logo,
-        width: 600,
-        height: 60,
+        url: channelInfo?.logo || "https://www.freemalaysiatoday.com/logo.png",
       },
     },
-    potentialAction: {
-      "@type": "WatchAction",
-      target: `https://www.freemalaysiatoday.com/videos/${video.videoId}`,
-    },
-    isAccessibleForFree: true,
-    isFamilyFriendly: true,
-    genre: "News",
-    keywords: video.tags?.join(", ") || "malaysia news, fmt, shorts",
   };
 }
 
-// Main Component
 export default function ShortsPage({
   shorts,
   totalCount,
@@ -147,16 +128,9 @@ export default function ShortsPage({
   isNewsContent,
   trendingKeywords,
   lastModified,
-  channelInfo = {
-    name: "Free Malaysia Today",
-    logo: "https://www.freemalaysiatoday.com/logo.png",
-    url: "https://www.freemalaysiatoday.com",
-  },
+  channelInfo,
 }: ShortsPageProps) {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
-  const [viewerCount, setViewerCount] = useState(
-    Math.floor(Math.random() * 50) + 10
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -167,110 +141,39 @@ export default function ShortsPage({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Simulate real-time viewers - for SEO metadata only
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setViewerCount((prev) => {
-        const change = Math.floor(Math.random() * 5) - 2;
-        return Math.max(5, prev + change);
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Get the most popular video for realistic viewer count context
-  const mostPopularVideo = shorts.reduce((prev, current) => {
-    const prevViews = Number(prev.statistics.viewCount);
-    const currentViews = Number(current.statistics.viewCount);
-    return currentViews > prevViews ? current : prev;
-  }, shorts[0] || {});
-
-  // Error state
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 text-red-600">⚡</div>
-        <h1 className="text-2xl font-bold mb-2">Unable to load shorts</h1>
-        <p className="text-muted-foreground">{error}</p>
-        <Link href="/videos" className="inline-block mt-4">
-          <button className="px-6 py-2 bg-primary text-white rounded-lg">
-            Back to Videos
-          </button>
-        </Link>
-      </div>
-    );
-  }
-
-  // Loading state while determining mobile/desktop
-  if (isMobile === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Generate comprehensive JSON-LD structured data
-  const structuredData = {
+  // Generate JSON-LD structured data
+  const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      // Organization Schema
       {
-        "@type": "NewsMediaOrganization",
-        "@id": "https://www.freemalaysiatoday.com/#organization",
-        name: "Free Malaysia Today",
-        alternateName: "FMT",
-        url: "https://www.freemalaysiatoday.com",
-        logo: {
-          "@type": "ImageObject",
-          url: "https://www.freemalaysiatoday.com/logo.png",
-          width: 600,
-          height: 60,
-        },
-        sameAs: [
-          "https://www.facebook.com/freemalaysiatoday",
-          "https://twitter.com/fmtoday",
-          "https://www.youtube.com/@FMTNews",
-          "https://www.instagram.com/freemalaysiatoday",
-        ],
-        publishingPrinciples: "https://www.freemalaysiatoday.com/about/ethics",
-        ownershipFundingInfo: "https://www.freemalaysiatoday.com/about",
-        actionableFeedbackPolicy: "https://www.freemalaysiatoday.com/feedback",
+        "@type": "ItemList",
+        "@id": `${currentUrl}#itemlist`,
+        name: `${playlistTitle} - Free Malaysia Today`,
+        description: `Collection of ${totalCount} short news videos from Malaysia`,
+        numberOfItems: totalCount,
+        itemListElement: shorts
+          .slice(0, 20)
+          .map((video, index) =>
+            generateVideoSchema(video, index, channelInfo)
+          ),
       },
-      // WebPage Schema
       {
         "@type": "CollectionPage",
         "@id": currentUrl,
+        name: playlistTitle,
+        description: `Browse ${totalCount} short videos from Free Malaysia Today`,
         url: currentUrl,
-        name: `FMT Shorts - ${totalCount} Latest Malaysia News Videos`,
-        description: `Watch ${totalCount} quick news updates, breaking stories, and trending videos from Malaysia. Updated every minute with fresh content.`,
-        inLanguage: ["en-MY", "ms-MY"],
         isPartOf: {
-          "@id": "https://www.freemalaysiatoday.com/#website",
-        },
-        primaryImageOfPage: {
-          "@type": "ImageObject",
-          url:
-            shorts[0]?.thumbnails?.maxres?.url ||
-            "https://www.freemalaysiatoday.com/default-shorts.jpg",
-        },
-        datePublished: shorts[0]?.publishedAt || new Date().toISOString(),
-        dateModified: lastModified,
-        breadcrumb: {
-          "@id": `${currentUrl}#breadcrumb`,
+          "@type": "WebSite",
+          name: "Free Malaysia Today",
+          url: "https://www.freemalaysiatoday.com",
         },
         mainEntity: {
-          "@id": `${currentUrl}#videolist`,
-        },
-        speakable: {
-          "@type": "SpeakableSpecification",
-          cssSelector: ["h1", ".video-title"],
+          "@id": `${currentUrl}#itemlist`,
         },
       },
-      // BreadcrumbList Schema
       {
         "@type": "BreadcrumbList",
-        "@id": `${currentUrl}#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",
@@ -287,399 +190,100 @@ export default function ShortsPage({
           {
             "@type": "ListItem",
             position: 3,
-            name: "Shorts",
+            name: playlistTitle,
             item: currentUrl,
           },
         ],
       },
-      // ItemList Schema for video collection
-      {
-        "@type": "ItemList",
-        "@id": `${currentUrl}#videolist`,
-        itemListElement: shorts
-          .slice(0, 10)
-          .map((video, index) =>
-            generateVideoSchema(video, index, channelInfo)
-          ),
-        numberOfItems: totalCount,
-        itemListOrder:
-          sortBy === "popular"
-            ? "https://schema.org/ItemListOrderDescending"
-            : "https://schema.org/ItemListUnordered",
-      },
-      // WebSite Schema with SearchAction
-      {
-        "@type": "WebSite",
-        "@id": "https://www.freemalaysiatoday.com/#website",
-        url: "https://www.freemalaysiatoday.com",
-        name: "Free Malaysia Today",
-        potentialAction: {
-          "@type": "SearchAction",
-          target:
-            "https://www.freemalaysiatoday.com/search?q={search_term_string}",
-          "query-input": "required name=search_term_string",
-        },
-      },
     ],
   };
 
-  // News Article Schema for news-related videos
-  const newsArticleSchema =
-    isNewsContent && shorts.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "NewsArticle",
-          headline: `Malaysia Breaking: ${shorts[0].title}`,
-          alternativeHeadline: `FMT Shorts: ${totalCount} Latest Updates`,
-          description:
-            shorts[0].description ||
-            `Latest breaking news and updates from Malaysia. ${totalCount} videos covering politics, business, lifestyle and more.`,
-          image: [
-            shorts[0]?.thumbnails?.maxres?.url,
-            shorts[0]?.thumbnails?.high?.url,
-            shorts[0]?.thumbnails?.medium?.url,
-          ].filter(Boolean),
-          datePublished: shorts[0].publishedAt,
-          dateModified: lastModified,
-          author: {
-            "@type": "Organization",
-            name: "FMT News Team",
-            url: "https://www.freemalaysiatoday.com",
-          },
-          publisher: {
-            "@type": "Organization",
-            name: "Free Malaysia Today",
-            logo: {
-              "@type": "ImageObject",
-              url: "https://www.freemalaysiatoday.com/logo.png",
-            },
-          },
-          mainEntityOfPage: currentUrl,
-          keywords: trendingKeywords.join(", "),
-        }
-      : null;
+  const pageTitle = `${playlistTitle} - ${totalCount} Videos | Free Malaysia Today`;
+  const pageDescription = `Watch ${totalCount} latest short videos from Malaysia. Breaking news, politics, business, lifestyle, and more from Free Malaysia Today.`;
 
-  // LiveBlogPosting for real-time updates
-  const liveBlogSchema = {
-    "@context": "https://schema.org",
-    "@type": "LiveBlogPosting",
-    headline: `Live: Malaysia News Updates - ${new Date().toLocaleDateString("en-MY")}`,
-    description: `Real-time news updates from Malaysia. ${viewerCount} people watching now.`,
-    liveBlogUpdate: shorts.slice(0, 5).map((video, index) => ({
-      "@type": "BlogPosting",
-      headline: video.title,
-      datePublished: video.publishedAt,
-      articleBody: video.description || video.title,
-    })),
-    coverageStartTime: shorts[shorts.length - 1]?.publishedAt,
-    coverageEndTime: shorts[0]?.publishedAt,
-  };
-
-  // Generate dynamic title with real-time signals
-  const dynamicTitle = `FMT Shorts - ${totalCount} Videos${sortBy === "popular" ? " (Most Viewed)" : sortBy === "trending" ? " (Archive)" : " (Latest)"} | ${viewerCount} Watching Now`;
-
-  // Generate enhanced description
-  const enhancedDescription = `Watch ${totalCount} Malaysia news shorts. ${
-    shorts[0] ? `Latest: "${shorts[0].title}" ` : ""
-  }Breaking news, politics, business updates. ${viewerCount} viewers online. Updated ${new Date().toLocaleTimeString("en-MY")}.`;
-
-  // Generate news keywords from tags and trending
-  const newsKeywords = [
-    ...new Set([
-      "malaysia news",
-      "fmt shorts",
-      "breaking news malaysia",
-      ...trendingKeywords,
-      ...shorts.slice(0, 5).flatMap((v) => v.tags || []),
-    ]),
-  ]
-    .slice(0, 10)
-    .join(", ");
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold mb-4">Error Loading Shorts</h1>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <Link href="/videos">
+          <button className="px-6 py-2 bg-primary text-white rounded-lg">
+            Back to Videos
+          </button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
       <Head>
-        {/* Core Meta Tags */}
-        <title>{dynamicTitle}</title>
-        <meta name="description" content={enhancedDescription} />
-        <meta name="keywords" content={newsKeywords} />
-        <meta name="robots" content="index, follow, max-video-preview:-1" />
+        {/* Primary Meta Tags */}
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={pageDescription} />
         <meta
-          name="googlebot"
-          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+          name="keywords"
+          content={`FMT Shorts, Malaysia news videos, breaking news, short videos, ${trendingKeywords.join(", ")}`}
         />
-        <meta
-          name="bingbot"
-          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
-        />
-
-        {/* Canonical and Alternate URLs */}
         <link rel="canonical" href={currentUrl} />
-        <link
-          rel="alternate"
-          type="application/rss+xml"
-          title="FMT Shorts RSS"
-          href="/feeds/shorts.xml"
-        />
-        <link rel="alternate" hrefLang="en-MY" href={`${currentUrl}?lang=en`} />
-        <link rel="alternate" hrefLang="ms-MY" href={`${currentUrl}?lang=ms`} />
-        <link rel="alternate" hrefLang="x-default" href={currentUrl} />
 
-        {/* Mobile Specific */}
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=5"
-        />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-        <meta name="apple-mobile-web-app-title" content="FMT Shorts" />
-
-        {/* Open Graph Tags */}
-        <meta
-          property="og:title"
-          content={`FMT Shorts: ${totalCount} Latest Malaysia Videos`}
-        />
-        <meta property="og:description" content={enhancedDescription} />
+        {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content={currentUrl} />
-        <meta property="og:site_name" content="Free Malaysia Today" />
-        <meta property="og:locale" content="en_MY" />
-        <meta property="og:locale:alternate" content="ms_MY" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
         <meta
           property="og:image"
           content={
-            shorts[0]?.thumbnails?.maxres?.url ||
-            "https://www.freemalaysiatoday.com/og-shorts.jpg"
+            shorts[0]?.thumbnails?.maxres ||
+            "https://www.freemalaysiatoday.com/images/fmt-video-default.jpg"
           }
         />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta
-          property="og:image:alt"
-          content={`FMT Shorts - ${shorts[0]?.title || "Latest Videos"}`}
-        />
-        <meta
-          property="og:video"
-          content={`https://www.youtube.com/embed/${shorts[0]?.videoId}`}
-        />
-        <meta property="og:updated_time" content={lastModified} />
+        <meta property="og:site_name" content="Free Malaysia Today" />
 
-        {/* Twitter Card Tags */}
+        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
-        <meta name="twitter:creator" content="@fmtoday" />
-        <meta
-          name="twitter:title"
-          content={`FMT Shorts: ${totalCount} Videos`}
-        />
-        <meta name="twitter:description" content={enhancedDescription} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
         <meta
           name="twitter:image"
           content={
-            shorts[0]?.thumbnails?.maxres?.url ||
-            "https://www.freemalaysiatoday.com/twitter-shorts.jpg"
+            shorts[0]?.thumbnails?.maxres ||
+            "https://www.freemalaysiatoday.com/images/fmt-video-default.jpg"
           }
         />
-        <meta
-          name="twitter:image:alt"
-          content={`Latest: ${shorts[0]?.title || "Malaysia News"}`}
-        />
-        <meta
-          name="twitter:player"
-          content={`https://www.youtube.com/embed/${shorts[0]?.videoId}`}
-        />
-        <meta name="twitter:player:width" content="480" />
-        <meta name="twitter:player:height" content="854" />
 
-        {/* Google News Tags */}
-        <meta name="news_keywords" content={newsKeywords} />
+        {/* Additional SEO */}
         <meta
-          name="original-source"
-          content="https://www.freemalaysiatoday.com"
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
         />
-        <meta
-          property="article:publisher"
-          content="https://www.facebook.com/freemalaysiatoday"
-        />
-        <meta property="article:author" content="FMT News Team" />
-        <meta property="article:section" content="Videos" />
-        <meta property="article:tag" content="Shorts" />
-        <meta
-          property="article:published_time"
-          content={
-            shorts[0]?.publishedAt.toString() || new Date().toISOString()
-          }
-        />
-        <meta property="article:modified_time" content={lastModified} />
+        <meta name="googlebot" content="index, follow" />
+        <meta httpEquiv="content-language" content="en-MY" />
+        <meta name="geo.region" content="MY" />
+        <meta name="article:publisher" content="Free Malaysia Today" />
+        <meta name="article:modified_time" content={lastModified} />
 
-        {/* Video Specific Meta */}
-        <meta
-          property="video:duration"
-          content={String(shorts[0]?.durationSeconds || 60)}
-        />
-        <meta
-          property="video:release_date"
-          content={
-            shorts[0]?.publishedAt.toString() || new Date().toISOString()
-          }
-        />
-        <meta
-          property="video:tag"
-          content={shorts[0]?.tags?.join(", ") || "malaysia, news, shorts"}
-        />
-
-        {/* Performance & Preload */}
-        <link rel="preconnect" href="https://i.ytimg.com" />
-        <link rel="dns-prefetch" href="https://i.ytimg.com" />
-        <link rel="preconnect" href="https://www.youtube.com" />
-        <link rel="dns-prefetch" href="https://www.youtube.com" />
-
-        {/* Preload critical images */}
-        {shorts.slice(0, 3).map((video) => (
-          <link
-            key={video.videoId}
-            rel="preload"
-            as="image"
-            href={`https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`}
-            media="(min-width: 768px)"
-          />
-        ))}
+        {isNewsContent && (
+          <>
+            <meta name="news_keywords" content={trendingKeywords.join(", ")} />
+            <meta property="article:section" content="Video News" />
+          </>
+        )}
       </Head>
 
       {/* JSON-LD Structured Data */}
       <Script
-        id="structured-data"
+        id="shorts-jsonld"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-
-      {newsArticleSchema && (
-        <Script
-          id="news-article-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(newsArticleSchema),
-          }}
-        />
-      )}
-
-      <Script
-        id="live-blog-schema"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(liveBlogSchema) }}
-      />
-
-      {/* Google Analytics 4 with Enhanced Ecommerce */}
-      <Script
-        strategy="afterInteractive"
-        src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
-      />
-      <Script
-        id="google-analytics"
-        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-XXXXXXXXXX', {
-              page_path: '${currentUrl}',
-              page_title: '${dynamicTitle}',
-              content_group: 'videos',
-              content_type: 'shorts',
-              video_count: ${totalCount},
-              sort_method: '${sortBy}',
-              viewer_count: ${viewerCount}
-            });
-            
-            // Track video impressions
-            ${shorts
-              .slice(0, 10)
-              .map(
-                (video, index) => `
-            gtag('event', 'view_item', {
-              currency: 'MYR',
-              value: ${Number(video.statistics.viewCount) / 1000},
-              items: [{
-                item_id: '${video.videoId}',
-                item_name: '${video.title.replace(/'/g, "\\'")}',
-                item_category: 'shorts',
-                item_variant: '${video.tier}',
-                index: ${index},
-                quantity: 1
-              }]
-            });
-            `
-              )
-              .join("")}
-          `,
+          __html: JSON.stringify(jsonLd),
         }}
       />
 
-      {/* Schema.org VideoGallery Microdata (fallback) */}
-      <div
-        itemScope
-        itemType="https://schema.org/VideoGallery"
-        style={{ display: "none" }}
-      >
-        <meta itemProp="name" content={`FMT Shorts - ${totalCount} Videos`} />
-        <meta itemProp="description" content={enhancedDescription} />
-        <meta itemProp="url" content={currentUrl} />
-        <meta itemProp="numberOfItems" content={String(totalCount)} />
-        <meta itemProp="dateModified" content={lastModified} />
-      </div>
-
-      {/* SEO-Only: Real-time signals for search engines (hidden from users) */}
-      <div className="sr-only" aria-hidden="true">
-        <div itemScope itemType="https://schema.org/BroadcastEvent">
-          <meta
-            itemProp="name"
-            content={`Live: ${mostPopularVideo?.title || "FMT Shorts"}`}
-          />
-          <meta itemProp="startDate" content={new Date().toISOString()} />
-          <meta itemProp="isLiveBroadcast" content="true" />
-          <span
-            itemProp="potentialAction"
-            itemType="https://schema.org/WatchAction"
-          >
-            <meta itemProp="target" content={currentUrl} />
-            <meta itemProp="expectsAcceptanceOf" content="free" />
-            <meta itemProp="actionStatus" content="ActiveActionStatus" />
-          </span>
-        </div>
-        {/* Most popular video context for SEO */}
-        <p>
-          Most viewed: {mostPopularVideo?.title} with{" "}
-          {mostPopularVideo?.statistics?.viewCount} views
-        </p>
-        <p>Latest update: {new Date().toLocaleTimeString("en-MY")}</p>
-        <p>Total collection: {totalCount} videos available</p>
-      </div>
-
-      {/* Optional: Factual Statistics Banner (only if you want to show real data) */}
-      {/* Uncomment if you want to show actual statistics instead of fake viewer count
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-1 px-4 text-sm z-50 flex items-center justify-center gap-4">
-        <span className="flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-          <span>{totalCount} videos</span>
-        </span>
-        {mostPopularVideo && (
-          <>
-            <span className="text-gray-400">|</span>
-            <span className="truncate">
-              Top: {mostPopularVideo.title} ({formatViewCount(mostPopularVideo.statistics.viewCount)} views)
-            </span>
-          </>
-        )}
-      </div>
-      */}
-
-      {/* Main Content */}
-      <div>
+      <div className="min-h-screen">
         {isMobile ? (
           <MobileShortsView initialShorts={shorts} totalCount={totalCount} />
         ) : (
@@ -714,12 +318,16 @@ export default function ShortsPage({
   );
 }
 
-// Server-side data fetching with SEO optimization
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { sort = "newest", lang = "en" } = context.query;
-  const protocol = context.req.headers["x-forwarded-proto"] || "https";
-  const host = context.req.headers["host"] || "www.freemalaysiatoday.com";
-  const currentUrl = `${protocol}://${host}${context.resolvedUrl}`;
+// 🆕 ISR: Static generation with 5-minute revalidation
+export const getStaticProps: GetStaticProps = async (context) => {
+  const { sort = "newest", lang = "en" } = context.params || {};
+  const currentUrl = `https://www.freemalaysiatoday.com/videos/shorts`;
+
+  // Determine if content is news-related
+  const isNewsContent = true; // Shorts are typically news content
+
+  // Mock trending keywords (you can fetch from TrendingTopic model if needed)
+  const trendingKeywords = ["Malaysia", "Breaking News", "FMT", "News Videos"];
 
   try {
     // Get the shorts playlist ID from configuration
@@ -739,46 +347,29 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           trendingKeywords: [],
           lastModified: new Date().toISOString(),
         },
+        revalidate: 300, // 5 minutes
       };
     }
 
-    // Get playlist info and trending topics in parallel
-    const [shortsPlaylistInfo, trendingTopics] = await Promise.all([
-      prisma.playlist.findFirst({
-        where: { playlistId: videoConfig.shortsPlaylist },
-      }),
-      // Fetch trending topics if table exists, otherwise use empty array
-      prisma.trendingTopic
-        .findMany({
-          where: {
-            region: "MY",
-            lastSeen: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-          },
-          orderBy: { velocity: "desc" },
-          take: 10,
-        })
-        .catch(() => []),
-    ]);
-
-    // Extract trending keywords
-    const trendingKeywords = trendingTopics.map((t: any) => t.keyword);
+    // Get playlist info
+    const shortsPlaylistInfo = await prisma.playlist.findFirst({
+      where: { playlistId: videoConfig.shortsPlaylist },
+      select: { title: true },
+    });
 
     // Build sort order
-    let orderBy: any = { publishedAt: "desc" }; // default: newest
-
-    if (sort === "popular") {
-      orderBy = { publishedAt: "desc" };
-    } else if (sort === "trending") {
+    let orderBy: any = { publishedAt: "desc" };
+    if (sort === "trending") {
       orderBy = { publishedAt: "asc" };
     }
 
-    // Get initial batch of videos with proper filtering
+    // Fetch initial 24 videos
     let shorts;
     let totalCount;
 
     if (sort === "popular") {
-      // For popular sort, fetch all videos and sort by viewCount
-      const allShorts = await prisma.videos.findMany({
+      // For popular sort, fetch all and sort in memory
+      const allVideos = await prisma.videos.findMany({
         where: {
           playlists: {
             has: videoConfig.shortsPlaylist,
@@ -791,35 +382,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             },
           },
         },
-        select: {
-          videoId: true,
-          title: true,
-          description: true,
-          publishedAt: true,
-          channelId: true,
-          channelTitle: true,
-          thumbnails: true,
-          contentDetails: true,
-          statistics: true,
-          isShort: true,
-          tier: true,
-          playlists: true,
-          categoryId: true,
-          tags: true,
-        },
       });
 
-      // Sort by viewCount in memory
-      const sortedVideos = allShorts.sort((a: any, b: any) => {
+      const sortedVideos = allVideos.sort((a: any, b: any) => {
         const aViews = Number(a.statistics?.viewCount || 0);
         const bViews = Number(b.statistics?.viewCount || 0);
         return bViews - aViews;
       });
 
       shorts = sortedVideos.slice(0, 24);
-      totalCount = allShorts.length;
+      totalCount = sortedVideos.length;
     } else {
-      // Normal database sorting
       [shorts, totalCount] = await Promise.all([
         prisma.videos.findMany({
           where: {
@@ -836,22 +409,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           },
           orderBy,
           take: 24,
-          select: {
-            videoId: true,
-            title: true,
-            description: true,
-            publishedAt: true,
-            channelId: true,
-            channelTitle: true,
-            thumbnails: true,
-            contentDetails: true,
-            statistics: true,
-            isShort: true,
-            tier: true,
-            playlists: true,
-            categoryId: true,
-            tags: true,
-          },
         }),
         prisma.videos.count({
           where: {
@@ -870,13 +427,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       ]);
     }
 
-    // Determine if content is news-related
-    const newsCategories = ["25", "2", "17"]; // News, Politics, People categories
-    const isNewsContent = shorts.some((v: any) =>
-      newsCategories.includes(v.categoryId)
-    );
-
-    // Transform videos with SEO optimization
+    // Transform videos to frontend format
     const transformedShorts = shorts.map((video: any) => ({
       videoId: video.videoId,
       title: video.title,
@@ -902,24 +453,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       tier: video.tier || "standard",
     }));
 
-    // Set cache headers for performance and SEO
-    context.res.setHeader(
-      "Cache-Control",
-      "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
-    );
-    context.res.setHeader("X-Robots-Tag", "index, follow");
-
-    // Add Link header for video sitemap
-    context.res.setHeader(
-      "Link",
-      '</api/sitemap/videos-shorts>; rel="sitemap", </feeds/shorts.xml>; rel="alternate"; type="application/rss+xml"'
-    );
-
     return {
       props: {
         shorts: transformedShorts,
         totalCount,
-        sortBy: sort as string,
+        sortBy: (sort as string) || "newest",
         playlistTitle: shortsPlaylistInfo?.title || "Shorts",
         error: null,
         currentUrl,
@@ -932,6 +470,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           url: "https://www.freemalaysiatoday.com",
         },
       },
+      revalidate: 300, // 🆕 ISR: Revalidate every 5 minutes (fallback)
     };
   } catch (error) {
     console.error("[Shorts Page] Error fetching videos:", error);
@@ -948,6 +487,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         trendingKeywords: [],
         lastModified: new Date().toISOString(),
       },
+      revalidate: 300, // Still revalidate even on error
     };
   }
 };

@@ -15,7 +15,6 @@ import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
-import { getPlaylist } from "@/lib/api";
 import HomeFooter from "@/components/landing-pages/HomeFooter";
 import { useSectionData } from "@/hooks/useSectionData";
 import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
@@ -25,7 +24,6 @@ import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { prisma } from "@/lib/prisma";
 
-const playlistId = "PLKe9JQ8opkEAErOOqs4tB87iWhuh_-osl";
 const dfpTargetingParams = {
   pos: "listing",
   section: ["homepage", "business", "opinion", "world", "lifestyle", "sports"],
@@ -513,11 +511,16 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
 
     let videoPosts = [];
     try {
-      const data = await getPlaylist(playlistId);
-      if (!data) {
-        throw new Error(`Failed to fetch data: ${data?.statusText}`);
-      }
-      videoPosts = data ?? [];
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/api/homepage`
+      );
+      const homepageData = await response.json();
+      videoPosts = homepageData.data.videos ?? [];
+
+      // if (!data) {
+      //   throw new Error(`Failed to fetch data: ${data?.statusText}`);
+      // }
+      // videoPosts = data ?? [];
       videoPosts = videoPosts?.slice(0, 5);
     } catch (error) {
       console.error("Failed to fetch videos:", error);

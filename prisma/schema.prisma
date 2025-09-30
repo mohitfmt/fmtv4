@@ -38,7 +38,7 @@ type VideosThumbnails {
   high     String
   maxres   String?
   medium   String
-  standard String
+  standard String?
 }
 
 model Account {

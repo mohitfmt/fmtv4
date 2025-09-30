@@ -3,7 +3,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  FaPause,
   FaEye,
   FaShare,
   FaHeart,
@@ -54,7 +53,6 @@ export default function MobileShortsView({
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const lastTapTime = useRef(0);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -150,51 +148,15 @@ export default function MobileShortsView({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") goToNext();
       if (e.key === "ArrowUp") goToPrevious();
-      if (e.key === " ") {
-        e.preventDefault();
-        setIsPlaying(!isPlaying);
-      }
       if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
         toggleMute();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [goToNext, goToPrevious, isPlaying]);
-
-  // Double-tap to like handler
-  const handleDoubleTap = () => {
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapTime.current;
-
-    if (timeSinceLastTap < 300) {
-      // Double tap detected
-      setShowLikeAnimation(true);
-      setTimeout(() => setShowLikeAnimation(false), 1000);
-
-      // Track double-tap like
-      if (typeof window !== "undefined" && (window as any).gtag) {
-        (window as any).gtag("event", "like", {
-          event_category: "shorts",
-          event_label: "double_tap",
-          video_id: currentVideo.videoId,
-        });
-      }
-    } else {
-      // Single tap - toggle play/pause
-      togglePlayPause();
-    }
-
-    lastTapTime.current = now;
-  };
-
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    if (!hasInteracted) {
-      setHasInteracted(true);
-    }
-  };
+  }, [goToNext, goToPrevious]);
 
   const toggleMute = () => {
     // On first interaction, enable sound
@@ -210,6 +172,7 @@ export default function MobileShortsView({
   const getShortsThumbnail = (video: VideoWithChannel) => {
     // Priority order for best 9:16 thumbnail
     const thumbnailOptions = [
+      `https://i.ytimg.com/vi/${video.videoId}/frame0.jpg`, // 9:16 shorts thumbnail
       `https://i.ytimg.com/vi/${video.videoId}/oar2.jpg`, // 9:16 shorts thumbnail
       `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`, // High quality
       `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`, // Medium quality
@@ -222,11 +185,11 @@ export default function MobileShortsView({
       : thumbnailOptions[0];
   };
 
-  // Generate YouTube embed URL with current state
-  const getYouTubeEmbedUrl = (videoId: string, autoplay: boolean = true) => {
+  // Generate YouTube embed URL - STATIC except for mute state
+  const getYouTubeEmbedUrl = (videoId: string, muted: boolean) => {
     const params = new URLSearchParams({
-      autoplay: autoplay ? "1" : "0",
-      mute: isMuted ? "1" : "0",
+      autoplay: "1", // Always autoplay - don't change based on state
+      mute: muted ? "1" : "0", // Only this can change (will cause reload)
       controls: "0",
       playsinline: "1",
       loop: "1",
@@ -287,10 +250,10 @@ export default function MobileShortsView({
                       </div>
                     )}
 
-                    {/* Current video - iframe (no key prop to prevent reload) */}
+                    {/* Current video - iframe */}
                     <iframe
                       ref={iframeRef}
-                      src={getYouTubeEmbedUrl(video.videoId, isPlaying)}
+                      src={getYouTubeEmbedUrl(video.videoId, isMuted)}
                       className="w-full h-full"
                       style={{ border: 0 }}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -298,10 +261,25 @@ export default function MobileShortsView({
                       onLoad={() => setIsVideoLoading(false)}
                     />
 
-                    {/* Overlay for tap interaction */}
+                    {/* Overlay for double-tap to like */}
                     <div
                       className="absolute inset-0 z-10"
-                      onClick={handleDoubleTap}
+                      onDoubleClick={() => {
+                        setShowLikeAnimation(true);
+                        setTimeout(() => setShowLikeAnimation(false), 1000);
+
+                        // Track double-tap like
+                        if (
+                          typeof window !== "undefined" &&
+                          (window as any).gtag
+                        ) {
+                          (window as any).gtag("event", "like", {
+                            event_category: "shorts",
+                            event_label: "double_click",
+                            video_id: video.videoId,
+                          });
+                        }
+                      }}
                     />
 
                     {/* Double-tap like animation */}
@@ -333,13 +311,7 @@ export default function MobileShortsView({
               {index === currentIndex && (
                 <>
                   {/* Play/Pause Indicator */}
-                  {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      <div className="w-20 h-20 bg-black/50 rounded-full flex items-center justify-center">
-                        <FaPause className="w-10 h-10 text-white" />
-                      </div>
-                    </div>
-                  )}
+                  {/* Removed: Shorts play continuously, no pause button */}
 
                   {/* Top Bar */}
                   <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-20">

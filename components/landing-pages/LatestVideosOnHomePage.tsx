@@ -2,66 +2,28 @@ import React from "react";
 import Image from "next/image";
 import { Clock, Eye, ThumbsUp, MessageSquare, Play } from "lucide-react";
 import SectionHeading from "../common/SectionHeading";
-// import PublishingDateTime from "../common/display-date-formats/PublishingDateTime";
 import Link from "next/link";
 import {
   formatMalaysianDate,
   formatMalaysianTime24h,
-  // formattedDate,
-  // formattedDisplayDate,
 } from "../common/display-date-formats/DateFormates";
 
-// TypeScript Interfaces
-interface Statistics {
-  viewCount: string;
-  likeCount: string;
-  favoriteCount: string;
-  commentCount: string;
-}
-
-interface FeaturedImage {
-  node: {
-    mediaItemUrl: string;
-  };
-}
-
-interface VideoNode {
-  id: string;
-  videoId: string;
-  title: string;
-  excerpt: string;
-  featuredImage: FeaturedImage;
-  duration: string;
-  statistics: Statistics;
-  dateGmt: string;
-  uri: string;
-}
-
-interface HomeVideoCardProps {
-  video: VideoNode;
-  isFeature?: boolean;
-}
-
-interface LatestVideosProps {
-  videos: VideoData[];
-}
-
-interface VideoData {
-  node: VideoNode;
-}
-
 // Helper function to format view count
-const formatViewCount = (count: string): string => {
-  const numCount = parseInt(count, 10);
+const formatViewCount = (count: string | number): string => {
+  const numCount = typeof count === "string" ? parseInt(count, 10) : count;
+  if (isNaN(numCount)) return "0";
+
   if (numCount >= 1000000) {
     return `${(numCount / 1000000).toFixed(1)}M`;
   } else if (numCount >= 1000) {
     return `${(numCount / 1000).toFixed(1)}K`;
   }
-  return count;
+  return String(numCount);
 };
 
 const formatDuration = (duration: string): string => {
+  if (!duration) return "0:00";
+
   // Handle minutes and seconds format (PT1M30S)
   const fullMatch = duration.match(/PT(\d+)M(\d+)S/);
   if (fullMatch) {
@@ -86,118 +48,132 @@ const formatDuration = (duration: string): string => {
   return duration;
 };
 
-const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
-  video,
-  isFeature = false,
-}) => {
-  const { title, excerpt, featuredImage, duration, statistics, dateGmt } =
-    video;
-  if (isFeature) {
-    return (
-      <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[460px] ">
-        {/* Thumbnail with better aspect ratio handling */}
-        <div className="relative h-full">
-          <Image
-            src={featuredImage.node.mediaItemUrl}
-            alt={title}
-            width={640}
-            height={480}
-            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-          />
-          {/* Play Icon - Always Visible with hover effect */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-black/50 rounded-full p-3 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
-              <Play className="text-white w-8 h-8" />
-            </div>
-          </div>
-          {/* Duration Badge - More visible */}
-          <div className="absolute top-3 right-3 bg-black/90 text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 font-medium shadow-lg">
-            <Clock size={14} />
-            {formatDuration(duration)}
+// Get best available thumbnail URL
+const getThumbnailUrl = (video: any): string => {
+  if (video.thumbnails?.maxres) return video.thumbnails.maxres;
+  if (video.thumbnails?.high) return video.thumbnails.high;
+  if (video.thumbnails?.medium) return video.thumbnails.medium;
+  if (video.thumbnails?.standard) return video.thumbnails.standard;
+  if (video.thumbnails?.default) return video.thumbnails.default;
+
+  // Fallback to YouTube URL
+  const videoId = video.videoId || video.id;
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+};
+
+// Featured Video Card (Large - First Video)
+const FeaturedVideoCard = ({ video }: any) => {
+  const thumbnailUrl = getThumbnailUrl(video);
+  const description = video.description || "";
+  const dateGmt =
+    typeof video.publishedAt === "string"
+      ? video.publishedAt
+      : video.publishedAt?.toISOString() || new Date().toISOString();
+
+  return (
+    <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[460px]">
+      {/* Thumbnail */}
+      <div className="relative h-full">
+        <Image
+          src={thumbnailUrl}
+          alt={video.title}
+          width={640}
+          height={480}
+          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+          priority
+        />
+
+        {/* Play Icon */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-black/50 rounded-full p-3 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
+            <Play className="text-white w-8 h-8" />
           </div>
         </div>
 
-        {/* Stronger gradient for better text visibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-
-        {/* Content with improved spacing */}
-        <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-5">
-          <h2
-            className="text-pretty text-2xl md:text-4xl font-extrabold font-bitter mb-3 text-white"
-            style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
-            title={title}
-          >
-            {title}
-          </h2>
-          <p
-            className="line-clamp-2 mb-3 text-gray-100"
-            style={{ textShadow: "1px 1px 2px rgba(0, 0, 0, 0.5)" }}
-          >
-            {excerpt.replace(/\n/g, " ").replace(/Read More:.*$/, "")}
-          </p>
-          <div className="flex items-center justify-between text-gray-200">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <Eye size={16} />
-                {formatViewCount(statistics.viewCount)}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <ThumbsUp size={16} />
-                {statistics.likeCount}
-              </span>
-              {parseInt(statistics.commentCount) > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <MessageSquare size={16} />
-                  {statistics.commentCount}
-                </span>
-              )}
-            </div>
-            {/* <span className="flex items-center gap-1.5 bg-black text-white">
-              <PublishingDateTime dateString={dateGmt} isTextPop={false} />
-            </span> */}
-            {/* <time
-              // className="text-sm font-semibold text-white"
-              className="flex items-center gap-1.5 bg-black text-white"
-              dateTime={formattedDisplayDate(dateGmt, false)}
-            >
-              {format(dateGmt)}
-            </time> */}
-
-            <time
-              className="flex items-center gap-1.5  bg-black/80 text-white px-1.5 py-1 rounded-md"
-              dateTime={formatMalaysianDate(dateGmt, false)}
-            >
-              {formatMalaysianTime24h(dateGmt)}
-            </time>
-          </div>
+        {/* Duration Badge */}
+        <div className="absolute top-3 right-3 bg-black/90 text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 font-medium shadow-lg">
+          <Clock size={14} />
+          {formatDuration(video.duration)}
         </div>
       </div>
-    );
-  }
 
-  // Secondary Video Card
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-5">
+        <h2
+          className="text-pretty text-2xl md:text-4xl font-extrabold font-bitter mb-3 text-white"
+          style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
+          title={video.title}
+        >
+          {video.title}
+        </h2>
+        <p
+          className="line-clamp-2 mb-3 text-gray-100"
+          style={{ textShadow: "1px 1px 2px rgba(0, 0, 0, 0.5)" }}
+        >
+          {description.replace(/\n/g, " ").replace(/Read More:.*$/, "")}
+        </p>
+
+        <div className="flex items-center justify-between text-gray-200">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <Eye size={16} />
+              {formatViewCount(video.viewCount || 0)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ThumbsUp size={16} />
+              {formatViewCount(video.likeCount || 0)}
+            </span>
+            {video.commentCount && parseInt(String(video.commentCount)) > 0 && (
+              <span className="flex items-center gap-1.5">
+                <MessageSquare size={16} />
+                {formatViewCount(video.commentCount)}
+              </span>
+            )}
+          </div>
+
+          <time
+            className="flex items-center gap-1.5 bg-black/80 text-white px-1.5 py-1 rounded-md"
+            dateTime={formatMalaysianDate(dateGmt, false)}
+          >
+            {formatMalaysianTime24h(dateGmt)}
+          </time>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Secondary Video Card (Small - Grid Videos)
+const SecondaryVideoCard = ({ video }: any) => {
+  const thumbnailUrl = getThumbnailUrl(video);
+  const dateGmt =
+    typeof video.publishedAt === "string"
+      ? video.publishedAt
+      : video.publishedAt?.toISOString() || new Date().toISOString();
+
   return (
     <div className="group px-1 h-full flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
       {/* Thumbnail Container */}
       <div className="relative overflow-hidden rounded-lg aspect-video">
         <Image
-          src={featuredImage.node.mediaItemUrl}
-          alt={title}
+          src={thumbnailUrl}
+          alt={video.title}
           width={320}
           height={180}
           className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
         />
-        {/* Play Icon - Always Visible */}
+
+        {/* Play Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-black/50 rounded-full p-3 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
             <Play className="text-white w-6 h-6" />
           </div>
         </div>
-        {/* Duration Badge */}
-        {/* <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 text-sm rounded-md flex items-center gap-1">
-          <Clock size={12} />
-          {formatDuration(duration)}
-        </div> */}
+
+        {/* Time Badge */}
         <div className="absolute bottom-2 right-2">
           <time
             className="flex items-center gap-1.5 bg-black/80 text-white px-1 py-0.5 rounded-md"
@@ -208,16 +184,30 @@ const HomeVideoCard: React.FC<HomeVideoCardProps> = ({
         </div>
       </div>
 
-      {/* Content Below Thumbnail */}
+      {/* Content */}
       <div className="my-2 text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
-        <h3>{title}</h3>
+        <h3 className="line-clamp-2">{video.title}</h3>
       </div>
     </div>
   );
 };
 
-const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
-  if (!videos?.length) return null;
+const LatestVideosOnHomePage = ({ videos }: any) => {
+  // Validate input
+  if (!videos || !Array.isArray(videos) || videos.length === 0) {
+    return null;
+  }
+
+  // Sort videos by publishedAt (most recent first) - defensive sorting
+  const sortedVideos = [...videos].sort((a, b) => {
+    const dateA = new Date(a.publishedAt || 0).getTime();
+    const dateB = new Date(b.publishedAt || 0).getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
+
+  // First video is featured, next 4 are secondary
+  const featuredVideo = sortedVideos[0];
+  const secondaryVideos = sortedVideos.slice(1, 5);
 
   return (
     <section className="my-10 mb-20">
@@ -226,22 +216,30 @@ const LatestVideosOnHomePage: React.FC<LatestVideosProps> = ({ videos }) => {
       </Link>
 
       <div className="grid grid-cols-12 gap-4">
-        {/* Feature Video */}
-        <Link href={videos[0].node.uri} className="col-span-12 lg:col-span-7">
-          <HomeVideoCard video={videos[0].node} isFeature={true} />
+        {/* Featured Video - Left Side (7 columns) */}
+        <Link
+          href={`/videos/${featuredVideo.videoId || featuredVideo.id}`}
+          className="col-span-12 lg:col-span-7"
+        >
+          <FeaturedVideoCard video={featuredVideo} />
         </Link>
 
-        {/* Secondary Videos Grid */}
+        {/* Secondary Videos - Right Side (5 columns, 2x2 grid) */}
         <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4">
-          {videos.slice(1, 5).map((video) => (
-            <Link
-              href={video.node.uri}
-              key={video.node.id}
-              className="col-span-1"
-            >
-              <HomeVideoCard video={video.node} />
-            </Link>
-          ))}
+          {secondaryVideos.map((video: any) => {
+            const videoId = video.videoId || video.id;
+            const uniqueKey = `${videoId}-${video.publishedAt}`;
+
+            return (
+              <Link
+                href={`/videos/${videoId}`}
+                key={uniqueKey}
+                className="col-span-1"
+              >
+                <SecondaryVideoCard video={video} />
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,5 +1,7 @@
 // pages/videos/index.tsx
-import { GetServerSideProps } from "next";
+// MODIFIED: Converted from SSR to ISR for better performance
+
+import { GetStaticProps } from "next";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
@@ -50,130 +52,138 @@ interface ChannelInfo {
   videoCount: number;
   viewCount: number;
   customUrl?: string;
-  lastFetched: Date;
+}
+
+interface VideosPageProps {
+  data: VideoHubData | null;
+  channelInfo: ChannelInfo | null;
+  error: string | null;
 }
 
 // Hero Carousel Component
 const HeroCarousel = ({ videos }: { videos: Video[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isPaused && videos.length > 1) {
-      intervalRef.current = setInterval(() => {
+    if (isAutoPlaying && videos.length > 1) {
+      autoPlayIntervalRef.current = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % videos.length);
-      }, 8000);
+      }, 5000);
     }
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (autoPlayIntervalRef.current) {
+        clearInterval(autoPlayIntervalRef.current);
+      }
     };
-  }, [videos.length, isPaused]);
+  }, [isAutoPlaying, videos.length]);
 
-  const handlePrev = () => {
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+  };
+
+  const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + videos.length) % videos.length);
+    setIsAutoPlaying(false);
   };
 
-  const handleNext = () => {
+  const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % videos.length);
+    setIsAutoPlaying(false);
   };
 
-  if (!videos.length) return null;
+  if (!videos || videos.length === 0) return null;
 
   const currentVideo = videos[currentIndex];
-  const getThumbnailUrl = (video: Video) => {
-    return (
-      video.thumbnails?.maxres?.url ||
-      video.thumbnails?.high?.url ||
-      `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`
-    );
-  };
+  const thumbnailUrl =
+    currentVideo.thumbnails?.maxres?.url ||
+    currentVideo.thumbnails?.high?.url ||
+    `https://i.ytimg.com/vi/${currentVideo.videoId}/maxresdefault.jpg`;
 
   return (
-    <div
-      className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <Link href={`/videos/${currentVideo.videoId}`} prefetch={false}>
-        <div className="relative w-full h-full group">
-          <Image
-            src={getThumbnailUrl(currentVideo)}
-            alt={currentVideo.title}
-            fill
-            className="object-cover"
-            priority={currentIndex === 0}
-            unoptimized
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-          {/* Video Info Overlay - Hide title on mobile */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6 text-white">
-            {currentVideo.tier && (
-              <span
-                className={`inline-block px-2 py-1 text-xs font-bold rounded mb-2 ${
-                  currentVideo.tier === "hot" ? "bg-red-600" : "bg-orange-500"
-                }`}
-              >
-                {currentVideo.tier === "hot" ? "HOT" : "TRENDING"}
-              </span>
-            )}
-            <h2 className="hidden lg:block text-2xl lg:text-3xl font-bold mb-2 line-clamp-2">
-              {currentVideo.title}
-            </h2>
-            <div className="flex items-center gap-4 text-sm opacity-90">
-              <span className="flex items-center gap-1">
-                <FaEye className="w-4 h-4" />
-                {formatViewCount(currentVideo.statistics?.viewCount || 0)}
-              </span>
-              <span>{formatDuration(currentVideo.duration)}</span>
-              <span className="hidden sm:inline">
-                {getTimeAgo(currentVideo.publishedAt)}
-              </span>
-            </div>
-          </div>
-
-          {/* Play Button Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="bg-white/90 rounded-full p-4 transform transition-transform group-hover:scale-110">
-              <FaPlay className="w-8 h-8 text-black ml-1" />
-            </div>
-          </div>
-        </div>
+    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
+      <Link href={`/videos/${currentVideo.videoId}`}>
+        <Image
+          src={thumbnailUrl}
+          alt={currentVideo.title}
+          fill
+          className="object-cover"
+          priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://i.ytimg.com/vi/${currentVideo.videoId}/hqdefault.jpg`;
+          }}
+        />
       </Link>
 
-      {/* Navigation Buttons */}
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+      {/* Play Button Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <Link href={`/videos/${currentVideo.videoId}`}>
+          <div className="bg-primary rounded-full p-6 hover:scale-110 transition-transform">
+            <FaPlay className="w-8 h-8 text-white" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Video Info */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+        <Link href={`/videos/${currentVideo.videoId}`}>
+          <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors">
+            {currentVideo.title}
+          </h2>
+        </Link>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="flex items-center gap-1">
+            <FaEye />
+            {formatViewCount(currentVideo.statistics?.viewCount)}
+          </span>
+          <span>•</span>
+          <span>{getTimeAgo(currentVideo.publishedAt)}</span>
+          <span>•</span>
+          <span>{formatDuration(currentVideo.duration)}</span>
+        </div>
+      </div>
+
+      {/* Navigation Arrows */}
       {videos.length > 1 && (
         <>
           <button
-            onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all"
+            onClick={goToPrevious}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
             aria-label="Previous video"
           >
-            <FaChevronLeft className="w-6 h-6" />
+            <FaChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all"
+            onClick={goToNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
             aria-label="Next video"
           >
-            <FaChevronRight className="w-6 h-6" />
+            <FaChevronRight className="w-5 h-5" />
           </button>
         </>
       )}
 
-      {/* Dots Indicator */}
+      {/* Carousel Indicators */}
       {videos.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-6 right-6 flex gap-2">
           {videos.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              onClick={() => goToSlide(index)}
               className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex ? "bg-white w-8" : "bg-white/50"
+                index === currentIndex
+                  ? "bg-primary w-8"
+                  : "bg-white/50 hover:bg-white/75"
               }`}
-              aria-label={`Go to video ${index + 1}`}
+              aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>
@@ -182,54 +192,7 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
   );
 };
 
-// YouTube Subscribe Section with channelInfo description
-const YouTubeSubscribeSection = ({
-  channelInfo,
-}: {
-  channelInfo: ChannelInfo | null;
-}) => {
-  const formatSubscribers = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${Math.floor(count / 1000)}K`;
-    return count.toString();
-  };
-
-  // Parse description from channelInfo
-  const mainDescription = channelInfo?.description
-    ? channelInfo.description.split("\n").filter((line) => line.trim() !== "")
-    : [
-        "FMT brings you the latest news, from the halls of power to the city streets!",
-      ];
-
-  return (
-    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-6 mb-8 border border-green-200 dark:border-green-800">
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-        <div className="flex-1 text-center lg:text-left">
-          <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-gray-100">
-            Never miss an update! {mainDescription[0]}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {mainDescription[1] ||
-              "Subscribe to our YouTube channel for instant notifications"}
-          </p>
-        </div>
-        <Link
-          href="https://www.youtube.com/channel/UC2CzLwbhTiI8pTKNVyrOnJQ?sub_confirmation=1"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md font-bold text-sm transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-          </svg>
-          Subscribe Now
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-// Playlist Section Component with tier badge on top-right and play button on hover
+// Playlist Section Component
 const PlaylistSection = ({
   playlist,
   playlistId,
@@ -237,193 +200,181 @@ const PlaylistSection = ({
   playlist: { name: string; videos: Video[] };
   playlistId: string;
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
+  if (!playlist || !playlist.videos || playlist.videos.length === 0) {
+    return null;
+  }
 
   // Generate slug from playlist name
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
-
-  const playlistSlug = generateSlug(playlist.name);
+  const playlistSlug = playlist.name.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <section ref={sectionRef} className="mb-12">
+    <section className="mb-12" aria-label={playlist.name}>
+      {/* Section Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">{playlist.name}</h2>
-        <Link href={`/videos/playlist/${playlistSlug}`}>
-          <Button variant="ghost" size="sm" className="group">
+        <Link href={`/videos/playlist/${playlistSlug}`} prefetch={false}>
+          <Button variant="ghost" className="flex items-center gap-2">
             View All
-            <FaChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            <FaChevronRight className="w-4 h-4" />
           </Button>
         </Link>
       </div>
 
+      {/* Video Grid - 3 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isVisible
-          ? playlist.videos.slice(0, 12).map((video, index) => (
-              <article key={video.videoId} className="group">
-                <Link href={`/videos/${video.videoId}`} prefetch={false}>
-                  <div className="space-y-2">
-                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                      <Image
-                        src={
-                          video.thumbnails?.high?.url ||
-                          `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
-                        }
-                        alt={video.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading={index < 3 ? "eager" : "lazy"}
-                        unoptimized
-                      />
-                      {/* Tier badge on top-right */}
-                      {video.tier &&
-                        (video.tier === "hot" || video.tier === "trending") && (
-                          <div
-                            className={`absolute top-2 right-2 px-2 py-1 text-xs font-bold rounded ${
-                              video.tier === "hot"
-                                ? "bg-red-600 text-white"
-                                : "bg-orange-500 text-white"
-                            }`}
-                          >
-                            {video.tier === "hot" ? "HOT" : "TRENDING"}
-                          </div>
-                        )}
-                      {/* Duration badge on bottom-right */}
-                      <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-white text-xs">
-                        {formatDuration(video.duration)}
-                      </div>
-                      {/* Play button on hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40">
-                        <div className="bg-white/90 rounded-full p-3 transform transition-transform group-hover:scale-110">
-                          <FaPlay className="w-5 h-5 text-black ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-medium line-clamp-2 group-hover:text-primary transition-colors">
-                        {video.title}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <FaEye className="w-3 h-3" />
-                          {formatViewCount(video.statistics?.viewCount || 0)}
-                        </span>
-                        <span>{getTimeAgo(video.publishedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            ))
-          : Array.from({ length: 12 }).map((_, index) => (
-              <VideoSkeleton key={index} />
-            ))}
+        {playlist.videos.map((video) => (
+          <VideoCard key={video.videoId} video={video} />
+        ))}
       </div>
     </section>
   );
 };
 
-// Main Videos Page Component
-const VideosPage = ({
-  data,
+// Video Card Component
+const VideoCard = ({ video }: { video: Video }) => {
+  const thumbnailUrl =
+    video.thumbnails?.high?.url ||
+    `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
+
+  return (
+    <Link href={`/videos/${video.videoId}`} prefetch={false}>
+      <div className="group cursor-pointer">
+        {/* Thumbnail */}
+        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-3">
+          <Image
+            src={thumbnailUrl}
+            alt={video.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
+            }}
+          />
+          {/* Duration Badge */}
+          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+            {formatDuration(video.duration)}
+          </div>
+        </div>
+
+        {/* Video Info */}
+        <h3 className="font-medium line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+          {video.title}
+        </h3>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <FaEye className="w-3 h-3" />
+            {formatViewCount(video.statistics?.viewCount)}
+          </span>
+          <span>•</span>
+          <span>{getTimeAgo(video.publishedAt)}</span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// YouTube Subscribe Section
+const YouTubeSubscribeSection = ({
   channelInfo,
-  error,
 }: {
-  data: VideoHubData | null;
   channelInfo: ChannelInfo | null;
-  error?: string;
 }) => {
+  if (!channelInfo) return null;
+
+  return (
+    <div className="bg-muted rounded-lg p-6 mb-8">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          {channelInfo.thumbnailUrl && (
+            <Image
+              src={channelInfo.thumbnailUrl}
+              alt={channelInfo.title}
+              width={80}
+              height={80}
+              className="rounded-full"
+            />
+          )}
+          <div>
+            <h3 className="text-xl font-bold">{channelInfo.title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {formatViewCount(channelInfo.subscriberCount)} subscribers
+            </p>
+          </div>
+        </div>
+        <Button
+          asChild
+          className="bg-red-600 hover:bg-red-700 text-white"
+          size="lg"
+        >
+          <a
+            href={`https://www.youtube.com/channel/${channelInfo.id}?sub_confirmation=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Subscribe
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Main Page Component
+const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Video[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Video[]>([]);
   const debouncedSearch = useDebounce(searchQuery, 500);
 
-  // Handle search
-  useEffect(() => {
-    if (debouncedSearch) {
-      setIsSearching(true);
-      fetch(`/api/videos/search?q=${encodeURIComponent(debouncedSearch)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setSearchResults(data.results || []);
-          setIsSearching(false);
-        })
-        .catch(() => {
-          setSearchResults([]);
-          setIsSearching(false);
-        });
-    } else {
-      setSearchResults(null);
-    }
-  }, [debouncedSearch]);
-
-  // Generate structured data
-  const structuredData = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "VideoGallery",
-        name: "FMT Videos",
-        description:
-          "Latest news, interviews, and special reports from Malaysia",
-        url: `${siteConfig.baseUrl}/videos`,
-        publisher: {
-          "@type": "Organization",
-          name: "Free Malaysia Today",
-          logo: {
-            "@type": "ImageObject",
-            url: `${siteConfig.baseUrl}/logo.png`,
-          },
-        },
-      }
-    : null;
-
+  // DFP targeting params
   const dfpTargetingParams = {
     pos: "listing",
     section: ["videos"],
     key: gerneralTargetingKeys,
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Unable to load videos</h1>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </div>
-    );
-  }
+  // Handle search
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearch.trim()) {
+        setSearchResults([]);
+        setIsSearching(false);
+        return;
+      }
 
-  if (!data) {
+      setIsSearching(true);
+
+      try {
+        const response = await fetch(
+          `/api/videos/search?q=${encodeURIComponent(debouncedSearch)}`
+        );
+        const results = await response.json();
+        setSearchResults(results.videos || []);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearch]);
+
+  // Show error state
+  if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="h-8 w-48 bg-muted rounded mb-4"></div>
-          <div className="h-4 w-64 bg-muted rounded"></div>
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Unable to Load Videos</h1>
+          <p className="text-muted-foreground mb-6">
+            {error || "Unable to load videos. Please try again later."}
+          </p>
+          <Button asChild>
+            <Link href="/">Return to Homepage</Link>
+          </Button>
         </div>
       </div>
     );
@@ -435,187 +386,169 @@ const VideosPage = ({
         <title>Videos - Free Malaysia Today</title>
         <meta
           name="description"
-          content="Watch the latest news videos, interviews, and special reports from Free Malaysia Today"
+          content="Watch the latest news videos from Malaysia. Breaking news, politics, business, lifestyle, and more from Free Malaysia Today."
         />
         <meta
-          property="og:title"
-          content="FMT Videos - Latest News & Reports"
+          name="keywords"
+          content="FMT videos, Malaysia news, video news, breaking news videos"
         />
-        <meta
-          property="og:description"
-          content="Watch the latest news videos, interviews, and special reports from Free Malaysia Today"
-        />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${siteConfig.baseUrl}/videos`} />
-        <meta
-          property="og:image"
-          content={`${siteConfig.baseUrl}/og-image-videos.jpg`}
-        />
-
-        {/* Preconnect for performance */}
-        <link rel="preconnect" href="https://www.youtube.com" />
-        <link rel="preconnect" href="https://i.ytimg.com" />
-
-        {structuredData && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-          />
-        )}
+        <link rel="canonical" href={`${siteConfig.baseUrl}/videos`} />
       </Head>
 
-      {/* Top Mobile Ad */}
-      <div className="ads-small-mobile mb-4">
-        <AdSlot
-          sizes={[
-            [320, 50],
-            [320, 100],
-          ]}
-          id="div-gpt-ad-1661362470988-0"
-          name="ROS_Mobile_Leaderboard"
-          visibleOnDevices="onlyMobile"
-          targetingParams={dfpTargetingParams}
-        />
-      </div>
-
-      {/* Full-width layout - no container constraints */}
-      <div className="px-4 lg:px-8 py-6">
-        {/* Simplified Header with Search */}
-        <header className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      <div className="w-full">
+        {/* Header with Search */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center mb-8">
+            {/* Title */}
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100">
-                Videos
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Latest news, interviews, and special reports from Malaysia
-              </p>
-              <time className="text-xs text-muted-foreground block mt-2">
-                Updated:{" "}
-                {new Date().toLocaleString("en-MY", {
-                  timeZone: "Asia/Kuala_Lumpur",
-                })}
-              </time>
-            </div>
-            <div className="w-full lg:w-auto">
-              <div className="relative max-w-md">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none z-10" />
-                <Input
-                  type="search"
-                  placeholder="Search videos..."
-                  className="pl-10 pr-4 w-full lg:w-[300px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* YouTube Subscribe Section */}
-        <YouTubeSubscribeSection channelInfo={channelInfo} />
-
-        {/* Search Results or Normal Content */}
-        {searchResults !== null ? (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-6">
-              Search Results{" "}
-              {isSearching && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  (searching...)
-                </span>
+              <h1 className="text-4xl font-bold">FMT Videos</h1>
+              {data.stats && (
+                <p className="text-muted-foreground mt-2">
+                  {data.stats.totalVideos.toLocaleString()} videos •{" "}
+                  {data.stats.newToday} new today
+                </p>
               )}
-            </h2>
-            {searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {searchResults.map((video) => (
-                  <article key={video.videoId} className="group">
-                    <Link href={`/videos/${video.videoId}`}>
-                      <div className="space-y-2">
-                        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                          <Image
-                            src={
-                              video.thumbnails?.high?.url ||
-                              `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
-                            }
-                            alt={video.title}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform"
-                            unoptimized
-                          />
-                        </div>
-                        <h3 className="font-medium line-clamp-2 group-hover:text-primary">
-                          {video.title}
-                        </h3>
-                      </div>
-                    </Link>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-12">
-                No videos found for &quot;{searchQuery}&quot;
-              </p>
-            )}
+            </div>
+
+            {/* Search Box */}
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search videos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        ) : (
-          <>
-            {/* Hero Carousel */}
-            {data.hero.length > 0 && (
-              <section aria-label="Featured Videos" className="mb-8">
-                <HeroCarousel videos={data.hero} />
-              </section>
-            )}
 
-            <ShortsRail
-              shorts={data.shorts}
-              totalCount={data.shortsTotalCount}
+          {/* Top Mobile Ad */}
+          <div className="ads-small-mobile mb-6">
+            <AdSlot
+              sizes={[
+                [320, 50],
+                [320, 100],
+              ]}
+              id="div-gpt-ad-1661362398994-0"
+              name="ROS_Mobile_Top"
+              visibleOnDevices="onlyMobile"
+              targetingParams={dfpTargetingParams}
             />
+          </div>
 
-            {/* Playlist Sections - 3-column grid */}
-            {Object.entries(data.playlists)
-              .filter(([_, playlist]) => playlist && playlist.videos.length > 0)
-              .map(([playlistId, playlistData]) => (
-                <PlaylistSection
-                  key={playlistId}
-                  playlist={playlistData}
-                  playlistId={playlistId}
-                />
-              ))}
-          </>
-        )}
+          {/* Top Desktop Ad */}
+          <div className="ads-medium-desktop mb-8">
+            <AdSlot
+              id="div-gpt-ad-1661333219776-0"
+              name="ROS_Leaderboard"
+              sizes={[
+                [728, 90],
+                [970, 90],
+              ]}
+              visibleOnDevices="onlyDesktop"
+              targetingParams={dfpTargetingParams}
+            />
+          </div>
+        </div>
 
-        {/* Bottom Desktop Ad */}
-        <div className="ads-medium-desktop mt-8">
+        {/* Main Content */}
+        <div className="container mx-auto px-4">
+          {/* Search Results */}
+          {searchQuery.trim() && (
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold mb-6">
+                Search Results for {searchQuery}
+              </h2>
+              {isSearching ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <VideoSkeleton key={i} />
+                  ))}
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {searchResults.map((video) => (
+                    <VideoCard key={video.videoId} video={video} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  No videos found matching {searchQuery}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Regular Content (hidden during search) */}
+          {!searchQuery.trim() && (
+            <>
+              {/* Hero Carousel */}
+              {data.hero && data.hero.length > 0 && (
+                <section aria-label="Featured Videos" className="mb-8">
+                  <HeroCarousel videos={data.hero} />
+                </section>
+              )}
+
+              {/* YouTube Subscribe Section */}
+              <YouTubeSubscribeSection channelInfo={channelInfo} />
+
+              {/* Shorts Rail */}
+              <ShortsRail
+                shorts={data.shorts}
+                totalCount={data.shortsTotalCount}
+              />
+
+              {/* Playlist Sections - 3-column grid */}
+              {Object.entries(data.playlists)
+                .filter(
+                  ([_, playlist]) => playlist && playlist.videos.length > 0
+                )
+                .map(([playlistId, playlistData]) => (
+                  <PlaylistSection
+                    key={playlistId}
+                    playlist={playlistData}
+                    playlistId={playlistId}
+                  />
+                ))}
+            </>
+          )}
+
+          {/* Bottom Desktop Ad */}
+          <div className="ads-medium-desktop mt-8">
+            <AdSlot
+              id="div-gpt-ad-1661333336129-0"
+              name="ROS_Midrec"
+              sizes={[
+                [300, 250],
+                [336, 280],
+              ]}
+              visibleOnDevices="onlyDesktop"
+              targetingParams={dfpTargetingParams}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Mobile Ad */}
+        <div className="ads-small-mobile mt-4">
           <AdSlot
-            id="div-gpt-ad-1661333336129-0"
-            name="ROS_Midrec"
-            sizes={[300, 250]}
-            visibleOnDevices="onlyDesktop"
+            sizes={[
+              [320, 50],
+              [320, 100],
+            ]}
+            id="div-gpt-ad-1661362470989-0"
+            name="ROS_Mobile_Footer"
+            visibleOnDevices="onlyMobile"
             targetingParams={dfpTargetingParams}
           />
         </div>
-      </div>
-
-      {/* Bottom Mobile Ad */}
-      <div className="ads-small-mobile mt-4">
-        <AdSlot
-          sizes={[
-            [320, 50],
-            [320, 100],
-          ]}
-          id="div-gpt-ad-1661362470989-0"
-          name="ROS_Mobile_Footer"
-          visibleOnDevices="onlyMobile"
-          targetingParams={dfpTargetingParams}
-        />
       </div>
     </>
   );
 };
 
-// Server-side data fetching
-export const getServerSideProps: GetServerSideProps = async (context) => {
+// 🆕 ISR: Static generation with 5-minute revalidation
+export const getStaticProps: GetStaticProps = async () => {
   try {
     // Fetch video data and channel info in parallel
     const [videoResponse, channelResponse] = await Promise.all([
@@ -627,8 +560,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       ),
     ]);
 
-    const videoData = await videoResponse.json();
-    const channelInfo = await channelResponse.json();
+    if (!videoResponse.ok) {
+      throw new Error("Failed to fetch video data");
+    }
+
+    const videoData: VideoHubData = await videoResponse.json();
+
+    // Channel info is optional - if it fails, we'll use null
+    let channelInfo: ChannelInfo | null = null;
+    if (channelResponse.ok) {
+      channelInfo = await channelResponse.json();
+    }
 
     // Sort hero videos by publishedAt only (no tier sorting)
     if (videoData.hero) {
@@ -665,9 +607,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         data: videoData,
-        channelInfo: channelInfo.error ? null : channelInfo,
-        error: videoData.error || null,
+        channelInfo: channelInfo || null,
+        error: null,
       },
+      revalidate: 300, // 🆕 ISR: Revalidate every 5 minutes (fallback)
     };
   } catch (error) {
     console.error("[Videos Page] Error fetching data:", error);
@@ -677,6 +620,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         channelInfo: null,
         error: "Failed to load video data",
       },
+      revalidate: 300, // Still revalidate even on error
     };
   }
 };

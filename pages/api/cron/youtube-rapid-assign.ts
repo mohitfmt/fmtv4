@@ -1,5 +1,5 @@
 // pages/api/cron/youtube-rapid-assign.ts
-// CORRECT VERSION - Using your actual imports and project structure
+// MODIFIED VERSION - Added ISR revalidation logic at the end
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
@@ -49,13 +49,12 @@ export default async function handler(
   logger.info("========================================");
   logger.info("Starting rapid playlist assignment");
 
-  // Properly typed results object
   const results: {
     videosProcessed: number;
     videosAssigned: number;
     playlistsChecked: number;
     apiCalls: number;
-    errors: string[]; // Explicitly typed as string array
+    errors: string[];
   } = {
     videosProcessed: 0,
     videosAssigned: 0,
@@ -65,17 +64,17 @@ export default async function handler(
   };
 
   try {
-    // SIMPLE QUERY: Find videos from last 24 hours with empty playlists
+    // Find videos from last 24 hours with empty playlists
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const needsAssignment = await prisma.videos.findMany({
       where: {
         isActive: true,
         publishedAt: {
-          gte: oneDayAgo, // Last 24 hours
+          gte: oneDayAgo,
         },
         playlists: {
-          isEmpty: true, // Only videos with NO playlists
+          isEmpty: true,
         },
       },
       select: {
@@ -86,21 +85,12 @@ export default async function handler(
         playlists: true,
       },
       orderBy: { publishedAt: "desc" },
-      take: 20, // Process up to 20 videos per run
+      take: 20,
     });
 
-    logger.info(`Found ${needsAssignment.length} videos with empty playlists`, {
-      count: needsAssignment.length,
-      videos: needsAssignment.slice(0, 5).map((v) => ({
-        // Show first 5 only
-        videoId: v.videoId,
-        title: v.title.substring(0, 40),
-        hoursAgo: Math.round((Date.now() - v.publishedAt.getTime()) / 3600000),
-      })),
-    });
+    logger.info(`Found ${needsAssignment.length} videos with empty playlists`);
 
     if (needsAssignment.length === 0) {
-      // Debug: Check if there are ANY videos with empty playlists
       const totalEmpty = await prisma.videos.count({
         where: {
           isActive: true,
@@ -131,7 +121,7 @@ export default async function handler(
       );
     }
 
-    // Extract playlist IDs - handle various formats
+    // Extract playlist IDs
     const displayed = Array.isArray(feConfig.displayedPlaylists)
       ? (feConfig.displayedPlaylists as any[])
       : [];
@@ -144,7 +134,6 @@ export default async function handler(
       ...displayed.map((p: any) => p?.playlistId).filter(Boolean),
     ].filter(Boolean) as string[];
 
-    // Remove duplicates
     const uniquePlaylistIds = [...new Set(playlistIds)];
 
     logger.info(
@@ -161,7 +150,7 @@ export default async function handler(
         const response = await youtube.playlistItems.list({
           part: ["contentDetails"],
           playlistId,
-          maxResults: 50, // Get latest 50 videos
+          maxResults: 50,
         });
 
         results.apiCalls++;
@@ -173,7 +162,6 @@ export default async function handler(
 
         allPlaylistVideos.set(playlistId, videoIds);
 
-        // Check if any of our videos are in this playlist
         const foundCount = needsAssignment.filter((v) =>
           videoIds.includes(v.videoId)
         ).length;
@@ -186,7 +174,7 @@ export default async function handler(
       } catch (error: any) {
         const errorMsg = `Playlist ${playlistId} fetch failed: ${error.message}`;
         logger.error(errorMsg);
-        results.errors.push(errorMsg); // Now properly typed as string[]
+        results.errors.push(errorMsg);
       }
     }
 
@@ -195,25 +183,22 @@ export default async function handler(
       results.videosProcessed++;
       const foundInPlaylists: string[] = [];
 
-      // Check which playlists contain this video
       for (const [playlistId, videoIds] of allPlaylistVideos.entries()) {
         if (videoIds.includes(video.videoId)) {
           foundInPlaylists.push(playlistId);
         }
       }
 
-      // Update the video
       if (foundInPlaylists.length > 0) {
         await prisma.videos.update({
           where: { id: video.id },
           data: {
             playlists: foundInPlaylists,
             playlistsUpdatedAt: new Date(),
-            syncVersion: 2, // Mark as successfully synced
+            syncVersion: 2,
           },
         });
 
-        // Increment itemCount for each playlist the video was added to
         for (const playlistId of foundInPlaylists) {
           try {
             await prisma.playlist.update({
@@ -223,14 +208,10 @@ export default async function handler(
                 updatedAt: new Date(),
               },
             });
-            logger.debug(`Incremented count for playlist ${playlistId}`);
           } catch (err: any) {
-            // Don't fail the whole operation if count update fails
             logger.error(
               `Failed to increment count for playlist ${playlistId}`,
-              {
-                error: err.message,
-              }
+              { error: err.message }
             );
           }
         }
@@ -238,22 +219,14 @@ export default async function handler(
         results.videosAssigned++;
 
         logger.success(
-          `Assigned "${video.title}" to ${foundInPlaylists.length} playlist(s)`,
-          {
-            videoId: video.videoId,
-            playlists: foundInPlaylists,
-            ageInHours: Math.round(
-              (Date.now() - video.publishedAt.getTime()) / 3600000
-            ),
-          }
+          `Assigned "${video.title}" to ${foundInPlaylists.length} playlist(s)`
         );
       } else {
-        // Mark as checked but no playlists found yet
         await prisma.videos.update({
           where: { id: video.id },
           data: {
             playlistsUpdatedAt: new Date(),
-            syncVersion: { increment: 1 }, // Increment attempt counter
+            syncVersion: { increment: 1 },
           },
         });
 
@@ -269,7 +242,6 @@ export default async function handler(
     // Clear cache if we assigned videos
     if (results.videosAssigned > 0) {
       try {
-        // Try to clear cache - use whatever method works in your setup
         const endpoints = [
           {
             url: "/api/cache/purge-cdn",
@@ -295,13 +267,124 @@ export default async function handler(
               },
             });
             logger.info(`Cache cleared via ${endpoint.url}`);
-            break; // Stop after first successful clear
+            break;
           } catch (e) {
             // Try next method
           }
         }
       } catch (e) {
         logger.warn("Cache clear failed - will clear on next request");
+      }
+
+      // 🆕 ISR REVALIDATION: Trigger page rebuilds for affected playlists
+      try {
+        logger.info("Triggering ISR revalidation for affected pages...");
+
+        // Collect all affected playlist IDs
+        const affectedPlaylistIds = new Set<string>();
+        for (const video of needsAssignment) {
+          const videoData = await prisma.videos.findFirst({
+            where: { videoId: video.videoId },
+            select: { playlists: true },
+          });
+          videoData?.playlists.forEach((pid) => affectedPlaylistIds.add(pid));
+        }
+
+        logger.debug(`Affected playlists: ${affectedPlaylistIds.size}`);
+
+        // Determine which pages need revalidation
+        const pagesToRevalidate = new Set<string>();
+
+        for (const playlistId of affectedPlaylistIds) {
+          // Homepage
+          if (playlistId === feConfig.homepagePlaylist) {
+            pagesToRevalidate.add("/");
+            logger.debug(`Homepage affected by playlist ${playlistId}`);
+          }
+
+          // Video hub (hero)
+          if (playlistId === feConfig.heroPlaylist) {
+            pagesToRevalidate.add("/videos");
+            logger.debug(`Video hub (hero) affected by playlist ${playlistId}`);
+          }
+
+          // Video hub (displayed playlists)
+          const isDisplayed = displayed.some(
+            (p: any) => p?.playlistId === playlistId
+          );
+          if (isDisplayed) {
+            pagesToRevalidate.add("/videos");
+            logger.debug(`Video hub (grid) affected by playlist ${playlistId}`);
+          }
+
+          // Shorts page
+          if (playlistId === feConfig.shortsPlaylist) {
+            pagesToRevalidate.add("/videos/shorts");
+            pagesToRevalidate.add("/videos"); // Shorts also shown on hub
+            logger.debug(`Shorts page affected by playlist ${playlistId}`);
+          }
+
+          // Individual playlist page
+          const playlist = await prisma.playlist.findFirst({
+            where: { playlistId },
+            select: { slug: true },
+          });
+          if (playlist?.slug) {
+            pagesToRevalidate.add(`/videos/playlist/${playlist.slug}`);
+            logger.debug(
+              `Playlist page /videos/playlist/${playlist.slug} affected`
+            );
+          }
+        }
+
+        if (pagesToRevalidate.size > 0) {
+          const pathsArray = Array.from(pagesToRevalidate);
+          logger.info(
+            `Revalidating ${pathsArray.length} pages: ${pathsArray.join(", ")}`
+          );
+
+          // Call internal revalidation API
+          const revalidateUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/internal/revalidate`;
+          const revalidateSecret =
+            process.env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET_KEY;
+
+          if (!revalidateSecret) {
+            logger.warn(
+              "REVALIDATE_SECRET not set - skipping ISR revalidation"
+            );
+          } else {
+            const revalidateResponse = await fetch(revalidateUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-revalidate-secret": revalidateSecret,
+              },
+              body: JSON.stringify({
+                paths: pathsArray,
+              }),
+            });
+
+            if (revalidateResponse.ok) {
+              const revalidateData = await revalidateResponse.json();
+              logger.success("ISR revalidation triggered successfully", {
+                revalidated: revalidateData.revalidated || pathsArray,
+              });
+            } else {
+              const errorText = await revalidateResponse.text();
+              logger.error("ISR revalidation failed", {
+                status: revalidateResponse.status,
+                error: errorText,
+              });
+            }
+          }
+        } else {
+          logger.info("No pages need revalidation");
+        }
+      } catch (revalidateError: any) {
+        // Don't fail the entire job if revalidation fails
+        logger.error("ISR revalidation error (non-fatal)", {
+          error: revalidateError.message,
+        });
       }
     }
 
