@@ -283,6 +283,12 @@ const YouTubeSubscribeSection = ({
 }) => {
   if (!channelInfo) return null;
 
+  const mainDescription = channelInfo?.description
+    ? channelInfo.description.split("\n").filter((line) => line.trim() !== "")
+    : [
+        "FMT brings you the latest news, from the halls of power to the city streets!",
+      ];
+
   return (
     <div className="bg-muted rounded-lg p-6 mb-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -297,9 +303,17 @@ const YouTubeSubscribeSection = ({
             />
           )}
           <div>
-            <h3 className="text-xl font-bold">{channelInfo.title}</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-2xl font-bold">{channelInfo.title}</h3>
+            {/* <p className="text-sm text-muted-foreground">
               {formatViewCount(channelInfo.subscriberCount)} subscribers
+            </p> */}
+
+            <h4 className="font-bold mb-1 text-gray-900 dark:text-gray-100">
+              Never miss an update! {mainDescription[0]}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {mainDescription[1] ||
+                "Subscribe to our YouTube channel for instant notifications"}
             </p>
           </div>
         </div>
@@ -397,17 +411,11 @@ const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
 
       <div className="w-full">
         {/* Header with Search */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto pt-8 pb-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center mb-8">
             {/* Title */}
             <div>
               <h1 className="text-4xl font-bold">FMT Videos</h1>
-              {data.stats && (
-                <p className="text-muted-foreground mt-2">
-                  {data.stats.totalVideos.toLocaleString()} videos •{" "}
-                  {data.stats.newToday} new today
-                </p>
-              )}
             </div>
 
             {/* Search Box */}
@@ -422,38 +430,10 @@ const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
               />
             </div>
           </div>
-
-          {/* Top Mobile Ad */}
-          <div className="ads-small-mobile mb-6">
-            <AdSlot
-              sizes={[
-                [320, 50],
-                [320, 100],
-              ]}
-              id="div-gpt-ad-1661362398994-0"
-              name="ROS_Mobile_Top"
-              visibleOnDevices="onlyMobile"
-              targetingParams={dfpTargetingParams}
-            />
-          </div>
-
-          {/* Top Desktop Ad */}
-          <div className="ads-medium-desktop mb-8">
-            <AdSlot
-              id="div-gpt-ad-1661333219776-0"
-              name="ROS_Leaderboard"
-              sizes={[
-                [728, 90],
-                [970, 90],
-              ]}
-              visibleOnDevices="onlyDesktop"
-              targetingParams={dfpTargetingParams}
-            />
-          </div>
         </div>
 
         {/* Main Content */}
-        <div className="container mx-auto px-4">
+        <div className="mx-auto">
           {/* Search Results */}
           {searchQuery.trim() && (
             <div className="mb-12">
@@ -479,7 +459,8 @@ const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
               )}
             </div>
           )}
-
+          {/* YouTube Subscribe Section */}
+          <YouTubeSubscribeSection channelInfo={channelInfo} />
           {/* Regular Content (hidden during search) */}
           {!searchQuery.trim() && (
             <>
@@ -489,9 +470,6 @@ const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
                   <HeroCarousel videos={data.hero} />
                 </section>
               )}
-
-              {/* YouTube Subscribe Section */}
-              <YouTubeSubscribeSection channelInfo={channelInfo} />
 
               {/* Shorts Rail */}
               <ShortsRail
