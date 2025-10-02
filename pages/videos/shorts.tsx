@@ -80,8 +80,8 @@ function generateVideoSchema(
   index: number,
   channelInfo: any
 ) {
-  const thumbnailUrl =
-    video.thumbnails?.maxres?.url ||
+  const thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/frame0.jpg` ||
+  video.thumbnails?.maxres?.url ||
     video.thumbnails?.high?.url ||
     `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`;
 

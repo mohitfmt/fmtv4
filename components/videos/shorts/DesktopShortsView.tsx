@@ -101,10 +101,10 @@ export default function DesktopShortsView({
   // Get thumbnail for vertical shorts display
   const getShortsThumbnail = (video: VideoWithChannel) => {
     if (imageErrors[video.videoId]) {
-      return `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
+      return `https://i.ytimg.com/vi/${video.videoId}/oar2.jpg`;
     }
     // Try vertical thumbnail first
-    return `https://i.ytimg.com/vi/${video.videoId}/oar2.jpg`;
+    return `https://i.ytimg.com/vi/${video.videoId}/frame0.jpg`;
   };
 
   return (
