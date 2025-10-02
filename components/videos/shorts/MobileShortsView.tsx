@@ -211,17 +211,30 @@ export default function MobileShortsView({
               <div className="relative w-full h-full">
                 <div className="absolute inset-0 flex items-center justify-center bg-black">
                   {isCurrent ? (
-                    // ✅ CHANGE #2: Include isMuted in key to force re-mount, pass isMuted to URL function
-                    <iframe
-                      ref={iframeRef}
-                      key={`iframe-${video.videoId}-${isMuted ? "muted" : "unmuted"}`}
-                      src={getYouTubeEmbedUrl(video.videoId, isMuted)}
-                      className="w-full h-full"
-                      style={{ border: 0 }}
-                      allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-                      allowFullScreen
-                      title={video.title}
-                    />
+                    <>
+                      {/* ✅ CHANGE #2: Include isMuted in key to force re-mount, pass isMuted to URL function */}
+                      <iframe
+                        ref={iframeRef}
+                        key={`iframe-${video.videoId}-${isMuted ? "muted" : "unmuted"}`}
+                        src={getYouTubeEmbedUrl(video.videoId, isMuted)}
+                        className="w-full h-full"
+                        style={{ border: 0, pointerEvents: "none" }}
+                        allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
+                        allowFullScreen
+                        title={video.title}
+                      />
+                      {/* Transparent overlay to capture swipes without blocking buttons */}
+                      <div
+                        className="absolute inset-0 z-10"
+                        style={{ pointerEvents: "auto" }}
+                        onClick={(e) => {
+                          // Allow tap-through to iframe for iOS sound if needed
+                          if (isiOS && !isMuted && iframeRef.current) {
+                            e.stopPropagation();
+                          }
+                        }}
+                      />
+                    </>
                   ) : (
                     <Image
                       src={getShortsThumbnail(video)}
