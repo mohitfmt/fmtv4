@@ -1,5 +1,5 @@
 // components/videos/shorts/MobileShortsView.tsx
-// REVERTED TO SIMPLE: Reliable embeds, accepts iOS policy
+// OPTION A FIX: Dynamic mute parameter with iframe re-mount for actual unmute functionality
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
@@ -39,11 +39,11 @@ interface MobileShortsViewProps {
   totalCount: number;
 }
 
-// Simple embed URL - no API
-const getYouTubeEmbedUrl = (videoId: string): string => {
+// ✅ CHANGE #1: Accept muted parameter to dynamically set mute state
+const getYouTubeEmbedUrl = (videoId: string, muted: boolean = true): string => {
   const params = new URLSearchParams({
     autoplay: "1",
-    mute: "1",
+    mute: muted ? "1" : "0", // ← DYNAMIC instead of hardcoded "1"
     controls: "0",
     playsinline: "1",
     loop: "1",
@@ -211,10 +211,11 @@ export default function MobileShortsView({
               <div className="relative w-full h-full">
                 <div className="absolute inset-0 flex items-center justify-center bg-black">
                   {isCurrent ? (
+                    // ✅ CHANGE #2: Include isMuted in key to force re-mount, pass isMuted to URL function
                     <iframe
                       ref={iframeRef}
-                      key={`iframe-${video.videoId}`}
-                      src={getYouTubeEmbedUrl(video.videoId)}
+                      key={`iframe-${video.videoId}-${isMuted ? "muted" : "unmuted"}`}
+                      src={getYouTubeEmbedUrl(video.videoId, isMuted)}
                       className="w-full h-full"
                       style={{ border: 0 }}
                       allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
@@ -246,31 +247,23 @@ export default function MobileShortsView({
                     </div>
 
                     <div
-                      className="absolute inset-0 z-10"
-                      onDoubleClick={() => {
-                        setShowLikeAnimation(true);
-                        setTimeout(() => setShowLikeAnimation(false), 1000);
-
-                        if (
-                          typeof window !== "undefined" &&
-                          (window as any).gtag
-                        ) {
-                          (window as any).gtag("event", "like", {
-                            event_category: "shorts",
-                            event_label: "double_click",
-                            video_id: video.videoId,
-                          });
-                        }
+                      className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20"
+                      style={{
+                        paddingBottom: "80px",
                       }}
-                    />
+                    >
+                      <button
+                        className="flex flex-col items-center"
+                        aria-label="Views"
+                      >
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur rounded-full flex items-center justify-center">
+                          <FaEye className="w-6 h-6 text-white" />
+                        </div>
+                        <span className="text-white text-xs mt-1">
+                          {formatViewCount(video.statistics.viewCount)}
+                        </span>
+                      </button>
 
-                    {showLikeAnimation && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                        <FaHeart className="w-32 h-32 text-white opacity-80 animate-ping" />
-                      </div>
-                    )}
-
-                    <div className="absolute right-4 bottom-32 flex flex-col gap-6 z-20">
                       <button
                         className="flex flex-col items-center"
                         aria-label="Like"
