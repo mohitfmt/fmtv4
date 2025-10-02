@@ -90,6 +90,7 @@ export default function MobileShortsView({
   const [showTapHint, setShowTapHint] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [userWantsSound, setUserWantsSound] = useState(false); // Track user intent across swipes
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
@@ -154,11 +155,16 @@ export default function MobileShortsView({
 
   const onVolumeClick = useCallback(() => {
     setHasInteracted(true);
-    setIsMuted((m) => !m);
 
     if (isiOS) {
+      // iOS: Don't change iframe, just guide user to tap video
+      setUserWantsSound(true);
       setShowTapHint(true);
       setTimeout(() => setShowTapHint(false), 3000);
+    } else {
+      // Android: Toggle mute (triggers iframe reload)
+      setIsMuted((m) => !m);
+      setUserWantsSound((prev) => !prev);
     }
   }, [isiOS]);
 
@@ -180,6 +186,15 @@ export default function MobileShortsView({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goToNext, goToPrevious, onVolumeClick, isShareModalOpen]);
+
+  // Show tap hint on iOS when swiping to new video if user wants sound
+  useEffect(() => {
+    if (isiOS && userWantsSound && hasInteracted) {
+      setShowTapHint(true);
+      const timer = setTimeout(() => setShowTapHint(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, isiOS, userWantsSound, hasInteracted]);
 
   if (!currentVideo) return null;
 
@@ -212,28 +227,30 @@ export default function MobileShortsView({
                 <div className="absolute inset-0 flex items-center justify-center bg-black">
                   {isCurrent ? (
                     <>
-                      {/* ✅ CHANGE #2: Include isMuted in key to force re-mount, pass isMuted to URL function */}
+                      {/* Platform-specific iframe behavior */}
                       <iframe
                         ref={iframeRef}
-                        key={`iframe-${video.videoId}-${isMuted ? "muted" : "unmuted"}`}
-                        src={getYouTubeEmbedUrl(video.videoId, isMuted)}
+                        key={`iframe-${video.videoId}-${isiOS ? "ios" : isMuted ? "muted" : "unmuted"}`}
+                        src={getYouTubeEmbedUrl(
+                          video.videoId,
+                          isiOS ? true : isMuted
+                        )}
                         className="w-full h-full"
-                        style={{ border: 0, pointerEvents: "none" }}
+                        style={{
+                          border: 0,
+                          pointerEvents: isiOS ? "auto" : "none",
+                        }}
                         allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
                         allowFullScreen
                         title={video.title}
                       />
-                      {/* Transparent overlay to capture swipes without blocking buttons */}
-                      <div
-                        className="absolute inset-0 z-10"
-                        style={{ pointerEvents: "auto" }}
-                        onClick={(e) => {
-                          // Allow tap-through to iframe for iOS sound if needed
-                          if (isiOS && !isMuted && iframeRef.current) {
-                            e.stopPropagation();
-                          }
-                        }}
-                      />
+                      {/* Swipe overlay - only for Android (iOS needs iframe tap-through) */}
+                      {!isiOS && (
+                        <div
+                          className="absolute inset-0 z-10"
+                          style={{ pointerEvents: "auto" }}
+                        />
+                      )}
                     </>
                   ) : (
                     <Image
@@ -319,25 +336,37 @@ export default function MobileShortsView({
                       >
                         <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                            !hasInteracted && isMuted
-                              ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
-                              : isMuted
-                                ? "bg-red-500/80"
-                                : "bg-white/10 backdrop-blur"
+                            isiOS
+                              ? // iOS: Always show as "tap needed" state
+                                !hasInteracted
+                                ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
+                                : "bg-red-500/80"
+                              : // Android: Show actual mute state
+                                !hasInteracted && isMuted
+                                ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50"
+                                : isMuted
+                                  ? "bg-red-500/80"
+                                  : "bg-white/10 backdrop-blur"
                           }`}
                         >
-                          {isMuted ? (
+                          {(isiOS ? true : isMuted) ? (
                             <FaVolumeMute className="w-6 h-6 text-white" />
                           ) : (
                             <FaVolumeUp className="w-6 h-6 text-white" />
                           )}
                         </div>
                         <span className="text-white text-xs mt-1 font-medium">
-                          {!hasInteracted
-                            ? "Tap for sound"
-                            : isMuted
-                              ? "Unmute"
-                              : "Sound"}
+                          {isiOS
+                            ? // iOS: Always guide to tap
+                              !hasInteracted
+                              ? "Tap for sound"
+                              : "Tap video"
+                            : // Android: Show actual state
+                              !hasInteracted
+                              ? "Tap for sound"
+                              : isMuted
+                                ? "Unmute"
+                                : "Sound"}
                         </span>
 
                         {showTapHint && isiOS && (
@@ -348,7 +377,7 @@ export default function MobileShortsView({
                           </div>
                         )}
 
-                        {!hasInteracted && isMuted && !showTapHint && (
+                        {!hasInteracted && !showTapHint && (
                           <div className="absolute -left-24 top-1/2 -translate-y-1/2">
                             <div className="bg-white text-black text-xs px-2 py-1 rounded animate-bounce whitespace-nowrap">
                               Tap for sound 👉
