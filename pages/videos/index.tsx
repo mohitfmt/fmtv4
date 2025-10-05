@@ -228,11 +228,10 @@ const EnhancedVideoHeader = ({
       {/* Results Count - Shows when searching */}
       {searchQuery && !isSearching && (
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 animate-fade-in">
-          Searching for "
+          Searching for
           <span className="font-medium text-gray-900 dark:text-gray-100">
             {searchQuery}
           </span>
-          "
         </div>
       )}
     </div>
@@ -742,7 +741,7 @@ const VideosPage = ({
               </div>
             ) : (
               <p className="text-muted-foreground">
-                No videos found for "{searchQuery}"
+                No videos found for {searchQuery}
               </p>
             )}
           </div>
