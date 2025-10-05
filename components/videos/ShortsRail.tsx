@@ -96,23 +96,31 @@ const ShortsRail = ({
           <h2 className="text-2xl font-bold">Shorts</h2>
           <span className="text-sm text-muted-foreground">Quick videos</span>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scroll("left")}
-            aria-label="Scroll left"
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scroll("left")}
+            >
+              <FaChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scroll("right")}
+            >
+              <FaChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          {/* Add View All link */}
+          <Link
+            href="/videos/shorts"
+            className="text-primary hover:underline flex items-center gap-1 text-sm font-medium"
           >
-            <FaChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scroll("right")}
-            aria-label="Scroll right"
-          >
-            <FaChevronRight className="w-4 h-4" />
-          </Button>
+            View All
+            <FaChevronRight className="w-3 h-3" />
+          </Link>
         </div>
       </div>
 

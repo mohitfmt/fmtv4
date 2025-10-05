@@ -1,7 +1,10 @@
+// components/videos/VideoDetailedContent.tsx
+// ENHANCED: Phase 1 - Performance foundation with VideoFacade
 import React from "react";
 import Linkify from "linkify-react";
 import FullDateDisplay from "@/components/common/display-date-formats/FullDateDisplay";
 import ShareComponents from "../news-article/ShareComponents";
+import VideoFacade from "./VideoFacade";
 
 interface VideoContentProps {
   video: any;
@@ -24,16 +27,56 @@ const VideoDetailedContent: React.FC<VideoContentProps> = ({
     return <div className="lg:w-2/3 p-4">Video information not available</div>;
   }
 
+  // Extract thumbnail from video data with fallbacks
+  const getVideoThumbnail = () => {
+    if (shareThumbnail) return shareThumbnail;
+
+    // Try to extract from video node if available
+    if (video.node?.thumbnails) {
+      return (
+        video.node.thumbnails.maxres?.url ||
+        video.node.thumbnails.high?.url ||
+        video.node.thumbnails.medium?.url
+      );
+    }
+
+    // Return undefined to let VideoFacade handle its own fallbacks
+    return undefined;
+  };
+
   return (
     <main className="lg:w-2/3">
-      <div className="aspect-video w-full bg-slate-100 mb-4">
-        <iframe
-          className="w-full h-full"
-          src={`https://www.youtube.com/embed/${videoId}`}
+      {/* 🆕 VideoFacade instead of direct iframe */}
+      <div className="mb-4">
+        <VideoFacade
+          videoId={videoId}
           title={video?.node?.title || "YouTube video player"}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
+          thumbnail={getVideoThumbnail()}
+          aspectRatio="video"
+          priority={true} // Hero video gets priority loading
+          className="rounded-lg overflow-hidden"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
+          onLoad={() => {
+            // Optional: Track video facade interactions
+            if (typeof window !== "undefined" && window.gtag) {
+              window.gtag("event", "video_facade_loaded", {
+                event_category: "Video",
+                event_label: videoId,
+              });
+            }
+          }}
+          onError={(error) => {
+            console.error("VideoFacade error:", error);
+            // Optional: Track errors for monitoring
+            if (typeof window !== "undefined" && window.gtag) {
+              window.gtag("event", "video_facade_error", {
+                event_category: "Video",
+                event_label: videoId,
+                value: error.message,
+              });
+            }
+          }}
+        />
       </div>
 
       <div className="py-4">

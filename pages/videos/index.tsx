@@ -4,7 +4,6 @@
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
-import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
@@ -27,6 +26,7 @@ import { formatViewCount, formatDuration, getTimeAgo } from "@/lib/utils";
 import type { Video } from "@/types/video";
 import { useDebounce } from "@/hooks/useDebounce";
 import ShortsRail from "@/components/videos/ShortsRail";
+import VideoFacade from "@/components/videos/VideoFacade";
 
 // Types
 interface VideoHubData {
@@ -91,62 +91,43 @@ const EnhancedVideoHeader = ({
     ? channelInfo.description.split("\n").filter((line) => line.trim() !== "")
     : [
         "FMT brings you the latest news, from the halls of power to the city streets!",
-        "Subscribe to our YouTube channel for instant notifications",
+        "Subscribe to our YouTube channel to watch the latest videos.",
       ];
 
   return (
-    <div className="w-full mb-8">
-      {/* Main Header Container */}
+    <div className="px-1 py-4">
       <div className="rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 lg:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            {/* Channel Info Section */}
-            <div className="flex items-start lg:items-center gap-4 flex-1">
-              {/* Channel Thumbnail with animation */}
-              {channelInfo?.thumbnailUrl && (
-                <div className="relative flex-shrink-0">
-                  <div className="absolute rounded-full opacity-75 blur animate-pulse"></div>
-                  <Image
-                    src={channelInfo.thumbnailUrl}
-                    alt={channelInfo.title || "Channel"}
-                    width={80}
-                    height={80}
-                    className="relative rounded-full ring-4 ring-white dark:ring-stone-800 shadow-lg"
-                  />
-                </div>
-              )}
-
-              {/* Channel Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">
-                    {channelInfo?.title || "FMT Videos"}
+        <div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+            {/* Left Column - Channel Info & Subscribe */}
+            <div className="space-y-4 p-2 lg:col-span-2">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {channelInfo?.title || "Free Malaysia Today"}
                   </h1>
                   <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                     OFFICIAL
                   </span>
                 </div>
 
-                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <h2 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <span className="animate-pulse">🟢</span> Never miss an
                   update!
-                  <span className="text-base text-gray-600 dark:text-gray-400">
+                  <span className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">
                     {" - "}
                     {mainDescription[0]}
                   </span>
                 </h2>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                  {mainDescription[1] && mainDescription[1]}
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {mainDescription[1]}
                 </p>
               </div>
-            </div>
 
-            {/* Subscribe Button */}
-            <div className="flex items-center gap-3">
               <Button
                 asChild
-                className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group"
+                className="bg-red-600 hover:bg-red-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200 inline-flex"
                 size="lg"
               >
                 <Link
@@ -155,71 +136,71 @@ const EnhancedVideoHeader = ({
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
-                  <FaYoutube className="w-5 h-5 group-hover:animate-bounce" />
+                  <FaYoutube className="w-5 h-5" />
                   Subscribe
                   <FaBell className="w-4 h-4 animate-pulse" />
                 </Link>
               </Button>
             </div>
-          </div>
-        </div>
+            {/* Right Column - Search */}
+            <div className="p-4">
+              <div className="max-w-lg ml-auto">
+                <div
+                  className={`relative transition-all duration-300 ${
+                    isSearchFocused ? "scale-105" : ""
+                  }`}
+                >
+                  <FaSearch
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                      isSearchFocused
+                        ? "text-primary"
+                        : "text-gray-400 dark:text-gray-500"
+                    } w-4 h-4`}
+                  />
 
-        {/* Search Section - Separated with subtle divider */}
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 lg:px-8 py-4">
-          <div className="max-w-2xl mx-auto">
-            <div
-              className={`relative transition-all duration-300 ${
-                isSearchFocused ? "scale-105" : ""
-              }`}
-            >
-              {/* Search Icon */}
-              <FaSearch
-                className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
-                  isSearchFocused
-                    ? "text-primary"
-                    : "text-gray-400 dark:text-gray-500"
-                } w-4 h-4`}
-              />
+                  <Input
+                    type="search"
+                    placeholder="Search videos..."
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 w-full ${
+                      isSearchFocused
+                        ? "border-primary shadow-lg shadow-primary/20"
+                        : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                    }`}
+                  />
 
-              {/* Search Input */}
-              <Input
-                type="search"
-                placeholder="Search videos..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-                className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 ${
-                  isSearchFocused
-                    ? "border-primary shadow-lg shadow-primary/20"
-                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                }`}
-              />
-
-              {/* Loading Spinner */}
-              {isSearching && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <div className="animate-spin h-5 w-5 border-3 border-primary border-t-transparent rounded-full" />
+                  {isSearching && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin h-5 w-5 border-3 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Quick Search Tags */}
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Popular:
-              </span>
-              {["Politics", "Business", "Najib", "Budget 2025", "Sports"].map(
-                (tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => onSearchChange(tag)}
-                    className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors duration-200 hover:text-primary"
-                  >
-                    {tag}
-                  </button>
-                )
-              )}
+                {/* Quick Search Tags */}
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Popular:
+                  </span>
+                  {[
+                    "Politics",
+                    "Business",
+                    "Najib",
+                    "Budget 2025",
+                    "Sports",
+                  ].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => onSearchChange(tag)}
+                      className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors duration-200 hover:text-primary"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -228,10 +209,11 @@ const EnhancedVideoHeader = ({
       {/* Results Count - Shows when searching */}
       {searchQuery && !isSearching && (
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 animate-fade-in">
-          Searching for
+          Searching for &quot;
           <span className="font-medium text-gray-900 dark:text-gray-100">
             {searchQuery}
           </span>
+          &quot;
         </div>
       )}
     </div>
@@ -282,24 +264,17 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
     `https://i.ytimg.com/vi/${currentVideo.videoId}/maxresdefault.jpg`;
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
-      <Link href={`/videos/${currentVideo.videoId}`}>
-        <Image
-          src={thumbnailUrl}
-          alt={currentVideo.title}
-          fill
-          className="object-cover"
-          priority
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = `https://i.ytimg.com/vi/${currentVideo.videoId}/hqdefault.jpg`;
-          }}
-        />
-      </Link>
-
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+    <div className="relative aspect-video bg-black rounded-lg overflow-hidden group">
+      <VideoFacade
+        videoId={currentVideo.videoId}
+        title={currentVideo.title}
+        thumbnail={thumbnailUrl}
+        aspectRatio="video"
+        priority
+        size="large"
+        className="w-full h-full"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+      />
 
       {/* Play Button Overlay */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -311,21 +286,23 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
       </div>
 
       {/* Video Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-        <Link href={`/videos/${currentVideo.videoId}`}>
-          <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors sr-only">
-            {currentVideo.title}
-          </h2>
-        </Link>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="flex items-center gap-1">
-            <FaEye />
-            {formatViewCount(currentVideo.statistics?.viewCount)}
-          </span>
-          <span>•</span>
-          <span>{getTimeAgo(currentVideo.publishedAt)}</span>
-          <span>•</span>
-          <span>{formatDuration(currentVideo.duration)}</span>
+      <div className="absolute hidden lg:bottom-0 lg:left-0 right-0 p-3 text-white">
+        <div className="bg-black/60 rounded-lg p-3 inline-block">
+          <Link href={`/videos/${currentVideo.videoId}`}>
+            <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors sr-only">
+              {currentVideo.title}
+            </h2>
+          </Link>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
+              <FaEye />
+              {formatViewCount(currentVideo.statistics?.viewCount)}
+            </span>
+            <span>•</span>
+            <span>{getTimeAgo(currentVideo.publishedAt)}</span>
+            <span>•</span>
+            <span>{formatDuration(currentVideo.duration)}</span>
+          </div>
         </div>
       </div>
 
@@ -390,8 +367,8 @@ const ErrorState = ({
   }, [onRetry]);
 
   return (
-    <div className="px-4 py-16">
-      <div className="max-w-md mx-auto text-center">
+    <div className="">
+      <div className="text-center">
         <div className="mb-6">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
@@ -444,27 +421,24 @@ const VideoCard = ({ video }: { video: Video }) => {
       href={`/videos/${video.videoId}`}
       className="group block bg-card rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
     >
-      <div className="relative aspect-video bg-muted">
-        <Image
-          src={thumbnailUrl}
-          alt={video.title}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          loading="lazy"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`;
-          }}
-        />
-        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-          {formatDuration(video.duration)}
-        </div>
-      </div>
-      <div className="p-4">
+      <VideoFacade
+        videoId={video.videoId}
+        title={video.title}
+        thumbnail={thumbnailUrl}
+        aspectRatio="video"
+        size="small"
+        className="w-full"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+      <div className="p-1 py-2">
         <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors mb-2">
           {video.title}
         </h3>
+        {video.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+            {video.description}
+          </p>
+        )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <FaEye className="w-3 h-3" />
@@ -700,6 +674,7 @@ const VideosPage = ({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://www.youtube.com" />
 
         {/* Alternate for Mobile */}
         <link
@@ -718,7 +693,7 @@ const VideosPage = ({
         }}
       />
 
-      <div className="px-2 py-6">
+      <div>
         {/* Enhanced Header */}
         <EnhancedVideoHeader
           channelInfo={channelInfo}
@@ -756,22 +731,10 @@ const VideosPage = ({
 
         {/* Shorts Rail */}
         {!searchResults && data.shorts && data.shorts.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Shorts</h2>
-              <Link
-                href="/videos/shorts"
-                className="text-primary hover:underline flex items-center gap-1"
-              >
-                View All
-                <FaChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <ShortsRail
-              shorts={data.shorts}
-              totalCount={data.shortsTotalCount || data.shorts.length}
-            />
-          </section>
+          <ShortsRail
+            shorts={data.shorts}
+            totalCount={data.shortsTotalCount || data.shorts.length}
+          />
         )}
 
         {/* Playlists */}

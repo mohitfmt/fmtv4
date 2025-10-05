@@ -1,21 +1,23 @@
 // pages/videos/playlist/[slug].tsx
-// MODIFIED: Converted from SSR to ISR with hero layout
+// ENHANCED: Uniform grid layout with VideoFacade, breadcrumb navigation, rich SEO
+// PRESERVED: ISR, data fetching, load more functionality
 
 import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import { useState, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { FaPlay, FaEye, FaChevronLeft } from "react-icons/fa";
+import { FaEye, FaChevronRight, FaHome } from "react-icons/fa";
 import { MdVideoLibrary } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatViewCount, formatDuration, getTimeAgo } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import siteConfig from "@/constants/site-config";
+import VideoFacade from "@/components/videos/VideoFacade";
+import { VideoGridSkeleton } from "@/components/videos/VideoLoadingUtils";
 
-// Video type
+// Video type (preserved)
 interface VideoWithChannel {
   videoId: string;
   title: string;
@@ -53,196 +55,76 @@ interface PlaylistPageProps {
   lastModified: string;
 }
 
-// Hero Video Card (Large - Left Side)
-const HeroVideoCard = ({ video }: { video: VideoWithChannel }) => {
-  const [imageError, setImageError] = useState(false);
-
-  const getThumbnail = () => {
-    if (imageError) {
-      return `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
-    }
-    return (
-      video.thumbnails?.maxres ||
-      video.thumbnails?.high ||
-      `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`
-    );
-  };
-
+// Breadcrumb Component
+const Breadcrumb = ({ playlistTitle }: { playlistTitle: string }) => {
   return (
-    <Link
-      href={`/videos/${video.videoId}`}
-      className="group block bg-card rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-    >
-      {/* 16:9 Thumbnail */}
-      <div className="relative aspect-video bg-muted overflow-hidden">
-        <Image
-          src={getThumbnail()}
-          alt={video.title}
-          fill
-          sizes="(max-width: 768px) 100vw, 60vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={() => setImageError(true)}
-          priority
-        />
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-        {/* Play Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-red-600 rounded-full p-6 transform scale-90 group-hover:scale-100 transition-transform">
-            <FaPlay className="text-white w-8 h-8 ml-1" />
-          </div>
-        </div>
-
-        {/* Duration Badge */}
-        <div className="absolute bottom-3 right-3 bg-black/90 text-white text-sm px-3 py-1.5 rounded font-medium">
-          {formatDuration(video.duration)}
-        </div>
-
-        {/* Tier Badge */}
-        {(video.tier === "hot" || video.tier === "trending") && (
-          <div className="absolute top-3 left-3 bg-red-600 text-white text-sm px-3 py-1.5 rounded font-bold uppercase">
-            {video.tier}
-          </div>
-        )}
-
-        {/* Video Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-          <h3 className="font-bold text-xl mb-2 line-clamp-2">{video.title}</h3>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-1.5">
-              <FaEye className="w-4 h-4" />
-              {formatViewCount(parseInt(video.statistics.viewCount))}
-            </span>
-            <span>•</span>
-            <span>{getTimeAgo(video.publishedAt)}</span>
-          </div>
-        </div>
-      </div>
-    </Link>
+    <nav aria-label="Breadcrumb" className="mb-6">
+      <ol className="flex items-center space-x-2 text-sm">
+        <li>
+          <Link
+            href="/"
+            className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
+            <FaHome className="w-3 h-3" />
+            Home
+          </Link>
+        </li>
+        <li>
+          <FaChevronRight className="w-3 h-3 text-muted-foreground" />
+        </li>
+        <li>
+          <Link
+            href="/videos"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
+            Videos
+          </Link>
+        </li>
+        <li>
+          <FaChevronRight className="w-3 h-3 text-muted-foreground" />
+        </li>
+        <li>
+          <span className="text-foreground font-medium">{playlistTitle}</span>
+        </li>
+      </ol>
+    </nav>
   );
 };
 
-// Sidebar Video Card (Smaller - Right Side Stack)
-const SidebarVideoCard = ({ video }: { video: VideoWithChannel }) => {
-  const [imageError, setImageError] = useState(false);
-
-  const getThumbnail = () => {
-    if (imageError) {
-      return `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
-    }
-    return (
-      video.thumbnails?.high ||
-      video.thumbnails?.medium ||
-      `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
-    );
-  };
-
-  return (
-    <Link
-      href={`/videos/${video.videoId}`}
-      className="group flex gap-3 bg-card rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:bg-accent/5"
-    >
-      {/* Thumbnail - Fixed width */}
-      <div className="relative w-40 aspect-video bg-muted overflow-hidden flex-shrink-0">
-        <Image
-          src={getThumbnail()}
-          alt={video.title}
-          fill
-          sizes="160px"
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={() => setImageError(true)}
-        />
-
-        {/* Duration Badge */}
-        <div className="absolute bottom-1.5 right-1.5 bg-black/90 text-white text-xs px-2 py-0.5 rounded font-medium">
-          {formatDuration(video.duration)}
-        </div>
-
-        {/* Tier Badge */}
-        {(video.tier === "hot" || video.tier === "trending") && (
-          <div className="absolute top-1.5 left-1.5 bg-red-600 text-white text-xs px-2 py-0.5 rounded font-bold uppercase">
-            {video.tier}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 py-2 pr-2 min-w-0">
-        <h4 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover:text-primary transition-colors">
-          {video.title}
-        </h4>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <FaEye className="w-3 h-3" />
-            {formatViewCount(parseInt(video.statistics.viewCount))}
-          </span>
-          <span>•</span>
-          <span className="truncate">{video.channelTitle}</span>
-        </div>
-      </div>
-    </Link>
-  );
-};
-
-// Standard Video Card (Grid - 16:9)
+// Enhanced Video Card with VideoFacade and descriptions
 const VideoCard = ({ video }: { video: VideoWithChannel }) => {
-  const [imageError, setImageError] = useState(false);
-
-  const getThumbnail = () => {
-    if (imageError) {
-      return `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
-    }
-    return (
-      video.thumbnails?.high ||
-      video.thumbnails?.medium ||
-      `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
-    );
-  };
+  const thumbnailUrl =
+    video.thumbnails?.high?.url ||
+    video.thumbnails?.medium?.url ||
+    `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
 
   return (
     <Link
       href={`/videos/${video.videoId}`}
       className="group block bg-card rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
     >
-      {/* 16:9 Thumbnail */}
-      <div className="relative aspect-video bg-muted overflow-hidden">
-        <Image
-          src={getThumbnail()}
-          alt={video.title}
-          fill
-          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
+      {/* VideoFacade for better performance */}
+      <VideoFacade
+        videoId={video.videoId}
+        title={video.title}
+        thumbnail={thumbnailUrl}
+        aspectRatio="video"
+        size="small"
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+      />
 
-        {/* Play Overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="bg-red-600 rounded-full p-3 opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300">
-            <FaPlay className="text-white w-5 h-5 ml-0.5" />
-          </div>
-        </div>
-
-        {/* Duration Badge */}
-        <div className="absolute bottom-2 right-2 bg-black/90 text-white text-xs px-2 py-1 rounded font-medium">
-          {formatDuration(video.duration)}
-        </div>
-
-        {/* Tier Badge */}
-        {(video.tier === "hot" || video.tier === "trending") && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold uppercase">
-            {video.tier}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-3">
+      {/* Content with description */}
+      <div className="p-4">
         <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
           {video.title}
         </h3>
+
+        {/* Description - NEW */}
+        {video.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+            {video.description}
+          </p>
+        )}
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
@@ -250,18 +132,24 @@ const VideoCard = ({ video }: { video: VideoWithChannel }) => {
             {formatViewCount(parseInt(video.statistics.viewCount))}
           </span>
           <span>•</span>
-          <span className="truncate">{video.channelTitle}</span>
+          <span>{getTimeAgo(video.publishedAt)}</span>
+          {video.duration && (
+            <>
+              <span>•</span>
+              <span>{formatDuration(video.duration)}</span>
+            </>
+          )}
         </div>
       </div>
     </Link>
   );
 };
 
-// Loading Skeleton
+// Loading Skeleton (using shared component)
 const VideoSkeleton = () => (
   <div className="bg-card rounded-lg overflow-hidden animate-pulse">
     <div className="aspect-video bg-muted" />
-    <div className="p-3 space-y-2">
+    <div className="p-4 space-y-2">
       <div className="h-4 bg-muted rounded w-full" />
       <div className="h-4 bg-muted rounded w-3/4" />
       <div className="h-3 bg-muted rounded w-1/2" />
@@ -284,7 +172,7 @@ export default function PlaylistPage({
   const [hasMore, setHasMore] = useState(videos.length < totalCount);
   const [page, setPage] = useState(1);
 
-  // Load more videos
+  // Load more videos (preserved functionality)
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
     setIsLoading(true);
@@ -292,61 +180,87 @@ export default function PlaylistPage({
     try {
       const nextPage = page + 1;
       const response = await fetch(
-        `/api/videos/playlist/${playlistInfo.slug}?page=${nextPage}&sort=${sortBy}&limit=12`
+        `/api/videos/playlist/${playlistInfo.slug}?page=${nextPage}&sort=${sortBy}`
       );
+
+      if (!response.ok) throw new Error("Failed to load more videos");
+
       const data = await response.json();
 
       if (data.videos && data.videos.length > 0) {
         setVideos((prev) => [...prev, ...data.videos]);
         setPage(nextPage);
-        setHasMore(data.hasMore);
+        setHasMore(videos.length + data.videos.length < totalCount);
       } else {
         setHasMore(false);
       }
-    } catch (error) {
-      console.error("Failed to load more videos:", error);
+    } catch (err) {
+      console.error("Error loading more videos:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, hasMore, page, sortBy, playlistInfo.slug]);
+  }, [
+    page,
+    sortBy,
+    isLoading,
+    hasMore,
+    playlistInfo.slug,
+    videos.length,
+    totalCount,
+  ]);
 
   // Handle sort change
-  const handleSortChange = async (newSort: string) => {
-    if (newSort === sortBy) return;
+  const handleSortChange = useCallback(
+    async (newSort: string) => {
+      setSortBy(newSort);
+      setIsLoading(true);
+      setPage(1);
 
-    setSortBy(newSort);
-    setIsLoading(true);
-    setPage(1);
+      try {
+        const response = await fetch(
+          `/api/videos/playlist/${playlistInfo.slug}?page=1&sort=${newSort}&limit=24`
+        );
 
-    try {
-      const response = await fetch(
-        `/api/videos/playlist/${playlistInfo.slug}?page=1&sort=${newSort}&limit=24`
-      );
-      const data = await response.json();
+        if (!response.ok) throw new Error("Failed to sort videos");
 
-      if (data.videos) {
-        setVideos(data.videos);
-        setHasMore(data.hasMore);
+        const data = await response.json();
+
+        if (data.videos) {
+          setVideos(data.videos);
+          setHasMore(data.videos.length < totalCount);
+        }
+      } catch (err) {
+        console.error("Error sorting videos:", err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to change sort:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [playlistInfo.slug, totalCount]
+  );
 
-  // Generate JSON-LD for SEO
-  const generateJsonLD = () => {
-    const itemListSchema = {
+  // Enhanced SEO metadata
+  const pageTitle = `${playlistInfo.title} | ${siteConfig.siteName} Videos`;
+  const pageDescription =
+    playlistInfo.description ||
+    `Watch ${totalCount} videos from ${playlistInfo.title}. Latest news, analysis and exclusive content from Free Malaysia Today.`;
+  const ogImage =
+    playlistInfo.thumbnailUrl ||
+    videos[0]?.thumbnails?.high?.url ||
+    `${siteConfig.baseUrl}/images/fmt-video-default.jpg`;
+
+  // Generate comprehensive structured data
+  const generateStructuredData = () => {
+    const schemas: any[] = [];
+
+    // ItemList Schema for videos
+    schemas.push({
       "@context": "https://schema.org",
       "@type": "ItemList",
-      "@id": `${currentUrl}#itemlist`,
+      "@id": `${currentUrl}#playlist`,
       name: playlistInfo.title,
-      description:
-        playlistInfo.description ||
-        `Watch ${totalCount} videos from ${playlistInfo.title}`,
+      description: pageDescription,
       numberOfItems: totalCount,
-      itemListElement: videos.slice(0, 20).map((video, index) => ({
+      itemListElement: videos.slice(0, 30).map((video, index) => ({
         "@type": "ListItem",
         position: index + 1,
         url: `${siteConfig.baseUrl}/videos/${video.videoId}`,
@@ -356,9 +270,9 @@ export default function PlaylistPage({
           name: video.title,
           description: video.description?.substring(0, 200) || video.title,
           thumbnailUrl: [
-            video.thumbnails?.maxres ||
+            video.thumbnails?.maxres?.url ||
               `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`,
-            video.thumbnails?.high ||
+            video.thumbnails?.high?.url ||
               `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
           ],
           uploadDate: video.publishedAt,
@@ -368,23 +282,26 @@ export default function PlaylistPage({
           interactionStatistic: {
             "@type": "InteractionCounter",
             interactionType: "https://schema.org/WatchAction",
-            userInteractionCount: parseInt(video.statistics.viewCount) || 0,
+            userInteractionCount: parseInt(video.statistics.viewCount || "0"),
           },
           publisher: {
-            "@type": "Organization",
-            name: "Free Malaysia Today",
+            "@type": "NewsMediaOrganization",
+            name: siteConfig.siteName,
+            url: siteConfig.baseUrl,
             logo: {
               "@type": "ImageObject",
-              url: `${siteConfig.baseUrl}/logo.png`,
+              url: `${siteConfig.baseUrl}/images/logo.png`,
             },
           },
         },
       })),
-    };
+    });
 
-    const breadcrumbSchema = {
+    // BreadcrumbList Schema
+    schemas.push({
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
+      "@id": `${currentUrl}#breadcrumb`,
       itemListElement: [
         {
           "@type": "ListItem",
@@ -405,54 +322,57 @@ export default function PlaylistPage({
           item: currentUrl,
         },
       ],
-    };
+    });
 
-    const collectionPageSchema = {
+    // CollectionPage Schema
+    schemas.push({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      "@id": currentUrl,
-      name: playlistInfo.title,
-      description:
-        playlistInfo.description ||
-        `Browse ${totalCount} videos from ${playlistInfo.title}`,
+      "@id": `${currentUrl}#webpage`,
       url: currentUrl,
+      name: playlistInfo.title,
+      description: pageDescription,
       isPartOf: {
         "@type": "WebSite",
-        name: "Free Malaysia Today",
+        "@id": `${siteConfig.baseUrl}#website`,
+        name: siteConfig.siteName,
         url: siteConfig.baseUrl,
       },
-      mainEntity: {
-        "@id": `${currentUrl}#itemlist`,
+      about: {
+        "@type": "VideoGallery",
+        name: playlistInfo.title,
       },
-    };
+      inLanguage: "en-MY",
+      lastReviewed: lastModified,
+      mainEntity: {
+        "@id": `${currentUrl}#playlist`,
+      },
+    });
 
-    return {
-      "@context": "https://schema.org",
-      "@graph": [itemListSchema, breadcrumbSchema, collectionPageSchema],
-    };
+    return { "@graph": schemas };
   };
 
-  const pageTitle = `${playlistInfo.title} - ${totalCount} Videos | FMT`;
-  const pageDescription =
-    playlistInfo.description ||
-    `Watch ${totalCount} latest videos from ${playlistInfo.title}. Stay updated with Free Malaysia Today's video content.`;
-
+  // Error state
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4">Error Loading Playlist</h1>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <Link href="/videos">
-          <Button>Back to Videos</Button>
-        </Link>
-      </div>
+      <>
+        <Head>
+          <title>Error Loading Playlist | {siteConfig.siteName}</title>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <MdVideoLibrary className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-4">Unable to Load Playlist</h1>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Link href="/videos">
+              <Button>Back to Videos</Button>
+            </Link>
+          </div>
+        </div>
+      </>
     );
   }
-
-  // Split videos for layout: first 4 for hero section, rest for grid
-  const heroVideo = videos[0];
-  const sidebarVideos = videos.slice(1, 4);
-  const gridVideos = videos.slice(4);
 
   return (
     <>
@@ -463,41 +383,32 @@ export default function PlaylistPage({
         <meta name="description" content={pageDescription} />
         <meta
           name="keywords"
-          content={`${playlistInfo.title}, FMT Videos, Malaysia News, Free Malaysia Today`}
+          content={`${playlistInfo.title}, FMT videos, Malaysia news videos, ${videos
+            .slice(0, 5)
+            .map((v) => v.title)
+            .join(", ")}`}
         />
         <link rel="canonical" href={currentUrl} />
 
-        {/* Open Graph */}
+        {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content={currentUrl} />
-        <meta property="og:title" content={playlistInfo.title} />
+        <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
-        <meta
-          property="og:image"
-          content={
-            playlistInfo.thumbnailUrl ||
-            heroVideo?.thumbnails?.maxres ||
-            `${siteConfig.baseUrl}/images/fmt-video-default.jpg`
-          }
-        />
-        <meta property="og:site_name" content="Free Malaysia Today" />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
+        <meta property="og:site_name" content={siteConfig.siteName} />
         <meta property="og:locale" content="en_MY" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
-        <meta name="twitter:title" content={playlistInfo.title} />
+        <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
-        <meta
-          name="twitter:image"
-          content={
-            playlistInfo.thumbnailUrl ||
-            heroVideo?.thumbnails?.maxres ||
-            `${siteConfig.baseUrl}/images/fmt-video-default.jpg`
-          }
-        />
+        <meta name="twitter:image" content={ogImage} />
 
-        {/* Additional Meta Tags for SEO */}
+        {/* Additional SEO Meta Tags */}
         <meta
           name="robots"
           content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
@@ -506,54 +417,48 @@ export default function PlaylistPage({
         <meta httpEquiv="content-language" content="en-MY" />
         <meta name="geo.region" content="MY" />
         <meta name="geo.placename" content="Malaysia" />
-        <meta name="article:publisher" content="Free Malaysia Today" />
-        <meta name="article:modified_time" content={lastModified} />
+        {lastModified && (
+          <meta property="article:modified_time" content={lastModified} />
+        )}
 
-        {/* Alternate for Mobile */}
+        {/* Performance & Resource Hints */}
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <link
-          rel="alternate"
-          media="only screen and (max-width: 640px)"
-          href={currentUrl}
+          rel="preconnect"
+          href="https://i.ytimg.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://www.youtube.com" />
+        <link
+          rel="preconnect"
+          href="https://www.youtube.com"
+          crossOrigin="anonymous"
         />
       </Head>
 
-      {/* JSON-LD Structured Data */}
+      {/* Structured Data */}
       <Script
         id="playlist-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(generateJsonLD()),
+          __html: JSON.stringify(generateStructuredData()),
         }}
       />
 
-      <div className="container mx-auto px-4 py-6 max-w-[1400px]">
-        {/* Header */}
-        <div className="mb-6">
-          {/* Back Button */}
-          <Link
-            href="/videos"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4"
-          >
-            <FaChevronLeft className="w-3 h-3" />
-            Back to Videos
-          </Link>
+      <div className="container mx-auto px-4 py-6">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb playlistTitle={playlistInfo.title} />
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <MdVideoLibrary className="w-8 h-8 text-primary" />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">
-                  {playlistInfo.title}
-                </h1>
-                {playlistInfo.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {playlistInfo.description}
-                  </p>
-                )}
-                <p className="text-sm text-muted-foreground mt-1">
-                  {totalCount} videos
+        {/* Playlist Header - Simplified */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{playlistInfo.title}</h1>
+              {playlistInfo.description && (
+                <p className="text-muted-foreground max-w-3xl">
+                  {playlistInfo.description}
                 </p>
-              </div>
+              )}
             </div>
 
             {/* Sort Tabs */}
@@ -565,44 +470,37 @@ export default function PlaylistPage({
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="newest">Newest</TabsTrigger>
                 <TabsTrigger value="popular">Popular</TabsTrigger>
-                <TabsTrigger value="trending">Trending</TabsTrigger>
+                <TabsTrigger value="trending">Oldest</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
 
-        {/* Hero Section - Homepage Style Layout */}
-        {videos.length > 0 && (
-          <div className="mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* Large Hero Video - Left (7 columns on desktop) */}
-              <div className="lg:col-span-7">
-                <HeroVideoCard video={heroVideo} />
-              </div>
-
-              {/* Sidebar Videos - Right (5 columns on desktop) */}
-              <div className="lg:col-span-5 flex flex-col gap-4">
-                {sidebarVideos.map((video) => (
-                  <SidebarVideoCard key={video.videoId} video={video} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Remaining Videos Grid - 4 columns desktop, 2 columns mobile */}
-        {gridVideos.length > 0 && (
+        {/* Uniform Video Grid - 4 cols desktop, 2 cols mobile */}
+        {videos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-            {gridVideos.map((video) => (
+            {videos.map((video) => (
               <VideoCard key={video.videoId} video={video} />
             ))}
 
             {/* Loading Skeletons */}
             {isLoading &&
-              Array.from({ length: 12 }).map((_, i) => (
+              Array.from({ length: 8 }).map((_, i) => (
                 <VideoSkeleton key={`skeleton-${i}`} />
               ))}
           </div>
+        ) : (
+          !isLoading && (
+            <div className="text-center py-12">
+              <MdVideoLibrary className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">
+                No videos in this playlist
+              </p>
+              <Link href="/videos" className="mt-4 inline-block">
+                <Button>Browse All Videos</Button>
+              </Link>
+            </div>
+          )
         )}
 
         {/* Load More Button */}
@@ -620,29 +518,14 @@ export default function PlaylistPage({
         )}
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="flex justify-center mt-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
+        {isLoading && videos.length === 0 && (
+          <VideoGridSkeleton count={12} aspectRatio="video" />
         )}
 
         {/* End of Results */}
         {!hasMore && videos.length > 0 && (
           <div className="text-center mt-8 text-muted-foreground">
-            <p>You have reached the end of this playlist</p>
-          </div>
-        )}
-
-        {/* No Videos State */}
-        {videos.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <MdVideoLibrary className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">
-              No videos in this playlist
-            </p>
-            <Link href="/videos" className="mt-4 inline-block">
-              <Button>Browse All Videos</Button>
-            </Link>
+            <p>End of playlist • {totalCount} videos total</p>
           </div>
         )}
       </div>
@@ -650,10 +533,9 @@ export default function PlaylistPage({
   );
 }
 
-// 🆕 ISR: Generate static paths for all active playlists
+// getStaticPaths - preserved exactly
 export const getStaticPaths: GetStaticPaths = async () => {
   try {
-    // Get all active playlists with slugs
     const playlists = await prisma.playlist.findMany({
       where: {
         isActive: true,
@@ -674,7 +556,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
     return {
       paths,
-      fallback: "blocking", // Generate new playlists on-demand
+      fallback: "blocking",
     };
   } catch (error) {
     console.error("[getStaticPaths] Error fetching playlists:", error);
@@ -685,7 +567,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }
 };
 
-// 🆕 ISR: Static generation with 15-minute revalidation
+// getStaticProps - preserved with minimal changes
 export const getStaticProps: GetStaticProps = async (context) => {
   const { slug } = context.params || {};
 
@@ -715,12 +597,9 @@ export const getStaticProps: GetStaticProps = async (context) => {
     if (!playlist) {
       return {
         notFound: true,
-        revalidate: 300, // Recheck in 5 minutes if playlist was added
+        revalidate: 300,
       };
     }
-
-    // Default to newest sort for static generation
-    const orderBy: any = { publishedAt: "desc" };
 
     // Fetch initial 24 videos
     const [videos, totalCount] = await Promise.all([
@@ -737,7 +616,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
             },
           },
         },
-        orderBy,
+        orderBy: { publishedAt: "desc" },
         take: 24,
       }),
       prisma.videos.count({
@@ -799,7 +678,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
         currentUrl,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 900, // 🆕 ISR: Revalidate every 15 minutes (fallback)
+      revalidate: 900, // 15 minutes
     };
   } catch (error) {
     console.error("[Playlist Page] Error fetching videos:", error);
@@ -819,7 +698,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
         currentUrl: `${siteConfig.baseUrl}/videos/playlist/${slug}`,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 900, // Still revalidate on error
+      revalidate: 900,
     };
   }
 };
