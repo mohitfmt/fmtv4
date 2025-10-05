@@ -1,0 +1,176 @@
+/* styles/videos-page.css
+   Additional styles for the videos page animations and enhancements */
+
+/* Fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Bounce animation for icons */
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-25%);
+  }
+}
+
+/* Header container enhancements */
+.video-header-enhanced {
+  transition: all 0.3s ease;
+}
+
+/* Search input focus effects */
+.search-input-focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Quick search tag hover effects */
+.quick-search-tag {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.quick-search-tag::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  opacity: 0.1;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s ease;
+  border-radius: 9999px;
+}
+
+.quick-search-tag:hover::before {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Subscribe button enhancement */
+.subscribe-button-enhanced {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.subscribe-button-enhanced::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.6s,
+    height 0.6s;
+}
+
+.subscribe-button-enhanced:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.subscribe-button-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.4);
+}
+
+/* Video card hover effects */
+.video-card-enhanced {
+  transition: all 0.3s ease;
+}
+
+.video-card-enhanced:hover {
+  transform: translateY(-4px);
+}
+
+/* Loading spinner */
+.spinner-border {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: text-bottom;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .video-header-container {
+    border-radius: 0;
+  }
+
+  .channel-thumbnail {
+    width: 60px;
+    height: 60px;
+  }
+
+  .subscribe-button-enhanced {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .video-header-enhanced {
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.05) 0%,
+      rgba(245, 158, 11, 0.05) 100%
+    );
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

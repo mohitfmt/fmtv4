@@ -1,17 +1,22 @@
 // pages/videos/index.tsx
-// MODIFIED: Converted from SSR to ISR for better performance
+// Enhanced version with improved header and fixed rendering issues
 
 import { GetStaticProps } from "next";
 import Head from "next/head";
+import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/router";
 import {
   FaPlay,
   FaEye,
   FaChevronRight,
   FaChevronLeft,
   FaSearch,
+  FaSync,
+  FaYoutube,
+  FaBell,
 } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +24,6 @@ import AdSlot from "@/components/common/AdSlot";
 import siteConfig from "@/constants/site-config";
 import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general";
 import { formatViewCount, formatDuration, getTimeAgo } from "@/lib/utils";
-import VideoSkeleton from "@/components/skeletons/VideoCardSkeleton";
 import type { Video } from "@/types/video";
 import { useDebounce } from "@/hooks/useDebounce";
 import ShortsRail from "@/components/videos/ShortsRail";
@@ -58,7 +62,182 @@ interface VideosPageProps {
   data: VideoHubData | null;
   channelInfo: ChannelInfo | null;
   error: string | null;
+  buildTimestamp?: string;
+  lastModified?: string;
 }
+
+// DFP Targeting
+const dfpTargetingParams = {
+  section: ["Videos"],
+  pos: "videos-hub",
+  key: ["videos", "multimedia", ...gerneralTargetingKeys],
+};
+
+// Enhanced Header Component
+const EnhancedVideoHeader = ({
+  channelInfo,
+  searchQuery,
+  onSearchChange,
+  isSearching,
+}: {
+  channelInfo: ChannelInfo | null;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  isSearching: boolean;
+}) => {
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const mainDescription = channelInfo?.description
+    ? channelInfo.description.split("\n").filter((line) => line.trim() !== "")
+    : [
+        "FMT brings you the latest news, from the halls of power to the city streets!",
+        "Subscribe to our YouTube channel for instant notifications",
+      ];
+
+  return (
+    <div className="w-full mb-8">
+      {/* Main Header Container */}
+      <div className="rounded-xl shadow-sm overflow-hidden">
+        <div className="p-6 lg:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            {/* Channel Info Section */}
+            <div className="flex items-start lg:items-center gap-4 flex-1">
+              {/* Channel Thumbnail with animation */}
+              {channelInfo?.thumbnailUrl && (
+                <div className="relative flex-shrink-0">
+                  <div className="absolute rounded-full opacity-75 blur animate-pulse"></div>
+                  <Image
+                    src={channelInfo.thumbnailUrl}
+                    alt={channelInfo.title || "Channel"}
+                    width={80}
+                    height={80}
+                    className="relative rounded-full ring-4 ring-white dark:ring-stone-800 shadow-lg"
+                  />
+                </div>
+              )}
+
+              {/* Channel Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                    {channelInfo?.title || "FMT Videos"}
+                  </h1>
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
+                    OFFICIAL
+                  </span>
+                </div>
+
+                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  <span className="animate-pulse">🟢</span> Never miss an
+                  update!
+                  <span className="text-base text-gray-600 dark:text-gray-400">
+                    {" - "}
+                    {mainDescription[0]}
+                  </span>
+                </h2>
+
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                  {mainDescription[1] && mainDescription[1]}
+                </p>
+              </div>
+            </div>
+
+            {/* Subscribe Button */}
+            <div className="flex items-center gap-3">
+              <Button
+                asChild
+                className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group"
+                size="lg"
+              >
+                <Link
+                  href={`https://www.youtube.com/channel/${channelInfo?.id || "UC2CzLwbhTiI8pTKNVyrOnJQ"}?sub_confirmation=1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <FaYoutube className="w-5 h-5 group-hover:animate-bounce" />
+                  Subscribe
+                  <FaBell className="w-4 h-4 animate-pulse" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Section - Separated with subtle divider */}
+        <div className="border-t border-gray-200 dark:border-gray-700 px-6 lg:px-8 py-4">
+          <div className="max-w-2xl mx-auto">
+            <div
+              className={`relative transition-all duration-300 ${
+                isSearchFocused ? "scale-105" : ""
+              }`}
+            >
+              {/* Search Icon */}
+              <FaSearch
+                className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                  isSearchFocused
+                    ? "text-primary"
+                    : "text-gray-400 dark:text-gray-500"
+                } w-4 h-4`}
+              />
+
+              {/* Search Input */}
+              <Input
+                type="search"
+                placeholder="Search videos..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 ${
+                  isSearchFocused
+                    ? "border-primary shadow-lg shadow-primary/20"
+                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                }`}
+              />
+
+              {/* Loading Spinner */}
+              {isSearching && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin h-5 w-5 border-3 border-primary border-t-transparent rounded-full" />
+                </div>
+              )}
+            </div>
+
+            {/* Quick Search Tags */}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Popular:
+              </span>
+              {["Politics", "Business", "Najib", "Budget 2025", "Sports"].map(
+                (tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => onSearchChange(tag)}
+                    className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition-colors duration-200 hover:text-primary"
+                  >
+                    {tag}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Count - Shows when searching */}
+      {searchQuery && !isSearching && (
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 animate-fade-in">
+          Searching for "
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+            {searchQuery}
+          </span>
+          "
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Hero Carousel Component
 const HeroCarousel = ({ videos }: { videos: Video[] }) => {
@@ -126,7 +305,7 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
       {/* Play Button Overlay */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <Link href={`/videos/${currentVideo.videoId}`}>
-          <div className="bg-primary rounded-full p-6 hover:scale-110 transition-transform">
+          <div className="rounded-full p-6 hover:scale-110 transition-transform bg-red-600">
             <FaPlay className="w-8 h-8 text-white" />
           </div>
         </Link>
@@ -135,7 +314,7 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
       {/* Video Info */}
       <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
         <Link href={`/videos/${currentVideo.videoId}`}>
-          <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors">
+          <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors sr-only">
             {currentVideo.title}
           </h2>
         </Link>
@@ -192,41 +371,66 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
   );
 };
 
-// Playlist Section Component
-const PlaylistSection = ({
-  playlist,
-  playlistId,
+// Error State Component with Retry
+const ErrorState = ({
+  error,
+  onRetry,
 }: {
-  playlist: { name: string; videos: Video[] };
-  playlistId: string;
+  error: string;
+  onRetry: () => void;
 }) => {
-  if (!playlist || !playlist.videos || playlist.videos.length === 0) {
-    return null;
-  }
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  // Generate slug from playlist name
-  const playlistSlug = playlist.name.toLowerCase().replace(/\s+/g, "-");
+  const handleRetry = useCallback(async () => {
+    setIsRetrying(true);
+    try {
+      await onRetry();
+    } finally {
+      setTimeout(() => setIsRetrying(false), 500);
+    }
+  }, [onRetry]);
 
   return (
-    <section className="mb-12" aria-label={playlist.name}>
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">{playlist.name}</h2>
-        <Link href={`/videos/playlist/${playlistSlug}`} prefetch={false}>
-          <Button variant="ghost" className="flex items-center gap-2">
-            View All
-            <FaChevronRight className="w-4 h-4" />
-          </Button>
-        </Link>
-      </div>
+    <div className="px-4 py-16">
+      <div className="max-w-md mx-auto text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Unable to Load Videos</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+        </div>
 
-      {/* Video Grid - 3 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {playlist.videos.map((video) => (
-          <VideoCard key={video.videoId} video={video} />
-        ))}
+        <Button
+          onClick={handleRetry}
+          disabled={isRetrying}
+          className="gap-2"
+          size="lg"
+        >
+          <FaSync className={isRetrying ? "animate-spin" : ""} />
+          {isRetrying ? "Retrying..." : "Retry"}
+        </Button>
+
+        <p className="text-sm text-muted-foreground mt-4">
+          Or{" "}
+          <Link href="/" className="text-primary hover:underline">
+            return to homepage
+          </Link>
+        </p>
       </div>
-    </section>
+    </div>
   );
 };
 
@@ -237,29 +441,29 @@ const VideoCard = ({ video }: { video: Video }) => {
     `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
 
   return (
-    <Link href={`/videos/${video.videoId}`} prefetch={false}>
-      <div className="group cursor-pointer">
-        {/* Thumbnail */}
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-3">
-          <Image
-            src={thumbnailUrl}
-            alt={video.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
-            }}
-          />
-          {/* Duration Badge */}
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-            {formatDuration(video.duration)}
-          </div>
+    <Link
+      href={`/videos/${video.videoId}`}
+      className="group block bg-card rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+    >
+      <div className="relative aspect-video bg-muted">
+        <Image
+          src={thumbnailUrl}
+          alt={video.title}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`;
+          }}
+        />
+        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+          {formatDuration(video.duration)}
         </div>
-
-        {/* Video Info */}
-        <h3 className="font-medium line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+      </div>
+      <div className="p-4">
+        <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors mb-2">
           {video.title}
         </h3>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -275,283 +479,535 @@ const VideoCard = ({ video }: { video: Video }) => {
   );
 };
 
-// YouTube Subscribe Section
-const YouTubeSubscribeSection = ({
+// Main Component
+const VideosPage = ({
+  data,
   channelInfo,
-}: {
-  channelInfo: ChannelInfo | null;
-}) => {
-  if (!channelInfo) return null;
-
-  const mainDescription = channelInfo?.description
-    ? channelInfo.description.split("\n").filter((line) => line.trim() !== "")
-    : [
-        "FMT brings you the latest news, from the halls of power to the city streets!",
-      ];
-
-  return (
-    <div className="bg-muted rounded-lg p-6 mb-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          {channelInfo.thumbnailUrl && (
-            <Image
-              src={channelInfo.thumbnailUrl}
-              alt={channelInfo.title}
-              width={80}
-              height={80}
-              className="rounded-full"
-            />
-          )}
-          <div>
-            <h3 className="text-2xl font-bold">{channelInfo.title}</h3>
-            {/* <p className="text-sm text-muted-foreground">
-              {formatViewCount(channelInfo.subscriberCount)} subscribers
-            </p> */}
-
-            <h4 className="font-bold mb-1 text-gray-900 dark:text-gray-100">
-              Never miss an update! {mainDescription[0]}
-            </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {mainDescription[1] ||
-                "Subscribe to our YouTube channel for instant notifications"}
-            </p>
-          </div>
-        </div>
-        <Button
-          asChild
-          className="bg-red-600 hover:bg-red-700 text-white"
-          size="lg"
-        >
-          <a
-            href={`https://www.youtube.com/channel/${channelInfo.id}?sub_confirmation=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Subscribe
-          </a>
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-// Main Page Component
-const VideosPage = ({ data, channelInfo, error }: VideosPageProps) => {
+  error,
+  buildTimestamp,
+  lastModified,
+}: VideosPageProps) => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<Video[]>([]);
   const debouncedSearch = useDebounce(searchQuery, 500);
+  const [searchResults, setSearchResults] = useState<Video[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // DFP targeting params
-  const dfpTargetingParams = {
-    pos: "listing",
-    section: ["videos"],
-    key: gerneralTargetingKeys,
-  };
-
-  // Handle search
+  // Client-side search
   useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedSearch.trim()) {
-        setSearchResults([]);
-        setIsSearching(false);
-        return;
-      }
-
+    if (debouncedSearch && debouncedSearch.trim().length > 2) {
       setIsSearching(true);
-
-      try {
-        const response = await fetch(
-          `/api/videos/search?q=${encodeURIComponent(debouncedSearch)}`
-        );
-        const results = await response.json();
-        setSearchResults(results.videos || []);
-      } catch (error) {
-        console.error("Search error:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    performSearch();
+      fetch(`/api/videos/search?q=${encodeURIComponent(debouncedSearch)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setSearchResults(data.videos || []);
+        })
+        .catch((err) => {
+          console.error("Search failed:", err);
+          setSearchResults([]);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    } else {
+      setSearchResults(null);
+    }
   }, [debouncedSearch]);
+
+  // Handle retry
+  const handleRetry = useCallback(async () => {
+    router.push(router.asPath + "?fresh=" + Date.now());
+  }, [router]);
+
+  // Handle search change
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
+
+  // Generate SEO metadata
+  const pageTitle = `Videos - Latest News & Updates | ${siteConfig.siteName}`;
+  const pageDescription = `Watch the latest video news coverage from Free Malaysia Today. Breaking news, politics, business, lifestyle, and exclusive video reports from Malaysia and around the world.`;
+  const currentUrl = `${siteConfig.baseUrl}/videos`;
+  const heroVideo = data?.hero?.[0];
+  const ogImage =
+    heroVideo?.thumbnails?.maxres?.url ||
+    heroVideo?.thumbnails?.high?.url ||
+    `${siteConfig.baseUrl}/images/fmt-video-default.jpg`;
+
+  // Generate JSON-LD structured data
+  const generateJsonLD = () => {
+    const schemas: any[] = [];
+
+    // WebPage Schema
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "@id": `${currentUrl}#webpage`,
+      url: currentUrl,
+      name: pageTitle,
+      description: pageDescription,
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${siteConfig.baseUrl}#website`,
+      },
+      about: {
+        "@type": "VideoGallery",
+        name: "FMT Video Gallery",
+      },
+      inLanguage: "en-MY",
+      lastReviewed: lastModified || new Date().toISOString(),
+    });
+
+    // ItemList Schema for Hero Videos
+    if (data?.hero && data.hero.length > 0) {
+      schemas.push({
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "@id": `${currentUrl}#hero-videos`,
+        name: "Featured Videos",
+        description: "Curated selection of featured video content",
+        numberOfItems: data.hero.length,
+        itemListElement: data.hero.slice(0, 10).map((video, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          url: `${siteConfig.baseUrl}/videos/${video.videoId}`,
+          item: {
+            "@type": "VideoObject",
+            "@id": `${siteConfig.baseUrl}/videos/${video.videoId}`,
+            name: video.title,
+            description: video.description?.substring(0, 200) || video.title,
+            thumbnailUrl: [
+              video.thumbnails?.maxres?.url ||
+                `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`,
+              video.thumbnails?.high?.url ||
+                `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+            ],
+            uploadDate: video.publishedAt,
+            duration: video.duration,
+            contentUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
+            embedUrl: `https://www.youtube.com/embed/${video.videoId}`,
+            interactionStatistic: {
+              "@type": "InteractionCounter",
+              interactionType: "https://schema.org/WatchAction",
+              userInteractionCount: parseInt(
+                video.statistics?.viewCount || "0"
+              ),
+            },
+            publisher: {
+              "@type": "NewsMediaOrganization",
+              name: siteConfig.siteName,
+              url: siteConfig.baseUrl,
+              logo: {
+                "@type": "ImageObject",
+                url: `${siteConfig.baseUrl}/images/logo.png`,
+              },
+            },
+          },
+        })),
+      });
+    }
+
+    // BreadcrumbList Schema
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "@id": `${currentUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: siteConfig.baseUrl,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Videos",
+          item: currentUrl,
+        },
+      ],
+    });
+
+    return { "@graph": schemas };
+  };
 
   // Show error state
   if (error || !data) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Unable to Load Videos</h1>
-          <p className="text-muted-foreground mb-6">
-            {error || "Unable to load videos. Please try again later."}
-          </p>
-          <Button asChild>
-            <Link href="/">Return to Homepage</Link>
-          </Button>
-        </div>
-      </div>
+      <>
+        <Head>
+          <title>Error Loading Videos | {siteConfig.siteName}</title>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <ErrorState
+          error={error || "Failed to load video data"}
+          onRetry={handleRetry}
+        />
+      </>
     );
   }
 
+  // Main render
   return (
     <>
       <Head>
-        <title>Videos - Free Malaysia Today</title>
-        <meta
-          name="description"
-          content="Watch the latest news videos from Malaysia. Breaking news, politics, business, lifestyle, and more from Free Malaysia Today."
-        />
+        {/* Primary Meta Tags */}
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={pageDescription} />
         <meta
           name="keywords"
-          content="FMT videos, Malaysia news, video news, breaking news videos"
+          content="FMT videos, Malaysia news videos, breaking news, video gallery, news multimedia, video journalism"
         />
-        <link rel="canonical" href={`${siteConfig.baseUrl}/videos`} />
+        <link rel="canonical" href={currentUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
+        <meta property="og:site_name" content={siteConfig.siteName} />
+        <meta property="og:locale" content="en_MY" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@fmtoday" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+
+        {/* Additional SEO Meta Tags */}
+        <meta
+          name="robots"
+          content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        />
+        <meta name="googlebot" content="index, follow" />
+        <meta httpEquiv="content-language" content="en-MY" />
+        <meta name="geo.region" content="MY" />
+        <meta name="geo.placename" content="Malaysia" />
+        <meta name="article:publisher" content="Free Malaysia Today" />
+        {lastModified && (
+          <meta property="article:modified_time" content={lastModified} />
+        )}
+
+        {/* Performance & Resource Hints */}
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        <link
+          rel="preconnect"
+          href="https://i.ytimg.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://www.youtube.com" />
+
+        {/* Alternate for Mobile */}
+        <link
+          rel="alternate"
+          media="only screen and (max-width: 640px)"
+          href={currentUrl}
+        />
       </Head>
 
-      <div className="w-full">
-        {/* Header with Search */}
-        <div className="mx-auto pt-8 pb-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center mb-8">
-            {/* Title */}
-            <div>
-              <h1 className="text-4xl font-bold">FMT Videos</h1>
-            </div>
+      {/* JSON-LD Structured Data */}
+      <Script
+        id="videos-hub-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateJsonLD()),
+        }}
+      />
 
-            {/* Search Box */}
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search videos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="px-2 py-6">
+        {/* Enhanced Header */}
+        <EnhancedVideoHeader
+          channelInfo={channelInfo}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          isSearching={isSearching}
+        />
 
-        {/* Main Content */}
-        <div className="mx-auto">
-          {/* Search Results */}
-          {searchQuery.trim() && (
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold mb-6">
-                Search Results for {searchQuery}
-              </h2>
-              {isSearching ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <VideoSkeleton key={i} />
-                  ))}
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {searchResults.map((video) => (
-                    <VideoCard key={video.videoId} video={video} />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  No videos found matching {searchQuery}
-                </p>
-              )}
-            </div>
-          )}
-          {/* YouTube Subscribe Section */}
-          <YouTubeSubscribeSection channelInfo={channelInfo} />
-          {/* Regular Content (hidden during search) */}
-          {!searchQuery.trim() && (
-            <>
-              {/* Hero Carousel */}
-              {data.hero && data.hero.length > 0 && (
-                <section aria-label="Featured Videos" className="mb-8">
-                  <HeroCarousel videos={data.hero} />
-                </section>
-              )}
-
-              {/* Shorts Rail */}
-              <ShortsRail
-                shorts={data.shorts}
-                totalCount={data.shortsTotalCount}
-              />
-
-              {/* Playlist Sections - 3-column grid */}
-              {Object.entries(data.playlists)
-                .filter(
-                  ([_, playlist]) => playlist && playlist.videos.length > 0
-                )
-                .map(([playlistId, playlistData]) => (
-                  <PlaylistSection
-                    key={playlistId}
-                    playlist={playlistData}
-                    playlistId={playlistId}
-                  />
+        {/* Search Results */}
+        {searchResults && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">
+              Search Results ({searchResults.length})
+            </h2>
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchResults.map((video) => (
+                  <VideoCard key={video.videoId} video={video} />
                 ))}
-            </>
-          )}
-
-          {/* Bottom Desktop Ad */}
-          <div className="ads-medium-desktop mt-8">
-            <AdSlot
-              id="div-gpt-ad-1661333336129-0"
-              name="ROS_Midrec"
-              sizes={[
-                [300, 250],
-                [336, 280],
-              ]}
-              visibleOnDevices="onlyDesktop"
-              targetingParams={dfpTargetingParams}
-            />
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                No videos found for "{searchQuery}"
+              </p>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Bottom Mobile Ad */}
-        <div className="ads-small-mobile mt-4">
+        {/* Hero Section */}
+        {!searchResults && data.hero && data.hero.length > 0 && (
+          <section className="mb-8">
+            <HeroCarousel videos={data.hero} />
+          </section>
+        )}
+
+        {/* Shorts Rail */}
+        {!searchResults && data.shorts && data.shorts.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Shorts</h2>
+              <Link
+                href="/videos/shorts"
+                className="text-primary hover:underline flex items-center gap-1"
+              >
+                View All
+                <FaChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <ShortsRail
+              shorts={data.shorts}
+              totalCount={data.shortsTotalCount || data.shorts.length}
+            />
+          </section>
+        )}
+
+        {/* Playlists */}
+        {!searchResults &&
+          data.playlists &&
+          Object.entries(data.playlists).map(([playlistId, playlist]) => (
+            <section key={playlistId} className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">{playlist.name}</h2>
+                <Link
+                  href={`/videos/playlist/${playlistId}`}
+                  className="text-primary hover:underline flex items-center gap-1"
+                >
+                  View All
+                  <FaChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {playlist.videos.slice(0, 6).map((video) => (
+                  <VideoCard key={video.videoId} video={video} />
+                ))}
+              </div>
+            </section>
+          ))}
+
+        {/* Bottom Desktop Ad */}
+        <div className="ads-medium-desktop mt-8">
           <AdSlot
+            id="div-gpt-ad-1661333336129-0"
+            name="ROS_Midrec"
             sizes={[
-              [320, 50],
-              [320, 100],
+              [300, 250],
+              [336, 280],
             ]}
-            id="div-gpt-ad-1661362470989-0"
-            name="ROS_Mobile_Footer"
-            visibleOnDevices="onlyMobile"
+            visibleOnDevices="onlyDesktop"
             targetingParams={dfpTargetingParams}
           />
         </div>
       </div>
+
+      {/* Bottom Mobile Ad */}
+      <div className="ads-small-mobile mt-4">
+        <AdSlot
+          sizes={[
+            [320, 50],
+            [320, 100],
+          ]}
+          id="div-gpt-ad-1661362470989-0"
+          name="ROS_Mobile_Footer"
+          visibleOnDevices="onlyMobile"
+          targetingParams={dfpTargetingParams}
+        />
+      </div>
+
+      {/* Build Timestamp (only visible in dev console) */}
+      {buildTimestamp && (
+        <div className="sr-only" data-build-timestamp={buildTimestamp} />
+      )}
+
+      {/* Add fade-in animation styles */}
+      <style>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 };
 
-// 🆕 ISR: Static generation with 5-minute revalidation
-export const getStaticProps: GetStaticProps = async () => {
+// Retry helper with exponential backoff
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    initialDelay?: number;
+    maxDelay?: number;
+    label?: string;
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    initialDelay = 500,
+    maxDelay = 5000,
+    label = "API call",
+  } = options;
+
+  let lastError: Error | null = null;
+  let delay = initialDelay;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(
+        `[Video Hub ISR] ${label} - Attempt ${attempt + 1}/${maxRetries + 1}`
+      );
+      const result = await fn();
+
+      if (attempt > 0) {
+        console.log(
+          `[Video Hub ISR] ${label} - Success after ${attempt} retries`
+        );
+      }
+
+      return result;
+    } catch (error: any) {
+      lastError = error;
+
+      console.error(
+        `[Video Hub ISR] ${label} - Attempt ${attempt + 1} failed:`,
+        error.message
+      );
+
+      // Don't retry on last attempt
+      if (attempt === maxRetries) {
+        console.error(`[Video Hub ISR] ${label} - All retries exhausted`);
+        break;
+      }
+
+      // Check if error is retriable
+      const isRetriable =
+        error.name === "FetchError" ||
+        error.message?.includes("ECONNRESET") ||
+        error.message?.includes("ETIMEDOUT") ||
+        error.message?.includes("503") ||
+        error.message?.includes("500");
+
+      if (!isRetriable) {
+        console.warn(
+          `[Video Hub ISR] ${label} - Non-retriable error, stopping retries`
+        );
+        break;
+      }
+
+      // Exponential backoff with jitter
+      const jitter = Math.random() * 200;
+      const waitTime = Math.min(delay + jitter, maxDelay);
+
+      console.log(
+        `[Video Hub ISR] ${label} - Retrying in ${Math.round(waitTime)}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+      delay *= 2; // Exponential backoff
+    }
+  }
+
+  throw lastError || new Error(`${label} failed after ${maxRetries} retries`);
+}
+
+// Production-ready getStaticProps with retry mechanism
+export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
+  const buildTimestamp = new Date().toISOString();
+  console.log(`[Video Hub ISR] Starting build at ${buildTimestamp}`);
+
   try {
-    // Fetch video data and channel info in parallel
-    const [videoResponse, channelResponse] = await Promise.all([
-      fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/videos/gallery`
-      ),
-      fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/videos/channel-info`
-      ),
-    ]);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    if (!videoResponse.ok) {
-      throw new Error("Failed to fetch video data");
-    }
+    // Fetch video data with retry
+    const videoData = await fetchWithRetry<VideoHubData>(
+      async () => {
+        const response = await fetch(`${baseUrl}/api/videos/gallery`, {
+          headers: {
+            "User-Agent": "Next.js ISR Build",
+            "Cache-Control": "no-cache",
+          },
+        });
 
-    const videoData: VideoHubData = await videoResponse.json();
+        if (!response.ok) {
+          throw new Error(
+            `Video gallery API returned ${response.status}: ${response.statusText}`
+          );
+        }
 
-    // Channel info is optional - if it fails, we'll use null
+        const data = await response.json();
+
+        // Validate response
+        if (!data || typeof data !== "object") {
+          throw new Error("Invalid response format from video gallery API");
+        }
+
+        return data;
+      },
+      {
+        maxRetries: 4,
+        initialDelay: 500,
+        maxDelay: 5000,
+        label: "Video Gallery API",
+      }
+    );
+
+    // Fetch channel info with retry (optional - don't fail build if this fails)
     let channelInfo: ChannelInfo | null = null;
-    if (channelResponse.ok) {
-      channelInfo = await channelResponse.json();
+    try {
+      channelInfo = await fetchWithRetry<ChannelInfo>(
+        async () => {
+          const response = await fetch(`${baseUrl}/api/videos/channel-info`, {
+            headers: {
+              "User-Agent": "Next.js ISR Build",
+              "Cache-Control": "no-cache",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Channel info API returned ${response.status}`);
+          }
+
+          return await response.json();
+        },
+        {
+          maxRetries: 2,
+          initialDelay: 300,
+          maxDelay: 2000,
+          label: "Channel Info API",
+        }
+      );
+    } catch (error: any) {
+      console.warn(
+        "[Video Hub ISR] Channel info fetch failed, using null:",
+        error.message
+      );
+      // Continue without channel info - it's not critical
     }
 
-    // Sort hero videos by publishedAt only (no tier sorting)
-    if (videoData.hero) {
+    // Sort videos by publishedAt (newest first)
+    if (videoData.hero && Array.isArray(videoData.hero)) {
       videoData.hero.sort((a: Video, b: Video) => {
         return (
           new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -559,8 +1015,7 @@ export const getStaticProps: GetStaticProps = async () => {
       });
     }
 
-    // Sort shorts videos by publishedAt only (no tier sorting)
-    if (videoData.shorts) {
+    if (videoData.shorts && Array.isArray(videoData.shorts)) {
       videoData.shorts.sort((a: Video, b: Video) => {
         return (
           new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -568,10 +1023,9 @@ export const getStaticProps: GetStaticProps = async () => {
       });
     }
 
-    // Sort playlist videos by publishedAt only
-    if (videoData.playlists) {
+    if (videoData.playlists && typeof videoData.playlists === "object") {
       Object.values(videoData.playlists).forEach((playlist: any) => {
-        if (playlist.videos) {
+        if (playlist.videos && Array.isArray(playlist.videos)) {
           playlist.videos.sort((a: Video, b: Video) => {
             return (
               new Date(b.publishedAt).getTime() -
@@ -582,23 +1036,39 @@ export const getStaticProps: GetStaticProps = async () => {
       });
     }
 
+    const buildDuration = Date.now() - new Date(buildTimestamp).getTime();
+    console.log(`[Video Hub ISR] Build successful in ${buildDuration}ms`);
+
     return {
       props: {
         data: videoData,
-        channelInfo: channelInfo || null,
+        channelInfo,
         error: null,
+        buildTimestamp,
+        lastModified: new Date().toISOString(),
       },
-      revalidate: 300, // 🆕 ISR: Revalidate every 5 minutes (fallback)
+      revalidate: 300, // 5 minutes fallback revalidation
     };
-  } catch (error) {
-    console.error("[Videos Page] Error fetching data:", error);
+  } catch (error: any) {
+    console.error("[Video Hub ISR] Build failed:", error);
+
+    // Log detailed error for debugging
+    console.error("[Video Hub ISR] Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.split("\n").slice(0, 5).join("\n"),
+    });
+
+    // Return error state (page will still build, showing error UI)
     return {
       props: {
         data: null,
         channelInfo: null,
-        error: "Failed to load video data",
+        error: `Failed to load video data: ${error.message}`,
+        buildTimestamp,
+        lastModified: new Date().toISOString(),
       },
-      revalidate: 300, // Still revalidate even on error
+      revalidate: 60, // Retry faster on error (1 minute)
     };
   }
 };
