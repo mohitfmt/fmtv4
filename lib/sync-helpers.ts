@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { youtube } from "@/lib/youtube-sync";
 import type { SyncState } from "@/types/sync";
+import { smartRevalidator } from "./cache/smart-revalidator";
 
 const parseXML = promisify(parseString);
 
@@ -541,4 +542,13 @@ function makeSearchable(
     ...(Array.isArray(tags) ? tags : []),
   ].join(" ");
   return parts.trim();
+}
+
+export async function revalidateVideoPaths(videoIds: string[]): Promise<void> {
+  if (videoIds.length > 0) {
+    await smartRevalidator.revalidate({
+      videoIds,
+      reason: "sync-helper",
+    });
+  }
 }

@@ -1,7 +1,10 @@
 // pages/api/video-admin/sync/websub/callback.ts
+// UPDATED VERSION - Using SmartRevalidator for cache invalidation
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { enrichVideos } from "@/lib/sync-helpers";
+import { revalidateVideos } from "@/lib/cache/smart-revalidator";
 import { parseString } from "xml2js";
 import { promisify } from "util";
 
@@ -24,6 +27,27 @@ function readRawBody(req: NextApiRequest): Promise<Buffer> {
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
+}
+
+// Helper to bump stats
+async function bumpStats(webhooks: number, videos: number) {
+  try {
+    await prisma.websub_stats.upsert({
+      where: { id: "main" },
+      update: {
+        webhooksReceived: { increment: webhooks },
+        videosProcessed: { increment: videos },
+        updatedAt: new Date(),
+      },
+      create: {
+        id: "main",
+        webhooksReceived: webhooks,
+        videosProcessed: videos,
+      },
+    });
+  } catch (error) {
+    console.error("[WebSub] Failed to update stats:", error);
+  }
 }
 
 export default async function handler(
@@ -75,6 +99,7 @@ export default async function handler(
       },
     });
 
+    console.log(`[WebSub] Verification ${mode} successful, lease: ${lease}s`);
     return res.status(200).send(challenge); // must echo exactly
   }
 
@@ -82,60 +107,71 @@ export default async function handler(
     // Notification payload (Atom XML)
     const raw = await readRawBody(req);
     let parsed: any;
+
     try {
       parsed = await parseXML(raw.toString("utf8"));
-    } catch {
+    } catch (error) {
+      console.error("[WebSub] Failed to parse XML:", error);
       await bumpStats(1, 0);
       return res.status(202).end();
     }
 
     const entries: any[] = (parsed?.feed?.entry as any[]) || [];
     const ids = new Set<string>();
+
     for (const entry of entries) {
       const vid = entry?.["yt:videoId"]?.[0];
       if (vid) ids.add(vid);
     }
 
-    if (ids.size === 0) {
+    console.log(`[WebSub] Received notification with ${ids.size} video(s)`);
+
+    if (ids.size > 0) {
+      try {
+        // Enrich videos (fetch full data and assign to playlists)
+        await enrichVideos([...ids]);
+
+        console.log(`[WebSub] Enriched ${ids.size} video(s)`);
+
+        // =================================================================
+        // SMARTREVALIDATOR INTEGRATION
+        // =================================================================
+
+        console.log(
+          "[WebSub] Triggering SmartRevalidator for new/updated videos"
+        );
+
+        try {
+          const revalidationResult = await revalidateVideos(
+            [...ids],
+            "websub-notification"
+          );
+
+          console.log("[WebSub] SmartRevalidator completed", {
+            pagesRevalidated: revalidationResult.pagesRevalidated.length,
+            cachesCleared: revalidationResult.cachesCleared,
+            duration: revalidationResult.duration,
+          });
+        } catch (error) {
+          // Don't fail the webhook if revalidation fails
+          console.error("[WebSub] SmartRevalidator error (non-fatal):", error);
+        }
+
+        // Update stats
+        await bumpStats(1, ids.size);
+      } catch (error) {
+        console.error("[WebSub] Error processing videos:", error);
+        await bumpStats(1, 0);
+      }
+    } else {
+      // Just update webhook count
       await bumpStats(1, 0);
-      return res.status(204).end();
     }
 
-    try {
-      await enrichVideos(Array.from(ids));
-      await bumpStats(1, ids.size);
-    } catch {
-      await bumpStats(1, 0);
-    }
-    return res.status(204).end();
+    // Always return 202 Accepted quickly
+    return res.status(202).end();
   }
 
-  return res.status(405).send("Method not allowed");
-}
-
-async function bumpStats(webhooksInc: number, videosInc: number) {
-  const now = new Date();
-  const latest = await prisma.websub_stats.findFirst({
-    orderBy: { updatedAt: "desc" },
-  });
-
-  if (!latest) {
-    await prisma.websub_stats.create({
-      data: {
-        webhooksReceived: webhooksInc,
-        videosProcessed: videosInc,
-        createdAt: now,
-        updatedAt: now,
-      },
-    });
-  } else {
-    await prisma.websub_stats.update({
-      where: { id: latest.id },
-      data: {
-        webhooksReceived: (latest.webhooksReceived || 0) + webhooksInc,
-        videosProcessed: (latest.videosProcessed || 0) + videosInc,
-        updatedAt: now,
-      },
-    });
-  }
+  // Method not allowed
+  return res.status(405).json({ error: "Method not allowed" });
 }

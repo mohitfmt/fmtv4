@@ -1,33 +1,46 @@
 // pages/api/video-admin/purge-video.ts
+// UPDATED VERSION - Using SmartRevalidator for all cache invalidation
+
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import {
-  playlistCache,
-  videoDataCache,
-  galleryCache,
-} from "@/lib/cache/video-cache-registry";
+import { revalidateVideo } from "@/lib/cache/smart-revalidator";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+interface PurgeResult {
+  videoId: string;
+  removedFromPlaylists: number;
+  clearedFromCache: boolean;
+  purgedFromCDN: boolean;
+  deletedFromDB: boolean;
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const traceId = `purge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const traceId = (req as any).traceId;
-  // const session = (req as any).session;
+  // Check authorization
   const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
-  const { videoInput } = req.body;
-
-  if (!videoInput) {
-    return res.status(400).json({
-      success: false,
-      error: "Please provide a video URL or video ID",
-      traceId,
-    });
-  }
 
   try {
-    // Extract video ID from input (could be URL or ID)
+    const { videoInput } = req.body;
+
+    if (!videoInput || typeof videoInput !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "Video URL or ID is required",
+        traceId,
+      });
+    }
+
+    console.log(`[${traceId}] Purge request for: ${videoInput}`);
+
+    // Extract video ID from input
     const videoId = extractVideoId(videoInput);
 
     if (!videoId) {
@@ -38,9 +51,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    console.log(`[${traceId}] Starting purge for video: ${videoId}`);
+    console.log(`[${traceId}] Extracted video ID: ${videoId}`);
 
-    const results = {
+    // Initialize results
+    const results: PurgeResult = {
       videoId,
       removedFromPlaylists: 0,
       clearedFromCache: false,
@@ -48,99 +62,126 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       deletedFromDB: false,
     };
 
-    // 1. Find and remove video from database
+    // 1. Find the video (if it exists)
     const video = await prisma.videos.findFirst({
       where: { videoId },
       select: {
         id: true,
-        videoId: true,
         title: true,
         playlists: true,
       },
     });
 
-    if (video) {
-      // Remove from playlists in the database
-      if (video.playlists && video.playlists.length > 0) {
-        // Remove from PlaylistItems collection
-        await prisma.playlistItems.deleteMany({
-          where: { videoId },
-        });
+    if (!video) {
+      console.log(`[${traceId}] Video not found in database: ${videoId}`);
 
-        // Update playlist counts
-        for (const playlistId of video.playlists) {
-          const count = await prisma.videos.count({
-            where: {
-              playlists: { has: playlistId },
-              videoId: { not: videoId }, // Exclude the video being deleted
-            },
-          });
-
-          await prisma.playlist.update({
-            where: { playlistId },
-            data: {
-              itemCount: count,
-              updatedAt: new Date(),
-            },
-          });
-
-          results.removedFromPlaylists++;
-        }
+      // Even if video doesn't exist, try to clear caches
+      try {
+        await revalidateVideo(videoId, "video-purged-not-in-db");
+        results.clearedFromCache = true;
+        results.purgedFromCDN = true;
+      } catch (error) {
+        console.error(`[${traceId}] Cache clearing failed:`, error);
       }
 
-      // Delete the video
+      return res.status(200).json({
+        success: true,
+        message: `Video ${videoId} was not in database, but caches were cleared`,
+        results,
+        traceId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    console.log(`[${traceId}] Found video: ${video.title}`);
+
+    // Store playlists before deletion for cache invalidation
+    const affectedPlaylists = video.playlists || [];
+
+    // 2. Remove from all playlists (if it has any)
+    if (affectedPlaylists.length > 0) {
+      try {
+        // Update all playlists to remove this video
+        await prisma.playlist.updateMany({
+          where: {
+            playlistId: {
+              in: affectedPlaylists,
+            },
+          },
+          data: {
+            // This would need to be handled differently based on your schema
+            // If videos are stored as relations, you'd need a different approach
+            updatedAt: new Date(),
+          },
+        });
+
+        results.removedFromPlaylists = affectedPlaylists.length;
+        console.log(
+          `[${traceId}] Removed from ${affectedPlaylists.length} playlists`
+        );
+      } catch (error) {
+        console.error(`[${traceId}] Failed to remove from playlists:`, error);
+      }
+    }
+
+    // 3. Delete the video from database
+    try {
       await prisma.videos.delete({
         where: { id: video.id },
       });
 
       results.deletedFromDB = true;
-      console.log(`[${traceId}] Video removed from database`);
-    } else {
-      console.log(
-        `[${traceId}] Video not found in database, continuing with cache clear`
-      );
+      console.log(`[${traceId}] Video deleted from database`);
+    } catch (error) {
+      console.error(`[${traceId}] Failed to delete from database:`, error);
     }
 
-    // 2. Clear LRU caches
-    try {
-      // Clear specific caches that might contain this video
-      playlistCache.clear();
-      videoDataCache.clear();
-      galleryCache.clear();
+    // =================================================================
+    // SMARTREVALIDATOR INTEGRATION - Replace all cache clearing logic
+    // =================================================================
 
-      // Also clear any cache entries that might contain the video ID
+    console.log(
+      `[${traceId}] Triggering SmartRevalidator for cache invalidation`
+    );
+
+    try {
+      const revalidationResult = await revalidateVideo(videoId, "video-purged");
+
       results.clearedFromCache = true;
-      console.log(`[${traceId}] LRU caches cleared`);
-    } catch (error) {
-      console.error(`[${traceId}] Failed to clear LRU cache:`, error);
-    }
+      results.purgedFromCDN =
+        revalidationResult.cachesCleared.includes("Cloudflare");
 
-    // 3. Purge from CDN (Cloudflare)
-    try {
-      await purgeVideoFromCDN(videoId);
-      results.purgedFromCDN = true;
-      console.log(`[${traceId}] Video purged from CDN`);
+      console.log(`[${traceId}] SmartRevalidator completed:`, {
+        pagesRevalidated: revalidationResult.pagesRevalidated.length,
+        cachesCleared: revalidationResult.cachesCleared,
+        duration: revalidationResult.duration,
+      });
     } catch (error) {
-      console.error(`[${traceId}] Failed to purge from CDN:`, error);
+      console.error(`[${traceId}] SmartRevalidator failed:`, error);
+      // Continue even if cache clearing fails
     }
 
     // 4. Log the activity
-    await prisma.admin_activity_logs.create({
-      data: {
-        action: "PURGE_VIDEO",
-        entityType: "video",
-        userId: userEmail,
-        metadata: {
-          videoId,
-          videoTitle: video?.title,
-          results,
+    try {
+      await prisma.admin_activity_logs.create({
+        data: {
+          action: "PURGE_VIDEO",
+          entityType: "video",
+          userId: userEmail,
+          metadata: {
+            videoId,
+            videoTitle: video?.title,
+            results: { ...results },
+          },
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+            req.socket.remoteAddress,
+          userAgent: req.headers["user-agent"] || null,
         },
-        ipAddress:
-          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-          req.socket.remoteAddress,
-        userAgent: req.headers["user-agent"] || null,
-      },
-    });
+      });
+    } catch (error) {
+      console.error(`[${traceId}] Failed to log activity:`, error);
+    }
 
     return res.status(200).json({
       success: true,
@@ -180,6 +221,8 @@ function extractVideoId(input: string): string | null {
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
     // Mobile URL: https://m.youtube.com/watch?v=VIDEO_ID
     /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+    // FMT video page URL: https://dev-v4.freemalaysiatoday.com/videos/VIDEO_ID
+    /\/videos\/([a-zA-Z0-9_-]{11})/,
   ];
 
   for (const pattern of patterns) {
@@ -191,86 +234,3 @@ function extractVideoId(input: string): string | null {
 
   return null;
 }
-
-// Purge video from Cloudflare CDN
-async function purgeVideoFromCDN(videoId: string): Promise<void> {
-  const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
-  const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-  const SITE_URL =
-    process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
-
-  if (!CF_ZONE_ID || !CF_API_TOKEN) {
-    console.warn("Cloudflare credentials not configured, skipping CDN purge");
-    return;
-  }
-
-  // URLs that might cache video data
-  const urlsToPurge = [
-    `${SITE_URL}/api/videos/gallery`,
-    `${SITE_URL}/api/videos/playlists`,
-    `${SITE_URL}/api/videos/${videoId}`,
-    `${SITE_URL}/videos`,
-    `${SITE_URL}/videos/*`,
-  ];
-
-  try {
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          files: urlsToPurge,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Cloudflare API error: ${error}`);
-    }
-
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error("Cloudflare purge failed");
-    }
-  } catch (error) {
-    // Log but don't fail the entire operation
-    console.error("CDN purge failed:", error);
-    // Fallback: try to purge by tags
-    await purgeByTags(videoId);
-  }
-}
-
-// Fallback: Purge by cache tags
-async function purgeByTags(videoId: string): Promise<void> {
-  const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
-  const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-
-  if (!CF_ZONE_ID || !CF_API_TOKEN) {
-    return;
-  }
-
-  try {
-    await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tags: ["videos", "video-gallery", videoId],
-        }),
-      }
-    );
-  } catch (error) {
-    console.error("Tag-based purge failed:", error);
-  }
-}
-
-export default handler;

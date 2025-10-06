@@ -1,14 +1,15 @@
-// pages/api/video-admin/config.ts - OPTIMIZED VERSION WITHOUT FALLBACK
+// pages/api/video-admin/config.ts - UPDATED WITH SMARTREVALIDATOR
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { LRUCache } from "lru-cache";
+import { revalidateConfig } from "@/lib/cache/smart-revalidator";
 
 // Configuration validation schema
 const configSchema = z.object({
   homepage: z.object({
     playlistId: z.string().min(1, "Homepage playlist is required"),
-    fallbackPlaylistId: z.string().optional(), // Keep it optional
+    fallbackPlaylistId: z.string().optional(),
   }),
   videoPage: z.object({
     heroPlaylistId: z.string().min(1, "Hero playlist is required"),
@@ -39,7 +40,7 @@ const configCache = new LRUCache<string, any>({
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const traceId = (req as any).traceId;
+  const traceId = `config-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   if (req.method === "GET") {
     return handleGetConfig(req, res, traceId);
@@ -128,57 +129,44 @@ async function handleUpdateConfig(
   traceId: string
 ) {
   try {
-    // const session = (req as any).session;
-
     const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
 
     // Validate request body
-    const validation = configSchema.safeParse(req.body);
-    if (!validation.success) {
+    const validationResult = configSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
       return res.status(400).json({
         error: "Invalid configuration",
-        details: validation.error.flatten(),
+        details: validationResult.error.flatten(),
         traceId,
       });
     }
 
-    const { homepage, videoPage } = validation.data;
+    const { homepage, videoPage } = validationResult.data;
 
-    // Additional validation: Check for duplicate playlists within same section
-    const heroShortsDuplicate =
-      videoPage.heroPlaylistId === videoPage.shortsPlaylistId;
-    if (heroShortsDuplicate) {
-      return res.status(400).json({
-        error: "Hero and Shorts sections cannot use the same playlist",
-        traceId,
-      });
-    }
-
-    // Start transaction
+    // Update configuration in database
     const result = await prisma.$transaction(async (tx) => {
-      // Find or create config
-      const existingConfig = await tx.videoConfig.findFirst();
+      // Find existing config or create new one
+      let config = await tx.videoConfig.findFirst();
 
-      let config;
-      if (existingConfig) {
-        // Update existing config
-        config = await tx.videoConfig.update({
-          where: { id: existingConfig.id },
-          data: {
-            homepagePlaylist: homepage.playlistId,
-            fallbackPlaylist: homepage.fallbackPlaylistId,
-            heroPlaylist: videoPage.heroPlaylistId,
-            shortsPlaylist: videoPage.shortsPlaylistId,
-            displayedPlaylists: videoPage.displayedPlaylists,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        // Create new config
+      if (!config) {
+        // Create new configuration
         config = await tx.videoConfig.create({
           data: {
             homepagePlaylist: homepage.playlistId,
-            fallbackPlaylist: homepage.fallbackPlaylistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId || null,
+            heroPlaylist: videoPage.heroPlaylistId,
+            shortsPlaylist: videoPage.shortsPlaylistId,
+            displayedPlaylists: videoPage.displayedPlaylists,
+          },
+        });
+      } else {
+        // Update existing configuration
+        config = await tx.videoConfig.update({
+          where: { id: config.id },
+          data: {
+            homepagePlaylist: homepage.playlistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId || null,
             heroPlaylist: videoPage.heroPlaylistId,
             shortsPlaylist: videoPage.shortsPlaylistId,
             displayedPlaylists: videoPage.displayedPlaylists,
@@ -191,7 +179,7 @@ async function handleUpdateConfig(
         data: {
           action: "CONFIG_UPDATE",
           entityType: "video_config",
-          userId: userEmail || "system",
+          userId: userEmail,
           metadata: {
             configId: config.id,
             homepage: homepage.playlistId,
@@ -210,8 +198,29 @@ async function handleUpdateConfig(
       return config;
     });
 
-    // Clear cache after successful update
+    // Clear local config cache
     configCache.clear();
+
+    // =================================================================
+    // SMARTREVALIDATOR INTEGRATION - Replace all old cache logic
+    // =================================================================
+
+    console.log(
+      `[${traceId}] Triggering SmartRevalidator for configuration change`
+    );
+
+    try {
+      const revalidationResult = await revalidateConfig();
+
+      console.log(`[${traceId}] SmartRevalidator completed:`, {
+        pagesRevalidated: revalidationResult.pagesRevalidated.length,
+        cachesCleared: revalidationResult.cachesCleared,
+        duration: revalidationResult.duration,
+      });
+    } catch (error) {
+      // Log but don't fail the config update
+      console.error(`[${traceId}] SmartRevalidator error:`, error);
+    }
 
     // Return updated configuration
     const updatedConfig = {
@@ -230,6 +239,7 @@ async function handleUpdateConfig(
       data: updatedConfig,
       message: "Configuration updated successfully",
       traceId,
+      cacheInvalidated: true,
     });
   } catch (error) {
     console.error(`[${traceId}] Failed to update config:`, error);

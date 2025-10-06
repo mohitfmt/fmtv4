@@ -21,7 +21,7 @@ async function renewWebSubSubscription() {
     process.env.YOUTUBE_CHANNEL_ID || "UCm7Mkdl1a8g6ctmQMhhghiA";
   const WEBHOOK_URL =
     process.env.YOUTUBE_WEBHOOK_URL ||
-    `${process.env.NEXT_PUBLIC_SITE_URL}/api/youtube-webhook`;
+    `${process.env.NEXT_PUBLIC_SITE_URL}/api/video-admin/sync/websub/callback`;
   const WEBSUB_SECRET = process.env.WEBSUB_SECRET;
 
   const params = new URLSearchParams({

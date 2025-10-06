@@ -8,6 +8,10 @@ import {
 } from "@/lib/cache/purge";
 import { extractCategoriesFromSlug } from "@/lib/navigation-cache";
 import { changeManager } from "@/lib/cache/smart-cache-registry";
+import {
+  revalidatePlaylist,
+  revalidateVideo,
+} from "@/lib/cache/smart-revalidator";
 
 // Track revalidation in progress to prevent duplicates
 const revalidationInProgress = new Map<string, Promise<any>>();
@@ -459,17 +463,15 @@ async function performRevalidation(
         break;
       }
 
+      // In the video case:
       case "video": {
-        playlistCache.delete(`playlist:${id}`);
-        pathsToRevalidate.add(`/videos/${slug}`);
-        pathsToRevalidate.add("/videos");
-        pathsToRevalidate.add("/");
-        tagsToPurge.push(
-          `playlist:${id}`,
-          `path:/videos/${slug}`,
-          "path:/videos",
-          "path:/"
-        );
+        await revalidateVideo(slug, "manual-revalidate");
+        break;
+      }
+
+      // In the playlist case:
+      case "playlist": {
+        await revalidatePlaylist(slug, "manual-revalidate");
         break;
       }
 
