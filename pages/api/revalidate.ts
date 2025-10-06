@@ -1,7 +1,7 @@
 // pages/api/revalidate.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { aboutPageCache } from "@/lib/gql-queries/get-about-page";
-import { getPostData, playlistCache } from "@/lib/api";
+import { getPostData } from "@/lib/api";
 import {
   purgeCloudflareByTags,
   purgeCloudflareByUrls,

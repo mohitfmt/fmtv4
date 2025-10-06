@@ -6,7 +6,6 @@ import {
   galleryCache,
   playlistCache,
   videoDataCache,
-  configCache,
   clearAllCaches,
 } from "./video-cache-registry";
 
