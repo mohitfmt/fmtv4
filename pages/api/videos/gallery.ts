@@ -1,15 +1,16 @@
 // pages/api/videos/gallery.ts
-// PRODUCTION-READY VERSION with:
-// ✅ Retry mechanism for Prisma queries
-// ✅ Fallback to cache on failure
-// ✅ Partial success handling
-// ✅ Timeout protection
-// ✅ Comprehensive error logging
-// ✅ Graceful degradation
+// CONVERTED TO SSR + CDN CACHING VERSION
+// ✅ Removed all galleryCache usage
+// ✅ Removed fetchWithCacheFallback function
+// ✅ Added CDN cache headers
+// ✅ Simplified error handling without cache fallbacks
+// ✅ Retry mechanism for Prisma queries retained
+// ✅ Timeout protection retained
+// ✅ Comprehensive error logging retained
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { galleryCache } from "@/lib/cache/video-cache-registry";
+// REMOVED: import { galleryCache } from "@/lib/cache/video-cache-registry";
 
 // ============================================================================
 // CONSTANTS
@@ -102,39 +103,26 @@ async function withRetryAndTimeout<T>(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(
-        `[Gallery API] ${label} - Attempt ${attempt + 1}/${maxRetries + 1}`
-      );
-
       // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`${label} timeout after ${timeout}ms`)),
-          timeout
-        )
-      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`${label} timed out after ${timeout}ms`));
+        }, timeout);
+      });
 
-      // Race between actual query and timeout
+      // Race between the actual query and timeout
       const result = await Promise.race([fn(), timeoutPromise]);
-
-      if (attempt > 0) {
-        console.log(
-          `[Gallery API] ${label} - Success after ${attempt} retries`
-        );
-      }
 
       return result as T;
     } catch (error: any) {
       lastError = error;
 
-      console.error(
-        `[Gallery API] ${label} - Attempt ${attempt + 1} failed:`,
+      console.warn(
+        `[Gallery API] ${label} - Attempt ${attempt + 1}/${maxRetries + 1} failed:`,
         error.message
       );
 
-      // Don't retry on last attempt
       if (attempt === maxRetries) {
-        console.error(`[Gallery API] ${label} - All retries exhausted`);
         break;
       }
 
@@ -142,10 +130,9 @@ async function withRetryAndTimeout<T>(
       const errorMsg = error.message?.toLowerCase() || "";
       const isRetriable =
         errorMsg.includes("timeout") ||
-        errorMsg.includes("econnreset") ||
-        errorMsg.includes("etimedout") ||
-        errorMsg.includes("can't assign") ||
-        errorMsg.includes("failed to lookup") ||
+        errorMsg.includes("econnrefused") ||
+        errorMsg.includes("socket hang up") ||
+        errorMsg.includes("enotfound") ||
         errorMsg.includes("p2010") || // Prisma query engine error
         errorMsg.includes("p2024") || // Timed out
         errorMsg.includes("p2002"); // Unique constraint failed (might be transient)
@@ -174,47 +161,8 @@ async function withRetryAndTimeout<T>(
 }
 
 // ============================================================================
-// HELPER: Fetch with Fallback to Cache
+// REMOVED: fetchWithCacheFallback function - no longer needed
 // ============================================================================
-
-async function fetchWithCacheFallback<T>(
-  cacheKey: string,
-  fetchFn: () => Promise<T>,
-  label: string
-): Promise<{ data: T; fromCache: boolean }> {
-  try {
-    // Try to fetch fresh data with retry
-    const data = await withRetryAndTimeout(fetchFn, {
-      maxRetries: 2,
-      timeout: PRISMA_TIMEOUT_MS,
-      label,
-    });
-
-    // Update cache on success
-    galleryCache.set(cacheKey, data);
-
-    return { data, fromCache: false };
-  } catch (error: any) {
-    console.error(
-      `[Gallery API] ${label} - Fetch failed, checking cache:`,
-      error.message
-    );
-
-    // Try to get from cache
-    const cachedData = galleryCache.get(cacheKey);
-
-    if (cachedData) {
-      console.warn(
-        `[Gallery API] ${label} - Serving from cache (fetch failed)`
-      );
-      return { data: cachedData as T, fromCache: true };
-    }
-
-    // No cache available, re-throw error
-    console.error(`[Gallery API] ${label} - No cache available, failing`);
-    throw error;
-  }
-}
 
 // ============================================================================
 // MAIN HANDLER
@@ -236,81 +184,47 @@ export default async function handler(
   try {
     // Parse query parameters
     const {
-      fresh = "false",
+      fresh = "false", // This param is now irrelevant since we always fetch fresh
       search = "",
       page = "1",
       limit = "12",
     } = req.query;
 
-    const shouldRefresh = fresh === "true";
     const searchTerm = String(search).trim();
     const pageNum = Math.max(1, parseInt(String(page)) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(String(limit)) || 12));
     const skip = (pageNum - 1) * limitNum;
 
-    // Cache key includes search and pagination
-    const cacheKey = `gallery:${searchTerm}:${pageNum}:${limitNum}`;
-
     console.log(`[Gallery API] [${requestId}] Query params:`, {
-      fresh: shouldRefresh,
       search: searchTerm,
       page: pageNum,
       limit: limitNum,
     });
 
-    // Check cache first (unless fresh data requested)
-    if (!shouldRefresh && !searchTerm) {
-      const cached = galleryCache.get(cacheKey);
-      if (cached) {
-        const duration = Date.now() - startTime;
-        console.log(
-          `[Gallery API] [${requestId}] Served from cache in ${duration}ms`
-        );
-
-        res.setHeader("X-Cache", "HIT");
-        res.setHeader("Cache-Control", "public, max-age=60, s-maxage=180");
-        return res.status(200).json(cached);
-      }
-    }
+    // REMOVED: Cache checking - always fetch fresh data for SSR
 
     // ========================================================================
-    // STEP 1: Fetch Video Config (CRITICAL - with fallback)
+    // STEP 1: Fetch Video Config (CRITICAL)
     // ========================================================================
 
     let videoConfig: any = null;
-    let configFromCache = false;
 
     try {
-      const configResult = await fetchWithCacheFallback(
-        "videoConfig",
+      videoConfig = await withRetryAndTimeout(
         async () => {
           return await prisma.videoConfig.findFirst({
             orderBy: { updatedAt: "desc" },
           });
         },
-        "VideoConfig Fetch"
+        { label: "VideoConfig Fetch", maxRetries: 2, timeout: 5000 }
       );
-
-      videoConfig = configResult.data;
-      configFromCache = configResult.fromCache;
     } catch (error: any) {
       console.error(
         `[Gallery API] [${requestId}] CRITICAL: VideoConfig fetch failed:`,
         error.message
       );
 
-      // Try to return cached response if available
-      const cachedResponse = galleryCache.get(cacheKey);
-      if (cachedResponse) {
-        console.warn(
-          `[Gallery API] [${requestId}] Returning stale cached response (VideoConfig failed)`
-        );
-        res.setHeader("X-Cache", "STALE");
-        res.setHeader("X-Error", "VideoConfig fetch failed");
-        return res.status(200).json(cachedResponse);
-      }
-
-      // No cache available, return error
+      // No cache fallback - return error immediately
       return res.status(500).json({
         error: "Video configuration unavailable",
         message: "Unable to fetch video settings. Please try again later.",
@@ -330,9 +244,7 @@ export default async function handler(
       });
     }
 
-    console.log(
-      `[Gallery API] [${requestId}] VideoConfig loaded ${configFromCache ? "(from cache)" : "(fresh)"}`
-    );
+    console.log(`[Gallery API] [${requestId}] VideoConfig loaded successfully`);
 
     const heroPlaylistId = videoConfig.heroPlaylist;
     const shortsPlaylistId = videoConfig.shortsPlaylist;
@@ -412,112 +324,119 @@ export default async function handler(
             `[Gallery API] [${requestId}] Shorts videos failed:`,
             error.message
           );
-          return [];
+          return []; // Return empty array on failure
         }
       })()
     );
     queryLabels.push("shorts");
 
-    // Query 3: Shorts total count
+    // Query 3: Shorts count
     queries.push(
       (async () => {
         try {
-          const playlist = await withRetryAndTimeout(
-            async () => {
-              return await prisma.playlist.findFirst({
-                where: { playlistId: shortsPlaylistId },
-                select: { itemCount: true },
-              });
-            },
-            { label: "Shorts Count", maxRetries: 1, timeout: 3000 }
-          );
-          return playlist?.itemCount || 0;
-        } catch (error: any) {
-          console.warn(
-            `[Gallery API] [${requestId}] Shorts count failed:`,
-            error.message
-          );
-          return 0;
-        }
-      })()
-    );
-    queryLabels.push("shortsCount");
-
-    // Query 4: Today's videos count
-    queries.push(
-      (async () => {
-        try {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
           return await withRetryAndTimeout(
             async () => {
               return await prisma.videos.count({
                 where: {
                   ...baseFilter,
-                  publishedAt: { gte: today },
+                  playlists: { has: shortsPlaylistId },
                 },
               });
             },
-            { label: "Today Videos Count", maxRetries: 1, timeout: 3000 }
+            { label: "Shorts Count", maxRetries: 1, timeout: 3000 }
           );
         } catch (error: any) {
           console.warn(
-            `[Gallery API] [${requestId}] Today count failed:`,
+            `[Gallery API] [${requestId}] Shorts count failed:`,
             error.message
           );
-          return 0;
+          return 0; // Return 0 on failure
         }
       })()
     );
-    queryLabels.push("todayCount");
+    queryLabels.push("shortsCount");
 
-    // Query 5: Total videos count
+    // Query 4: Total count
     queries.push(
       (async () => {
         try {
           return await withRetryAndTimeout(
             async () => {
-              return await prisma.videos.count({ where: baseFilter });
+              return await prisma.videos.count({
+                where: baseFilter,
+              });
             },
-            { label: "Total Videos Count", maxRetries: 1, timeout: 3000 }
+            { label: "Total Count", maxRetries: 1, timeout: 3000 }
           );
         } catch (error: any) {
           console.warn(
             `[Gallery API] [${requestId}] Total count failed:`,
             error.message
           );
-          return 0;
+          return 0; // Return 0 on failure
         }
       })()
     );
     queryLabels.push("totalCount");
 
-    // Execute all queries in parallel
-    console.log(
-      `[Gallery API] [${requestId}] Executing ${queries.length} parallel queries`
+    // Query 5: Today's videos count
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    queries.push(
+      (async () => {
+        try {
+          return await withRetryAndTimeout(
+            async () => {
+              return await prisma.videos.count({
+                where: {
+                  ...baseFilter,
+                  publishedAt: { gte: todayStart },
+                },
+              });
+            },
+            { label: "Today Count", maxRetries: 1, timeout: 3000 }
+          );
+        } catch (error: any) {
+          console.warn(
+            `[Gallery API] [${requestId}] Today count failed:`,
+            error.message
+          );
+          return 0; // Return 0 on failure
+        }
+      })()
     );
+    queryLabels.push("todayCount");
+
+    // Execute all queries in parallel
     const results = await Promise.all(queries);
 
-    const [heroVideos, shorts, shortsTotalCount, todayVideos, totalCount] =
+    // Map results to variables
+    const [heroVideos, shorts, shortsTotalCount, totalCount, todayVideos] =
       results;
 
-    console.log(`[Gallery API] [${requestId}] Query results:`, {
-      hero: heroVideos?.length || 0,
+    console.log(`[Gallery API] [${requestId}] Base queries completed:`, {
+      heroVideos: heroVideos?.length || 0,
       shorts: shorts?.length || 0,
       shortsTotalCount,
-      todayVideos,
       totalCount,
+      todayVideos,
     });
 
     // ========================================================================
-    // STEP 3: Fetch Playlist Videos (with individual error handling)
+    // STEP 3: Fetch Playlist Data (with error isolation)
     // ========================================================================
 
-    const playlists: Record<string, { name: string; videos: any[] }> = {};
+    const playlists: Record<string, any> = {};
     const failedPlaylists: string[] = [];
 
-    for (const config of playlistConfigs) {
+    // Sort playlists by position
+    const sortedConfigs = [...playlistConfigs].sort(
+      (a, b) => (a.position || 999) - (b.position || 999)
+    );
+
+    // Fetch playlist data (parallel with individual error handling)
+    for (const config of sortedConfigs) {
       try {
         const [playlist, videos] = await Promise.all([
           withRetryAndTimeout(
@@ -598,34 +517,43 @@ export default async function handler(
       },
       timestamp: new Date().toISOString(),
       _meta: {
-        configFromCache,
         failedPlaylists:
           failedPlaylists.length > 0 ? failedPlaylists : undefined,
         partialSuccess: failedPlaylists.length > 0,
       },
     };
 
-    // Cache the response (only for non-search results)
-    if (!searchTerm) {
-      galleryCache.set(cacheKey, responseData);
-    }
+    // REMOVED: Cache setting - no longer caching responses in memory
 
-    // Set cache headers
+    // ========================================================================
+    // STEP 5: Set CDN Cache Headers (CRITICAL CHANGE)
+    // ========================================================================
+
     const duration = Date.now() - startTime;
     console.log(
       `[Gallery API] [${requestId}] Request completed in ${duration}ms`
     );
 
-    res.setHeader("X-Cache", searchTerm ? "BYPASS" : "MISS");
     res.setHeader("X-Request-ID", requestId);
     res.setHeader("X-Duration-MS", duration.toString());
-    res.setHeader(
-      "Cache-Control",
-      searchTerm
-        ? "private, no-cache"
-        : "public, max-age=60, s-maxage=180, stale-while-revalidate=86400"
-    );
-    res.setHeader("Cache-Tag", "video:gallery,video:latest");
+
+    // Search results should not be cached
+    if (searchTerm) {
+      res.setHeader("X-Cache", "BYPASS");
+      res.setHeader(
+        "Cache-Control",
+        "private, no-cache, no-store, must-revalidate"
+      );
+    } else {
+      // Non-search results get CDN cached
+      res.setHeader("X-Cache", "MISS"); // Always MISS from origin
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=60, s-maxage=180, stale-while-revalidate=86400"
+      );
+      // Add cache tags for targeted purging
+      res.setHeader("Cache-Tag", "video:gallery,video:latest,video:all");
+    }
 
     // Add warning header if partial success
     if (failedPlaylists.length > 0) {
@@ -642,23 +570,14 @@ export default async function handler(
       stack: error.stack?.split("\n").slice(0, 5).join("\n"),
     });
 
-    // Try to return cached response if available
-    const cacheKey = `gallery:::1:12`; // Default cache key
-    const cachedData = galleryCache.get(cacheKey);
+    // REMOVED: Cache fallback on error - return error immediately
 
-    if (cachedData) {
-      console.warn(
-        `[Gallery API] [${requestId}] Returning stale cache due to error`
-      );
-      res.setHeader("X-Cache", "STALE-ON-ERROR");
-      res.setHeader("X-Error", error.message);
-      return res.status(200).json(cachedData);
-    }
-
-    // Clear cache on error
-    if (error.message?.includes("cache")) {
-      galleryCache.clear();
-    }
+    // Don't cache error responses
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
+    res.setHeader("X-Error", error.message);
 
     return res.status(500).json({
       error: "Failed to fetch video data",
@@ -669,10 +588,4 @@ export default async function handler(
       timestamp: new Date().toISOString(),
     });
   }
-}
-
-// Export cache utilities
-export function invalidateGalleryCache() {
-  galleryCache.clear();
-  console.log("[Gallery API] Cache invalidated");
 }

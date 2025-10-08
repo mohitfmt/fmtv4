@@ -86,7 +86,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
       {/* Columnist Profile */}
       <div className="text-foreground flex h-full flex-col items-center justify-around px-5">
         <Link
-          href={columnists[currentIndex]?.uri}
+          href={columnists[currentIndex]?.uri || "#"}
           title={columnists[currentIndex]?.name}
         >
           <Image
@@ -112,7 +112,7 @@ const ColumnistCredits: React.FC<ColumnistCreditsProps> = ({ columnists }) => {
               <SectionHeading sectionName="Latest article" />
             </div>
             <Link
-              href={columnists[currentIndex]?.posts.nodes[0]?.uri}
+              href={columnists[currentIndex]?.posts.nodes[0]?.uri || "#"}
               className="font-bitter text-pretty text-lg font-normal text-yellow-500 dark:text-yellow-300"
             >
               <p>{columnists[currentIndex]?.posts.nodes[0]?.title}</p>

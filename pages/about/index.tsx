@@ -1,4 +1,4 @@
-import { GetStaticProps, NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import parse from "html-react-parser";
 import Meta from "@/components/common/Meta";
 import { getAboutPage } from "@/lib/gql-queries/get-about-page";
@@ -60,20 +60,32 @@ const PARSER_OPTIONS = {
   },
 };
 
-export const getStaticProps: GetStaticProps<PageProps> = async () => {
+export const getServerSideProps: GetServerSideProps<PageProps> = async ({
+  req,
+  res,
+}) => {
   try {
     const pageData = await getAboutPage();
 
     if (!pageData) {
       return { notFound: true };
     }
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=86400, stale-while-revalidate=604800" // 24 hours cache, 7 days SWR
+    );
 
+    res.setHeader("Cache-Tag", "page:about,static:about");
     return {
       props: { pageData },
-      revalidate: 30 * 24 * 60 * 60, // 30 days
     };
   } catch (error) {
     console.error("Failed to fetch about page:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
+
     return {
       props: {
         pageData: null,

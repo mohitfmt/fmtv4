@@ -2,7 +2,6 @@
 import { prisma } from "@/lib/prisma";
 import Parser from "rss-parser";
 import { youtube } from "@/lib/youtube-client";
-import { cache } from "./cache";
 import { subDays } from "date-fns";
 
 // Types
@@ -491,11 +490,6 @@ async function getSeasonalTrends(
 // Main function to get content suggestions
 export async function getContentSuggestions(): Promise<ContentSuggestions> {
   const cacheKey = "content-suggestions-v2";
-  const cached = cache.get<ContentSuggestions>(cacheKey);
-
-  if (cached && process.env.NODE_ENV === "production") {
-    return cached;
-  }
 
   try {
     // First, batch fetch our videos (no N+1!)
@@ -676,7 +670,7 @@ export async function getContentSuggestions(): Promise<ContentSuggestions> {
     };
 
     // Cache for 2 hours
-    cache.set(cacheKey, suggestions, CACHE_TTL);
+    // cache.set(cacheKey, suggestions, CACHE_TTL);
 
     // Store in database for historical tracking (in background)
     storeTrendingTopics(trendingArray).catch(console.error);
@@ -686,9 +680,9 @@ export async function getContentSuggestions(): Promise<ContentSuggestions> {
     console.error("Failed to fetch content suggestions:", error);
 
     // Return cached version if available, even if expired
-    if (cached) {
-      return { ...cached, error: "Using cached data due to fetch error" };
-    }
+    // if (cached) {
+    //   return { ...cached, error: "Using cached data due to fetch error" };
+    // }
 
     // Return empty suggestions with error state
     return {

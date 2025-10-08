@@ -1,6 +1,6 @@
 // pages/category/category/[categorySlug]/[subcategorySlug]/index.tsx
 
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import {
@@ -35,31 +35,6 @@ interface SeoConfig {
 }
 
 type SeoSubCategoriesType = Record<string, SeoConfig>;
-
-// Helper function to calculate revalidation time based on content age and type
-const getRevalidationTime = (
-  lastModified?: string,
-  category?: string
-): number => {
-  // High-priority categories get more frequent updates
-  const highPriorityCategories = ["nation", "bahasa", "business", "world"];
-  const isHighPriority = highPriorityCategories.includes(category || "");
-
-  if (!lastModified) {
-    return isHighPriority ? 300 : 600; // 5 or 10 minutes default
-  }
-
-  const age = Date.now() - new Date(lastModified).getTime();
-  const hours = age / (1000 * 60 * 60);
-
-  if (hours < 24) {
-    return isHighPriority ? 300 : 600; // 5-10 minutes for fresh content
-  }
-  if (hours < 168) {
-    return isHighPriority ? 900 : 1200; // 15-20 minutes for week-old
-  }
-  return 1800; // 30 minutes for older content
-};
 
 const SubCategoryPage = ({
   subcategorySlug,
@@ -278,50 +253,11 @@ const SubCategoryPage = ({
   );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  // Pre-generate paths for known subcategories with their parent categories
-  const knownSubcategories = [
-    { category: "nation", subcategory: "sabahsarawak" },
-    { category: "bahasa", subcategory: "tempatan" },
-    { category: "bahasa", subcategory: "pandangan" },
-    { category: "bahasa", subcategory: "dunia" },
-    { category: "business", subcategory: "local-business" },
-    { category: "business", subcategory: "world-business" },
-    { category: "leisure", subcategory: "food" },
-    { category: "leisure", subcategory: "entertainment" },
-    { category: "leisure", subcategory: "health" },
-    { category: "leisure", subcategory: "money" },
-    { category: "leisure", subcategory: "travel" },
-    { category: "leisure", subcategory: "tech" },
-    { category: "leisure", subcategory: "pets" },
-    { category: "leisure", subcategory: "automotive" },
-    { category: "leisure", subcategory: "property" },
-    { category: "leisure", subcategory: "simple-stories" },
-    { category: "opinion", subcategory: "editorial" },
-    { category: "opinion", subcategory: "column" },
-    { category: "opinion", subcategory: "letters" },
-    { category: "opinion", subcategory: "fmt-worldviews" },
-    { category: "sports", subcategory: "football" },
-    { category: "sports", subcategory: "badminton" },
-    { category: "sports", subcategory: "motorsports" },
-    { category: "sports", subcategory: "tennis" },
-    { category: "world", subcategory: "south-east-asia" },
-  ];
-
-  const paths = knownSubcategories.map(({ category, subcategory }) => ({
-    params: {
-      categorySlug: category,
-      subcategorySlug: subcategory,
-    },
-  }));
-
-  return {
-    paths,
-    fallback: "blocking", // Generate new paths on-demand
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  params,
+  req,
+  res,
+}) => {
   const subcategorySlug = params?.subcategorySlug as string;
   const category = params?.categorySlug as string;
 
@@ -355,7 +291,14 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       response?.posts?.edges?.[0]?.node?.dateGmt;
 
     const totalCount = response?.posts?.edges?.length || 0;
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=3600"
+    );
+    res.setHeader(
+      "Cache-Tag",
+      `page:subcategory,category:${category},subcategory:${subcategorySlug}`
+    );
     return {
       props: {
         subcategorySlug,
@@ -365,7 +308,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         totalCount,
         lastModified: lastModified || null,
       },
-      revalidate: getRevalidationTime(lastModified, category),
     };
   } catch (error) {
     console.error(
@@ -377,9 +319,11 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       error instanceof Error ? error.message : "Unknown error";
 
     if (errorMessage.includes("404") || errorMessage.includes("not found")) {
-      // Try to redirect to parent category
       console.log(`Subcategory not found, redirecting to parent: ${category}`);
-
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=86400, stale-while-revalidate=604800"
+      );
       return {
         redirect: {
           destination: `/category/category/${category}`,
@@ -388,7 +332,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       };
     }
 
-    // Other errors - return error state
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         subcategorySlug,
@@ -396,7 +343,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         posts: { edges: [] },
         isError: true,
       },
-      revalidate: 60, // Quick retry on errors
     };
   }
 };

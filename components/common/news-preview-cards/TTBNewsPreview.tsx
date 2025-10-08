@@ -30,7 +30,7 @@ const TTBNewsPreview = ({
             isBig={isBig}
           />
         ) : (
-          <Link href={uri}>
+          <Link href={uri || "#"} title={title}>
             <div className="relative aspect-video w-full bg-white flex items-center justify-center p-8">
               <LogoSVG className="w-full h-full object-contain max-h-full" />
               <div className="absolute inset-0 bg-black/5" />
@@ -40,7 +40,7 @@ const TTBNewsPreview = ({
       </figure>
 
       <Link
-        href={uri}
+        href={uri || "#"}
         title={updatedExcerpt}
         className="my-2 text-sm font-bitter"
       >

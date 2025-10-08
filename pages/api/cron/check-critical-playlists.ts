@@ -12,6 +12,7 @@ import {
   Logger,
   checkRSSFeed,
 } from "./_helpers";
+import { purgeCloudflareByTags } from "@/lib/cache/purge";
 
 // Fetch only video IDs from playlist (not full details)
 async function fetchPlaylistVideoIds(
@@ -211,10 +212,19 @@ export default async function handler(
       }
     }
 
-    // Clear cache if playlists changed
+    // // Clear cache if playlists changed
+    // if (results.changed > 0) {
+    //   const { invalidateGalleryCache } = await import("../videos/gallery");
+    //   invalidateGalleryCache();
+    //   logger.info("Cleared video gallery cache");
+    // }
+
     if (results.changed > 0) {
-      const { invalidateGalleryCache } = await import("../videos/gallery");
-      invalidateGalleryCache();
+      await purgeCloudflareByTags([
+        "video:gallery",
+        "video:latest",
+        "video:all",
+      ]);
       logger.info("Cleared video gallery cache");
     }
 

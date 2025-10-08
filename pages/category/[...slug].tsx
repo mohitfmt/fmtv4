@@ -1,9 +1,8 @@
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
 import ArticleJsonLD from "@/components/news-article/ArticleJsonLD";
-import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import ArticleLayout from "@/components/news-article/ArticleLayout";
 import PostBody from "@/components/news-article/PostBody";
 import {
@@ -304,43 +303,18 @@ const NewsArticlePost = ({
   );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    const allPosts = await getAllPostsWithSlug();
-
-    if (!allPosts?.edges) {
-      console.warn("No posts found in getStaticPaths");
-      return { paths: [], fallback: "blocking" };
-    }
-
-    const paths = allPosts.edges
-      .filter((edge: any) => edge?.node?.uri)
-      .map(({ node }: any) => ({
-        params: {
-          slug: node.uri.slice(1).split("/").filter(Boolean),
-        },
-      }));
-
-    return {
-      paths,
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("Error in getStaticPaths:", error);
-    return { paths: [], fallback: "blocking" };
-  }
-};
-export const getStaticProps: GetStaticProps = async ({
+export const getServerSideProps: GetServerSideProps = async ({
   params,
   preview = false,
   previewData,
+  req,
+  res,
 }) => {
   try {
     const isEditMode =
       Array.isArray(params?.slug) &&
       params.slug[params.slug.length - 1] === "edit";
 
-    // If in edit mode, get the actual slug from the previous part
     const slug = Array.isArray(params?.slug)
       ? isEditMode
         ? params.slug[params.slug.length - 2]
@@ -348,6 +322,10 @@ export const getStaticProps: GetStaticProps = async ({
       : params?.slug;
 
     if (!slug) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
@@ -359,10 +337,13 @@ export const getStaticProps: GetStaticProps = async ({
       data.post.status === "private" ||
       data.post.status === "trash"
     ) {
-      return { notFound: true, revalidate: 60 };
+      res.setHeader(
+        "Cache-Control",
+        "private, no-cache, no-store, must-revalidate"
+      );
+      return { notFound: true }; // REMOVE revalidate: 60
     }
 
-    // If in edit mode, redirect to CMS
     if (isEditMode) {
       return {
         redirect: {
@@ -373,13 +354,43 @@ export const getStaticProps: GetStaticProps = async ({
     }
 
     if (!data?.post) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
-    // Fetch related posts
-    // const relatedPosts = await getRelatedPosts(slug);
-    // const moreStories = await getMoreStories(slug);
     const { relatedPosts, moreStories } = await loadPostContext(slug);
+
+    if (preview) {
+      res.setHeader(
+        "Cache-Control",
+        "private, no-cache, no-store, must-revalidate, max-age=0"
+      );
+      res.setHeader("X-Robots-Tag", "noindex");
+      res.setHeader("X-Preview-Mode", "true");
+    } else {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=3600, stale-while-revalidate=86400"
+      );
+
+      const cacheTags = [`article:${slug}`, "article:detail"];
+
+      const categories = data?.post?.categories?.edges || [];
+      categories.forEach((edge: any) => {
+        if (edge?.node?.slug) {
+          cacheTags.push(`category:${edge.node.slug}`);
+        }
+      });
+
+      if (data?.post?.author?.node?.slug) {
+        cacheTags.push(`author:${data.post.author.node.slug}`);
+      }
+
+      res.setHeader("Cache-Tag", cacheTags.join(","));
+    }
 
     return {
       props: {
@@ -394,12 +405,16 @@ export const getStaticProps: GetStaticProps = async ({
         moreStories:
           moreStories?.map((story: any) => story?.node).filter(Boolean) || [],
       },
-      revalidate: REVALIDATION_INTERVAL,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
+
     return {
-      revalidate: 110,
       notFound: true,
     };
   }

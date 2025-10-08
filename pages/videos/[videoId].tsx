@@ -1,7 +1,6 @@
 // pages/videos/[videoId].tsx
-// Enhanced individual video page with multiple recommendation sections and all fixes applied
 
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -758,44 +757,10 @@ export default function VideoPage({
   );
 }
 
-// Static paths generation - pre-build popular videos
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    // Pre-build top 100 hot/trending videos
-    const topVideos = await prisma.videos.findMany({
-      where: {
-        OR: [{ tier: "hot" }, { tier: "trending" }],
-        isActive: true,
-      },
-      orderBy: {
-        publishedAt: "desc",
-      },
-      take: 100,
-      select: {
-        videoId: true,
-      },
-    });
-
-    const paths = topVideos.map((video) => ({
-      params: { videoId: video.videoId },
-    }));
-
-    return {
-      paths,
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("[VideoPage] Error generating paths:", error);
-    return {
-      paths: [],
-      fallback: "blocking",
-    };
-  }
-};
-
-// Enhanced Static props with multiple video sections
-export const getStaticProps: GetStaticProps<VideoPageProps> = async ({
+export const getServerSideProps: GetServerSideProps<VideoPageProps> = async ({
   params,
+  req,
+  res,
 }) => {
   const videoId = params?.videoId as string;
 
@@ -814,18 +779,6 @@ export const getStaticProps: GetStaticProps<VideoPageProps> = async ({
 
     if (!video) {
       return { notFound: true };
-    }
-
-    // Determine revalidation time based on video tier
-    let revalidateTime = 3600; // Default 1 hour
-    if (video.tier === "hot") {
-      revalidateTime = 300; // 5 minutes for hot videos
-    } else if (video.tier === "trending") {
-      revalidateTime = 900; // 15 minutes for trending
-    } else if (
-      video.publishedAt < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    ) {
-      revalidateTime = 7200; // 2 hours for old videos
     }
 
     // Build conditions for related videos query (fixed empty object issue)
@@ -999,6 +952,12 @@ export const getStaticProps: GetStaticProps<VideoPageProps> = async ({
       isShort: v.isShort || false,
     });
 
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=7200"
+    );
+    res.setHeader("Cache-Tag", `video:${videoId},videos:detail`);
+
     return {
       props: {
         video: transformVideo(video),
@@ -1008,11 +967,13 @@ export const getStaticProps: GetStaticProps<VideoPageProps> = async ({
         playlistInfo,
         error: null,
       },
-      revalidate: revalidateTime,
     };
   } catch (error) {
     console.error("[VideoPage] Error fetching video:", error);
-
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         video: null,
@@ -1021,7 +982,6 @@ export const getStaticProps: GetStaticProps<VideoPageProps> = async ({
         recommendedVideos: [],
         error: "Failed to load video. Please try again later.",
       },
-      revalidate: 60,
     };
   }
 };

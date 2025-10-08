@@ -4,7 +4,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma"; // Use singleton
 import { google } from "googleapis";
-import { invalidateGalleryCache } from "@/pages/api/videos/gallery";
+import { purgeCloudflareByTags } from "@/lib/cache/purge";
+// import { invalidateGalleryCache } from "@/pages/api/videos/gallery";
 
 const youtube = google.youtube({
   version: "v3",
@@ -361,9 +362,19 @@ export default async function handler(
         totalVideos > 0 ? Math.round((privateVideos / totalVideos) * 100) : 0,
     };
 
-    // 7. Clear cache if changes were made
+    // // 7. Clear cache if changes were made
+    // if (results.videosDeactivated > 0 || results.videosReactivated > 0) {
+    //   invalidateGalleryCache();
+    //   console.log(
+    //     "[Stats Refresh] Cache invalidated due to video status changes"
+    //   );
+    // }
     if (results.videosDeactivated > 0 || results.videosReactivated > 0) {
-      invalidateGalleryCache();
+      await purgeCloudflareByTags([
+        "video:gallery",
+        "video:latest",
+        "video:all",
+      ]);
       console.log(
         "[Stats Refresh] Cache invalidated due to video status changes"
       );

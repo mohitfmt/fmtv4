@@ -1,4 +1,4 @@
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { CustomHomeSportsExcludeVariables } from "@/constants/categories-custom-variables";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
@@ -42,7 +42,7 @@ const HomeSports = ({
   );
 };
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   try {
     const variablesInitialPosts = {
       first: 5,
@@ -100,7 +100,11 @@ export const getStaticProps: GetStaticProps = async () => {
         };
       })
     );
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1500, stale-while-revalidate=3600"
+    );
+    res.setHeader("Cache-Tag", "page:sports,category:sports");
     return {
       props: {
         posts: {
@@ -109,19 +113,20 @@ export const getStaticProps: GetStaticProps = async () => {
         currentPage: currentPage || null,
         subCategoryPosts: initialSubCategoryPosts,
       },
-      revalidate: 1500,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         posts: { edges: [] },
         currentPage: null,
         subCategoryPosts: [],
-
         error: "Failed to load content",
       },
-      revalidate: 110,
     };
   }
 };

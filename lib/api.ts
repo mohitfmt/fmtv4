@@ -3,8 +3,6 @@ import { GET_POST_BY_SLUG } from "./gql-queries/get-by-id";
 import { getFilteredCategoryPosts } from "./gql-queries/get-filtered-category-posts";
 import { DEFAULT_TAGS } from "@/constants/default-tags";
 import { LRUCache } from "lru-cache";
-import { withSmartLRUCache } from "./cache/withSmartLRU";
-import { postDataCache } from "./cache/smart-cache-registry";
 
 // Keep playlistCache as regular LRU since it's not article-based
 export const playlistCache = new LRUCache<string, any>({
@@ -32,12 +30,7 @@ async function rawGetPostData(postId: string): Promise<{ post: any } | null> {
   }
 }
 
-// Use smart cache wrapper
-export const getPostData = withSmartLRUCache(
-  (postId: string) => `post:${postId}`,
-  rawGetPostData,
-  postDataCache
-);
+export const getPostData = rawGetPostData;
 
 /**
  * Fetch related posts based on tags from the current post.

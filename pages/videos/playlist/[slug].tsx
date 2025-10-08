@@ -1,8 +1,6 @@
 // pages/videos/playlist/[slug].tsx
-// ENHANCED: Uniform grid layout with VideoFacade, breadcrumb navigation, rich SEO
-// PRESERVED: ISR, data fetching, load more functionality
 
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import { useState, useCallback } from "react";
@@ -533,43 +531,12 @@ export default function PlaylistPage({
   );
 }
 
-// getStaticPaths - preserved exactly
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    const playlists = await prisma.playlist.findMany({
-      where: {
-        isActive: true,
-        slug: {
-          not: null,
-        },
-      },
-      select: {
-        slug: true,
-      },
-    });
-
-    const paths = playlists
-      .filter((p) => p.slug)
-      .map((playlist) => ({
-        params: { slug: playlist.slug as string },
-      }));
-
-    return {
-      paths,
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("[getStaticPaths] Error fetching playlists:", error);
-    return {
-      paths: [],
-      fallback: "blocking",
-    };
-  }
-};
-
-// getStaticProps - preserved with minimal changes
-export const getStaticProps: GetStaticProps = async (context) => {
-  const { slug } = context.params || {};
+export const getServerSideProps: GetServerSideProps = async ({
+  params,
+  req,
+  res,
+}) => {
+  const { slug } = params || {};
 
   if (!slug || typeof slug !== "string") {
     return {
@@ -663,6 +630,11 @@ export const getStaticProps: GetStaticProps = async (context) => {
 
     const currentUrl = `${siteConfig.baseUrl}/videos/playlist/${slug}`;
 
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=7200"
+    );
+    // res.setHeader("Cache-Tag", `video:${videoId},videos:detail`);
     return {
       props: {
         videos: transformedVideos,
@@ -678,11 +650,13 @@ export const getStaticProps: GetStaticProps = async (context) => {
         currentUrl,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 900, // 15 minutes
     };
   } catch (error) {
     console.error("[Playlist Page] Error fetching videos:", error);
-
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         videos: [],
@@ -698,7 +672,6 @@ export const getStaticProps: GetStaticProps = async (context) => {
         currentUrl: `${siteConfig.baseUrl}/videos/playlist/${slug}`,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 900,
     };
   }
 };

@@ -1,7 +1,6 @@
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import TagLayout from "@/components/tags-page/TagLayout";
 import { getTag } from "@/lib/gql-queries/get-tag";
-import { gqlFetchAPI } from "@/lib/gql-queries/gql-fetch-api";
 import { PostCardProps, Tag } from "@/types/global";
 import Head from "next/head";
 import siteConfig from "@/constants/site-config";
@@ -199,53 +198,19 @@ export default function TagPage({ tag, posts }: TagPageProps) {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    const tagsData = await gqlFetchAPI(
-      `query GetAllTagsWithUri {
-        tags(first: 100) {
-          edges {
-            node {
-              id
-              databaseId
-              uri
-              slug
-            }
-          }
-        }
-      }`
-    );
-
-    if (!tagsData?.tags?.edges) {
-      console.warn("No tags found in getStaticPaths");
-      return { paths: [], fallback: "blocking" };
-    }
-
-    const paths = tagsData.tags.edges
-      .filter((edge: { node: TagNode }) => !!edge?.node?.uri)
-      .map(({ node }: { node: TagNode }) => ({
-        params: {
-          slug: node.uri.slice(1).split("/").filter(Boolean),
-        },
-      }));
-
-    return {
-      paths,
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("Error in getStaticPaths:", error);
-    return { paths: [], fallback: "blocking" };
-  }
-};
-
-export const getStaticProps: GetStaticProps<TagPageProps> = async ({
+export const getServerSideProps: GetServerSideProps<TagPageProps> = async ({
   params,
+  req,
+  res,
 }) => {
   const slug = params?.slug;
   const tagSlug = Array.isArray(slug) ? slug[0] : slug;
 
   if (!tagSlug) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=120"
+    );
     return { notFound: true };
   }
 
@@ -253,6 +218,10 @@ export const getStaticProps: GetStaticProps<TagPageProps> = async ({
     const tagData = await getTag(tagSlug); // ✅ Uses LRU cached fetch
 
     if (!tagData?.tag) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
@@ -274,16 +243,25 @@ export const getStaticProps: GetStaticProps<TagPageProps> = async ({
       },
     };
     const postsData = await getFilteredCategoryPosts(variables); // ✅ Uses LRU cached fetch
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=3600"
+    );
+
+    res.setHeader("Cache-Tag", `page:tag,tag:${tagSlug},tags:all`);
 
     return {
       props: {
         tag: tagData.tag,
         posts: postsData.posts,
       },
-      revalidate: 300, // 5 minutes
     };
   } catch (error) {
     console.error("Error fetching tag or posts:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return { notFound: true };
   }
 };

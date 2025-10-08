@@ -1,4 +1,4 @@
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { PostCardProps } from "@/types/global";
 import Meta from "@/components/common/Meta";
 import PhotoGrid from "@/components/gallery/PhotoGrid";
@@ -82,7 +82,7 @@ const PhotosPage = ({ posts }: Props) => {
   );
 };
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   try {
     const variables = {
       first: 12,
@@ -101,20 +101,26 @@ export const getStaticProps: GetStaticProps = async () => {
       },
     };
     const response = await getFilteredCategoryPosts(variables);
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1500, stale-while-revalidate=3600"
+    );
+    res.setHeader("Cache-Tag", "page:photos,category:photos");
     return {
       props: {
         posts: response.posts,
       },
-      revalidate: 300,
     };
   } catch (error) {
     console.error("Error fetching posts:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         posts: { edges: [] },
       },
-      revalidate: 110,
     };
   }
 };

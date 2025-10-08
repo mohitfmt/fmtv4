@@ -2,8 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getMoreHomePosts } from "@/lib/gql-queries/get-more-home-posts";
 import { apiErrorResponse } from "@/lib/utils";
-import { moreHomePostsCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-home-posts";
 
@@ -24,21 +22,6 @@ const CATEGORY_CONFIGS = {
     getOffset: (page: number) => 5 + (page - 1) * 4,
   },
 } as const;
-
-// Create cached version using SmartNewsCache
-const getCachedMoreHomePosts = withSmartLRUCache(
-  ({
-    category,
-    offset,
-    size,
-  }: {
-    category: string;
-    offset: number;
-    size: number;
-  }) => `cat:${category}:offset:${offset}:size:${size}`,
-  getMoreHomePosts,
-  moreHomePostsCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -91,7 +74,7 @@ export default async function handler(
 
   try {
     // Use SmartNewsCache - automatically tracks dependencies!
-    const data = await getCachedMoreHomePosts({
+    const data = await getMoreHomePosts({
       category: categoryKey,
       offset,
       size,

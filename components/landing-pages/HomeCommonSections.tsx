@@ -259,7 +259,7 @@ const HomeCommonSections = ({
   if (loading || !initialPosts || initialPosts.length === 0) {
     return (
       <section id={sectionId} className="my-20 mb-32">
-        <Link href={`/${categoryRoute}`}>
+        <Link href={`/${categoryRoute || ""}`}>
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <CommonSectionSkeleton />
@@ -269,7 +269,7 @@ const HomeCommonSections = ({
 
   return (
     <section id={sectionId} className="my-20">
-      <Link href={`/${categoryRoute}`}>
+      <Link href={`/${categoryRoute || ""}`}>
         <SectionHeading sectionName={sectionTitle} />
       </Link>
       <div className="grid grid-cols-12 gap-4">

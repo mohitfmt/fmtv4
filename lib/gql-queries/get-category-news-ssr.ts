@@ -1,10 +1,17 @@
+// lib/gql-queries/get-category-news-ssr.ts
+// Direct category news fetcher for SSR that bypasses LRU cache
+
 import { gqlFetchAPI } from "./gql-fetch-api";
 
-async function rawGetCategoryNews(
+/**
+ * Direct GraphQL fetch for SSR - bypasses LRU cache
+ * Use this in getServerSideProps to avoid cache issues
+ */
+export async function getCategoryNewsSSR(
   categoryName: string,
   limit: number,
-  preview: boolean
-) {
+  preview: boolean = false
+): Promise<any[]> {
   try {
     const data = await gqlFetchAPI(
       `
@@ -74,12 +81,54 @@ async function rawGetCategoryNews(
       }
     );
 
-    return data?.posts?.edges?.map((edge: any) => edge.node) || [];
+    // Extract nodes from edges and return array
+    const posts = data?.posts?.edges?.map((edge: any) => edge.node) || [];
+
+    // Ensure we always return an array
+    return Array.isArray(posts) ? posts : [];
   } catch (error) {
-    console.error(`Error fetching posts for category ${categoryName}:`, error);
-    return { edges: [] };
+    console.error(
+      `[getCategoryNewsSSR] Error fetching ${categoryName}:`,
+      error
+    );
+    // Always return empty array on error
+    return [];
   }
 }
 
-// Use smart cache wrapper
-export const getCategoryNews = rawGetCategoryNews;
+/**
+ * Helper for SSR to fetch and filter posts like the original
+ */
+export async function getFilteredCategoryNewsSSR(
+  categoryName: string,
+  limit: number,
+  excludeSlugs: string[] = [],
+  additionalExcludes: string[] = [],
+  preview: boolean = false
+): Promise<any[]> {
+  try {
+    // Fetch extra posts to account for exclusions
+    const fetchLimit = limit + excludeSlugs.length + additionalExcludes.length;
+    const allPosts = await getCategoryNewsSSR(
+      categoryName,
+      fetchLimit,
+      preview
+    );
+
+    // Filter and limit
+    return allPosts
+      .filter(
+        (post: any) =>
+          post?.slug &&
+          !excludeSlugs.includes(post.slug) &&
+          !additionalExcludes.includes(post.slug)
+      )
+      .slice(0, limit);
+  } catch (error) {
+    console.error(
+      `[getFilteredCategoryNewsSSR] Error for ${categoryName}:`,
+      error
+    );
+    return [];
+  }
+}

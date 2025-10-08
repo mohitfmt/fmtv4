@@ -2,22 +2,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 import { apiErrorResponse } from "@/lib/utils";
-import { moreAuthorPostsCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-author-posts";
 const POSTS_PER_PAGE = 20;
-
-// Create cached version using SmartNewsCache
-const getCachedAuthorPosts = withSmartLRUCache(
-  (variables: any) => {
-    const authorId = variables.where?.authorIn?.[0] || "unknown";
-    const offset = variables.where?.offsetPagination?.offset || 0;
-    return `author:${authorId}:offset:${offset}:size:${POSTS_PER_PAGE}`;
-  },
-  getFilteredCategoryPosts,
-  moreAuthorPostsCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -75,7 +62,7 @@ export default async function handler(
     };
 
     // Use SmartNewsCache
-    const response = await getCachedAuthorPosts(variables);
+    const response = await getFilteredCategoryPosts(variables);
 
     if (!response || !response.posts) {
       return apiErrorResponse({

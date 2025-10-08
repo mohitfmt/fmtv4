@@ -40,7 +40,7 @@ const LTRNewsPreview = ({
               <PublishingDateTime dateString={date} size={16} />
             </div>
           </div>
-          <Link href={uri} title={title}>
+          <Link href={uri || "#"} title={title}>
             <h3 className="font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
               {title}
             </h3>

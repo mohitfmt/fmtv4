@@ -1,4 +1,4 @@
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { categoriesNavigation } from "@/constants/categories-navigation";
 import {
   CategoryJsonLD,
@@ -42,7 +42,7 @@ const HomeBerita = ({
   );
 };
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   try {
     // Get super-news post
     const variables = {
@@ -137,17 +137,24 @@ export const getStaticProps: GetStaticProps = async () => {
         };
       })
     );
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1500, stale-while-revalidate=3600"
+    );
+    res.setHeader("Cache-Tag", "page:berita,category:berita,lang:bm");
     return {
       props: {
         posts: combinedPosts,
         currentPage: currentPage || null,
         subCategoryPosts: initialSubCategoryPosts,
       },
-      revalidate: 1500,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         posts: { edges: [] },
@@ -155,7 +162,6 @@ export const getStaticProps: GetStaticProps = async () => {
         subCategoryPosts: [],
         error: "Failed to load content",
       },
-      revalidate: 110,
     };
   }
 };

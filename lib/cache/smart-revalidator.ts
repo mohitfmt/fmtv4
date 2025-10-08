@@ -2,12 +2,6 @@
 // SmartRevalidator - Intelligent cache orchestration for video system
 
 import { prisma } from "@/lib/prisma";
-import {
-  galleryCache,
-  playlistCache,
-  videoDataCache,
-  clearAllCaches,
-} from "./video-cache-registry";
 
 interface SmartRevalidatorInput {
   videoIds?: string[]; // Videos added/updated/deleted
@@ -82,10 +76,6 @@ export class SmartRevalidator {
       console.log(
         `[SmartRevalidator] Found ${affectedPages.size} affected pages`
       );
-
-      // Step 3: Clear LRU caches
-      await this.clearLRUCaches(input.configChanged);
-      result.cachesCleared.push("LRU");
 
       // Step 4: Trigger ISR revalidation
       const revalidated = await this.revalidatePages(Array.from(affectedPages));
@@ -307,23 +297,6 @@ export class SmartRevalidator {
     }
 
     return false;
-  }
-
-  /**
-   * Clear LRU caches
-   */
-  private async clearLRUCaches(clearAll: boolean = false): Promise<void> {
-    if (clearAll) {
-      // Nuclear option for config changes
-      clearAllCaches();
-      console.log("[SmartRevalidator] Cleared all LRU caches");
-    } else {
-      // Selective clearing
-      galleryCache.clear();
-      playlistCache.clear();
-      videoDataCache.clear();
-      console.log("[SmartRevalidator] Cleared video-related LRU caches");
-    }
   }
 
   /**

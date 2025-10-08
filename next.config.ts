@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     DEBUG_MEMORY: process.env.DEBUG_MEMORY ?? "false",
     NEXT_PUBLIC_DOMAIN:
       process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com",
+    NEXT_PUBLIC_APP_URL:
+      process.env.NEXT_PUBLIC_APP_URL || "https://dev-v4.freemalaysiatoday.com",
   },
   experimental: {
     optimizeCss: true,

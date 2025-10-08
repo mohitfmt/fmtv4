@@ -1,4 +1,4 @@
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { PostCardProps } from "@/types/global";
 import AuthorLayout from "@/components/author-page/AuthorLayout";
@@ -160,23 +160,17 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    return {
-      paths: [],
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("Error in getStaticPaths:", error);
-    return { paths: [], fallback: "blocking" };
-  }
-};
-
-export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
+export const getServerSideProps: GetServerSideProps = async ({
   params,
+  req,
+  res,
 }) => {
   const slugArray = params?.slug;
   if (!slugArray || !Array.isArray(slugArray) || slugArray.length === 0) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=120"
+    );
     return { notFound: true };
   }
 
@@ -186,6 +180,10 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
     const userData = await getAuthor({ userId: authorSlug, idType: "SLUG" });
 
     if (!userData?.user) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
@@ -196,16 +194,23 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
       },
     };
     const postsData = await getFilteredCategoryPosts(variables);
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=3600" // 30m cache, 1h SWR
+    );
+    res.setHeader("Cache-Tag", `page:author,author:${authorSlug}`);
     return {
       props: {
         author: userData.user,
         posts: postsData.posts,
       },
-      revalidate: 1500,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return { notFound: true };
   }
 };

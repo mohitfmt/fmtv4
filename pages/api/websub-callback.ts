@@ -8,7 +8,7 @@ import { addMinutes } from "date-fns";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { mutate } from "swr";
 import PQueue from "p-queue";
-import { changeManager } from "@/lib/cache/smart-cache-registry";
+// import { changeManager } from "@/lib/cache/smart-cache-registry";
 import {
   purgeCloudflareByTags,
   purgeCloudflareByUrls,
@@ -343,7 +343,7 @@ async function processArticlesForRevalidation(
       };
 
       // Trigger smart cache invalidation
-      changeManager.handleContentChange(event);
+      // changeManager.handleContentChange(event);
 
       // Extract the article path from the URL
       const urlObj = new URL(post.link);

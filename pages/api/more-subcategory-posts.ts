@@ -11,8 +11,6 @@ import {
 } from "@/constants/categories-custom-variables";
 import { apiErrorResponse } from "@/lib/utils";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { moreSubcategoryPostsCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CATEGORY_EXCLUDE_VARIABLES: Record<string, any> = {
   news: CustomHomeNewsExcludeVariables,
@@ -28,17 +26,6 @@ const POSTS_PER_PAGE = 6;
 const CONTEXT = "/api/more-subcategory-posts";
 
 // Create cached version using SmartNewsCache
-const getCachedSubcategoryPosts = withSmartLRUCache(
-  (variables: any) => {
-    const slug =
-      variables.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "unknown";
-    const offset = variables.where?.offsetPagination?.offset || 0;
-    const hasExclude = !!variables.where?.excludeQuery;
-    return `slug:${slug}:offset:${offset}:size:${POSTS_PER_PAGE}:exclude:${hasExclude}`;
-  },
-  getFilteredCategoryPosts,
-  moreSubcategoryPostsCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -132,7 +119,7 @@ export default async function handler(
     };
 
     // Use SmartNewsCache
-    const posts = await getCachedSubcategoryPosts(variables);
+    const posts = await getFilteredCategoryPosts(variables);
 
     if (!posts || !posts.posts || !posts.posts.edges) {
       return apiErrorResponse({

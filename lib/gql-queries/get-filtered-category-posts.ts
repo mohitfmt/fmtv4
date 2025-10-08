@@ -1,8 +1,6 @@
 // lib/gql-queries/get-filtered-category-posts.ts - FIXED VERSION
 import { gqlFetchAPI } from "./gql-fetch-api";
 import { GET_FILTERED_CATEGORY } from "./get-filtered-category";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
-import { filteredCategoryCache } from "@/lib/cache/smart-cache-registry";
 import type { PostsResponse, PostsVariables } from "./get-filtered-category";
 
 function generateCacheKey(variables: PostsVariables | any): string {
@@ -73,8 +71,4 @@ async function rawGetFilteredCategoryPosts(
   }
 }
 
-export const getFilteredCategoryPosts = withSmartLRUCache(
-  generateCacheKey,
-  rawGetFilteredCategoryPosts,
-  filteredCategoryCache
-);
+export const getFilteredCategoryPosts = rawGetFilteredCategoryPosts;

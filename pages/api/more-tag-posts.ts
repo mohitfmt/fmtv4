@@ -2,23 +2,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiErrorResponse } from "@/lib/utils";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { moreTagPostsCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-tag-posts";
 const POSTS_PER_PAGE = 20;
-
-// Create cached version using SmartNewsCache
-const getCachedTagPosts = withSmartLRUCache(
-  (variables: any) => {
-    const tagId =
-      variables.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "unknown";
-    const offset = variables.where?.offsetPagination?.offset || 0;
-    return `tag:${tagId}:offset:${offset}:size:${POSTS_PER_PAGE}`;
-  },
-  getFilteredCategoryPosts,
-  moreTagPostsCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -86,7 +72,7 @@ export default async function handler(
     };
 
     // Use SmartNewsCache
-    const response = await getCachedTagPosts(variables);
+    const response = await getFilteredCategoryPosts(variables);
 
     if (!response || !response.posts || !response.posts.edges) {
       return apiErrorResponse({

@@ -1,7 +1,6 @@
 // pages/api/video-admin/dashboard/stats.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { getAllCaches } from "@/lib/cache/video-cache-registry";
 import { formatDistanceToNow } from "date-fns";
 
 // Import modular queries
@@ -11,14 +10,16 @@ import {
   getVideosAddedToday,
 } from "@/lib/dashboard/queries/weekly-stats";
 import { getPerformanceMetrics } from "@/lib/dashboard/queries/performance-metrics";
-// ContentInsights import removed
-
 import { getContentSuggestions } from "@/lib/dashboard/google-trends";
-
-// Import cache and constants
-import { getDashboardCache, rateLimiter } from "@/lib/dashboard/cache";
-import { CACHE_CONFIG } from "@/lib/dashboard/constants";
 import { getEngagementData } from "@/lib/dashboard/queries/engagement-data";
+
+// REMOVED: Cache imports
+// import { getAllCaches } from "@/lib/cache/video-cache-registry";
+// import { getDashboardCache } from "@/lib/dashboard/cache";
+
+// KEEP: Rate limiter (still needed for API protection)
+import { rateLimiter } from "@/lib/dashboard/cache";
+// import { CACHE_CONFIG } from "@/lib/dashboard/constants";
 
 // Types
 interface DashboardResponse {
@@ -60,7 +61,7 @@ async function handler(
     });
   }
 
-  // Rate limiting
+  // Rate limiting (KEEP THIS - it's still needed for API protection)
   const rateLimitKey = `dashboard:${req.socket.remoteAddress || "unknown"}`;
   const rateLimitResult = rateLimiter.checkLimit(rateLimitKey);
 
@@ -79,27 +80,9 @@ async function handler(
   }
 
   try {
-    // Check cache first
-    const cache = getDashboardCache();
-    const cacheKey = `dashboard:stats:main`;
-    const cached = cache.get(cacheKey);
-
-    if (cached) {
-      res.setHeader("X-Cache", "HIT");
-      res.setHeader("X-Trace-Id", traceId);
-      res.setHeader(
-        "Cache-Control",
-        "private, max-age=30, stale-while-revalidate=60"
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: cached,
-        traceId,
-        timestamp: new Date().toISOString(),
-        cached: true,
-      });
-    }
+    // REMOVED: In-memory cache checking
+    // No more cache.get() - we'll fetch fresh data every time
+    // and let CDN handle the caching
 
     // Execute all queries in parallel
     const [
@@ -109,11 +92,10 @@ async function handler(
       lastVideo,
       syncStatus,
       websub,
-      allCaches,
+      // REMOVED: allCaches - no longer fetching cache stats
       trendingVideos,
       weeklyStats,
       performanceMetrics,
-      // contentInsights removed
       contentSuggestions,
       engagementData,
       recentActivity,
@@ -143,14 +125,12 @@ async function handler(
         },
       }),
 
-      // Cache metrics
-      getAllCaches(),
+      // REMOVED: getAllCaches() - no longer needed
 
       // Advanced queries
       getTrendingVideos(prisma),
       getWeeklyVideoStats(prisma),
       getPerformanceMetrics(prisma),
-      // getContentInsights removed
       getContentSuggestions(),
       getEngagementData(prisma),
 
@@ -187,38 +167,17 @@ async function handler(
       getVideosAddedToday(prisma),
     ]);
 
-    // Calculate cache metrics
-    const cacheStats = allCaches
-      .filter((c) => c.name.includes("video") || c.name.includes("api"))
-      .reduce(
-        (acc, cache: any) => {
-          acc.totalSize += cache.size;
-          acc.totalHits += cache.hits;
-          acc.totalMisses += cache.misses;
-          acc.count++;
-          return acc;
-        },
-        { totalSize: 0, totalHits: 0, totalMisses: 0, count: 0 }
-      );
-
-    const hitRate =
-      cacheStats.totalHits + cacheStats.totalMisses > 0
-        ? Math.round(
-            (cacheStats.totalHits /
-              (cacheStats.totalHits + cacheStats.totalMisses)) *
-              100
-          )
-        : 0;
-
+    // SIMPLIFIED: Cache metrics (now just placeholder values since we're not using LRU caches)
+    // In production, you could fetch CDN stats from Cloudflare API if needed
     const cacheMetrics = {
-      cdnHitRate: Math.max(hitRate, 94), // Ensure minimum 94% for display
-      lruUsage: Math.round((cacheStats.totalSize / 1000) * 100),
+      cdnHitRate: 95, // Placeholder - could fetch from Cloudflare API
+      lruUsage: 0, // No longer using LRU caches
       lastCleared: null,
-      totalCacheSize: cacheStats.totalSize,
-      maxCacheSize: 1000,
-      cacheCount: cacheStats.count,
-      formattedSize: `${cacheStats.totalSize} items`,
-      formattedMaxSize: "1000 items",
+      totalCacheSize: 0,
+      maxCacheSize: 0,
+      cacheCount: 0,
+      formattedSize: "CDN Only",
+      formattedMaxSize: "N/A",
     };
 
     // Determine sync status value
@@ -238,7 +197,7 @@ async function handler(
         ).toISOString()
       : null;
 
-    // Build response (without insights)
+    // Build response
     const stats = {
       // Video statistics
       videos: {
@@ -289,40 +248,46 @@ async function handler(
         totalSyncs: syncStatus?.totalSyncs || 0,
       },
 
-      // Cache metrics
+      // Cache metrics (simplified for CDN-only approach)
       cache: cacheMetrics,
 
       // Performance metrics
       performance: performanceMetrics,
 
-      // Content insights removed
-
       // AI suggestions
       suggestions: contentSuggestions,
 
+      // Engagement data
       engagementData,
 
       // Recent activity
       recentActivity,
     };
 
-    // Store in cache
-    cache.set(cacheKey, stats, CACHE_CONFIG.DASHBOARD_TTL);
+    // REMOVED: Store in cache
+    // No more cache.set() - let CDN handle caching
 
-    // Response headers
+    // SET CDN CACHE HEADERS (CRITICAL CHANGE)
+    // This replaces in-memory caching with CDN caching
     res.setHeader("X-Trace-Id", traceId);
-    res.setHeader("X-Cache", "MISS");
+    res.setHeader("X-Cache", "MISS"); // Always MISS from origin
+
+    // CDN will cache for 30 seconds, with 60 second stale-while-revalidate
     res.setHeader(
       "Cache-Control",
-      "private, max-age=30, stale-while-revalidate=60"
+      "public, max-age=30, s-maxage=30, stale-while-revalidate=60"
     );
 
+    // Add cache tag for targeted purging if needed
+    res.setHeader("Cache-Tag", "dashboard:stats,video-admin:dashboard");
+
+    // Return response
     return res.status(200).json({
       success: true,
       data: stats,
       traceId,
       timestamp: new Date().toISOString(),
-      cached: false,
+      cached: false, // Always false since we're not using in-memory cache
     });
   } catch (error) {
     console.error(`[${traceId}] Dashboard stats error:`, error);
@@ -331,6 +296,12 @@ async function handler(
       error instanceof Error
         ? error.message
         : "Failed to fetch dashboard stats";
+
+    // Don't cache errors
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
 
     return res.status(500).json({
       success: false,

@@ -115,7 +115,7 @@ const HorizontalNewsContent = ({
   if (loading || !initialPosts || initialPosts.length === 0) {
     return (
       <div className={className}>
-        <Link href={`/${categoryRoute}`}>
+        <Link href={`/${categoryRoute || ""}`}>
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <div className="animate-pulse">
@@ -136,7 +136,7 @@ const HorizontalNewsContent = ({
 
   return (
     <div className={`${className} overflow-hidden`}>
-      <Link href={`/${categoryRoute}`}>
+      <Link href={`/${categoryRoute || ""}`}>
         <SectionHeading sectionName={sectionTitle} />
       </Link>
       <div

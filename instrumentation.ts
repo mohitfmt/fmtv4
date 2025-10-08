@@ -8,12 +8,8 @@ export async function register() {
       process.env.NODE_ENV === "production" ||
       process.env.DEBUG_MEMORY === "true"
     ) {
-      const { startMemoryDebugger, track } = await import(
-        "@/lib/debug/memoryDebugger"
-      );
-
       // Import caches
-      const caches = await import("@/lib/cache/smart-cache-registry");
+      // const caches = await import("@/lib/cache/smart-cache-registry");
       // Detect container memory
       let containerMemoryMB = 2048; // Default 2GB
 
@@ -27,32 +23,32 @@ export async function register() {
       const criticalThreshold = Math.floor(containerMemoryMB * 0.45); // 45% - Critical
 
       // Start memory debugger
-      startMemoryDebugger({
-        label: "FMT-Memory",
-        interval: 30_000, // Check every 30 seconds
-        enableGC: true,
-        enableHandlesDump: false, // Never in production
-        heapDumpInterval: 0, // Never in production
-        gcThreshold,
-        warningThreshold,
-        criticalThreshold,
-        fallbackGCInterval: isProd ? 60 * 60 * 1000 : 45 * 60 * 1000, // 60min prod, 45min staging
-      });
+      // startMemoryDebugger({
+      //   label: "FMT-Memory",
+      //   interval: 30_000, // Check every 30 seconds
+      //   enableGC: true,
+      //   enableHandlesDump: false, // Never in production
+      //   heapDumpInterval: 0, // Never in production
+      //   gcThreshold,
+      //   warningThreshold,
+      //   criticalThreshold,
+      //   fallbackGCInterval: isProd ? 60 * 60 * 1000 : 45 * 60 * 1000, // 60min prod, 45min staging
+      // });
 
       // Track only the most important caches
-      track("postDataCache.size", () => caches.postDataCache.size);
-      track("categoryCache.size", () => caches.categoryCache.size);
-      track(
-        "filteredCategoryCache.size",
-        () => caches.filteredCategoryCache.size
-      );
-      track("totalCacheMB", () => {
-        const totalBytes =
-          (caches.postDataCache.calculatedSize || 0) +
-          (caches.categoryCache.calculatedSize || 0) +
-          (caches.filteredCategoryCache.calculatedSize || 0);
-        return Math.round(totalBytes / 1024 / 1024);
-      });
+      // track("postDataCache.size", () => caches.postDataCache.size);
+      // track("categoryCache.size", () => caches.categoryCache.size);
+      // track(
+      //   "filteredCategoryCache.size",
+      //   () => caches.filteredCategoryCache.size
+      // );
+      // track("totalCacheMB", () => {
+      //   const totalBytes =
+      //     (caches.postDataCache.calculatedSize || 0) +
+      //     (caches.categoryCache.calculatedSize || 0) +
+      //     (caches.filteredCategoryCache.calculatedSize || 0);
+      //   return Math.round(totalBytes / 1024 / 1024);
+      // });
 
       console.log("[Instrumentation] Memory management active");
     }

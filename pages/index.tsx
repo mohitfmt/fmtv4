@@ -11,7 +11,7 @@ import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { getColumnists } from "@/lib/gql-queries/get-columnists";
 import { generateCollectionPageJsonLD } from "@/lib/utils";
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
@@ -415,8 +415,18 @@ export default function Home({
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  req,
+  res,
+  preview = false,
+}) => {
   try {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=600"
+    );
+    res.setHeader("Cache-Tag", "homepage,home:all,path:/");
+
     // Fetch hero (super-highlight) posts first
     const heroPosts = await getCategoryNews("super-highlight", 1, preview);
 
@@ -549,13 +559,12 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         trendingTags,
         _lastUpdate: Date.now(),
       },
-      revalidate: 1500, // Re-generate every 25 minutes
+      // NO revalidate key for SSR
     };
   } catch (error) {
     console.error("[HomePage] Error fetching data:", error);
     return {
       notFound: true,
-      revalidate: 110, // Try again sooner if there was an error
     };
   }
 };

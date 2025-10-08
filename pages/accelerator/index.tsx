@@ -1,6 +1,6 @@
 import { YouTubeEmbed } from "@next/third-parties/google";
 import Image from "next/image";
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/common/AdSlot";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
@@ -18,10 +18,6 @@ const dfpTargetingParams = {
   pos: "accelerator",
   key: ["Accelerator", ...gerneralTargetingKeys],
 };
-
-
-const ISR_REVALIDATE = 30 * 24 * 60 * 60; // 30 days
-const ERROR_REVALIDATE = 60; // 1 minute
 
 async function fetchAcceleratorData() {
   const variables = {
@@ -49,23 +45,33 @@ async function fetchAcceleratorData() {
   }
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps<
+  AcceleratorPageProps
+> = async ({ req, res }) => {
   try {
     const data = await fetchAcceleratorData();
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=86400, stale-while-revalidate=604800"
+    );
+    res.setHeader("Cache-Tag", "page:accelerator,static:accelerator");
 
     return {
       props: {
         posts: data?.posts || null,
       },
-      revalidate: ISR_REVALIDATE,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
+
     return {
       props: {
         posts: null,
       },
-      revalidate: ERROR_REVALIDATE,
     };
   }
 };

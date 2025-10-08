@@ -2,23 +2,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { apiErrorResponse } from "@/lib/utils";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { morePhotosCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const CONTEXT = "/api/more-photos";
 const POSTS_PER_PAGE = 12;
-
-// Create cached version using SmartNewsCache
-const getCachedPhotos = withSmartLRUCache(
-  (variables: any) => {
-    const category =
-      variables.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "photos";
-    const offset = variables.where?.offsetPagination?.offset || 0;
-    return `cat:${category}:offset:${offset}:size:${POSTS_PER_PAGE}`;
-  },
-  getFilteredCategoryPosts,
-  morePhotosCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -83,7 +69,7 @@ export default async function handler(
     };
 
     // Use SmartNewsCache
-    const response = await getCachedPhotos(variables);
+    const response = await getFilteredCategoryPosts(variables);
 
     if (!response || !response.posts) {
       return apiErrorResponse({

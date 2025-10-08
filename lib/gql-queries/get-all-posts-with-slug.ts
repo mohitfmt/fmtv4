@@ -1,5 +1,3 @@
-import { allPostSlugsCache } from "../cache/smart-cache-registry";
-import { withSmartLRUCache } from "../cache/withSmartLRU";
 import { gqlFetchAPI } from "./gql-fetch-api";
 
 async function rawGetAllPostsWithSlug() {
@@ -33,8 +31,4 @@ async function rawGetAllPostsWithSlug() {
   }
 }
 
-export const getAllPostsWithSlug = withSmartLRUCache(
-  () => "all-post-slugs", // Fixed cache key
-  rawGetAllPostsWithSlug,
-  allPostSlugsCache
-);
+export const getAllPostsWithSlug = rawGetAllPostsWithSlug;

@@ -2,23 +2,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiErrorResponse } from "@/lib/utils";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
-import { moreHorizontalPostsCache } from "@/lib/cache/smart-cache-registry";
-import { withSmartLRUCache } from "@/lib/cache/withSmartLRU";
 
 const POSTS_PER_PAGE = 4;
 const CONTEXT = "/api/more-horizontal-posts";
-
-// Create cached version using SmartNewsCache
-const getCachedHorizontalPosts = withSmartLRUCache(
-  (variables: any) => {
-    const category =
-      variables.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "unknown";
-    const offset = variables.where?.offsetPagination?.offset || 0;
-    return `cat:${category}:offset:${offset}:size:${POSTS_PER_PAGE}`;
-  },
-  getFilteredCategoryPosts,
-  moreHorizontalPostsCache
-);
 
 export default async function handler(
   req: NextApiRequest,
@@ -86,7 +72,7 @@ export default async function handler(
     };
 
     // Use SmartNewsCache
-    const posts = await getCachedHorizontalPosts(variables);
+    const posts = await getFilteredCategoryPosts(variables);
 
     if (!posts || !posts.posts || !posts.posts.edges) {
       return apiErrorResponse({

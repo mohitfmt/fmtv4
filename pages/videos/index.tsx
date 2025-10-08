@@ -1,7 +1,7 @@
 // pages/videos/index.tsx
 // Enhanced version with improved header and fixed rendering issues
 
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import Link from "next/link";
@@ -894,13 +894,16 @@ async function fetchWithRetry<T>(
   throw lastError || new Error(`${label} failed after ${maxRetries} retries`);
 }
 
-// Production-ready getStaticProps with retry mechanism
-export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
+export const getServerSideProps: GetServerSideProps<VideosPageProps> = async ({
+  req,
+  res,
+}) => {
   const buildTimestamp = new Date().toISOString();
   console.log(`[Video Hub ISR] Starting build at ${buildTimestamp}`);
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "https://dev-v4.freemalaysiatoday.com";
 
     // Fetch video data with retry
     const videoData = await fetchWithRetry<VideoHubData>(
@@ -1001,6 +1004,12 @@ export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
     const buildDuration = Date.now() - new Date(buildTimestamp).getTime();
     console.log(`[Video Hub ISR] Build successful in ${buildDuration}ms`);
 
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=900, stale-while-revalidate=1800"
+    );
+    res.setHeader("Cache-Tag", "videos:gallery,videos:all");
+
     return {
       props: {
         data: videoData,
@@ -1009,7 +1018,6 @@ export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
         buildTimestamp,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 300, // 5 minutes fallback revalidation
     };
   } catch (error: any) {
     console.error("[Video Hub ISR] Build failed:", error);
@@ -1021,7 +1029,10 @@ export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
       stack: error.stack?.split("\n").slice(0, 5).join("\n"),
     });
 
-    // Return error state (page will still build, showing error UI)
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         data: null,
@@ -1030,7 +1041,6 @@ export const getStaticProps: GetStaticProps<VideosPageProps> = async () => {
         buildTimestamp,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 60, // Retry faster on error (1 minute)
     };
   }
 };

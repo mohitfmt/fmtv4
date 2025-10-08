@@ -1,8 +1,6 @@
 // pages/videos/shorts.tsx
-// ENHANCED: Rich SEO, VideoFacade for desktop, preserved mobile swipe experience
-// PRESERVED: Dual view functionality, ISR, frame0 thumbnails for vertical format
 
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Script from "next/script";
 import { useState, useEffect } from "react";
@@ -394,8 +392,7 @@ export default function ShortsPage({
   );
 }
 
-// getStaticProps - preserved with minimal changes
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   const currentUrl = `${siteConfig.baseUrl}/videos/shorts`;
 
   try {
@@ -478,7 +475,11 @@ export const getStaticProps: GetStaticProps = async () => {
       categoryId: video.categoryId || "",
       tags: video.tags || [],
     }));
-
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=900, stale-while-revalidate=1800"
+    );
+    res.setHeader("Cache-Tag", "videos:shorts,videos:shorts");
     return {
       props: {
         shorts: transformedShorts,
@@ -489,11 +490,13 @@ export const getStaticProps: GetStaticProps = async () => {
         currentUrl,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 300, // 5 minutes
     };
   } catch (error) {
     console.error("[Shorts Page] Error fetching videos:", error);
-
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         shorts: [],
@@ -504,7 +507,6 @@ export const getStaticProps: GetStaticProps = async () => {
         currentUrl,
         lastModified: new Date().toISOString(),
       },
-      revalidate: 60, // Retry faster on error
     };
   }
 };

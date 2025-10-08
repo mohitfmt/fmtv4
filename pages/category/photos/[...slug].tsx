@@ -1,9 +1,8 @@
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
 import { websiteJSONLD } from "@/constants/jsonlds/org";
-import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import { getSafeTags, stripHTML } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import PhotoDetail from "@/components/gallery/PhotoDetials";
@@ -540,37 +539,12 @@ const NewsArticlePost = ({
   );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  try {
-    const allPosts = await getAllPostsWithSlug();
-
-    if (!allPosts?.edges) {
-      console.warn("No posts found in getStaticPaths");
-      return { paths: [], fallback: "blocking" };
-    }
-
-    const paths = allPosts.edges
-      .filter((edge: any) => edge?.node?.uri)
-      .map(({ node }: any) => ({
-        params: {
-          slug: node.uri.slice(1).split("/").filter(Boolean),
-        },
-      }));
-
-    return {
-      paths,
-      fallback: "blocking",
-    };
-  } catch (error) {
-    console.error("Error in getStaticPaths:", error);
-    return { paths: [], fallback: "blocking" };
-  }
-};
-
-export const getStaticProps: GetStaticProps = async ({
+export const getServerSideProps: GetServerSideProps = async ({
   params,
   preview = false,
   previewData,
+  req,
+  res,
 }) => {
   try {
     const slug = Array.isArray(params?.slug)
@@ -578,18 +552,54 @@ export const getStaticProps: GetStaticProps = async ({
       : params?.slug;
 
     if (!slug) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
 
     if (!data?.post) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return { notFound: true };
     }
 
     // Fetch related posts and more stories
     const relatedPosts = await getRelatedPosts(slug);
     const moreStories = await getMoreStories(slug);
+
+    // CRITICAL: Set cache headers based on preview mode
+    if (preview) {
+      // NEVER cache preview content
+      res.setHeader(
+        "Cache-Control",
+        "private, no-cache, no-store, must-revalidate, max-age=0"
+      );
+      res.setHeader("X-Robots-Tag", "noindex");
+      res.setHeader("X-Preview-Mode", "true");
+    } else {
+      // Gallery/photos pages cache (45 min cache, 2h SWR)
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=2700, stale-while-revalidate=7200"
+      );
+
+      const cacheTags = [`photo:${slug}`, "photo:gallery", "gallery:detail"];
+
+      const categories = data?.post?.categories?.edges || [];
+      categories.forEach((edge: any) => {
+        if (edge?.node?.slug) {
+          cacheTags.push(`category:${edge.node.slug}`);
+        }
+      });
+
+      res.setHeader("Cache-Tag", cacheTags.join(","));
+    }
 
     return {
       props: {
@@ -605,10 +615,14 @@ export const getStaticProps: GetStaticProps = async ({
           moreStories?.edges?.map((edge: any) => edge?.node).filter(Boolean) ||
           [],
       },
-      revalidate: REVALIDATION_INTERVAL,
     };
   } catch (error) {
-    console.error("Error in getStaticProps:", error);
+    console.error("Error in getServerSideProps:", error);
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
+
     return { notFound: true };
   }
 };

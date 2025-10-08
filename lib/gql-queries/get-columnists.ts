@@ -1,6 +1,4 @@
 import { gqlFetchAPI } from "./gql-fetch-api";
-import { withSmartLRUCache } from "../cache/withSmartLRU";
-import { columnistCache } from "../cache/smart-cache-registry";
 
 async function rawGetColumnists(
   ids: string[],
@@ -71,8 +69,4 @@ async function rawGetColumnists(
   }
 }
 
-export const getColumnists = withSmartLRUCache(
-  (ids, preview) => `columnists:${ids?.join(",")}:${preview ? "p" : "np"}`,
-  rawGetColumnists,
-  columnistCache
-);
+export const getColumnists = rawGetColumnists;

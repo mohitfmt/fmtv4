@@ -1,6 +1,6 @@
 // pages/category/category/[categorySlug]/index.tsx
 
-import { GetStaticProps, GetStaticPaths } from "next";
+import { GetServerSideProps } from "next";
 import { SubCategoryPostLayout } from "@/components/categories-landing-page/subcategories-landing-page/SubCategoryPageLayout";
 import { PostCardProps } from "@/types/global";
 import siteConfig from "@/constants/site-config";
@@ -64,34 +64,6 @@ const CATEGORY_REDIRECTS: Record<string, string> = {
   "top-bm": "/berita",
   "top-sports": "/sports",
   "top-lifestyle": "/lifestyle",
-};
-
-// Enhanced revalidation with content velocity tracking
-const getRevalidationTime = (
-  lastModified?: string,
-  category?: string
-): number => {
-  const highVelocityCategories = [
-    "nation",
-    "bahasa",
-    "business",
-    "world",
-    "breaking-news",
-  ];
-  const isHighVelocity = highVelocityCategories.includes(category || "");
-
-  if (!lastModified) {
-    return isHighVelocity ? 180 : 300;
-  }
-
-  const age = Date.now() - new Date(lastModified).getTime();
-  const hours = age / (1000 * 60 * 60);
-
-  if (hours < 6) return 180;
-  if (hours < 24) return 300;
-  if (hours < 72) return 600;
-  if (hours < 168) return 900;
-  return 1800;
 };
 
 // Strip HTML tags for text processing
@@ -915,34 +887,19 @@ const CategoryPage = ({
   );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  // Only pre-render essential categories at build time
-  const essentialCategories = [
-    "nation",
-    "bahasa",
-    "business",
-    "leisure",
-    "lifestyle",
-    "opinion",
-    "sports",
-    "world",
-  ];
-
-  const paths = essentialCategories.map((slug) => ({
-    params: { categorySlug: slug },
-  }));
-
-  return {
-    paths,
-    fallback: "blocking", // Generate others on-demand
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  params,
+  req,
+  res,
+}) => {
   const categorySlug = params?.categorySlug as string;
 
   // Handle redirects for aliases (top-* categories redirect to main sections)
   if (CATEGORY_REDIRECTS[categorySlug]) {
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=86400, stale-while-revalidate=604800"
+    );
     return {
       redirect: {
         destination: CATEGORY_REDIRECTS[categorySlug],
@@ -996,6 +953,15 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     );
 
     const relatedCategories = await fetchRelatedCategories(categorySlug);
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=1800, stale-while-revalidate=3600"
+    );
+
+    res.setHeader(
+      "Cache-Tag",
+      `page:category,category:${categorySlug},subcategory:${categorySlug}`
+    );
 
     return {
       props: {
@@ -1007,7 +973,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         relatedCategories,
         currentPage: 1,
       },
-      revalidate: getRevalidationTime(lastModified, categorySlug),
     };
   } catch (error) {
     console.error(`Error fetching category ${categorySlug}:`, error);
@@ -1016,12 +981,18 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       error instanceof Error ? error.message : "Unknown error";
 
     if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=120"
+      );
       return {
         notFound: true,
-        revalidate: 60,
       };
     }
-
+    res.setHeader(
+      "Cache-Control",
+      "private, no-cache, no-store, must-revalidate"
+    );
     return {
       props: {
         categorySlug,
@@ -1032,7 +1003,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         relatedCategories: [],
         currentPage: 1,
       },
-      revalidate: 60,
     };
   }
 };

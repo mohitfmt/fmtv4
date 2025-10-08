@@ -34,7 +34,7 @@ const SuperNewsPreview = ({
           <PublishingDateTime dateString={date} />
         </div>
       </div>
-      <Link href={uri}>
+      <Link href={uri || "#"} title={title}>
         <h1
           className="text-4xl leading-tight font-extrabold font-bitter hover:text-blue-700 dark:hover:text-cyan-300"
           title={title}
