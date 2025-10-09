@@ -96,7 +96,6 @@ steps:
       - "YOUTUBE_CHANNEL_ID=${_YOUTUBE_CHANNEL_ID}"
       - "--build-arg"
       - "GCS_BUCKET_NAME=${_GCS_BUCKET_NAME}"
-      - "--build-arg"
       - "-t"
       - "asia.gcr.io/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$COMMIT_SHA"
       - "-t"
