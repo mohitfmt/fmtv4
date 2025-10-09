@@ -1,4 +1,4 @@
-// pages/video-admin/login.tsx - Clean version without NextAuth
+// pages/video-admin/login.tsx 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";

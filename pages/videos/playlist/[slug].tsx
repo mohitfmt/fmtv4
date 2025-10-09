@@ -634,7 +634,7 @@ export const getServerSideProps: GetServerSideProps = async ({
       "Cache-Control",
       "public, s-maxage=1800, stale-while-revalidate=7200"
     );
-    // res.setHeader("Cache-Tag", `video:${videoId},videos:detail`);
+    res.setHeader("Cache-Tag", `playlist:${slug},videos:playlist`);
     return {
       props: {
         videos: transformedVideos,

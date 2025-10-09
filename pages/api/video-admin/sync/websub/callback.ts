@@ -1,5 +1,5 @@
 // pages/api/video-admin/sync/websub/callback.ts
-// UPDATED VERSION - Using SmartRevalidator for cache invalidation
+// SSR VERSION - Using SmartRevalidator for CDN cache invalidation only
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +46,7 @@ async function bumpStats(webhooks: number, videos: number) {
       },
     });
   } catch (error) {
-    console.error("[WebSub] Failed to update stats:", error);
+    console.error("[WebSub Video] Failed to update stats:", error);
   }
 }
 
@@ -99,7 +99,9 @@ export default async function handler(
       },
     });
 
-    console.log(`[WebSub] Verification ${mode} successful, lease: ${lease}s`);
+    console.log(
+      `[WebSub Video] Verification ${mode} successful, lease: ${lease}s`
+    );
     return res.status(200).send(challenge); // must echo exactly
   }
 
@@ -111,7 +113,7 @@ export default async function handler(
     try {
       parsed = await parseXML(raw.toString("utf8"));
     } catch (error) {
-      console.error("[WebSub] Failed to parse XML:", error);
+      console.error("[WebSub Video] Failed to parse XML:", error);
       await bumpStats(1, 0);
       return res.status(202).end();
     }
@@ -124,43 +126,47 @@ export default async function handler(
       if (vid) ids.add(vid);
     }
 
-    console.log(`[WebSub] Received notification with ${ids.size} video(s)`);
+    console.log(
+      `[WebSub Video] Received notification with ${ids.size} video(s)`
+    );
 
     if (ids.size > 0) {
       try {
         // Enrich videos (fetch full data and assign to playlists)
         await enrichVideos([...ids]);
 
-        console.log(`[WebSub] Enriched ${ids.size} video(s)`);
+        console.log(`[WebSub Video] Enriched ${ids.size} video(s)`);
 
         // =================================================================
-        // SMARTREVALIDATOR INTEGRATION
+        // SMARTREVALIDATOR for CDN purging only
         // =================================================================
 
         console.log(
-          "[WebSub] Triggering SmartRevalidator for new/updated videos"
+          "[WebSub Video] Triggering SmartRevalidator for CDN cache purging"
         );
 
         try {
           const revalidationResult = await revalidateVideos(
             [...ids],
-            "websub-notification"
+            "websub-video-notification"
           );
 
-          console.log("[WebSub] SmartRevalidator completed", {
-            pagesRevalidated: revalidationResult.pagesRevalidated.length,
+          console.log("[WebSub Video] SmartRevalidator CDN purge completed", {
             cachesCleared: revalidationResult.cachesCleared,
             duration: revalidationResult.duration,
           });
         } catch (error) {
-          // Don't fail the webhook if revalidation fails
-          console.error("[WebSub] SmartRevalidator error (non-fatal):", error);
+          // Don't fail the webhook if CDN purging fails
+          console.error(
+            "[WebSub Video] SmartRevalidator error (non-fatal):",
+            error
+          );
         }
 
         // Update stats
         await bumpStats(1, ids.size);
       } catch (error) {
-        console.error("[WebSub] Error processing videos:", error);
+        console.error("[WebSub Video] Error processing videos:", error);
         await bumpStats(1, 0);
       }
     } else {

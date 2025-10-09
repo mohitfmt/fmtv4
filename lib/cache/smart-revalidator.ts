@@ -1,5 +1,5 @@
 // lib/cache/smart-revalidator.ts
-// SmartRevalidator - Intelligent cache orchestration for video system
+// SmartRevalidator - SSR Version with CDN-only cache orchestration
 
 import { prisma } from "@/lib/prisma";
 
@@ -13,7 +13,7 @@ interface SmartRevalidatorInput {
 
 interface RevalidationResult {
   success: boolean;
-  pagesRevalidated: string[];
+  pagesRevalidated: string[]; // Keep for backward compatibility (always empty)
   cachesCleared: string[];
   errors: string[];
   duration: number;
@@ -21,7 +21,6 @@ interface RevalidationResult {
 
 export class SmartRevalidator {
   private baseUrl: string;
-  private revalidateSecret: string;
 
   constructor() {
     // Determine base URL based on environment
@@ -35,28 +34,25 @@ export class SmartRevalidator {
     } else {
       this.baseUrl = "https://www.freemalaysiatoday.com";
     }
-
-    this.revalidateSecret =
-      process.env.REVALIDATE_SECRET_KEY || process.env.REVALIDATE_SECRET || "";
   }
 
   /**
-   * Main entry point - revalidate based on what changed
+   * Main entry point - purge CDN based on what changed
    */
   async revalidate(input: SmartRevalidatorInput): Promise<RevalidationResult> {
     const startTime = Date.now();
     const result: RevalidationResult = {
       success: true,
-      pagesRevalidated: [],
+      pagesRevalidated: [], // Always empty in SSR mode
       cachesCleared: [],
       errors: [],
       duration: 0,
     };
 
     console.log(
-      `[SmartRevalidator] Starting - Reason: ${input.reason || "Manual"}`
+      `[SmartRevalidator SSR] Starting - Reason: ${input.reason || "Manual"}`
     );
-    console.log(`[SmartRevalidator] Input:`, {
+    console.log(`[SmartRevalidator SSR] Input:`, {
       videoIds: input.videoIds?.length || 0,
       playlistIds: input.playlistIds?.length || 0,
       configChanged: input.configChanged || false,
@@ -66,7 +62,7 @@ export class SmartRevalidator {
       // Step 1: Extract and normalize inputs
       const { videoIds, playlistIds } = this.normalizeInputs(input);
 
-      // Step 2: Find all affected pages
+      // Step 2: Find all affected pages for cache tags
       const affectedPages = await this.findAffectedPages(
         videoIds,
         playlistIds,
@@ -74,27 +70,22 @@ export class SmartRevalidator {
       );
 
       console.log(
-        `[SmartRevalidator] Found ${affectedPages.size} affected pages`
+        `[SmartRevalidator SSR] Found ${affectedPages.size} affected pages for CDN purge`
       );
 
-      // Step 4: Trigger ISR revalidation
-      const revalidated = await this.revalidatePages(Array.from(affectedPages));
-      result.pagesRevalidated = revalidated;
-
-      // Step 5: Purge Cloudflare CDN (unless skipped)
+      // Step 3: Purge Cloudflare CDN (unless skipped)
       if (!input.skipCloudflare) {
         await this.purgeCloudflare(affectedPages, videoIds, playlistIds);
         result.cachesCleared.push("Cloudflare");
       }
     } catch (error: any) {
-      console.error("[SmartRevalidator] Error:", error);
+      console.error("[SmartRevalidator SSR] Error:", error);
       result.errors.push(error.message);
       result.success = false;
     }
 
     result.duration = Date.now() - startTime;
-    console.log(`[SmartRevalidator] Complete in ${result.duration}ms`, {
-      pages: result.pagesRevalidated.length,
+    console.log(`[SmartRevalidator SSR] Complete in ${result.duration}ms`, {
       caches: result.cachesCleared,
       errors: result.errors.length,
     });
@@ -163,117 +154,70 @@ export class SmartRevalidator {
   ): Promise<Set<string>> {
     const pages = new Set<string>();
 
-    // If config changed, revalidate main pages
+    // Config change affects main pages
     if (configChanged) {
-      pages.add("/"); // Homepage
-      pages.add("/videos"); // Video hub
-
-      // Get all playlist pages from config
-      const config = await this.getVideoConfig();
-      if (config) {
-        // Add pages for playlists in config
-        const configPlaylistIds = this.getConfigPlaylistIds(config);
-        for (const playlistId of configPlaylistIds) {
-          const playlist = await prisma.playlist.findFirst({
-            where: { playlistId },
-            select: { slug: true },
-          });
-          if (playlist?.slug) {
-            pages.add(`/videos/playlist/${playlist.slug}`);
-          }
-        }
-      }
+      pages.add("/");
+      pages.add("/videos");
+      pages.add("/videos/shorts");
     }
 
-    // Process videos - find their playlists
+    // Find videos in playlists
     if (videoIds.length > 0) {
-      for (const videoId of videoIds) {
-        // Add individual video page
-        pages.add(`/videos/${videoId}`);
+      const videoPlaylists = await prisma.playlistItems.findMany({
+        where: {
+          videoId: { in: videoIds },
+        },
+        select: {
+          playlistId: true,
+        },
+      });
 
-        // Find playlists containing this video
-        const video = await prisma.videos.findFirst({
-          where: { videoId },
-          select: { playlists: true },
-        });
-
-        if (video?.playlists) {
-          playlistIds.push(...video.playlists);
-        }
+      for (const vp of videoPlaylists) {
+        playlistIds.push(vp.playlistId);
       }
     }
 
-    // Process playlists - check where they appear
-    if (playlistIds.length > 0) {
-      const config = await this.getVideoConfig();
-      const uniquePlaylistIds = [...new Set(playlistIds)];
+    // Get config for homepage/hub checks
+    const config = await this.getConfig();
 
-      for (const playlistId of uniquePlaylistIds) {
-        // Get playlist slug for its page
-        const playlist = await prisma.playlist.findFirst({
-          where: { playlistId },
-          select: { slug: true },
-        });
-
-        if (playlist?.slug) {
-          // Add playlist page
-          pages.add(`/videos/playlist/${playlist.slug}`);
-
-          // Check if this playlist appears in config
-          if (config && this.playlistAppearsInConfig(playlistId, config)) {
-            // Add main pages if playlist is featured
-            if (this.isHomepagePlaylist(playlistId, config)) {
-              pages.add("/");
-            }
-            if (this.isVideoHubPlaylist(playlistId, config)) {
-              pages.add("/videos");
-            }
-          }
-        }
+    // Check each playlist
+    for (const playlistId of playlistIds) {
+      // Homepage
+      if (this.isHomepagePlaylist(playlistId, config)) {
+        pages.add("/");
       }
+
+      // Video hub
+      if (this.isVideoHubPlaylist(playlistId, config)) {
+        pages.add("/videos");
+      }
+
+      // Shorts page
+      if (playlistId === config.shortsPlaylist) {
+        pages.add("/videos/shorts");
+      }
+
+      // Playlist page itself
+      pages.add(`/videos/playlist/${playlistId}`);
+    }
+
+    // Individual video pages
+    for (const videoId of videoIds) {
+      pages.add(`/videos/${videoId}`);
     }
 
     return pages;
   }
 
   /**
-   * Get video configuration
+   * Get video config
    */
-  private async getVideoConfig() {
-    try {
-      return await prisma.videoConfig.findFirst({
-        orderBy: { updatedAt: "desc" },
-      });
-    } catch (error) {
-      console.error("[SmartRevalidator] Failed to load config:", error);
-      return null;
-    }
-  }
+  private async getConfig(): Promise<any> {
+    const config = await prisma.videoConfig.findFirst({
+      orderBy: { updatedAt: "desc" },
+    });
 
-  /**
-   * Extract all playlist IDs from config
-   */
-  private getConfigPlaylistIds(config: any): string[] {
-    const ids: string[] = [];
-
-    if (config.homepagePlaylist) ids.push(config.homepagePlaylist);
-    if (config.heroPlaylist) ids.push(config.heroPlaylist);
-    if (config.shortsPlaylist) ids.push(config.shortsPlaylist);
-
-    if (Array.isArray(config.displayedPlaylists)) {
-      for (const item of config.displayedPlaylists) {
-        if (item.playlistId) ids.push(item.playlistId);
-      }
-    }
-
-    return [...new Set(ids)]; // Remove duplicates
-  }
-
-  /**
-   * Check if playlist appears anywhere in config
-   */
-  private playlistAppearsInConfig(playlistId: string, config: any): boolean {
-    return this.getConfigPlaylistIds(config).includes(playlistId);
+    return config || {};
   }
 
   /**
@@ -300,46 +244,6 @@ export class SmartRevalidator {
   }
 
   /**
-   * Revalidate pages using ISR
-   */
-  private async revalidatePages(pages: string[]): Promise<string[]> {
-    if (!this.revalidateSecret) {
-      console.warn("[SmartRevalidator] No revalidate secret configured");
-      return [];
-    }
-
-    const revalidated: string[] = [];
-
-    try {
-      const response = await fetch(`${this.baseUrl}/api/internal/revalidate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-revalidate-secret": this.revalidateSecret,
-        },
-        body: JSON.stringify({ paths: pages }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        revalidated.push(...(data.revalidated || pages));
-        console.log(
-          `[SmartRevalidator] ISR revalidated ${revalidated.length} pages`
-        );
-      } else {
-        console.error(
-          "[SmartRevalidator] ISR revalidation failed:",
-          response.status
-        );
-      }
-    } catch (error) {
-      console.error("[SmartRevalidator] ISR revalidation error:", error);
-    }
-
-    return revalidated;
-  }
-
-  /**
    * Purge Cloudflare CDN cache
    */
   private async purgeCloudflare(
@@ -352,7 +256,7 @@ export class SmartRevalidator {
 
     if (!CF_ZONE_ID || !CF_API_TOKEN) {
       console.log(
-        "[SmartRevalidator] Cloudflare not configured, skipping CDN purge"
+        "[SmartRevalidator SSR] Cloudflare not configured, skipping CDN purge"
       );
       return;
     }
@@ -384,16 +288,16 @@ export class SmartRevalidator {
 
       if (response.ok) {
         console.log(
-          `[SmartRevalidator] Purged ${tags.length} Cloudflare cache tags`
+          `[SmartRevalidator SSR] Purged ${tags.length} Cloudflare cache tags`
         );
       } else {
         console.error(
-          "[SmartRevalidator] Cloudflare purge failed:",
+          "[SmartRevalidator SSR] Cloudflare purge failed:",
           response.status
         );
       }
     } catch (error) {
-      console.error("[SmartRevalidator] Cloudflare purge error:", error);
+      console.error("[SmartRevalidator SSR] Cloudflare purge error:", error);
     }
   }
 }

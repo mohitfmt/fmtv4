@@ -1,14 +1,11 @@
 // pages/api/websub-callback.ts
 /**
- * WebSub Handler with Smart Cache Integration
- * PRODUCTION VERSION - Fixed category extraction and removed deduplication
+ * WebSub Handler with Cloudflare CDN Cache Purging
+ * SSR VERSION - No ISR revalidation, only CDN purging
  */
 
 import { addMinutes } from "date-fns";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { mutate } from "swr";
-import PQueue from "p-queue";
-// import { changeManager } from "@/lib/cache/smart-cache-registry";
 import {
   purgeCloudflareByTags,
   purgeCloudflareByUrls,
@@ -68,23 +65,6 @@ const categoryMappings: Record<string, string> = {
   sabahsarawak: "news", // Borneo+ is under news
   "fmt-worldviews": "opinion",
 };
-
-// Priority levels for different types of content
-const PRIORITY = {
-  CRITICAL: 1, // Article pages
-  HIGH: 2, // Homepage
-  MEDIUM: 3, // Category pages
-  LOW: 4, // Tags, authors
-};
-
-// Priority queues with increased concurrency
-const criticalQueue = new PQueue({ concurrency: 10 }); // Articles
-const highQueue = new PQueue({ concurrency: 5 }); // Homepage
-const mediumQueue = new PQueue({ concurrency: 20 }); // Categories
-const lowQueue = new PQueue({ concurrency: 10 }); // Tags/authors
-
-// Lock to prevent concurrent processing
-let isProcessing = false;
 
 // Complete category ID mapping
 const categoryIdToSlugMap: Record<number, string> = {
@@ -166,6 +146,9 @@ const HOMEPAGE_TRIGGER_CATEGORIES = [
   "top-sports",
   "sports",
 ];
+
+// Lock to prevent concurrent processing
+let isProcessing = false;
 
 /**
  * Extract category from article URL - FIXED VERSION
@@ -280,7 +263,7 @@ async function getRecentlyModifiedArticles(
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === "AbortError") {
-        console.error("[WebSub] Request to WordPress API timed out after 10s");
+        console.error("[WebSub] Request to WordPress API timed out after 20s");
       } else {
         throw error;
       }
@@ -293,26 +276,23 @@ async function getRecentlyModifiedArticles(
 }
 
 /**
- * Process articles to get cache tags and revalidation items - FIXED VERSION
+ * Process articles to build cache tags and URLs for purging
  */
-async function processArticlesForRevalidation(
+async function processArticlesForPurging(
   articles: WPPost[],
   frontendDomain: string
 ): Promise<{
   cacheTags: string[];
-  revalidationItems: {
-    path: string;
-    type: string;
-    categories?: string[];
-    priority: number;
-  }[];
+  articleUrls: string[];
+  categoryUrls: string[];
   shouldUpdateHomepage: boolean;
-  affectedPaths: Set<string>;
 }> {
   const cacheTags = new Set<string>();
-  const revalidationItems: any[] = [];
-  const affectedPaths = new Set<string>();
+  const articleUrls: string[] = [];
+  const categoryUrls = new Set<string>();
   let shouldUpdateHomepage = false;
+
+  const fullBaseUrl = `https://${frontendDomain}`;
 
   for (const post of articles) {
     try {
@@ -330,73 +310,49 @@ async function processArticlesForRevalidation(
         (cat) => cat && !cat.match(/^\d{4}$/) && cat.length > 0
       );
 
-      // Create content change event for smart cache
-      const isNew =
-        new Date(post.date).getTime() === new Date(post.modified).getTime();
-      const event = {
-        type: isNew ? ("new" as const) : ("update" as const),
-        articleId: post.id.toString(),
-        slug: post.slug,
-        categories: validCategories,
-        timestamp: new Date(post.modified),
-        priority: "normal" as const,
-      };
-
-      // Trigger smart cache invalidation
-      // changeManager.handleContentChange(event);
-
       // Extract the article path from the URL
       const urlObj = new URL(post.link);
       const articlePath = urlObj.pathname;
 
-      // Remove leading slash for processing
-      const pathWithoutLeadingSlash = articlePath.substring(1);
-
-      // Add the article path for revalidation (HIGHEST PRIORITY)
-      revalidationItems.push({
-        type: "post",
-        path: pathWithoutLeadingSlash,
-        categories: validCategories,
-        priority: PRIORITY.CRITICAL,
-      });
+      // Add article URLs for immediate purging
+      articleUrls.push(`${fullBaseUrl}${articlePath}`);
+      if (!articlePath.endsWith("/")) {
+        articleUrls.push(`${fullBaseUrl}${articlePath}/`); // With trailing slash
+      }
 
       // Add cache tags for the article
-      cacheTags.add(`path:${articlePath}`);
-      cacheTags.add(`post:${post.slug}`);
       cacheTags.add(`article:${post.id}`);
+      cacheTags.add(`article:${post.slug}`);
+      cacheTags.add(`path:${articlePath}`);
 
       // Check if homepage should be updated
       if (!shouldUpdateHomepage && shouldTriggerHomepageUpdate(apiCategories)) {
         shouldUpdateHomepage = true;
       }
 
-      // Add category pages based on valid categories only
+      // Add category pages and tags
       validCategories.forEach((category) => {
         // Skip if it's a year or other invalid category
         if (category.match(/^\d{4}$/) || !category) return;
 
-        // Category landing page path
+        // Category landing page
         const categoryPagePath = `/category/category/${category}`;
-        affectedPaths.add(categoryPagePath);
+        categoryUrls.add(`${fullBaseUrl}${categoryPagePath}`);
         cacheTags.add(`category:${category}`);
-        cacheTags.add(`path:${categoryPagePath}`);
 
         // Also add the friendly URL if it exists
         const friendlyPath = getCategoryPath(category);
         if (friendlyPath !== category) {
-          affectedPaths.add(`/${friendlyPath}`);
-          cacheTags.add(`path:/${friendlyPath}`);
+          categoryUrls.add(`${fullBaseUrl}/${friendlyPath}`);
           cacheTags.add(`section:${friendlyPath}`);
         }
       });
 
       // For Bahasa articles, also add the parent category
       if (urlCategories[0] === "bahasa") {
-        affectedPaths.add("/category/category/bahasa");
-        affectedPaths.add("/berita");
+        categoryUrls.add(`${fullBaseUrl}/category/category/bahasa`);
+        categoryUrls.add(`${fullBaseUrl}/berita`);
         cacheTags.add("category:bahasa");
-        cacheTags.add("path:/category/category/bahasa");
-        cacheTags.add("path:/berita");
         cacheTags.add("section:berita");
       }
     } catch (error) {
@@ -406,197 +362,109 @@ async function processArticlesForRevalidation(
 
   // Add homepage if needed
   if (shouldUpdateHomepage) {
-    revalidationItems.push({
-      type: "homepage",
-      path: "/",
-      priority: PRIORITY.HIGH,
-    });
-    cacheTags.add("path:/");
+    categoryUrls.add(`${fullBaseUrl}/`);
     cacheTags.add("page:home");
-    affectedPaths.add("/");
+    cacheTags.add("homepage");
   }
-
-  // Convert affected paths to revalidation items (with proper priorities)
-  affectedPaths.forEach((path) => {
-    if (!revalidationItems.some((item) => item.path === path)) {
-      let priority = PRIORITY.MEDIUM;
-      let type = "category";
-
-      // Determine type and priority based on path
-      if (path === "/") {
-        type = "homepage";
-        priority = PRIORITY.HIGH;
-      } else if (path.includes("/20") && path.split("/").length > 4) {
-        // It's an article path (contains date)
-        type = "post";
-        priority = PRIORITY.CRITICAL;
-      } else if (
-        path.match(/^\/(news|berita|business|opinion|world|sports|lifestyle)$/)
-      ) {
-        // Main section pages
-        type = "section";
-        priority = PRIORITY.HIGH;
-      }
-
-      // Remove leading slash for consistency
-      const pathForRevalidation = path.startsWith("/")
-        ? path.substring(1)
-        : path;
-
-      revalidationItems.push({
-        type,
-        path: pathForRevalidation,
-        priority,
-      });
-    }
-  });
 
   return {
     cacheTags: Array.from(cacheTags),
-    revalidationItems,
+    articleUrls,
+    categoryUrls: Array.from(categoryUrls),
     shouldUpdateHomepage,
-    affectedPaths,
   };
 }
 
 /**
- * Process a single revalidation request
+ * Ping feed hubs for updated categories
  */
-async function processRevalidationItem(
-  baseUrl: string,
-  item: { path: string; type: string; categories?: string[]; priority: number },
-  revalidateKey: string
-): Promise<boolean> {
-  const requestBody: any = {
-    type: item.type,
-    [item.type === "post" ? "slug" : "path"]: item.path,
-  };
-
-  if (item.type === "post" && item.categories && item.categories.length > 0) {
-    requestBody.categories = item.categories;
-  }
-
-  const maxRetries = item.priority <= PRIORITY.HIGH ? 2 : 1;
-  let attempts = 0;
-
-  while (attempts <= maxRetries) {
-    try {
-      const controller = new AbortController();
-      const timeout = item.priority <= PRIORITY.HIGH ? 15000 : 10000;
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const response = await fetch(`${baseUrl}/api/revalidate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-revalidate-key": revalidateKey,
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        console.log(
-          `[WebSub] Successfully revalidated ${item.type} ${item.path}`
-        );
-        return true;
-      } else {
-        const result = await response.json();
-        throw new Error(result?.message || "Unknown error");
-      }
-    } catch (error: any) {
-      attempts++;
-
-      if (attempts <= maxRetries) {
-        const baseDelay = item.priority <= PRIORITY.HIGH ? 500 : 1000;
-        const delay = Math.floor(baseDelay * Math.pow(1.5, attempts));
-
-        console.log(
-          `[WebSub] Retry ${attempts}/${maxRetries} for ${item.type} ${item.path} in ${delay}ms`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        console.error(
-          `[WebSub] Failed to revalidate ${item.type} ${item.path}:`,
-          error.message || error
-        );
-        return false;
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * Process revalidation with priority queuing
- */
-async function processRevalidationOptimized(
-  baseUrl: string,
-  items: any[],
-  revalidateKey: string,
-  affectedPaths: Set<string>
+async function pingFeedHubs(
+  categories: Set<string>,
+  frontendDomain: string
 ): Promise<void> {
-  if (items.length === 0 && affectedPaths.size === 0) return;
+  const hubUrl = "https://pubsubhubbub.appspot.com/";
+  const feedPingPromises: Promise<any>[] = [];
 
-  console.log(
-    `[WebSub] Revalidating ${items.length} items + ${affectedPaths.size} affected paths`
-  );
+  // Frontend RSS and Atom feeds
+  const feedCategories = [
+    "news",
+    "berita",
+    "business",
+    "opinion",
+    "world",
+    "sports",
+    "lifestyle",
+  ];
 
-  // Group by priority
-  const priorityGroups = {
-    [PRIORITY.CRITICAL]: items.filter(
-      (item) => item.priority === PRIORITY.CRITICAL
-    ),
-    [PRIORITY.HIGH]: items.filter((item) => item.priority === PRIORITY.HIGH),
-    [PRIORITY.MEDIUM]: items.filter(
-      (item) => item.priority === PRIORITY.MEDIUM
-    ),
-    [PRIORITY.LOW]: items.filter((item) => item.priority === PRIORITY.LOW),
-  };
-
-  // Clear queues
-  criticalQueue.clear();
-  highQueue.clear();
-  mediumQueue.clear();
-  lowQueue.clear();
-
-  // Queue all items by priority
-  const queueMap = {
-    [PRIORITY.CRITICAL]: criticalQueue,
-    [PRIORITY.HIGH]: highQueue,
-    [PRIORITY.MEDIUM]: mediumQueue,
-    [PRIORITY.LOW]: lowQueue,
-  };
-
-  // Queue all items
-  Object.entries(priorityGroups).forEach(([priority, items]) => {
-    const numPriority = Number(priority);
-    if (items.length > 0) {
-      const queue = queueMap[numPriority];
-      console.log(
-        `[WebSub] Queuing ${items.length} items with priority ${numPriority}`
+  for (const category of feedCategories) {
+    if (categories.has(category) || categories.has("homepage")) {
+      // RSS feed
+      feedPingPromises.push(
+        fetch(hubUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            "hub.mode": "publish",
+            "hub.url": `https://${frontendDomain}/feeds/rss/${category}`,
+          }).toString(),
+        }).catch((error) =>
+          console.error(
+            `[WebSub] Error pinging RSS hub for ${category}:`,
+            error
+          )
+        )
       );
 
-      items.forEach((item) => {
-        queue.add(() => processRevalidationItem(baseUrl, item, revalidateKey));
-      });
+      // Atom feed
+      feedPingPromises.push(
+        fetch(hubUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            "hub.mode": "publish",
+            "hub.url": `https://${frontendDomain}/feeds/atom/${category}`,
+          }).toString(),
+        }).catch((error) =>
+          console.error(
+            `[WebSub] Error pinging Atom hub for ${category}:`,
+            error
+          )
+        )
+      );
     }
-  });
+  }
 
-  // Process queues in priority order
-  await criticalQueue.onIdle();
-  console.log(`[WebSub] Critical queue (articles) processed`);
+  // CMS feed URLs (always ping main feed on any update)
+  const cmsFeeds = [
+    "https://cms.freemalaysiatoday.com/category/nation/feed/",
+    "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
+    "https://cms.freemalaysiatoday.com/category/business/feed/",
+    "https://cms.freemalaysiatoday.com/category/highlight/feed/",
+    "https://cms.freemalaysiatoday.com/category/leisure/feed/",
+    "https://cms.freemalaysiatoday.com/category/opinion/feed/",
+    "https://cms.freemalaysiatoday.com/category/sports/feed/",
+    "https://cms.freemalaysiatoday.com/category/world/feed/",
+    "https://cms.freemalaysiatoday.com/feed/",
+  ];
 
-  await highQueue.onIdle();
-  console.log(`[WebSub] High priority queue (homepage) processed`);
+  for (const feedUrl of cmsFeeds) {
+    feedPingPromises.push(
+      fetch(hubUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          "hub.mode": "publish",
+          "hub.url": feedUrl,
+        }).toString(),
+      }).catch((error) =>
+        console.error(`[WebSub] Error pinging hub for ${feedUrl}:`, error)
+      )
+    );
+  }
 
-  // Process medium and low priority queues in parallel
-  await Promise.all([mediumQueue.onIdle(), lowQueue.onIdle()]);
-
-  console.log(`[WebSub] All revalidation queues processed`);
+  // Wait for all feed pings to complete
+  await Promise.all(feedPingPromises);
+  console.log("[WebSub] All feed pings completed");
 }
 
 /**
@@ -637,15 +505,6 @@ export default async function handler(
       );
     });
 
-    // setTimeout(() => {
-    //   processWebSubNotification(req).catch((error) => {
-    //     console.error(
-    //       "[WebSub] Background Process WebSub Notification after 30 Seconds:",
-    //       error
-    //     );
-    //   });
-    // }, 45000); // Delay of 45 seconds for retry
-
     return;
   }
 
@@ -672,17 +531,14 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com";
     const frontendDomain =
       process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
-    const revalidateKey = process.env.REVALIDATE_SECRET_KEY || "default-secret";
-
-    // Set up base URL
-    const protocol = req.headers["x-forwarded-proto"] || "https";
-    const host = req.headers.host || frontendDomain;
-    const baseUrl = `${protocol}://${host}`;
 
     // Get recently modified articles
     const modifiedArticles = await getRecentlyModifiedArticles(wpDomain);
 
-    await pingSingleItemFeeds(modifiedArticles, frontendDomain);
+    // Ping single item feeds (if this function exists)
+    if (typeof pingSingleItemFeeds === "function") {
+      await pingSingleItemFeeds(modifiedArticles, frontendDomain);
+    }
 
     if (modifiedArticles.length === 0) {
       console.log("[WebSub] No articles to process");
@@ -694,30 +550,21 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       `[WebSub] Processing ${modifiedArticles.length} modified articles`
     );
 
-    // Process articles and get all affected paths
-    const {
-      cacheTags,
-      revalidationItems,
-      shouldUpdateHomepage,
-      affectedPaths,
-    } = await processArticlesForRevalidation(modifiedArticles, frontendDomain);
+    // Process articles and build cache purge data
+    const { cacheTags, articleUrls, categoryUrls, shouldUpdateHomepage } =
+      await processArticlesForPurging(modifiedArticles, frontendDomain);
 
-    // IMMEDIATE Cloudflare URL purge for articles
-    const articleUrls: string[] = [];
-    const fullBaseUrl = `https://${frontendDomain}`;
-
-    modifiedArticles.forEach((article) => {
-      const urlObj = new URL(article.link);
-      const path = urlObj.pathname;
-
-      // Add multiple URL variations to ensure complete purge
-      articleUrls.push(`${fullBaseUrl}${path}`);
-      if (!path.endsWith("/")) {
-        articleUrls.push(`${fullBaseUrl}${path}/`); // With trailing slash
-      }
+    // Track affected categories for feed pings
+    const affectedCategories = new Set<string>();
+    categoryUrls.forEach((url) => {
+      const match = url.match(
+        /\/(news|berita|business|opinion|world|sports|lifestyle)/
+      );
+      if (match) affectedCategories.add(match[1]);
     });
+    if (shouldUpdateHomepage) affectedCategories.add("homepage");
 
-    // Immediate Cloudflare URL purge
+    // IMMEDIATE Cloudflare URL purge for articles (highest priority)
     if (articleUrls.length > 0) {
       console.log(
         `[WebSub] Immediate Cloudflare purge for ${articleUrls.length} article URLs`
@@ -740,160 +587,46 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
         const batch = cacheTags.slice(i, i + TAG_BATCH_SIZE);
         purgePromises.push(
           purgeCloudflareByTags(batch).catch((err) =>
-            console.error(`[WebSub] Cloudflare purge batch failed:`, err)
+            console.error(`[WebSub] Cloudflare tag purge batch failed:`, err)
           )
         );
       }
 
-      // Don't wait for all purges to complete
-      Promise.all(purgePromises).then(() =>
-        console.log("[WebSub] All Cloudflare purges completed")
-      );
+      // Don't wait for all purges to complete - fire and forget
+      Promise.all(purgePromises)
+        .then(() => console.log("[WebSub] All tag purges completed"))
+        .catch((err) => console.error("[WebSub] Tag purge error:", err));
     }
 
-    // Process Next.js revalidation
-    await processRevalidationOptimized(
-      baseUrl,
-      revalidationItems,
-      revalidateKey,
-      affectedPaths
-    );
+    // Purge category URLs (lower priority than articles)
+    if (categoryUrls.length > 0) {
+      console.log(`[WebSub] Purging ${categoryUrls.length} category page URLs`);
 
-    const processingTime = Date.now() - startTime;
-    console.log(`[WebSub] Processing completed in ${processingTime}ms`);
-
-    // Ping IndexNow for SEO (async)
-    const indexNowKey = "fmt-news-indexnow-2025-mht-9f7b24a1a6";
-    const indexNowUrls = modifiedArticles.map((post) => {
-      const url = new URL(post.link);
-      url.hostname = frontendDomain;
-      return url.toString();
-    });
-
-    if (indexNowUrls.length > 0) {
-      fetch("https://api.indexnow.org/indexnow", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          host: frontendDomain,
-          key: indexNowKey,
-          urlList: indexNowUrls,
-        }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            console.error(`[IndexNow] Batch ping failed: ${response.status}`);
-          } else {
+      // Batch category URL purges
+      const CATEGORY_BATCH_SIZE = 20;
+      for (let i = 0; i < categoryUrls.length; i += CATEGORY_BATCH_SIZE) {
+        const batch = categoryUrls.slice(i, i + CATEGORY_BATCH_SIZE);
+        purgeCloudflareByUrls(batch)
+          .then(() =>
             console.log(
-              `[IndexNow] Successfully pinged ${indexNowUrls.length} URLs`
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("[IndexNow] Error with batch ping:", err);
-        });
-    }
-
-    // Revalidate API endpoints only if necessary
-    if (shouldUpdateHomepage) {
-      try {
-        await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
-        mutate("/api/top-news");
-        console.log(`[WebSub] API endpoints revalidated`);
-      } catch (error) {
-        console.error(`[WebSub] Error revalidating API endpoints:`, error);
+              `[WebSub] Category batch ${i / CATEGORY_BATCH_SIZE + 1} purged`
+            )
+          )
+          .catch((err) =>
+            console.error(`[WebSub] Category URL purge failed:`, err)
+          );
       }
     }
 
-    // Ping all feed URLs (async)
-    const hubUrl = "https://pubsubhubbub.appspot.com/";
+    // Ping feed hubs (non-blocking)
+    pingFeedHubs(affectedCategories, frontendDomain).catch((error) => {
+      console.error("[WebSub] Feed hub ping error:", error);
+    });
 
-    // Frontend feed URLs
-    const frontendFeeds = [
-      "nation",
-      "berita",
-      "business",
-      "headlines",
-      "lifestyle",
-      "opinion",
-      "sports",
-      "world",
-    ];
-
-    // Batch feed pings
-    const feedPingPromises = [];
-
-    for (const category of frontendFeeds) {
-      // RSS feed
-      feedPingPromises.push(
-        fetch(hubUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            "hub.mode": "publish",
-            "hub.url": `https://${frontendDomain}/feeds/rss/${category}`,
-          }).toString(),
-        }).catch((error) =>
-          console.error(
-            `[WebSub] Error pinging RSS hub for ${category}:`,
-            error
-          )
-        )
-      );
-
-      // Atom feed
-      feedPingPromises.push(
-        fetch(hubUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            "hub.mode": "publish",
-            "hub.url": `https://${frontendDomain}/feeds/atom/${category}`,
-          }).toString(),
-        }).catch((error) =>
-          console.error(
-            `[WebSub] Error pinging Atom hub for ${category}:`,
-            error
-          )
-        )
-      );
-    }
-
-    // CMS feed URLs
-    const cmsFeeds = [
-      "https://cms.freemalaysiatoday.com/category/nation/feed/",
-      "https://cms.freemalaysiatoday.com/category/top-bm/feed/",
-      "https://cms.freemalaysiatoday.com/category/business/feed/",
-      "https://cms.freemalaysiatoday.com/category/highlight/feed/",
-      "https://cms.freemalaysiatoday.com/category/leisure/feed/",
-      "https://cms.freemalaysiatoday.com/category/opinion/feed/",
-      "https://cms.freemalaysiatoday.com/category/sports/feed/",
-      "https://cms.freemalaysiatoday.com/category/world/feed/",
-      "https://cms.freemalaysiatoday.com/feed/",
-    ];
-
-    for (const feedUrl of cmsFeeds) {
-      feedPingPromises.push(
-        fetch(hubUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            "hub.mode": "publish",
-            "hub.url": feedUrl,
-          }).toString(),
-        }).catch((error) =>
-          console.error(`[WebSub] Error pinging hub for ${feedUrl}:`, error)
-        )
-      );
-    }
-
-    // Wait for all feed pings to complete
-    await Promise.all(feedPingPromises);
-    console.log("[WebSub] All feed pings completed");
-
-    console.log("[WebSub] Background processing completed successfully");
+    const processingTime = Date.now() - startTime;
+    console.log(
+      `[WebSub] Background processing completed in ${processingTime}ms`
+    );
   } catch (error) {
     console.error("[WebSub] Background processing error:", error);
   } finally {
