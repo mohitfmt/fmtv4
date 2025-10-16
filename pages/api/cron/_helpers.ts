@@ -15,19 +15,21 @@ export function isAuthorized(req: NextApiRequest): boolean {
     return false;
   }
 
-  // Only accept key from header
+  // Check for valid cron header key
   const headerKey = req.headers["x-cron-key"] as string;
-  if (!headerKey) {
-    console.error("🚨 Missing x-cron-key header");
-    return false;
+  if (headerKey && headerKey === process.env.CRON_SECRET_KEY) {
+    return true;
   }
 
+  // Check for valid admin session
   const userEmail = req.cookies?.user_email;
   if (userEmail && userEmail.endsWith("@freemalaysiatoday.com")) {
     return true;
   }
 
-  return headerKey === process.env.CRON_SECRET_KEY;
+  // Neither auth method worked
+  console.error("🚨 Authorization failed: No valid cron key or admin session");
+  return false;
 }
 
 // ==================== LOGGING ====================

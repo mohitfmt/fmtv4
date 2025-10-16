@@ -14,7 +14,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const traceId = (req as any).traceId;
-  // const session = (req as any).session;
   const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
   const { videoInput } = req.body;
 
@@ -48,6 +47,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       deletedFromDB: false,
     };
 
+    // Store playlist info before deletion for ISR revalidation
+    let playlistSlugs: string[] = [];
+
     // 1. Find and remove video from database
     const video = await prisma.videos.findFirst({
       where: { videoId },
@@ -60,8 +62,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     if (video) {
-      // Remove from playlists in the database
+      // Get playlist slugs BEFORE deletion
       if (video.playlists && video.playlists.length > 0) {
+        const playlists = await prisma.playlist.findMany({
+          where: { playlistId: { in: video.playlists } },
+          select: { slug: true },
+        });
+        playlistSlugs = playlists
+          .map((p) => p.slug)
+          .filter(Boolean) as string[];
+
         // Remove from PlaylistItems collection
         await prisma.playlistItems.deleteMany({
           where: { videoId },
@@ -103,12 +113,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // 2. Clear LRU caches
     try {
-      // Clear specific caches that might contain this video
       playlistCache.clear();
       videoDataCache.clear();
       galleryCache.clear();
-
-      // Also clear any cache entries that might contain the video ID
       results.clearedFromCache = true;
       console.log(`[${traceId}] LRU caches cleared`);
     } catch (error) {
@@ -124,6 +131,69 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       console.error(`[${traceId}] Failed to purge from CDN:`, error);
     }
 
+    // 3.5 🆕 ISR REVALIDATION: Rebuild pages that showed this video
+    try {
+      console.log(`[${traceId}] Triggering ISR revalidation...`);
+
+      const pagesToRevalidate = new Set<string>();
+
+      // Main video hub page (always rebuild)
+      pagesToRevalidate.add("/videos");
+
+      // Individual video page
+      pagesToRevalidate.add(`/videos/${videoId}`);
+
+      // All playlist pages this video was in
+      for (const slug of playlistSlugs) {
+        pagesToRevalidate.add(`/videos/playlist/${slug}`);
+      }
+
+      if (pagesToRevalidate.size > 0) {
+        const pathsArray = Array.from(pagesToRevalidate);
+        console.log(
+          `[${traceId}] Revalidating ${pathsArray.length} pages: ${pathsArray.join(", ")}`
+        );
+
+        // Call internal revalidation API
+        const revalidateUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/internal/revalidate`;
+        const revalidateSecret =
+          process.env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET_KEY;
+
+        if (!revalidateSecret) {
+          console.warn(
+            `[${traceId}] REVALIDATE_SECRET not set - skipping ISR revalidation`
+          );
+        } else {
+          const revalidateResponse = await fetch(revalidateUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-revalidate-secret": revalidateSecret,
+            },
+            body: JSON.stringify({
+              paths: pathsArray,
+              source: "purge-video",
+              traceId,
+            }),
+          });
+
+          if (!revalidateResponse.ok) {
+            const errorText = await revalidateResponse.text();
+            console.error(`[${traceId}] ISR revalidation failed: ${errorText}`);
+          } else {
+            const revalidateResult = await revalidateResponse.json();
+            console.log(
+              `[${traceId}] ✅ ISR revalidation completed:`,
+              revalidateResult
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[${traceId}] ISR revalidation error:`, error);
+      // Don't fail the whole operation if revalidation fails
+    }
+
     // 4. Log the activity
     await prisma.admin_activity_logs.create({
       data: {
@@ -134,6 +204,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           videoId,
           videoTitle: video?.title,
           results,
+          revalidatedPages: Array.from(
+            new Set([
+              "/videos",
+              `/videos/${videoId}`,
+              ...playlistSlugs.map((slug) => `/videos/playlist/${slug}`),
+            ])
+          ),
         },
         ipAddress:
           (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
@@ -162,7 +239,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 // Extract video ID from various input formats
 function extractVideoId(input: string): string | null {
-  // Remove whitespace
   input = input.trim();
 
   // Direct video ID (11 characters)
@@ -172,13 +248,9 @@ function extractVideoId(input: string): string | null {
 
   // YouTube URL patterns
   const patterns = [
-    // Standard watch URL: https://www.youtube.com/watch?v=VIDEO_ID
     /(?:youtube\.com\/watch\?v=|youtube\.com\/watch\?.*&v=)([a-zA-Z0-9_-]{11})/,
-    // Short URL: https://youtu.be/VIDEO_ID
     /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-    // Embed URL: https://www.youtube.com/embed/VIDEO_ID
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-    // Mobile URL: https://m.youtube.com/watch?v=VIDEO_ID
     /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
   ];
 
@@ -238,9 +310,7 @@ async function purgeVideoFromCDN(videoId: string): Promise<void> {
       throw new Error("Cloudflare purge failed");
     }
   } catch (error) {
-    // Log but don't fail the entire operation
     console.error("CDN purge failed:", error);
-    // Fallback: try to purge by tags
     await purgeByTags(videoId);
   }
 }
