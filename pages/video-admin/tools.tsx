@@ -743,7 +743,7 @@ function PurgeVideoCard() {
                 <li>• Need to remove specific video completely</li>
               </ul>
               <p className="mt-2 text-red-600 dark:text-red-400">
-                ⚠️ This won't delete from YouTube, only from your system
+                ⚠️ This wont delete from YouTube, only from your system
               </p>
             </div>
           </div>
@@ -809,13 +809,13 @@ export default function VideoAdminToolsPage() {
                 <p className="font-medium mb-1">Best Practices:</p>
                 <ul className="space-y-1">
                   <li>
-                    • Use "Pull New Videos" when videos are missing or out of
+                    • Use Pull New Videos when videos are missing or out of
                     sync
                   </li>
                   <li>• Clear caches after configuration changes</li>
                   <li>• Verify counts weekly or after bulk operations</li>
                   <li>
-                    • Purge videos only when they're deleted or violate policies
+                    • Purge videos only when theyre deleted or violate policies
                   </li>
                 </ul>
               </div>
