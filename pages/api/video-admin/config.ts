@@ -1,56 +1,57 @@
-// pages/api/video-admin/config.ts - OPTIMIZED VERSION WITHOUT FALLBACK
-import { NextApiRequest, NextApiResponse } from "next";
+// pages/api/video-admin/config.ts
+// FIXED VERSION - Triggers ISR revalidation + clears all caches on config save
+
+import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { LRUCache } from "lru-cache";
+import {
+  configCache,
+  videoDataCache,
+  galleryCache,
+  playlistCache,
+} from "@/lib/cache/video-cache-registry";
 
-// Configuration validation schema
+// Validation schema
+const playlistConfigSchema = z.object({
+  playlistId: z.string().min(1),
+  position: z.number().int().min(0),
+  maxVideos: z.number().int().min(3).max(99),
+});
+
 const configSchema = z.object({
   homepage: z.object({
-    playlistId: z.string().min(1, "Homepage playlist is required"),
-    fallbackPlaylistId: z.string().optional(), // Keep it optional
+    playlistId: z.string().min(1),
+    fallbackPlaylistId: z.string().optional(),
   }),
   videoPage: z.object({
-    heroPlaylistId: z.string().min(1, "Hero playlist is required"),
-    shortsPlaylistId: z.string().min(1, "Shorts playlist is required"),
-    displayedPlaylists: z
-      .array(
-        z.object({
-          playlistId: z.string().min(1),
-          position: z.number().min(1).max(8),
-          maxVideos: z
-            .number()
-            .min(3)
-            .max(99)
-            .refine((val) => val % 3 === 0, {
-              message: "Display limit must be a multiple of 3",
-            }),
-        })
-      )
-      .min(5, "Minimum 5 playlist sections required")
-      .max(8, "Maximum 8 playlist sections allowed"),
+    heroPlaylistId: z.string().min(1),
+    shortsPlaylistId: z.string().min(1),
+    displayedPlaylists: z.array(playlistConfigSchema).min(5).max(8),
   }),
 });
 
-// Cache configuration for 30 minutes
-const configCache = new LRUCache<string, any>({
-  max: 10,
-  ttl: 1000 * 60 * 30, // 30 minutes
-});
+function generateTraceId(): string {
+  return `CONFIG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const traceId = (req as any).traceId;
+  const traceId = generateTraceId();
 
   if (req.method === "GET") {
     return handleGetConfig(req, res, traceId);
-  } else if (req.method === "POST") {
-    return handleUpdateConfig(req, res, traceId);
-  } else {
-    res.setHeader("Allow", ["GET", "POST"]);
-    return res.status(405).json({ error: "Method not allowed" });
   }
+
+  if (req.method === "POST") {
+    return handleUpdateConfig(req, res, traceId);
+  }
+
+  res.setHeader("Allow", ["GET", "POST"]);
+  return res.status(405).json({ error: "Method not allowed" });
 }
 
+// ============================================================================
+// GET CONFIGURATION
+// ============================================================================
 async function handleGetConfig(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -122,19 +123,27 @@ async function handleGetConfig(
   }
 }
 
+// ============================================================================
+// UPDATE CONFIGURATION - WITH ISR REVALIDATION + CACHE CLEARING
+// ============================================================================
 async function handleUpdateConfig(
   req: NextApiRequest,
   res: NextApiResponse,
   traceId: string
 ) {
   try {
-    // const session = (req as any).session;
-
     const userEmail = req.cookies?.user_email || "admin@freemalaysiatoday.com";
+
+    console.log(`[${traceId}] ========================================`);
+    console.log(`[${traceId}] Config update requested by ${userEmail}`);
 
     // Validate request body
     const validation = configSchema.safeParse(req.body);
     if (!validation.success) {
+      console.error(
+        `[${traceId}] Validation failed:`,
+        validation.error.flatten()
+      );
       return res.status(400).json({
         error: "Invalid configuration",
         details: validation.error.flatten(),
@@ -154,7 +163,9 @@ async function handleUpdateConfig(
       });
     }
 
-    // Start transaction
+    // ========================================================================
+    // STEP 1: Update database
+    // ========================================================================
     const result = await prisma.$transaction(async (tx) => {
       // Find or create config
       const existingConfig = await tx.videoConfig.findFirst();
@@ -210,8 +221,89 @@ async function handleUpdateConfig(
       return config;
     });
 
-    // Clear cache after successful update
-    configCache.clear();
+    console.log(`[${traceId}] ✅ Database updated successfully`);
+
+    // ========================================================================
+    // STEP 2: Clear ALL video-related LRU caches
+    // ========================================================================
+    try {
+      configCache.clear();
+      galleryCache.clear();
+      videoDataCache.clear();
+      playlistCache.clear();
+      console.log(
+        `[${traceId}] ✅ Cleared all LRU caches (config, gallery, videoData, playlist)`
+      );
+    } catch (cacheError) {
+      console.error(`[${traceId}] ⚠️ Failed to clear LRU caches:`, cacheError);
+    }
+
+    // ========================================================================
+    // STEP 3: Trigger ISR revalidation for affected pages
+    // ========================================================================
+    const revalidateSecret = process.env.REVALIDATE_SECRET;
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    if (!revalidateSecret) {
+      console.error(
+        `[${traceId}] ⚠️ REVALIDATE_SECRET not configured - ISR skipped`
+      );
+    } else if (!siteUrl) {
+      console.error(
+        `[${traceId}] ⚠️ NEXT_PUBLIC_APP_URL not configured - ISR skipped`
+      );
+    } else {
+      // Determine which pages need revalidation based on config changes
+      const paths = [
+        "/videos", // Main video gallery (always affected by config changes)
+      ];
+
+      // Add playlist-specific pages if we have slugs
+      // (We could enhance this later to revalidate specific playlist pages)
+
+      console.log(
+        `[${traceId}] Triggering ISR revalidation for ${paths.length} paths`
+      );
+
+      try {
+        const revalidateResponse = await fetch(
+          `${siteUrl}/api/internal/revalidate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-revalidate-secret": revalidateSecret,
+            },
+            body: JSON.stringify({ paths }),
+            signal: AbortSignal.timeout(10000), // 10s timeout
+          }
+        );
+
+        if (revalidateResponse.ok) {
+          const result = await revalidateResponse.json();
+          console.log(
+            `[${traceId}] ✅ ISR revalidation successful:`,
+            result.revalidated?.length || 0,
+            "paths"
+          );
+        } else {
+          const errorText = await revalidateResponse.text();
+          console.error(
+            `[${traceId}] ❌ ISR revalidation failed (${revalidateResponse.status}):`,
+            errorText
+          );
+        }
+      } catch (revalidateError: any) {
+        // Log error but don't fail the config save
+        console.error(
+          `[${traceId}] ⚠️ ISR revalidation error (non-fatal):`,
+          revalidateError.message
+        );
+      }
+    }
+
+    console.log(`[${traceId}] ✅ Config update complete`);
+    console.log(`[${traceId}] ========================================`);
 
     // Return updated configuration
     const updatedConfig = {
@@ -235,7 +327,12 @@ async function handleUpdateConfig(
     console.error(`[${traceId}] Failed to update config:`, error);
 
     // Clear cache on error to prevent stale data
-    configCache.clear();
+    try {
+      configCache.clear();
+      galleryCache.clear();
+    } catch {
+      // Ignore cache clear errors
+    }
 
     return res.status(500).json({
       error: "Failed to update configuration",

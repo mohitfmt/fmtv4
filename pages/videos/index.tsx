@@ -38,6 +38,7 @@ interface VideoHubData {
     {
       name: string;
       videos: Video[];
+      maxVideos?: number;
     }
   >;
   stats?: {
@@ -286,7 +287,7 @@ const HeroCarousel = ({ videos }: { videos: Video[] }) => {
       </div>
 
       {/* Video Info */}
-      <div className="absolute hidden lg:bottom-0 lg:left-0 right-0 p-3 text-white">
+      <div className="absolute bottom-0 left-0 p-3 text-white">
         <div className="bg-black/60 rounded-lg p-3 inline-block">
           <Link href={`/videos/${currentVideo.videoId}`}>
             <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors sr-only">
@@ -753,9 +754,11 @@ const VideosPage = ({
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {playlist.videos.slice(0, 6).map((video) => (
-                  <VideoCard key={video.videoId} video={video} />
-                ))}
+                {playlist.videos
+                  .slice(0, playlist.maxVideos || 6)
+                  .map((video) => (
+                    <VideoCard key={video.videoId} video={video} />
+                  ))}
               </div>
             </section>
           ))}

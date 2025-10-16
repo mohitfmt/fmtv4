@@ -38,7 +38,7 @@ interface MobileNavProps {
 const bottomNavItems = [
   { href: "/video-admin", icon: FiHome, label: "Dashboard" },
   { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
-  { href: "/video-admin/purge-video", icon: FiTrash2, label: "Purge" },
+  { href: "/video-admin/tools", icon: FiTrash2, label: "Tools" },
   { href: "/video-admin/configuration", icon: FiSettings, label: "Settings" },
 ];
 

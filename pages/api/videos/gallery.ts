@@ -514,7 +514,10 @@ export default async function handler(
     // STEP 3: Fetch Playlist Videos (with individual error handling)
     // ========================================================================
 
-    const playlists: Record<string, { name: string; videos: any[] }> = {};
+    const playlists: Record<
+      string,
+      { name: string; videos: any[]; maxVideos: number }
+    > = {};
     const failedPlaylists: string[] = [];
 
     for (const config of playlistConfigs) {
@@ -556,6 +559,7 @@ export default async function handler(
           playlists[playlist.slug || config.playlistId] = {
             name: playlist.title,
             videos: videos.map(transformVideo),
+            maxVideos: config.maxVideos || 6,
           };
         }
       } catch (error: any) {

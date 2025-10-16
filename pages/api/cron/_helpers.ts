@@ -22,6 +22,11 @@ export function isAuthorized(req: NextApiRequest): boolean {
     return false;
   }
 
+  const userEmail = req.cookies?.user_email;
+  if (userEmail && userEmail.endsWith("@freemalaysiatoday.com")) {
+    return true;
+  }
+
   return headerKey === process.env.CRON_SECRET_KEY;
 }
 

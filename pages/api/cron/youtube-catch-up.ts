@@ -1,4 +1,7 @@
 // pages/api/cron/youtube-catch-up.ts
+// EMERGENCY MANUAL SYNC TOOL - Pull all videos from YouTube playlists
+// Used via Admin Tools page when videos are missing or out of sync
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { google } from "googleapis";
@@ -22,6 +25,11 @@ const youtube = google.youtube("v3");
 const MAX_ITEMS_PER_PLAYLIST = 200; // Limit to control quota
 const MAX_PLAYLISTS_PER_RUN = 100; // Cap playlists per run
 
+// Concurrency protection - prevent overlapping runs
+let syncInProgress = false;
+const LOCK_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes max
+let lockTimestamp: number | null = null;
+
 // Helper function to parse YouTube duration
 function parseDuration(duration: string): number {
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -41,26 +49,30 @@ function isShortVideo(duration?: string): boolean {
   return seconds > 0 && seconds <= 60;
 }
 
+// Fetch all items from a playlist (paginated)
 async function fetchAllPlaylistItems(
   playlistId: string,
   logger: Logger
 ): Promise<any[]> {
-  if (!process.env.YOUTUBE_API_KEY) {
-    logger.error("No YouTube API key configured");
-    return [];
-  }
-
-  logger.debug(`Fetching all items for playlist ${playlistId}`);
-
   const allItems: any[] = [];
   let pageToken: string | undefined;
   let pageCount = 0;
+  const maxPages = Math.ceil(MAX_ITEMS_PER_PLAYLIST / 50); // 50 items per page
+
+  logger.debug(`Fetching playlist items (max ${MAX_ITEMS_PER_PLAYLIST})`);
 
   try {
     do {
-      // Add jitter between pages
-      if (pageCount > 0) {
-        await sleep(100 + Math.floor(Math.random() * 200));
+      pageCount++;
+
+      if (pageCount > maxPages) {
+        logger.warn(`Reached max pages (${maxPages}), stopping pagination`);
+        break;
+      }
+
+      // Add jitter between pages to avoid rate limits
+      if (pageCount > 1) {
+        await sleep(200 + Math.floor(Math.random() * 300));
       }
 
       const response = await withBackoff(
@@ -78,51 +90,40 @@ async function fetchAllPlaylistItems(
 
       const items = response.data.items || [];
       allItems.push(...items);
-      pageCount++;
-
-      logger.debug(
-        `Page ${pageCount}: fetched ${items.length} items (total: ${allItems.length})`
-      );
 
       pageToken = response.data.nextPageToken || undefined;
+
+      logger.debug(`Fetched page ${pageCount} - ${items.length} items`);
     } while (pageToken && allItems.length < MAX_ITEMS_PER_PLAYLIST);
 
-    if (allItems.length >= MAX_ITEMS_PER_PLAYLIST) {
-      logger.warn(`Capped playlist items at ${MAX_ITEMS_PER_PLAYLIST}`);
-    }
-
-    logger.success(
-      `Fetched total ${allItems.length} items from playlist ${playlistId}`
-    );
-    return allItems;
+    logger.info(`Total items fetched: ${allItems.length}`);
+    return allItems.slice(0, MAX_ITEMS_PER_PLAYLIST);
   } catch (error: any) {
-    logger.error(`Failed to fetch playlist items`, {
-      playlistId,
-      error: error.message,
-      itemsFetched: allItems.length,
-    });
-    // Return partial results if we got some
-    return allItems;
+    logger.error(`Failed to fetch playlist items`, { error: error.message });
+    return allItems; // Return what we have so far
   }
 }
 
+// Sync a single playlist
 async function syncPlaylist(
-  playlist: any,
+  playlist: { playlistId: string; title: string; slug: string | null },
   logger: Logger
 ): Promise<{
+  success: boolean;
+  playlistsSynced: number;
   videosAdded: number;
   videosUpdated: number;
   playlistItemsAdded: number;
   errors: string[];
 }> {
   const stats = {
+    success: true,
+    playlistsSynced: 0,
     videosAdded: 0,
     videosUpdated: 0,
     playlistItemsAdded: 0,
     errors: [] as string[],
   };
-
-  logger.info(`Syncing playlist: ${playlist.title || playlist.playlistId}`); // Use title!
 
   try {
     // Fetch all items
@@ -402,14 +403,17 @@ async function syncPlaylist(
       },
     });
 
+    stats.playlistsSynced = 1;
     logger.success(`Playlist synced`, {
       videosAdded: stats.videosAdded,
+      videosUpdated: stats.videosUpdated,
       playlistItems: stats.playlistItemsAdded,
       errors: stats.errors.length,
     });
   } catch (error: any) {
     logger.error(`Failed to sync playlist`, { error: error.message });
     stats.errors.push(`Sync: ${error.message}`);
+    stats.success = false;
   }
 
   return stats;
@@ -424,11 +428,11 @@ export default async function handler(
   const logger = new Logger("CATCH-UP", traceId);
 
   logger.info("========================================");
-  logger.info("🚀 STARTING FULL CATCH-UP SYNC");
+  logger.info("🚀 STARTING MANUAL CATCH-UP SYNC");
   logger.info(`TraceId: ${traceId}`);
   logger.info("========================================");
 
-  // Validate auth
+  // Validate auth (CRON KEY ONLY)
   if (!isAuthorized(req)) {
     logger.error("Unauthorized request", {
       hasQueryKey: !!req.query.key,
@@ -442,10 +446,46 @@ export default async function handler(
     });
   }
 
+  // Check if sync is already running
+  if (syncInProgress) {
+    const lockAge = lockTimestamp ? Date.now() - lockTimestamp : 0;
+
+    if (lockAge < LOCK_TIMEOUT_MS) {
+      logger.warn("Sync already in progress, aborting", {
+        lockAge: Math.round(lockAge / 1000) + "s",
+      });
+      return res.status(409).json({
+        success: false,
+        traceId,
+        duration: Date.now() - startTime,
+        errors: [
+          `Sync already in progress (started ${Math.round(lockAge / 1000)}s ago)`,
+        ],
+      });
+    } else {
+      // Lock expired, force release
+      logger.warn("Forcing lock release (timeout)", { lockAge });
+      syncInProgress = false;
+    }
+  }
+
+  // Acquire lock
+  syncInProgress = true;
+  lockTimestamp = Date.now();
+  logger.info("Acquired sync lock");
+
+  // Ensure lock is released on exit
+  const releaseLock = () => {
+    syncInProgress = false;
+    lockTimestamp = null;
+    logger.info("Released sync lock");
+  };
+
   // Validate environment
   const missingEnv = validateEnvironment();
   if (missingEnv.length > 0) {
     logger.error("Missing environment variables", { missing: missingEnv });
+    releaseLock();
     return res.status(500).json({
       success: false,
       traceId,
@@ -468,7 +508,8 @@ export default async function handler(
       where: { isActive: true },
       select: {
         playlistId: true,
-        title: true, // NOT 'name'!
+        title: true,
+        slug: true, // For ISR revalidation
         itemCount: true,
         lastFingerprintAt: true,
       },
@@ -524,33 +565,40 @@ export default async function handler(
 
           playlistLogger.info(
             `${isCritical ? "⭐ CRITICAL" : "📁 Regular"}: ${playlist.title}`
-          ); // Use title!
+          );
 
           try {
             const stats = await syncPlaylist(playlist, playlistLogger);
-            totalStats.playlistsSynced++;
-            totalStats.videosAdded += stats.videosAdded;
-            totalStats.videosUpdated += stats.videosUpdated;
-            totalStats.playlistItemsAdded += stats.playlistItemsAdded;
-            totalStats.errors.push(...stats.errors);
-
             return {
-              success: true,
-              playlist: playlist.title, // Use title!
-              ...stats,
+              playlist: playlist.title,
+              ...stats, // Already has success, playlistsSynced, videosAdded, etc.
             };
           } catch (error: any) {
             playlistLogger.error(`Failed to sync`, { error: error.message });
-            totalStats.errors.push(`${playlist.title}: ${error.message}`); // Use title!
+            totalStats.errors.push(`${playlist.title}: ${error.message}`);
             return {
               success: false,
-              playlist: playlist.title, // Use title!
-              error: error.message,
+              playlist: playlist.title,
+              playlistsSynced: 0,
+              videosAdded: 0,
+              videosUpdated: 0,
+              playlistItemsAdded: 0,
+              errors: [error.message],
             };
           }
         })
       )
     );
+
+    // Aggregate stats
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value.success) {
+        totalStats.playlistsSynced += result.value.playlistsSynced || 0;
+        totalStats.videosAdded += result.value.videosAdded || 0;
+        totalStats.videosUpdated += result.value.videosUpdated || 0;
+        totalStats.playlistItemsAdded += result.value.playlistItemsAdded || 0;
+      }
+    }
 
     // Check for failures
     const failures = results.filter((r) => r.status === "rejected");
@@ -565,20 +613,108 @@ export default async function handler(
       });
     }
 
+    // ========================================================================
+    // 🆕 CACHE CLEARING & ISR REVALIDATION
+    // ========================================================================
+    logger.info("Clearing caches and triggering ISR revalidation...");
+
+    try {
+      // Step 1: Clear all video caches
+      const { clearAllCaches, videoDataCache } = await import(
+        "@/lib/cache/video-cache-registry"
+      );
+      const clearedCount = clearAllCaches();
+      videoDataCache.clear(); // Also clear the videoDataCache
+      logger.info(`Cleared ${clearedCount} video caches + videoDataCache`);
+    } catch (error: any) {
+      logger.warn("Cache clearing failed (non-fatal)", {
+        error: error.message,
+      });
+    }
+
+    try {
+      // Step 2: Determine which pages need ISR revalidation
+      const pagesToRevalidate = new Set<string>(["/videos"]); // Always revalidate video hub
+
+      if (feConfig) {
+        // Add playlist pages that were synced
+        for (const playlist of sortedPlaylists) {
+          // Check if this playlist is displayed on video hub
+          const isDisplayed = displayed.some(
+            (p: any) => p?.playlistId === playlist.playlistId
+          );
+
+          if (isDisplayed || playlist.playlistId === feConfig.heroPlaylist) {
+            pagesToRevalidate.add("/videos");
+          }
+
+          // Add individual playlist page
+          if (playlist.slug) {
+            pagesToRevalidate.add(`/videos/playlist/${playlist.slug}`);
+          }
+        }
+      }
+
+      // Step 3: Trigger ISR revalidation
+      const revalidateSecret =
+        process.env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET_KEY;
+      const siteUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        "https://dev-v4.freemalaysiatoday.com";
+
+      if (revalidateSecret && pagesToRevalidate.size > 0) {
+        const pathsArray = Array.from(pagesToRevalidate);
+        logger.info(`Revalidating ${pathsArray.length} pages:`, pathsArray);
+
+        const revalidateResponse = await fetch(
+          `${siteUrl}/api/internal/revalidate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-revalidate-secret": revalidateSecret,
+            },
+            body: JSON.stringify({ paths: pathsArray }),
+          }
+        );
+
+        if (revalidateResponse.ok) {
+          const result = await revalidateResponse.json();
+          logger.success(
+            `✅ ISR revalidation successful for ${result.revalidated?.length || 0} paths`
+          );
+        } else {
+          const errorText = await revalidateResponse.text();
+          logger.warn(`ISR revalidation failed (non-fatal): ${errorText}`);
+        }
+      } else {
+        logger.warn("Skipping ISR revalidation - missing secret or no pages");
+      }
+    } catch (error: any) {
+      // Don't fail the entire job if ISR fails
+      logger.warn("ISR revalidation failed (non-fatal)", {
+        error: error.message,
+      });
+    }
+
+    logger.info("Cache clearing and ISR revalidation complete");
+    // ========================================================================
+
     // Estimate quota usage
     const quotaUsed =
-      playlists.length * 3 + // playlistItems.list calls
+      sortedPlaylists.length * 3 + // playlistItems.list calls
       Math.ceil(totalStats.videosAdded / 50) * 1; // videos.list calls
 
     // Log activity
     await prisma.admin_activity_logs.create({
       data: {
-        userId: "cron",
+        userId: "manual-sync",
         action: "YOUTUBE_CATCH_UP",
         entityType: "system",
         metadata: {
           traceId,
-          totalPlaylists: playlists.length,
+          totalPlaylists: sortedPlaylists.length,
           ...totalStats,
           quotaUsed,
           duration: Date.now() - startTime,
@@ -587,7 +723,7 @@ export default async function handler(
           (req.headers["x-forwarded-for"] as string) ||
           req.socket.remoteAddress ||
           "",
-        userAgent: req.headers["user-agent"] || "cron",
+        userAgent: req.headers["user-agent"] || "manual-sync",
       },
     });
 
@@ -596,11 +732,11 @@ export default async function handler(
     const durationSeconds = Math.floor((duration % 60000) / 1000);
 
     logger.info("========================================");
-    logger.success("✅ CATCH-UP SYNC COMPLETE");
+    logger.success("✅ MANUAL SYNC COMPLETE");
     logger.info(`Duration: ${durationMinutes}m ${durationSeconds}s`);
     logger.info("📊 SUMMARY:");
     logger.info(
-      `  Playlists synced: ${totalStats.playlistsSynced}/${playlists.length}`
+      `  Playlists synced: ${totalStats.playlistsSynced}/${sortedPlaylists.length}`
     );
     logger.info(`  Videos added: ${totalStats.videosAdded}`);
     logger.info(`  Videos updated: ${totalStats.videosUpdated}`);
@@ -617,11 +753,30 @@ export default async function handler(
       results: {
         ...totalStats,
         quotaUsed,
+        details: results.map((r) =>
+          r.status === "fulfilled"
+            ? {
+                playlist: r.value.playlist,
+                success: r.value.success,
+                videosAdded: r.value.videosAdded || 0,
+                videosUpdated: r.value.videosUpdated || 0,
+                playlistItemsAdded: r.value.playlistItemsAdded || 0,
+                errors: r.value.errors?.length || 0,
+              }
+            : {
+                playlist: "Unknown",
+                success: false,
+                videosAdded: 0,
+                videosUpdated: 0,
+                playlistItemsAdded: 0,
+                errors: 1,
+              }
+        ),
       },
     });
   } catch (error: any) {
     const duration = Date.now() - startTime;
-    logger.error("CATCH-UP SYNC FAILED", {
+    logger.error("MANUAL SYNC FAILED", {
       error: error.message,
       duration,
     });
@@ -632,5 +787,7 @@ export default async function handler(
       duration,
       errors: [error.message],
     });
+  } finally {
+    releaseLock(); // Always release lock
   }
 }

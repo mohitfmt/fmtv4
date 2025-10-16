@@ -120,7 +120,7 @@ export default function AdminLayout({
       label: "Configuration",
     },
     { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
-    { href: "/video-admin/purge-video", icon: FiTrash2, label: "Purge Video" },
+    { href: "/video-admin/tools", icon: FiTrash2, label: "Tools" },
   ];
 
   // Show loading state when navigating
