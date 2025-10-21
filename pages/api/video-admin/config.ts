@@ -224,22 +224,27 @@ async function handleUpdateConfig(
     console.log(`[${traceId}] ✅ Database updated successfully`);
 
     // ========================================================================
-    // STEP 2: Clear ALL video-related LRU caches
+    // STEP 2: Clear ALL video-related LRU caches (including homepage)
     // ========================================================================
     try {
       configCache.clear();
       galleryCache.clear();
       videoDataCache.clear();
       playlistCache.clear();
+
+      // 🆕 Also clear homepage cache
+      const { homepageCache } = await import("@/pages/api/homepage");
+      homepageCache.clear();
+
       console.log(
-        `[${traceId}] ✅ Cleared all LRU caches (config, gallery, videoData, playlist)`
+        `[${traceId}] ✅ Cleared all LRU caches (config, gallery, videoData, playlist, homepage)`
       );
     } catch (cacheError) {
       console.error(`[${traceId}] ⚠️ Failed to clear LRU caches:`, cacheError);
     }
 
     // ========================================================================
-    // STEP 3: Trigger ISR revalidation for affected pages
+    // STEP 3: Determine affected pages & Trigger ISR revalidation + CDN purge
     // ========================================================================
     const revalidateSecret = process.env.REVALIDATE_SECRET;
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -253,52 +258,138 @@ async function handleUpdateConfig(
         `[${traceId}] ⚠️ NEXT_PUBLIC_APP_URL not configured - ISR skipped`
       );
     } else {
-      // Determine which pages need revalidation based on config changes
-      const paths = [
-        "/videos", // Main video gallery (always affected by config changes)
-      ];
+      // Determine which pages need revalidation based on what changed
+      const paths = new Set<string>();
+      const urlsToPurge: string[] = [];
 
-      // Add playlist-specific pages if we have slugs
-      // (We could enhance this later to revalidate specific playlist pages)
+      // Check if homepage playlist changed
+      const homepageChanged =
+        homepage.playlistId !== (result as any).homepagePlaylist;
+      if (homepageChanged) {
+        paths.add("/");
+        urlsToPurge.push(`${siteUrl}/`, `${siteUrl}/api/homepage`);
+        console.log(
+          `[${traceId}] Homepage playlist changed - will revalidate / and purge CDN`
+        );
+      }
 
-      console.log(
-        `[${traceId}] Triggering ISR revalidation for ${paths.length} paths`
-      );
+      // Check if VideoHub-related configs changed
+      const heroChanged =
+        videoPage.heroPlaylistId !== (result as any).heroPlaylist;
+      const shortsChanged =
+        videoPage.shortsPlaylistId !== (result as any).shortsPlaylist;
+      const displayedChanged =
+        JSON.stringify(videoPage.displayedPlaylists) !==
+        JSON.stringify((result as any).displayedPlaylists);
 
-      try {
-        const revalidateResponse = await fetch(
-          `${siteUrl}/api/internal/revalidate`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-revalidate-secret": revalidateSecret,
-            },
-            body: JSON.stringify({ paths }),
-            signal: AbortSignal.timeout(10000), // 10s timeout
-          }
+      if (heroChanged || shortsChanged || displayedChanged) {
+        paths.add("/videos");
+        urlsToPurge.push(`${siteUrl}/videos`, `${siteUrl}/api/videos/gallery`);
+        console.log(
+          `[${traceId}] VideoHub config changed - will revalidate /videos and purge CDN`
+        );
+      }
+
+      // If shorts playlist changed specifically, also revalidate shorts page
+      if (shortsChanged) {
+        paths.add("/videos/shorts");
+        urlsToPurge.push(`${siteUrl}/videos/shorts`);
+        console.log(
+          `[${traceId}] Shorts playlist changed - will revalidate /videos/shorts and purge CDN`
+        );
+      }
+
+      const pathsArray = Array.from(paths);
+
+      if (pathsArray.length === 0) {
+        console.log(`[${traceId}] No pages affected by config changes`);
+      } else {
+        console.log(
+          `[${traceId}] Triggering ISR revalidation for ${pathsArray.length} paths: ${pathsArray.join(", ")}`
         );
 
-        if (revalidateResponse.ok) {
-          const result = await revalidateResponse.json();
-          console.log(
-            `[${traceId}] ✅ ISR revalidation successful:`,
-            result.revalidated?.length || 0,
-            "paths"
+        // STEP 3A: Trigger ISR revalidation
+        try {
+          const revalidateResponse = await fetch(
+            `${siteUrl}/api/internal/revalidate`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-revalidate-secret": revalidateSecret,
+              },
+              body: JSON.stringify({ paths: pathsArray }),
+              signal: AbortSignal.timeout(10000), // 10s timeout
+            }
           );
-        } else {
-          const errorText = await revalidateResponse.text();
+
+          if (revalidateResponse.ok) {
+            const result = await revalidateResponse.json();
+            console.log(
+              `[${traceId}] ✅ ISR revalidation successful:`,
+              result.revalidated?.length || 0,
+              "paths"
+            );
+          } else {
+            const errorText = await revalidateResponse.text();
+            console.error(
+              `[${traceId}] ❌ ISR revalidation failed (${revalidateResponse.status}):`,
+              errorText
+            );
+          }
+        } catch (revalidateError: any) {
           console.error(
-            `[${traceId}] ❌ ISR revalidation failed (${revalidateResponse.status}):`,
-            errorText
+            `[${traceId}] ⚠️ ISR revalidation error (non-fatal):`,
+            revalidateError.message
           );
         }
-      } catch (revalidateError: any) {
-        // Log error but don't fail the config save
-        console.error(
-          `[${traceId}] ⚠️ ISR revalidation error (non-fatal):`,
-          revalidateError.message
-        );
+
+        // STEP 3B: Immediate Cloudflare CDN purge
+        const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
+        const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+
+        if (CF_ZONE_ID && CF_API_TOKEN && urlsToPurge.length > 0) {
+          console.log(
+            `[${traceId}] Purging ${urlsToPurge.length} URLs from Cloudflare:`,
+            urlsToPurge
+          );
+
+          // Fire and forget - don't wait for Cloudflare response
+          fetch(
+            `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${CF_API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ files: urlsToPurge }),
+            }
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                console.log(
+                  `[${traceId}] ✅ Cloudflare CDN purged successfully`
+                );
+              } else {
+                console.error(
+                  `[${traceId}] ❌ Cloudflare CDN purge failed:`,
+                  data.errors
+                );
+              }
+            })
+            .catch((err) => {
+              console.error(
+                `[${traceId}] ⚠️ Cloudflare CDN purge error (non-fatal):`,
+                err.message
+              );
+            });
+        } else if (urlsToPurge.length > 0) {
+          console.warn(
+            `[${traceId}] ⚠️ Cloudflare credentials not configured - CDN purge skipped`
+          );
+        }
       }
     }
 

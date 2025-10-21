@@ -148,7 +148,7 @@ export default async function handler(
       }
 
       // ====================================================================
-      // STEP 3: Trigger ISR revalidation for affected pages
+      // STEP 3: Determine affected pages & Trigger ISR + CDN purge
       // ====================================================================
       const revalidateSecret = process.env.REVALIDATE_SECRET;
       const siteUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -162,16 +162,123 @@ export default async function handler(
           `[${traceId}] ❌ NEXT_PUBLIC_APP_URL not configured - skipping ISR`
         );
       } else {
-        const paths = [
-          "/videos", // Video gallery homepage
-          ...Array.from(ids).map((id) => `/videos/${id}`), // Individual video pages
-        ];
-
-        console.log(
-          `[${traceId}] Triggering ISR revalidation for ${paths.length} paths`
-        );
-
         try {
+          // Fetch video config to determine affected pages
+          const videoConfig = await prisma.videoConfig.findFirst({
+            select: {
+              homepagePlaylist: true,
+              heroPlaylist: true,
+              shortsPlaylist: true,
+              displayedPlaylists: true,
+            },
+          });
+
+          const paths = new Set<string>();
+          const urlsToPurge: string[] = [];
+
+          // Always revalidate video hub
+          paths.add("/videos");
+          urlsToPurge.push(
+            `${siteUrl}/videos`,
+            `${siteUrl}/api/videos/gallery`
+          );
+
+          // Add individual video pages
+          Array.from(ids).forEach((id) => {
+            paths.add(`/videos/${id}`);
+            urlsToPurge.push(`${siteUrl}/videos/${id}`);
+          });
+
+          // For each video, determine which playlists/pages it affects
+          for (const videoId of ids) {
+            const video = await prisma.videos.findFirst({
+              where: { videoId },
+              select: { playlists: true, isShort: true },
+            });
+
+            if (!video) {
+              console.warn(
+                `[${traceId}] Video ${videoId} not found in database`
+              );
+              continue;
+            }
+
+            // Check if video is in homepage playlist
+            if (
+              videoConfig?.homepagePlaylist &&
+              video.playlists?.includes(videoConfig.homepagePlaylist)
+            ) {
+              paths.add("/");
+              urlsToPurge.push(`${siteUrl}/`, `${siteUrl}/api/homepage`);
+              console.log(
+                `[${traceId}] Video ${videoId} in homepage playlist - will revalidate /`
+              );
+            }
+
+            // Check if video is in hero playlist
+            if (
+              videoConfig?.heroPlaylist &&
+              video.playlists?.includes(videoConfig.heroPlaylist)
+            ) {
+              paths.add("/videos");
+              console.log(
+                `[${traceId}] Video ${videoId} in hero playlist - already revalidating /videos`
+              );
+            }
+
+            // Check if video is a short or in shorts playlist
+            if (
+              video.isShort ||
+              (videoConfig?.shortsPlaylist &&
+                video.playlists?.includes(videoConfig.shortsPlaylist))
+            ) {
+              paths.add("/videos/shorts");
+              urlsToPurge.push(`${siteUrl}/videos/shorts`);
+              console.log(
+                `[${traceId}] Video ${videoId} is a short - will revalidate /videos/shorts`
+              );
+            }
+
+            // Check if video is in any displayed playlists
+            const displayedPlaylists =
+              (videoConfig?.displayedPlaylists as any[]) || [];
+            for (const playlistConfig of displayedPlaylists) {
+              if (video.playlists?.includes(playlistConfig.playlistId)) {
+                paths.add("/videos"); // VideoHub shows these
+                console.log(
+                  `[${traceId}] Video ${videoId} in displayed playlist ${playlistConfig.playlistId}`
+                );
+              }
+            }
+
+            // 🆕 Add specific playlist pages where this video appears
+            for (const playlistId of video.playlists || []) {
+              const playlist = await prisma.playlist.findFirst({
+                where: { playlistId },
+                select: { slug: true },
+              });
+
+              if (playlist?.slug) {
+                const playlistPath = `/videos/playlist/${playlist.slug}`;
+                paths.add(playlistPath);
+                urlsToPurge.push(`${siteUrl}${playlistPath}`);
+                console.log(
+                  `[${traceId}] Video ${videoId} in playlist ${playlist.slug} - will revalidate playlist page`
+                );
+              }
+            }
+          }
+
+          const pathsArray = Array.from(paths);
+          console.log(
+            `[${traceId}] Triggering ISR revalidation for ${pathsArray.length} paths:`,
+            pathsArray.slice(0, 10),
+            pathsArray.length > 10
+              ? `... and ${pathsArray.length - 10} more`
+              : ""
+          );
+
+          // STEP 3A: Trigger ISR revalidation
           const revalidateResponse = await fetch(
             `${siteUrl}/api/internal/revalidate`,
             {
@@ -180,8 +287,8 @@ export default async function handler(
                 "Content-Type": "application/json",
                 "x-revalidate-secret": revalidateSecret,
               },
-              body: JSON.stringify({ paths }),
-              signal: AbortSignal.timeout(10000), // 10s timeout
+              body: JSON.stringify({ paths: pathsArray }),
+              signal: AbortSignal.timeout(15000), // 15s timeout for multiple paths
             }
           );
 
@@ -199,8 +306,59 @@ export default async function handler(
               errorText
             );
           }
+
+          // STEP 3B: Immediate Cloudflare CDN purge
+          const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
+          const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+
+          if (CF_ZONE_ID && CF_API_TOKEN && urlsToPurge.length > 0) {
+            console.log(
+              `[${traceId}] Purging ${urlsToPurge.length} URLs from Cloudflare`
+            );
+
+            // Cloudflare has a limit of 30 URLs per request, so batch them
+            const BATCH_SIZE = 30;
+            for (let i = 0; i < urlsToPurge.length; i += BATCH_SIZE) {
+              const batch = urlsToPurge.slice(i, i + BATCH_SIZE);
+
+              // Fire and forget - don't wait
+              fetch(
+                `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${CF_API_TOKEN}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ files: batch }),
+                }
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.success) {
+                    console.log(
+                      `[${traceId}] ✅ Cloudflare batch ${Math.floor(i / BATCH_SIZE) + 1} purged (${batch.length} URLs)`
+                    );
+                  } else {
+                    console.error(
+                      `[${traceId}] ❌ Cloudflare batch purge failed:`,
+                      data.errors
+                    );
+                  }
+                })
+                .catch((err) => {
+                  console.error(
+                    `[${traceId}] ⚠️ Cloudflare purge error (non-fatal):`,
+                    err.message
+                  );
+                });
+            }
+          } else if (urlsToPurge.length > 0) {
+            console.warn(
+              `[${traceId}] ⚠️ Cloudflare credentials not configured - CDN purge skipped`
+            );
+          }
         } catch (revalidateError: any) {
-          // Don't fail the webhook if revalidation fails
           console.error(
             `[${traceId}] ⚠️ ISR revalidation error (non-fatal):`,
             revalidateError.message

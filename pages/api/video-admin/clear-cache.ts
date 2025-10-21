@@ -55,15 +55,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       console.error(`[${traceId}] Failed to clear LRU caches:`, error);
     }
 
-    // 2. 🆕 ISR REVALIDATION: Rebuild all video pages
+    // 2. 🆕 ISR REVALIDATION: Rebuild all video-related pages
     try {
-      console.log(`[${traceId}] Triggering ISR revalidation...`);
+      console.log(
+        `[${traceId}] Triggering ISR revalidation for all video pages...`
+      );
 
-      const pagesToRevalidate = [
+      const paths = [
+        "/", // Homepage
         "/videos", // Main video hub
         "/videos/shorts", // Shorts page
-        // Note: Individual video/playlist pages will rebuild on next visit
       ];
+
+      // Also get all active playlist pages
+      const activePlaylists = await prisma.playlist.findMany({
+        where: { isActive: true, slug: { not: null } },
+        select: { slug: true },
+      });
+
+      activePlaylists.forEach((p) => {
+        if (p.slug) {
+          paths.push(`/videos/playlist/${p.slug}`);
+        }
+      });
+
+      console.log(`[${traceId}] Will revalidate ${paths.length} pages`);
 
       const revalidateUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/internal/revalidate`;
       const revalidateSecret =
@@ -81,7 +97,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             "x-revalidate-secret": revalidateSecret,
           },
           body: JSON.stringify({
-            paths: pagesToRevalidate,
+            paths,
             source: "clear-cache",
             traceId,
           }),
@@ -118,12 +134,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           `[${traceId}] Cloudflare credentials not configured, skipping CDN purge`
         );
       } else {
-        // Purge everything video-related
+        // Purge everything video-related including homepage
         const urlsToPurge = [
-          `${SITE_URL}/api/videos/gallery`,
-          `${SITE_URL}/api/videos/playlists`,
-          `${SITE_URL}/videos`,
-          `${SITE_URL}/videos/*`,
+          `${SITE_URL}/`, // Homepage
+          `${SITE_URL}/api/homepage`, // Homepage API
+          `${SITE_URL}/videos`, // VideoHub
+          `${SITE_URL}/videos/shorts`, // Shorts page
+          `${SITE_URL}/api/videos/gallery`, // Gallery API
+          `${SITE_URL}/api/videos/playlists`, // Playlists API
         ];
 
         const cdnResponse = await fetch(

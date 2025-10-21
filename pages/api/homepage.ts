@@ -239,3 +239,5 @@ export const config = {
     responseLimit: false,
   },
 };
+
+export { homepageCache };

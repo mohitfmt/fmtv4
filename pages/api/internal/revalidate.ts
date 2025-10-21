@@ -6,7 +6,7 @@ import crypto from "crypto";
  * Only allow revalidations for specific path prefixes.
  * We keep this intentionally narrow to avoid accidents.
  */
-const ALLOWED_PATH_PREFIXES = ["/videos"];
+const ALLOWED_PATH_PREFIXES = ["/videos", "/"];
 
 /**
  * Constant-time string compare for secrets.
@@ -89,12 +89,10 @@ export default async function handler(
       : [];
 
   if (raw.length === 0 || !raw.every((p: any) => typeof p === "string")) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        error: "Provide a path string or paths string[]",
-      });
+    return res.status(400).json({
+      success: false,
+      error: "Provide a path string or paths string[]",
+    });
   }
 
   // Sanitize & validate paths
