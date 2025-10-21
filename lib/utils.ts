@@ -62,7 +62,7 @@ export const getPreferredCategory = (
       category?.node?.slug !== "sports"
   );
 
-  let selectedCategory =
+  const selectedCategory =
     sportCategory ||
     filteredCategories.reduce((shortest, current) => {
       if (
