@@ -94,7 +94,12 @@ export default function VideoAdminLogin() {
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
       });
-      Cookies.set("user_email", userData.email);
+      Cookies.set("user_email", userData.email, {
+        expires: 7,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
 
       // Set admin-specific flag in localStorage
       localStorage.setItem("adminUser", "true");
@@ -102,15 +107,18 @@ export default function VideoAdminLogin() {
       // Use the existing AuthContext login
       login(userData, credential);
 
-      // Log admin action (simple console log for now)
+      // Log admin action
       console.log(
         `[Admin Login] ${userData.email} logged in at ${new Date().toISOString()}`
       );
 
-      // Redirect to video-admin or callback URL
+      // Wait for cookies to commit
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Hard redirect (ensures middleware sees cookies)
       const redirectUrl =
         (router.query.callbackUrl as string) || "/video-admin";
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (error) {
       console.error("Failed to set admin auth:", error);
       setError("Authentication setup failed. Please try again.");

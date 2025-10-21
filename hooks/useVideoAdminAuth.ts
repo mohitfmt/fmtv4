@@ -1,4 +1,4 @@
-// hooks/useVideoAdminAuth.ts - Reusable auth check for video-admin pages
+// hooks/useVideoAdminAuth.ts - Fixed version
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,12 +14,23 @@ export function useVideoAdminAuth() {
 
   useEffect(() => {
     const checkAuth = () => {
+      // If still loading user data, wait
+      if (user === undefined) {
+        return; // Keep checking
+      }
+
       // No user or invalid domain
       if (!user || !user.email.endsWith(ALLOWED_DOMAIN)) {
         // Clear any stale cookie
         Cookies.remove("admin_auth");
-        // Redirect to login
-        router.push("/video-admin/login");
+
+        // Preserve current path for redirect after login
+        const currentPath = router.asPath;
+        const loginUrl = `/video-admin/login?callbackUrl=${encodeURIComponent(
+          currentPath
+        )}`;
+        router.push(loginUrl);
+
         setIsAuthorized(false);
       } else {
         // Valid admin user - ensure cookie is set

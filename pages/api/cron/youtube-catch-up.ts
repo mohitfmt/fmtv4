@@ -30,6 +30,38 @@ let syncInProgress = false;
 const LOCK_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes max
 let lockTimestamp: number | null = null;
 
+// ============ DEDUPLICATION CACHE ============
+const requestCache = new Map<string, number>();
+const DEDUP_WINDOW = 60000; // 1 minute
+
+function getRequestFingerprint(req: NextApiRequest): string {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const userEmail = req.cookies?.user_email || "anonymous";
+  return `${ip}:${userEmail}`;
+}
+
+function isDuplicateRequest(req: NextApiRequest): boolean {
+  const fingerprint = getRequestFingerprint(req);
+  const lastRequest = requestCache.get(fingerprint);
+  const now = Date.now();
+
+  if (lastRequest && now - lastRequest < DEDUP_WINDOW) {
+    return true; // Duplicate within 1 minute
+  }
+
+  requestCache.set(fingerprint, now);
+
+  // Cleanup old entries
+  for (const [key, timestamp] of requestCache.entries()) {
+    if (now - timestamp > DEDUP_WINDOW) {
+      requestCache.delete(key);
+    }
+  }
+
+  return false;
+}
+// ============ END DEDUPLICATION ============
+
 // Helper function to parse YouTube duration
 function parseDuration(duration: string): number {
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -426,6 +458,21 @@ export default async function handler(
   const traceId = generateTraceId();
   const startTime = Date.now();
   const logger = new Logger("CATCH-UP", traceId);
+
+  // ============ CHECK FOR DUPLICATE ============
+  if (isDuplicateRequest(req)) {
+    logger.warn("⚠️ DUPLICATE REQUEST BLOCKED", {
+      fingerprint: getRequestFingerprint(req),
+      message: "Same user made request within 1 minute",
+    });
+
+    return res.status(429).json({
+      success: false,
+      traceId,
+      duration: 0,
+      errors: ["Duplicate request detected. Please wait before retrying."],
+    });
+  }
 
   logger.info("========================================");
   logger.info("🚀 STARTING MANUAL CATCH-UP SYNC");

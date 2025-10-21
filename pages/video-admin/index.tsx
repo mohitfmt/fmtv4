@@ -78,6 +78,11 @@ export default function VideoDashboard() {
       try {
         const response = await videoApiJson("/api/video-admin/dashboard/stats");
 
+        // Check if response exists first
+        if (!response) {
+          throw new Error("No response from server");
+        }
+
         if (response.success && response.data) {
           setStats(response.data);
           setLastUpdate(new Date());

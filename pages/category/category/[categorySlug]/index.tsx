@@ -922,7 +922,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
     "bahasa",
     "business",
     "leisure",
-    "lifestyle",
     "opinion",
     "sports",
     "world",
