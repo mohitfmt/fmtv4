@@ -354,37 +354,36 @@ async function handleUpdateConfig(
             urlsToPurge
           );
 
-          // Fire and forget - don't wait for Cloudflare response
-          fetch(
-            `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${CF_API_TOKEN}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ files: urlsToPurge }),
-            }
-          )
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                console.log(
-                  `[${traceId}] ✅ Cloudflare CDN purged successfully`
-                );
-              } else {
-                console.error(
-                  `[${traceId}] ❌ Cloudflare CDN purge failed:`,
-                  data.errors
-                );
+          // BLOCKING: Wait for Cloudflare purge to complete
+          try {
+            const cfResponse = await fetch(
+              `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${CF_API_TOKEN}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ files: urlsToPurge }),
               }
-            })
-            .catch((err) => {
+            );
+
+            const cfData = await cfResponse.json();
+
+            if (cfData.success) {
+              console.log(`[${traceId}] ✅ Cloudflare CDN purged successfully`);
+            } else {
               console.error(
-                `[${traceId}] ⚠️ Cloudflare CDN purge error (non-fatal):`,
-                err.message
+                `[${traceId}] ❌ Cloudflare CDN purge failed:`,
+                cfData.errors
               );
-            });
+            }
+          } catch (cfError: any) {
+            console.error(
+              `[${traceId}] ⚠️ Cloudflare CDN purge error (non-fatal):`,
+              cfError.message
+            );
+          }
         } else if (urlsToPurge.length > 0) {
           console.warn(
             `[${traceId}] ⚠️ Cloudflare credentials not configured - CDN purge skipped`

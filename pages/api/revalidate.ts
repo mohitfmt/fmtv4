@@ -488,10 +488,30 @@ async function performRevalidation(
 
         pathsToRevalidate.add("/");
 
-        // Also revalidate all main section pages
-        Object.keys(navigationPaths).forEach((section) => {
+        const VALID_SECTIONS = [
+          "news",
+          "berita",
+          "business",
+          "lifestyle",
+          "opinion",
+          "world",
+          "sports",
+          "photos",
+          "videos",
+          "accelerator",
+        ];
+
+        VALID_SECTIONS.forEach((section) => {
           pathsToRevalidate.add(`/${section}`);
           tagsToPurge.push(`path:/${section}`, `section:${section}`);
+        });
+
+        // For subcategories like property, education etc., revalidate their actual paths
+        Object.entries(navigationPaths).forEach(([key, paths]) => {
+          if (!VALID_SECTIONS.includes(key)) {
+            // This is a subcategory (property, education, tempatan etc.)
+            paths.forEach((path) => pathsToRevalidate.add(path));
+          }
         });
 
         tagsToPurge.push("path:/", "homepage", "page:home");

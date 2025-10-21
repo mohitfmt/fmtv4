@@ -55,6 +55,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       console.error(`[${traceId}] Failed to clear LRU caches:`, error);
     }
 
+    // Clear homepage cache
+    try {
+      const { homepageCache } = await import("@/pages/api/homepage");
+      homepageCache.clear();
+      console.log(`[${traceId}] Cleared homepageCache`);
+      results.lruCachesCleared++;
+    } catch (error) {
+      console.error(`[${traceId}] Failed to clear homepage cache:`, error);
+    }
+
     // 2. 🆕 ISR REVALIDATION: Rebuild all video-related pages
     try {
       console.log(
