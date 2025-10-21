@@ -1,5 +1,5 @@
 // pages/api/video-admin/config.ts
-// FIXED VERSION - Triggers ISR revalidation + clears all caches on config save
+// FIXED VERSION - Proper change detection (OLD vs NEW comparison)
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
@@ -124,7 +124,7 @@ async function handleGetConfig(
 }
 
 // ============================================================================
-// UPDATE CONFIGURATION - WITH ISR REVALIDATION + CACHE CLEARING
+// UPDATE CONFIGURATION - WITH PROPER CHANGE DETECTION
 // ============================================================================
 async function handleUpdateConfig(
   req: NextApiRequest,
@@ -164,17 +164,36 @@ async function handleUpdateConfig(
     }
 
     // ========================================================================
-    // STEP 1: Update database
+    // 🔥 CRITICAL FIX: Fetch OLD config BEFORE updating
+    // ========================================================================
+    const oldConfig = await prisma.videoConfig.findFirst();
+
+    console.log(`[${traceId}] Old config:`, {
+      homepage: oldConfig?.homepagePlaylist || "none",
+      hero: oldConfig?.heroPlaylist || "none",
+      shorts: oldConfig?.shortsPlaylist || "none",
+      displayed: oldConfig?.displayedPlaylists
+        ? JSON.stringify(oldConfig.displayedPlaylists).substring(0, 50) + "..."
+        : "none",
+    });
+
+    console.log(`[${traceId}] New config:`, {
+      homepage: homepage.playlistId,
+      hero: videoPage.heroPlaylistId,
+      shorts: videoPage.shortsPlaylistId,
+      displayed:
+        JSON.stringify(videoPage.displayedPlaylists).substring(0, 50) + "...",
+    });
+
+    // ========================================================================
+    // STEP 1: Update database with NEW values
     // ========================================================================
     const result = await prisma.$transaction(async (tx) => {
-      // Find or create config
-      const existingConfig = await tx.videoConfig.findFirst();
-
       let config;
-      if (existingConfig) {
+      if (oldConfig) {
         // Update existing config
         config = await tx.videoConfig.update({
-          where: { id: existingConfig.id },
+          where: { id: oldConfig.id },
           data: {
             homepagePlaylist: homepage.playlistId,
             fallbackPlaylist: homepage.fallbackPlaylistId,
@@ -185,7 +204,7 @@ async function handleUpdateConfig(
           },
         });
       } else {
-        // Create new config
+        // Create new config (first time setup)
         config = await tx.videoConfig.create({
           data: {
             homepagePlaylist: homepage.playlistId,
@@ -232,7 +251,7 @@ async function handleUpdateConfig(
       videoDataCache.clear();
       playlistCache.clear();
 
-      // 🆕 Also clear homepage cache
+      // Also clear homepage cache
       const { homepageCache } = await import("@/pages/api/homepage");
       homepageCache.clear();
 
@@ -244,7 +263,7 @@ async function handleUpdateConfig(
     }
 
     // ========================================================================
-    // STEP 3: Determine affected pages & Trigger ISR revalidation + CDN purge
+    // STEP 3: Determine affected pages by comparing OLD vs NEW
     // ========================================================================
     const revalidateSecret = process.env.REVALIDATE_SECRET;
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -258,30 +277,53 @@ async function handleUpdateConfig(
         `[${traceId}] ⚠️ NEXT_PUBLIC_APP_URL not configured - ISR skipped`
       );
     } else {
-      // Determine which pages need revalidation based on what changed
       const paths = new Set<string>();
       const urlsToPurge: string[] = [];
 
-      // Check if homepage playlist changed
+      // 🔥 FIXED: Compare NEW vs OLD (not NEW vs NEW)
+      const isFirstTimeSetup = !oldConfig;
+
       const homepageChanged =
-        homepage.playlistId !== (result as any).homepagePlaylist;
+        isFirstTimeSetup ||
+        homepage.playlistId !== (oldConfig?.homepagePlaylist || "");
+
+      const heroChanged =
+        isFirstTimeSetup ||
+        videoPage.heroPlaylistId !== (oldConfig?.heroPlaylist || "");
+
+      const shortsChanged =
+        isFirstTimeSetup ||
+        videoPage.shortsPlaylistId !== (oldConfig?.shortsPlaylist || "");
+
+      const displayedChanged =
+        isFirstTimeSetup ||
+        JSON.stringify(videoPage.displayedPlaylists) !==
+          JSON.stringify(oldConfig?.displayedPlaylists || []);
+
+      // Log what changed
+      if (isFirstTimeSetup) {
+        console.log(
+          `[${traceId}] First time setup - will revalidate all pages`
+        );
+      } else {
+        console.log(`[${traceId}] Change detection:`, {
+          homepage: homepageChanged,
+          hero: heroChanged,
+          shorts: shortsChanged,
+          displayed: displayedChanged,
+        });
+      }
+
+      // Check if homepage playlist changed
       if (homepageChanged) {
         paths.add("/");
         urlsToPurge.push(`${siteUrl}/`, `${siteUrl}/api/homepage`);
         console.log(
-          `[${traceId}] Homepage playlist changed - will revalidate / and purge CDN`
+          `[${traceId}] Homepage playlist changed (${oldConfig?.homepagePlaylist || "none"} → ${homepage.playlistId}) - will revalidate / and purge CDN`
         );
       }
 
       // Check if VideoHub-related configs changed
-      const heroChanged =
-        videoPage.heroPlaylistId !== (result as any).heroPlaylist;
-      const shortsChanged =
-        videoPage.shortsPlaylistId !== (result as any).shortsPlaylist;
-      const displayedChanged =
-        JSON.stringify(videoPage.displayedPlaylists) !==
-        JSON.stringify((result as any).displayedPlaylists);
-
       if (heroChanged || shortsChanged || displayedChanged) {
         paths.add("/videos");
         urlsToPurge.push(`${siteUrl}/videos`, `${siteUrl}/api/videos/gallery`);
@@ -295,7 +337,7 @@ async function handleUpdateConfig(
         paths.add("/videos/shorts");
         urlsToPurge.push(`${siteUrl}/videos/shorts`);
         console.log(
-          `[${traceId}] Shorts playlist changed - will revalidate /videos/shorts and purge CDN`
+          `[${traceId}] Shorts playlist changed (${oldConfig?.shortsPlaylist || "none"} → ${videoPage.shortsPlaylistId}) - will revalidate /videos/shorts and purge CDN`
         );
       }
 
