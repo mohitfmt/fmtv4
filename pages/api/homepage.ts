@@ -29,6 +29,10 @@ export default async function handler(
 
     if (cached) {
       res.setHeader("X-Cache", "HIT");
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=10, s-maxage=30, stale-while-revalidate=60"
+      );
       return res.status(200).json({
         success: true,
         data: cached,
@@ -56,7 +60,10 @@ export default async function handler(
 
       homepageCache.set(cacheKey, responseData);
       res.setHeader("X-Cache", "MISS");
-
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=10, s-maxage=30, stale-while-revalidate=60"
+      );
       return res.status(200).json({
         success: true,
         data: responseData,
@@ -151,7 +158,10 @@ export default async function handler(
     // Cache the response
     homepageCache.set(cacheKey, responseData);
     res.setHeader("X-Cache", "MISS");
-
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=10, s-maxage=30, stale-while-revalidate=60"
+    );
     return res.status(200).json({
       success: true,
       data: responseData,
