@@ -146,7 +146,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     await prisma.playlist.update({
       where: { playlistId },
       data: {
-        itemCount: result.totalVideos || playlist.itemCount,
+        // itemCount: result.totalVideos || playlist.itemCount, // ✅ REMOVED itemCount - let verify-playlist-counts handle it
         lastSyncedAt: new Date(),
         lastSyncResult: updatedSyncResult,
       },

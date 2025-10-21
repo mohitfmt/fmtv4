@@ -459,7 +459,7 @@ async function updatePlaylistMetadata(
           title: playlist.snippet?.title || "",
           description: playlist.snippet?.description,
           thumbnailUrl: playlist.snippet?.thumbnails?.high?.url,
-          itemCount: itemCount || playlist.contentDetails?.itemCount || 0,
+          // itemCount: itemCount || playlist.contentDetails?.itemCount || 0, ✅ REMOVED itemCount - let verify-playlist-counts handle it
           channelTitle: playlist.snippet?.channelTitle,
           updatedAt: new Date(),
         },

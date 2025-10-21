@@ -153,12 +153,18 @@ async function handleUpdateConfig(
 
     const { homepage, videoPage } = validation.data;
 
-    // Additional validation: Check for duplicate playlists within same section
-    const heroShortsDuplicate =
-      videoPage.heroPlaylistId === videoPage.shortsPlaylistId;
-    if (heroShortsDuplicate) {
+    // Validate no duplicate playlists within displayedPlaylists array
+    const displayedPlaylistIds = videoPage.displayedPlaylists.map(
+      (p) => p.playlistId
+    );
+    const hasDuplicates = displayedPlaylistIds.some(
+      (id, index) => displayedPlaylistIds.indexOf(id) !== index
+    );
+
+    if (hasDuplicates) {
       return res.status(400).json({
-        error: "Hero and Shorts sections cannot use the same playlist",
+        error:
+          "Duplicate playlists detected in Displayed Playlists section. Each playlist can only appear once in this section.",
         traceId,
       });
     }

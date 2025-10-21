@@ -430,7 +430,7 @@ async function syncPlaylist(
       data: {
         fingerprint,
         lastFingerprintAt: new Date(),
-        itemCount: items.length,
+        // itemCount: items.length,  ✅ REMOVED itemCount - let verify-playlist-counts handle it
         updatedAt: new Date(),
       },
     });

@@ -174,6 +174,7 @@ const PlaylistSelector = ({
   playlists,
   usedPlaylists,
   currentSection,
+  config,
   placeholder = "Select a playlist",
   label,
   icon: Icon,
@@ -185,6 +186,7 @@ const PlaylistSelector = ({
   playlists: Playlist[];
   usedPlaylists?: { playlistId: string; section: string }[];
   currentSection?: string;
+  config?: VideoConfig | null;
   placeholder?: string;
   label?: string;
   icon?: any;
@@ -283,11 +285,13 @@ const PlaylistSelector = ({
                     alt={selectedPlaylist.title}
                     width={40}
                     height={30}
-                    className="rounded object-cover"
+                    className="rounded object-cover flex-shrink-0"
                   />
                 )}
-                <div className="text-left">
-                  <div className="font-medium">{selectedPlaylist.title}</div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="font-medium truncate">
+                    {selectedPlaylist.title}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {selectedPlaylist.itemCount} videos
                   </div>
@@ -299,7 +303,7 @@ const PlaylistSelector = ({
           </div>
           <FiChevronDown
             className={cn(
-              "w-5 h-5 transition-transform",
+              "w-5 h-5 transition-transform flex-shrink-0",
               isOpen && "rotate-180"
             )}
           />
@@ -311,23 +315,23 @@ const PlaylistSelector = ({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute z-50 w-full mt-2 bg-background border rounded-lg shadow-lg overflow-hidden"
+              className="absolute top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-lg max-h-80 overflow-y-auto z-10"
             >
-              <div className="p-2 border-b">
+              <div className="p-2 border-b sticky top-0 bg-card">
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <input
                     type="text"
+                    placeholder="Search playlists..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search playlists..."
-                    className="w-full pl-9 pr-3 py-2 bg-muted/50 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30"
-                    onClick={(e) => e.stopPropagation()}
+                    className="w-full pl-9 pr-3 py-2 bg-background border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    autoFocus
                   />
                 </div>
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto">
+              <div className="max-h-64 overflow-y-auto">
                 {filteredPlaylists.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
                     No playlists found
@@ -335,25 +339,40 @@ const PlaylistSelector = ({
                 ) : (
                   filteredPlaylists.map((playlist) => {
                     const suggestion = getSmartSuggestion(playlist);
-                    const isDisabled = playlist.isUsed;
+
+                    // Check if this playlist is already used in OTHER displayed positions
+                    const isUsedInOtherDisplayedPosition =
+                      currentSection?.startsWith("Displayed") &&
+                      config?.videoPage.displayedPlaylists.some(
+                        (item, idx) =>
+                          item.playlistId === playlist.playlistId &&
+                          currentSection !== `Displayed #${idx + 1}`
+                      );
+
+                    const displayedPositionUsed =
+                      config?.videoPage.displayedPlaylists.findIndex(
+                        (item) => item.playlistId === playlist.playlistId
+                      );
+
+                    const isDisabledDuplicate = isUsedInOtherDisplayedPosition;
 
                     return (
                       <button
                         key={playlist.playlistId}
                         type="button"
                         onClick={() => {
-                          if (!isDisabled) {
+                          if (!isDisabledDuplicate) {
                             onChange(playlist.playlistId);
                             setIsOpen(false);
                             setSearchTerm("");
                           }
                         }}
-                        disabled={isDisabled}
+                        disabled={isDisabledDuplicate}
                         className={cn(
                           "w-full p-3 hover:bg-muted/50 transition-colors",
                           "flex items-center gap-3 text-left",
                           value === playlist.playlistId && "bg-muted",
-                          isDisabled && "opacity-50 cursor-not-allowed"
+                          isDisabledDuplicate && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         {playlist.thumbnailUrl && (
@@ -370,12 +389,21 @@ const PlaylistSelector = ({
                             <span className="font-medium truncate">
                               {playlist.title}
                             </span>
-                            {isDisabled && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-xs">
-                                <FiLock className="w-3 h-3" />
-                                Used in {playlist.usedInSection}
+                            {playlist.isUsed && !isDisabledDuplicate && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
+                                <FiInfo className="w-3 h-3" />
+                                Also in {playlist.usedInSection}
                               </div>
                             )}
+                            {isDisabledDuplicate &&
+                              displayedPositionUsed !== undefined &&
+                              displayedPositionUsed >= 0 && (
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs">
+                                  <FiLock className="w-3 h-3" />
+                                  Already in Displayed #
+                                  {displayedPositionUsed + 1}
+                                </div>
+                              )}
                           </div>
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-xs text-muted-foreground">
@@ -463,7 +491,7 @@ function ConfigurationPageContent() {
     return value;
   };
 
-  // Get used playlists for duplicate prevention
+  // Get used playlists for informational display (not for disabling)
   const usedPlaylists = useMemo(() => {
     if (!config) return [];
 
@@ -488,6 +516,14 @@ function ConfigurationPageContent() {
       });
     }
 
+    // Include displayedPlaylists for informational purposes only
+    config.videoPage.displayedPlaylists.forEach((item, index) => {
+      used.push({
+        playlistId: item.playlistId,
+        section: `Displayed #${index + 1}`,
+      });
+    });
+
     return used;
   }, [config]);
 
@@ -500,6 +536,7 @@ function ConfigurationPageContent() {
       </AdminLayout>
     );
   }
+
   const saveConfig = async () => {
     if (!config) return;
 
@@ -516,6 +553,25 @@ function ConfigurationPageContent() {
     if (config.videoPage.displayedPlaylists.length < MIN_PLAYLIST_SECTIONS) {
       showMessage(
         `Please add at least ${MIN_PLAYLIST_SECTIONS} playlist sections before saving.`,
+        "error"
+      );
+      return;
+    }
+
+    // Validate no duplicate playlists within displayedPlaylists
+    const playlistIds = config.videoPage.displayedPlaylists.map(
+      (p) => p.playlistId
+    );
+    const duplicates = playlistIds.filter(
+      (id, index) => playlistIds.indexOf(id) !== index
+    );
+
+    if (duplicates.length > 0) {
+      const duplicatePlaylist = playlists.find(
+        (p) => p.playlistId === duplicates[0]
+      );
+      showMessage(
+        `Duplicate playlist detected: "${duplicatePlaylist?.title || "Unknown"}" appears multiple times in Displayed Playlists. Each playlist can only appear once in this section.`,
         "error"
       );
       return;
@@ -847,6 +903,7 @@ function ConfigurationPageContent() {
                     playlists={playlists}
                     usedPlaylists={usedPlaylists}
                     currentSection="Homepage"
+                    config={config}
                     label="Main Homepage Playlist"
                     icon={FiVideo}
                     helper="First 5 videos will be displayed. If fewer than 5 videos, the system will auto-supplement with latest videos."
@@ -878,6 +935,7 @@ function ConfigurationPageContent() {
                       playlists={playlists}
                       usedPlaylists={usedPlaylists}
                       currentSection="Hero"
+                      config={config}
                       label="Hero Section Playlist"
                       icon={FiStar}
                       helper="Featured prominently at the top of the video page"
@@ -897,25 +955,31 @@ function ConfigurationPageContent() {
                       playlists={playlists}
                       usedPlaylists={usedPlaylists}
                       currentSection="Shorts"
+                      config={config}
                       label="Shorts Section Playlist"
                       icon={FiZap}
                       helper="Quick, engaging short-form content"
                     />
                   </div>
 
-                  {/* Displayed Playlists with Bulk Operations */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
+                  {/* Displayed Playlists */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         <FiLayers className="w-5 h-5" />
-                        Displayed Playlists (
-                        {config.videoPage.displayedPlaylists.length})
-                      </h3>
+                        <h3 className="text-lg font-semibold">
+                          Displayed Playlists (
+                          {config.videoPage.displayedPlaylists.length})
+                        </h3>
+                      </div>
 
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+                        <div className="flex items-center gap-2">
                           <input
                             type="number"
+                            min="3"
+                            max="99"
+                            step="3"
                             value={bulkDisplayLimit}
                             onChange={(e) =>
                               setBulkDisplayLimit(
@@ -923,26 +987,14 @@ function ConfigurationPageContent() {
                                   DEFAULT_DISPLAY_LIMIT
                               )
                             }
-                            onBlur={(e) =>
-                              setBulkDisplayLimit(
-                                validateDisplayLimit(
-                                  parseInt(e.target.value) ||
-                                    DEFAULT_DISPLAY_LIMIT
-                                )
-                              )
-                            }
-                            min="3"
-                            max="99"
-                            step="3"
-                            className="w-16 px-2 py-1 bg-background rounded text-sm"
+                            className="w-20 p-2 bg-background border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
                           />
                           <Button
                             onClick={applyDisplayLimitToAll}
                             size="sm"
-                            variant="ghost"
-                            className="flex items-center gap-1"
+                            variant="outline"
                           >
-                            <FiCopy className="w-3 h-3" />
+                            <FiCopy className="w-4 h-4 mr-2" />
                             Apply to All
                           </Button>
                         </div>
@@ -1003,6 +1055,9 @@ function ConfigurationPageContent() {
                                         });
                                       }}
                                       playlists={playlists}
+                                      usedPlaylists={usedPlaylists}
+                                      currentSection={`Displayed #${index + 1}`}
+                                      config={config}
                                       placeholder="Select playlist..."
                                     />
 
