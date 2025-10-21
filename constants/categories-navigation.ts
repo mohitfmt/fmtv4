@@ -63,7 +63,7 @@ export const categoriesNavigation = [
     path: "lifestyle",
     subCategories: [
       {
-        title: "Simple Stories",
+        title: "Everyday Heroes",
         slug: "simple-stories",
         href: "/category/category/leisure/simple-stories/",
       },

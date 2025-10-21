@@ -18,13 +18,20 @@ interface CategoryEdge {
   node: CategoryNode;
 }
 
+// Category display name mappings (CMS name → Frontend display name)
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  "Simple Stories": "Everyday Heroes",
+  "simple-stories": "Everyday Heroes",
+  // Add more mappings here if needed in future
+};
+
 export const getPreferredCategory = (
   categories?: CategoryEdge[]
 ): CategoryEdge => {
   // Default category
   const defaultCategory = {
     node: {
-      name: "GENERAL", // or any default category name you prefer
+      name: "GENERAL",
       id: "default-category",
       slug: "general",
     },
@@ -55,19 +62,31 @@ export const getPreferredCategory = (
       category?.node?.slug !== "sports"
   );
 
-  if (sportCategory) {
-    return sportCategory;
-  }
+  let selectedCategory =
+    sportCategory ||
+    filteredCategories.reduce((shortest, current) => {
+      if (
+        !shortest ||
+        current?.node?.name?.length < shortest?.node?.name?.length
+      ) {
+        return current;
+      }
+      return shortest;
+    }, defaultCategory);
 
-  return filteredCategories.reduce((shortest, current) => {
-    if (
-      !shortest ||
-      current?.node?.name?.length < shortest?.node?.name?.length
-    ) {
-      return current;
-    }
-    return shortest;
-  }, defaultCategory);
+  // Apply display name mapping
+  const displayName =
+    CATEGORY_DISPLAY_NAMES[selectedCategory.node.name] ||
+    CATEGORY_DISPLAY_NAMES[selectedCategory.node.slug || ""] ||
+    selectedCategory.node.name;
+
+  return {
+    ...selectedCategory,
+    node: {
+      ...selectedCategory.node,
+      name: displayName,
+    },
+  };
 };
 
 export const generateCollectionPageJsonLD = ({

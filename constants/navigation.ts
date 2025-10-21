@@ -67,7 +67,7 @@ export const navigation = [
     items: [
       {
         id: 51,
-        title: "Simple Stories",
+        title: "Everyday Heroes",
         href: "/category/category/leisure/simple-stories/",
       },
       {

@@ -117,7 +117,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
   switch (slugStr) {
     case "nation":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/nation/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/nation/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/news",
         title:
           "Nation | Politics | Economy | Social | Crime | Education | Environment",
@@ -133,7 +134,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "berita":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/top-bm/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/top-bm/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/berita",
         title:
           "Berita | Tempatan | Pandangan | Dunia | Politik, Ekonomi, Sukan, Teknologi",
@@ -150,7 +152,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "business":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/business/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/business/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/business",
         title: "Business | Local Business | World Business | Malaysia | FMT",
         subtitle:
@@ -165,7 +168,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "headlines":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/highlight/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/highlight/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com",
         title: "Headlines | Latest | Malaysia | Top Stories | Local News",
         subtitle:
@@ -177,7 +181,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "lifestyle":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/leisure/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/leisure/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/lifestyle",
         title:
           "Lifestyle | Food | Entertainment | Health | Family | Money | Travel | Tech | Pets",
@@ -186,7 +191,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
         selfLink: "https://www.freemalaysiatoday.com/feeds/atom/lifestyle",
         categories: `
         <category term="Lifestyle" scheme="https://www.freemalaysiatoday.com/lifestyle" label="Lifestyle"/>
-        <category term="SimpleStories" scheme="https://www.freemalaysiatoday.com/category/category/leisure/simple-stories" label="Simple Stories"/>
+        <category term="EverydayHeroes" scheme="https://www.freemalaysiatoday.com/category/category/leisure/simple-stories" label="Everyday Heroes"/>
         <category term="Food" scheme="https://www.freemalaysiatoday.com/category/category/leisure/food" label="Food"/>
         <category term="Entertainment" scheme="https://www.freemalaysiatoday.com/category/category/leisure/entertainment" label="Entertainment"/>
         <category term="HealthFamily" scheme="https://www.freemalaysiatoday.com/category/category/leisure/health" label="Health and Family"/>
@@ -199,7 +204,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "opinion":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/opinion/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/opinion/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/opinion",
         title: "Opinion | Editorial | Column | Letters",
         subtitle:
@@ -215,7 +221,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "sports":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/sports/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/sports/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/sports",
         title: "Sports | Football | Badminton | Tennis | Motorsports",
         subtitle:
@@ -232,7 +239,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     case "world":
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/category/world/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/category/world/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com/category/category/world",
         title: "World | Global News | International News",
         subtitle:
@@ -258,7 +266,8 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       break;
     default:
       payloadObj = {
-        rssUrl: "https://cms.freemalaysiatoday.com/feed/?orderby=modified&order=desc",
+        rssUrl:
+          "https://cms.freemalaysiatoday.com/feed/?orderby=modified&order=desc",
         link: "https://www.freemalaysiatoday.com",
         title: "Free Malaysia Today",
         subtitle:
