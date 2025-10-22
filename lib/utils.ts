@@ -220,18 +220,19 @@ export const generateCollectionPageJsonLD = ({
           about: "Latest videos on FMT News.",
           hasPart: videoPosts?.map((video: any) => ({
             "@type": "VideoObject",
-            "@id": `https://www.youtube.com/watch?v=${video?.node?.videoId}`,
-            headline: video.node?.title || "FMT Video",
-            name: video?.node?.title || "FMT Video",
-            description: video?.node?.excerpt?.split(
-              "Subscribe to our channel"
-            )[0],
-            thumbnailUrl: video?.node?.featuredImage?.node?.mediaItemUrl,
-            uploadDate: video?.node?.dateGmt,
-
-            contentUrl: `  https://www.youtube.com/watch?v=${video?.node?.videoId}`,
-            embedUrl: "https://www.youtube.com/embed/" + video?.node?.videoId,
-            duration: video?.node?.duration,
+            "@id": `https://www.youtube.com/watch?v=${video?.id}`,
+            headline: video?.title || "FMT Video",
+            name: video?.title || "FMT Video",
+            description:
+              video?.description?.substring(0, 200) || video?.title || "",
+            thumbnailUrl:
+              video?.thumbnails?.high ||
+              video?.thumbnails?.maxres ||
+              `https://i.ytimg.com/vi/${video?.id}/default.jpg`,
+            uploadDate: video?.publishedAt,
+            contentUrl: `https://www.youtube.com/watch?v=${video?.videoId}`,
+            embedUrl: `https://www.youtube.com/embed/${video?.videoId}`,
+            duration: video?.duration || "PT0M1S",
             author: {
               "@type": "NewsMediaOrganization",
               name: "Free Malaysia Today",
@@ -239,24 +240,18 @@ export const generateCollectionPageJsonLD = ({
             },
             interactionStatistic: {
               "@type": "InteractionCounter",
-              interactionType: "http://schema.org/WatchAction",
-              userInteractionCount: video?.node?.statistics?.viewCount ?? 1,
+              interactionType: { "@type": "WatchAction" },
+              userInteractionCount: parseInt(video?.viewCount || "0"),
             },
-            url: `https://www.freemalaysiatoday.com${video?.node?.uri}`,
             publisher: {
               "@type": "NewsMediaOrganization",
               name: "Free Malaysia Today",
-              // logo: OrgJsonLD.logo,
             },
             isFamilyFriendly: true,
-            keywords: video?.node?.tags?.join(", "),
-            caption: video?.node?.title,
-            genre: video?.node?.categories?.nodes
-              .map((category: { name: string }) => category?.name)
-              .join(", "),
+            caption: video?.title,
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": `${baseUrl}${video?.node?.uri}` || baseUrl,
+              "@id": `${baseUrl}${video?.url}` || baseUrl,
             },
           })),
         },
