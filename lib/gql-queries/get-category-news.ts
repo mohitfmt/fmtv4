@@ -50,6 +50,16 @@ async function rawGetCategoryNews(
                     }
                   }
                 }
+                tags {
+                  edges {
+                    node {
+                      databaseId
+                      slug
+                      name
+                      id
+                    }
+                  }
+                }                  
                 author {
                   node {
                     databaseId

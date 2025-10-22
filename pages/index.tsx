@@ -1,3 +1,5 @@
+// pages/index.tsx
+
 import AdSlot from "@/components/common/AdSlot";
 import LTRNewsPreview from "@/components/common/news-preview-cards/LTRNewsPreview";
 import SectionHeading from "@/components/common/SectionHeading";
@@ -46,6 +48,185 @@ const dfpTargetingParams = {
   ],
 };
 
+function extractKeywordsFromPosts(
+  posts: any[],
+  maxKeywords: number = 5
+): string[] {
+  const keywords: string[] = [];
+
+  for (const post of posts) {
+    const actualPost = post?.node || post;
+
+    // Handle categories with edges structure
+    // if (
+    //   actualPost?.categories?.edges &&
+    //   Array.isArray(actualPost.categories.edges)
+    // ) {
+    //   actualPost.categories.edges.forEach((catEdge: any) => {
+    //     if (catEdge?.node?.name) {
+    //       keywords.push(catEdge.node.name);
+    //     }
+    //   });
+    // }
+
+    // Handle tags with edges structure
+    if (actualPost?.tags?.edges && Array.isArray(actualPost.tags.edges)) {
+      actualPost.tags.edges.forEach((tagEdge: any) => {
+        if (tagEdge?.node?.name) {
+          keywords.push(tagEdge.node.name);
+        }
+      });
+    }
+    console.log(actualPost, actualPost?.tags);
+
+    if (keywords.length >= maxKeywords) break;
+  }
+
+  return keywords;
+}
+
+function generateHomePageKeywords(
+  trendingTags: any[] = [],
+  heroPosts: any[] = [],
+  highlightPosts: any[] = []
+): string {
+  const keywords: string[] = [];
+
+  if (trendingTags && trendingTags.length > 0) {
+    trendingTags.slice(0, 5).forEach((tag) => {
+      if (tag?.title) keywords.push(tag.title);
+    });
+  }
+
+  if (heroPosts && heroPosts.length > 0) {
+    const heroKeywords = extractKeywordsFromPosts(heroPosts, 2);
+    keywords.push(...heroKeywords);
+  }
+
+  if (highlightPosts && highlightPosts.length > 0) {
+    const postsToProcess = highlightPosts.slice(0, 4);
+    for (const post of postsToProcess) {
+      const postKeywords = extractKeywordsFromPosts([post], 3);
+      keywords.push(...postKeywords);
+      if (keywords.length >= 19) break;
+    }
+  }
+
+  if (keywords.length < 15) {
+    keywords.push(
+      "Free Malaysia Today",
+      "FMT",
+      "Malaysia News",
+      "Breaking News Malaysia",
+      "Latest Malaysian News"
+    );
+  }
+
+  const uniqueKeywords = [...new Set(keywords)]
+    .filter((kw) => kw && kw.length > 0 && kw.length < 50)
+    .slice(0, 25);
+
+  return uniqueKeywords.join(", ");
+}
+
+function generateNewsKeywords(
+  trendingTags: any[] = [],
+  heroPosts: any[] = [],
+  highlightPosts: any[] = []
+): string {
+  const keywords: string[] = [];
+
+  if (trendingTags && trendingTags.length > 0) {
+    trendingTags.slice(0, 5).forEach((tag) => {
+      if (tag?.title) keywords.push(tag.title);
+    });
+  }
+
+  if (heroPosts && heroPosts.length > 0) {
+    const heroKeywords = extractKeywordsFromPosts(heroPosts, 1);
+    keywords.push(...heroKeywords);
+  }
+
+  if (highlightPosts && highlightPosts.length > 0) {
+    const postsToProcess = highlightPosts.slice(0, 4);
+    for (const post of postsToProcess) {
+      const postKeywords = extractKeywordsFromPosts([post], 1);
+      keywords.push(...postKeywords);
+      if (keywords.length >= 10) break;
+    }
+  }
+
+  const uniqueKeywords = [...new Set(keywords)]
+    .filter((kw) => kw && kw.length > 0 && kw.length < 50)
+    .slice(0, 10);
+
+  return uniqueKeywords.join(", ");
+}
+
+function generateHomePageDescription(
+  heroPosts: any[] = [],
+  trendingTags: any[] = []
+): string {
+  // Get hero post title
+  const heroPost =
+    heroPosts && heroPosts.length > 0
+      ? heroPosts[0]?.node || heroPosts[0]
+      : null;
+  const heroTitle = heroPost?.title || "";
+
+  if (!heroTitle) {
+    return "Breaking news, latest updates, and in-depth analysis from Malaysia's independent news source. Free Malaysia Today.";
+  }
+
+  const truncatedTitle = heroTitle.substring(0, 70);
+
+  // Get trending topics
+  let trendingTopics = "Malaysian politics, business, and lifestyle";
+  if (trendingTags && trendingTags.length >= 3) {
+    trendingTopics = trendingTags
+      .slice(0, 3)
+      .map((tag) => tag?.title)
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  const description = `Breaking: ${truncatedTitle}. Latest on ${trendingTopics} from FMT.`;
+  return description.length > 160
+    ? description.substring(0, 157) + "..."
+    : description;
+}
+
+function generateArticleTags(trendingTags: any[] = []): string {
+  if (!trendingTags || trendingTags.length === 0) return "";
+
+  return trendingTags
+    .slice(0, 15)
+    .map((tag) => tag?.title)
+    .filter(Boolean)
+    .join(",");
+}
+
+function generateTrendingTopicsJsonLD(trendingTags: any[]) {
+  if (!trendingTags || trendingTags.length === 0) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Trending Topics on Free Malaysia Today",
+    description: "Currently trending news topics in Malaysia",
+    numberOfItems: trendingTags.length,
+    itemListElement: trendingTags.map((tag, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      item: {
+        "@type": "Thing",
+        name: tag?.title || tag?.slug,
+        url: `${siteConfig.baseUrl}/category/tag/${tag?.slug}`,
+      },
+    })),
+  };
+}
+
 export default function Home({
   heroPosts = [],
   highlightPosts = [],
@@ -60,7 +241,7 @@ export default function Home({
   columnists = [],
   trendingTags = [],
 }: any) {
-  // useVisibilityRefresh();
+  // EXISTING hooks (UNCHANGED)
   const { posts: currentBusinessPosts, loading: businessLoading } =
     useSectionData(businessPosts, "business", 3);
 
@@ -91,15 +272,49 @@ export default function Home({
     5
   );
 
+  // 🆕 Generate dynamic SEO metadata
+  const dynamicKeywords = generateHomePageKeywords(
+    trendingTags,
+    heroPosts,
+    highlightPosts
+  );
+  const newsKeywords = generateNewsKeywords(
+    trendingTags,
+    heroPosts,
+    highlightPosts
+  );
+  const dynamicDescription = generateHomePageDescription(
+    heroPosts,
+    trendingTags
+  );
+  const articleTags = generateArticleTags(trendingTags);
+
+  // Get last modified from hero post
+  const heroPost =
+    heroPosts && heroPosts.length > 0
+      ? heroPosts[0]?.node || heroPosts[0]
+      : null;
+  const lastModified = heroPost?.modifiedGmt || new Date().toISOString();
+
+  // 🆕 Generate structured data
+  const trendingTopicsJsonLD = generateTrendingTopicsJsonLD(trendingTags);
+
   return (
     <>
+      {/* 🆕 ENHANCED Head section - ONLY meta tags changed */}
       <Head>
         <title>{`${siteConfig.siteName} | ${siteConfig.tagline}`}</title>
-        <meta name="description" content={siteConfig.siteDescription} />
-        <meta
-          name="keywords"
-          content="Free Malaysia Today, Malaysia News, Latest Malaysia News, Breaking News Malaysia, Malaysia Politics News, Malaysia Economic News, Malaysia International News, Free News Malaysia, 24/7 News Malaysia, Malaysian Cultural News, English Malay News Online, Comprehensive Malaysian News."
-        />
+
+        {/* 🆕 Dynamic description instead of static */}
+        <meta name="description" content={dynamicDescription} />
+
+        {/* 🆕 NEW: Dynamic keywords */}
+        <meta name="keywords" content={dynamicKeywords} />
+
+        {/* 🆕 NEW: News keywords */}
+        <meta name="news_keywords" content={newsKeywords} />
+
+        {/* EXISTING meta tags (UNCHANGED) */}
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
         <meta
           name="copyright"
@@ -113,9 +328,12 @@ export default function Home({
 
         <meta name="author" content={siteConfig.siteName} />
         <meta name="publisher" content={siteConfig.siteName} />
-
         <link rel="canonical" href={siteConfig.baseUrl} />
 
+        {/* 🆕 NEW: Last modified */}
+        <meta httpEquiv="last-modified" content={lastModified} />
+
+        {/* EXISTING og tags (UNCHANGED) */}
         <link
           rel="alternate"
           type="application/atom+xml"
@@ -150,8 +368,6 @@ export default function Home({
             />
           </>
         )}
-
-        {/* og */}
         {fbPageIds.map((id) => (
           <meta key={id} property="fb:pages" content={id} />
         ))}
@@ -162,9 +378,12 @@ export default function Home({
           content={`${siteConfig?.siteName} | ${siteConfig?.tagline}`}
         />
         <meta property="og:site_name" content={`${siteConfig?.siteName}`} />
-        <meta property="og:description" content={siteConfig?.siteDescription} />
+
+        {/* 🆕 Dynamic OG description */}
+        <meta property="og:description" content={dynamicDescription} />
+
         <meta property="og:image" content={siteConfig?.iconPath} />
-        <meta property="og:image:alt" content="Free Malaysia Today | FMT" />
+        <meta property="og:image:alt" content="Free Malaysia Today || FMT" />
         <meta property="og:locale" content="en_MY" />
         {Array.isArray(defaultAlternateLocale) &&
           defaultAlternateLocale.map((locale: string) => (
@@ -175,7 +394,16 @@ export default function Home({
             />
           ))}
 
-        {/* twitter */}
+        {/* 🆕 NEW: Article meta tags */}
+        <meta
+          property="article:publisher"
+          content="https://www.facebook.com/freemalaysiatoday"
+        />
+        <meta property="article:section" content="Homepage" />
+        {articleTags && <meta property="article:tag" content={articleTags} />}
+        <meta property="article:modified_time" content={lastModified} />
+
+        {/* EXISTING Twitter tags (UNCHANGED) */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
         <meta name="twitter:url" content={siteConfig?.baseUrl} />
@@ -183,15 +411,16 @@ export default function Home({
           name="twitter:title"
           content={`${siteConfig?.siteName} | ${siteConfig?.tagline}`}
         />
-        <meta
-          name="twitter:description"
-          content={siteConfig?.siteDescription}
-        />
+
+        {/* 🆕 Dynamic Twitter description */}
+        <meta name="twitter:description" content={dynamicDescription} />
+
         <meta name="twitter:image" content={siteConfig?.iconPath} />
         <meta name="twitter:image:alt" content="Free Malaysia Today || FMT" />
         <meta name="twitter:creator" content="@fmtoday" />
       </Head>
 
+      {/* EXISTING structured data scripts (UNCHANGED) */}
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
         type="application/ld+json"
@@ -220,6 +449,15 @@ export default function Home({
         }}
         type="application/ld+json"
       />
+
+      {trendingTopicsJsonLD && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(trendingTopicsJsonLD),
+          }}
+        />
+      )}
 
       <main>
         <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
@@ -417,15 +655,12 @@ export default function Home({
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
   try {
-    // Fetch hero (super-highlight) posts first
     const heroPosts = await getCategoryNews("super-highlight", 1, preview);
 
-    // Collect slugs from super-highlight to exclude from highlight posts
     const excludeSlugs = Array.isArray(heroPosts)
       ? heroPosts.map((post) => post?.slug).filter(Boolean)
       : [];
 
-    // Modify the getCategoryNews function to accept an excludeSlugs parameter
     const getFilteredCategoryNews = async (
       categoryName: string,
       limit: number,
@@ -447,11 +682,10 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           .slice(0, limit);
       } catch (error) {
         console.error(`Error fetching ${categoryName} posts:`, error);
-        return []; // Return empty array on error
+        return [];
       }
     };
 
-    // Fetch highlight posts, excluding super-highlight posts
     let highlightPosts = await getFilteredCategoryNews(
       "highlight",
       4,
@@ -460,7 +694,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Retry once after 1s if no posts found
     if (!highlightPosts?.length || highlightPosts.length < 4) {
       await delay(1000);
       console.log("[Home] Retrying highlight posts fetch after 1s...");
@@ -471,14 +704,12 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       );
     }
 
-    // Update excludeSlugs to include highlight posts as well
     if (Array.isArray(highlightPosts)) {
       excludeSlugs.push(
         ...highlightPosts.map((post) => post?.slug).filter(Boolean)
       );
     }
 
-    // Fetch other categories in parallel
     const [
       topNewsPosts,
       businessPosts,
@@ -486,7 +717,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       worldPosts,
       leisurePosts,
       sportsPosts,
-      superBmPosts, // Fetch superBmPosts before topBmPosts
+      superBmPosts,
     ] = await Promise.all([
       getFilteredCategoryNews("top-news", 6).catch(() => []),
       getFilteredCategoryNews("business", 3).catch(() => []),
@@ -497,17 +728,13 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       getFilteredCategoryNews("super-bm", 1).catch(() => []),
     ]);
 
-    // Fetch topBmPosts after superBmPosts to exclude superBm slugs
     const topBmPosts = await getFilteredCategoryNews(
       "top-bm",
       4,
       superBmPosts?.map((post: { slug: string }) => post?.slug)
     );
 
-    // Combine superBmPosts and topBmPosts for Berita section
     const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
-
-    // Fetch video posts
 
     let videoPosts = [];
     try {
@@ -516,11 +743,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       );
       const homepageData = await response.json();
       videoPosts = homepageData.data.videos ?? [];
-
-      // if (!data) {
-      //   throw new Error(`Failed to fetch data: ${data?.statusText}`);
-      // }
-      // videoPosts = data ?? [];
       videoPosts = videoPosts?.slice(0, 5);
     } catch (error) {
       console.error("Failed to fetch videos:", error);
