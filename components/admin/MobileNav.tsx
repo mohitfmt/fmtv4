@@ -26,7 +26,6 @@ import {
   FiMonitor,
   FiLogOut,
   FiUser,
-  FiTrash2,
   FiFileText,
 } from "react-icons/fi";
 import Image from "next/image";
