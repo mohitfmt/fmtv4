@@ -9,8 +9,192 @@ Disallow: /wp-includes/
 Disallow: /*/edit/
 Disallow: /*/edit$
 Disallow: /api/
+Disallow: /video-admin/
+Disallow: /api/video-admin/
+Disallow: /api/revalidate
+Disallow: /api/websub-callback
+Disallow: /api/internal/
 Disallow: /search?q=$
 Disallow: /search?q=&
+Crawl-delay: 0
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: GPTBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Claude-Web
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Google-Extended
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: GoogleOther
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: CCBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: FacebookBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Applebot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Amazonbot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: cohere-ai
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Diffbot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Bytespider
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: YouBot
+Allow: /
+Allow: /_next/
+Allow: /videos/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
 
 User-agent: Googlebot
 Allow: /
@@ -23,6 +207,8 @@ Disallow: /wp-admin/
 Disallow: /wp-includes/
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
 
 User-agent: Googlebot-News
 Allow: /
@@ -34,16 +220,22 @@ Disallow: /wp-admin/
 Disallow: /wp-includes/
 Disallow: /*/edit/
 Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
 
-User-agent: Google-Extended
-Disallow: /
+User-agent: Googlebot-Video
+Allow: /videos/
+Allow: /api/videos/
+Disallow: /wp-admin/
+Disallow: /api/video-admin/
+Crawl-delay: 0
 
-User-agent: GoogleOther
+User-agent: Googlebot-Image
 Allow: /
 Allow: /_next/
-Allow: /videos/
 Disallow: /wp-admin/
-Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
 
 User-agent: FeedFetcher-Google
 Allow: /
@@ -63,33 +255,89 @@ Allow: /
 User-agent: Mediapartners-Google
 Allow: /
 
-User-agent: CCBot
-Disallow: /
+User-agent: Storebot-Google
+Allow: /
 
+User-agent: Bingbot
+Allow: /videos/
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: BingPreview
+Allow: /
+Disallow: /wp-admin/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: msnbot
+Allow: /
+Disallow: /wp-admin/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: msnbot-media
+Allow: /
+Disallow: /wp-admin/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 0
+
+User-agent: Yandex
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+User-agent: Baiduspider
+Allow: /
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /api/
+Disallow: /video-admin/
+Crawl-delay: 1
+
+# Ahrefs
 User-agent: AhrefsBot
 Disallow: /
 
+# Semrush
 User-agent: SemrushBot
 Disallow: /
 
+# Moz
 User-agent: DotBot
 Disallow: /
 
+# Majestic
 User-agent: MJ12bot
 Disallow: /
 
-User-agent: Googlebot-Video
-Allow: /videos/
-Allow: /api/videos/
-Crawl-delay: 0
-
-# Bing specific
-User-agent: Bingbot
-Allow: /videos/
-Crawl-delay: 1
 
 Sitemap: https://cms.freemalaysiatoday.com/sitemap-news.xml
 Sitemap: https://cms.freemalaysiatoday.com/sitemap.xml
+
+Sitemap: https://www.freemalaysiatoday.com/sitemaps-index.xml
 Sitemap: https://www.freemalaysiatoday.com/news-sitemap.xml
 Sitemap: https://www.freemalaysiatoday.com/landing-page-sitemap.xml
 Sitemap: https://www.freemalaysiatoday.com/video-sitemap.xml

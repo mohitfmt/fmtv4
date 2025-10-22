@@ -27,6 +27,7 @@ import {
   FiMonitor,
   FiChevronRight,
   FiTrash2,
+  FiFileText,
 } from "react-icons/fi";
 import Image from "next/image";
 import { LogoSVG } from "../ui/icons/LogoSVG";
@@ -120,6 +121,11 @@ export default function AdminLayout({
       label: "Configuration",
     },
     { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
+    {
+      href: "/video-admin/article-management",
+      icon: FiFileText,
+      label: "Article Management",
+    },
     { href: "/video-admin/tools", icon: FiTrash2, label: "Tools" },
   ];
 

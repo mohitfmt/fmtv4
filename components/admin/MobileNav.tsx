@@ -27,6 +27,7 @@ import {
   FiLogOut,
   FiUser,
   FiTrash2,
+  FiFileText,
 } from "react-icons/fi";
 import Image from "next/image";
 
@@ -38,7 +39,11 @@ interface MobileNavProps {
 const bottomNavItems = [
   { href: "/video-admin", icon: FiHome, label: "Dashboard" },
   { href: "/video-admin/playlists", icon: FiList, label: "Playlists" },
-  { href: "/video-admin/tools", icon: FiTrash2, label: "Tools" },
+  {
+    href: "/video-admin/article-management",
+    icon: FiFileText,
+    label: "Articles",
+  },
   { href: "/video-admin/configuration", icon: FiSettings, label: "Settings" },
 ];
 
