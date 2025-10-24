@@ -74,13 +74,6 @@ function parseDuration(duration: string): number {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-// Helper to determine if video is a Short
-function isShortVideo(duration?: string): boolean {
-  if (!duration) return false;
-  const seconds = parseDuration(duration);
-  return seconds > 0 && seconds <= 60;
-}
-
 // Fetch all items from a playlist (paginated)
 async function fetchAllPlaylistItems(
   playlistId: string,
@@ -316,9 +309,7 @@ async function syncPlaylist(
                   uploadStatus: video.status?.uploadStatus || "processed",
                 },
 
-                isShort: isShortVideo(
-                  video.contentDetails?.duration ?? undefined
-                ),
+                isShort: false,
                 videoType: "standard",
                 tier: "A",
                 isActive: true,

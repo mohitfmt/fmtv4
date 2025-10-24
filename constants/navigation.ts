@@ -179,6 +179,11 @@ export const navigation = [
     ],
   },
   {
+    id: 13,
+    title: "Videos",
+    href: "/videos/",
+  },
+  {
     id: 9,
     title: "Property",
     href: "/category/category/leisure/property/",
@@ -197,11 +202,6 @@ export const navigation = [
     id: 12,
     title: "Gallery",
     href: "/photos/",
-  },
-  {
-    id: 13,
-    title: "Videos",
-    href: "/videos/",
   },
   {
     id: 14,

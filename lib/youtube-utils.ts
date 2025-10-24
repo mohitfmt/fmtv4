@@ -20,17 +20,6 @@ export function parseDuration(duration: string): number {
 }
 
 /**
- * Determine if a video is a YouTube Short based on duration
- * @param duration - ISO 8601 duration string or seconds
- * @returns true if video is 60 seconds or less
- */
-export function isShortVideo(duration: string | number): boolean {
-  const seconds =
-    typeof duration === "string" ? parseDuration(duration) : duration;
-  return seconds > 0 && seconds <= 60;
-}
-
-/**
  * Retry a YouTube API call with exponential backoff
  * @param fn - Function that returns a Promise
  * @param maxRetries - Maximum number of retry attempts

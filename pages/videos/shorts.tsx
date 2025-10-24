@@ -129,7 +129,7 @@ export default function ShortsPage({
 
   // Enhanced SEO metadata
   const pageTitle = `Shorts | ${siteConfig.siteName} - Quick Video Updates`;
-  const pageDescription = `Watch ${totalCount} short-form news videos from Free Malaysia Today. Breaking news, trending topics, and quick updates in under 60 seconds.`;
+  const pageDescription = `Watch ${totalCount} short-form news videos from Free Malaysia Today. Breaking news, trending topics, and quick updates.`;
   const ogImage =
     shorts[0]?.thumbnails?.high?.url ||
     `https://i.ytimg.com/vi/${shorts[0]?.videoId}/frame0.jpg` ||

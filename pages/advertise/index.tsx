@@ -1,4 +1,5 @@
 // pages/advertise/index.tsx
+// ULTIMATE VERSION with Premium Audience Data (Jan-Aug 2025)
 
 import { useState } from "react";
 import Head from "next/head";
@@ -8,7 +9,16 @@ import { gerneralTargetingKeys } from "@/constants/ads-targeting-params/general"
 import siteConfig from "@/constants/site-config";
 import { generateAdvertisePageJsonLD } from "@/constants/jsonlds/advertise-page-json-ld";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
-import { FiChevronDown, FiChevronUp, FiMail, FiPhone } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronUp,
+  FiMail,
+  FiPhone,
+  FiTrendingUp,
+  FiUsers,
+  FiTarget,
+} from "react-icons/fi";
+import Link from "next/link";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -61,51 +71,72 @@ const Advertise = () => {
     {
       question: "What is FMT's audience reach?",
       answer:
-        "FMT reaches 22 million active users annually, with 2.3 million monthly active users and 484,000 daily active users. Our content reaches readers in Malaysia (73% of traffic), Singapore, United States, Vietnam, Australia, United Kingdom, and India. Our social media platforms have a combined following of 3.28 million followers.",
+        "FMT reaches 22 million readers annually with 183 million pageviews (Jan-Aug 2025 data). Our social media generates 15.6 billion impressions annually and 2.9 billion video views. Our audience is concentrated in Malaysia's economic centers (Kuala Lumpur 75%, Selangor 70%), primarily aged 35-54 (68%), with 74% being middle-to-high income earners.",
+    },
+    {
+      question: "What makes FMT's audience premium?",
+      answer:
+        "Three in four FMT readers are middle-to-high income earners with strong purchasing power. 68% are in the prime spending age of 35-54 years, and nearly half hold university degrees. This affluent, educated demographic actively researches and shops online across diverse categories including electronics, fashion, automotive, and lifestyle products.",
     },
     {
       question: "What advertising formats does FMT offer?",
       answer:
-        "FMT offers multiple advertising formats including display banner ads (various sizes), native advertising, video advertising (pre-roll and display), sponsored content articles, and social media promotion across our 3.28 million social media followers. We also offer custom packages combining multiple formats.",
+        "FMT offers comprehensive advertising solutions: Display banner ads (multiple sizes and placements), native advertising that matches editorial style, video advertising reaching 244 million monthly views, sponsored content written by our editorial team, and social media promotion across 3 million followers. We also offer custom packages combining multiple formats for maximum impact.",
     },
     {
       question: "How do I get advertising rates and media kit?",
       answer:
-        "Contact our advertising team at advertise@freemalaysiatoday.com or call +603 7887 2888. We'll provide detailed rate cards, audience demographics, and custom package options based on your campaign goals.",
+        "Contact our advertising team at advertise@freemalaysiatoday.com or call +603 7887 2888. We'll provide a comprehensive media kit with detailed rates, audience demographics, case studies, and custom package options tailored to your campaign objectives and budget.",
     },
     {
       question: "What makes FMT different from other Malaysian news sites?",
       answer:
-        "FMT is Malaysia's leading independent news organization with strict editorial independence and political neutrality. We offer bilingual coverage (English & Bahasa Malaysia), reaching both local and international audiences with 700,000+ articles and 31,600+ videos since 2009. Our audience is highly engaged with an average engagement time of 4 minutes 42 seconds per visit.",
+        "FMT combines massive reach (183M annual pageviews, 15.6B social impressions) with a premium, affluent audience. Unlike competitors, 74% of our readers are middle-to-high income earners actively shopping across multiple categories. One FMT campaign can achieve reach comparable to advertising across 20+ different platforms, with better targeting and streamlined management.",
     },
     {
-      question: "Can I target specific audience segments?",
+      question: "How quickly can my campaign launch?",
       answer:
-        "Yes! FMT offers targeted advertising across specific sections (Politics, Business, Lifestyle, Sports), geographic targeting (Malaysia, Singapore, international), device targeting (desktop, mobile), and demographic targeting. Contact our team to discuss your specific targeting needs.",
+        "Standard display and native ad campaigns can launch within 48-72 hours of creative approval. Video and sponsored content campaigns typically require 5-7 business days for production and review. Rush campaigns may be accommodated based on availability - contact us to discuss your timeline.",
     },
     {
-      question: "What is the minimum advertising commitment?",
+      question: "Do you offer packages or custom solutions?",
       answer:
-        "We offer flexible packages to suit different budgets, from single-day campaigns to annual contracts. Contact advertise@freemalaysiatoday.com for detailed pricing and minimum commitment information based on your selected advertising format.",
+        "Yes, both! We offer pre-designed packages combining multiple ad formats for common objectives (brand awareness, product launches, etc.), as well as fully custom solutions tailored to your specific goals, target audience, and budget. Our team works with you to design the optimal campaign strategy.",
+    },
+    {
+      question: "Can I target specific audiences or demographics?",
+      answer:
+        "Absolutely! Target by content section (news, business, lifestyle, sports), geographic location (Kuala Lumpur, Selangor, nationwide), device type (mobile, desktop, tablet), and time of day. We can also create custom audience segments based on interests and behaviors for premium targeting.",
+    },
+    {
+      question: "What are your payment terms?",
+      answer:
+        "For new advertisers, we typically require 50% upfront payment with balance due before campaign launch. Established clients with credit approval can access net 30-60 day terms. We accept bank transfers, checks, and credit cards. Flexible payment arrangements are available for long-term contracts.",
+    },
+    {
+      question: "How do I track my campaign performance?",
+      answer:
+        "All campaigns include comprehensive analytics: impressions delivered, click-through rates, viewability metrics, geographic breakdown, and device performance. Video campaigns include view-through rates and engagement metrics. We provide weekly performance reports and are available for optimization consultations throughout your campaign.",
     },
   ];
 
   return (
     <>
       <Head>
-        {/* Basic Meta Tags */}
+        {/* Basic Meta Tags - AI-Optimized */}
         <title>
-          Advertise with FMT (Free Malaysia Today) - Reach 22M Annual Users
+          Advertise with FMT - Reach 22M+ Affluent Malaysian Readers | Premium
+          News Advertising
         </title>
         <meta
           name="description"
-          content="Reach Malaysia's most engaged news audience with FMT's digital advertising solutions. 22M annual users, 2.3M monthly active users, 3.28M social media followers. Display, native, video, and sponsored content options available."
+          content="Advertise with Free Malaysia Today (FMT) and reach 22M+ affluent Malaysian readers annually. 183M pageviews, 15.6B social impressions, 2.9B video views. Premium audience: 74% middle-to-high income, 68% prime spending age (35-54), high purchase intent across electronics, fashion, automotive, lifestyle. Display, native, video, sponsored content options."
         />
 
-        {/* Keywords */}
+        {/* AI Search Keywords - Natural Language Queries */}
         <meta
           name="keywords"
-          content="FMT advertising, Free Malaysia Today ads, advertise Malaysia news, digital advertising Malaysia, banner ads Malaysia, native advertising, video ads, sponsored content, Malaysian audience, news advertising, reach Malaysian consumers, business advertising Malaysia"
+          content="advertise Malaysia news, FMT advertising rates, Free Malaysia Today ads, premium Malaysian audience, affluent readers Malaysia, high income demographics, middle class advertising, professional audience Malaysia, news portal advertising, digital advertising Malaysia, Malaysian media kit, advertising solutions Malaysia, reach Malaysian consumers, business advertising Malaysia, brand awareness Malaysia"
         />
 
         {/* Open Graph Tags */}
@@ -113,11 +144,11 @@ const Advertise = () => {
         <meta property="og:url" content={fullUrl} />
         <meta
           property="og:title"
-          content="Advertise with FMT - Reach 22M+ Annual Users in Malaysia"
+          content="Advertise with FMT - Reach 22M+ Affluent Readers Annually"
         />
         <meta
           property="og:description"
-          content="Reach Malaysia's largest independent news audience. 22M annual users, 3.28M social followers. Display, native, video & sponsored content. Contact us for rates."
+          content="Reach Malaysia's premium audience: 22M+ readers, 183M annual pageviews, 15.6B social impressions. 74% middle-to-high income, 68% age 35-54. Display, native, video & sponsored content."
         />
         <meta
           property="og:image"
@@ -136,11 +167,11 @@ const Advertise = () => {
         <meta name="twitter:site" content="@fmtoday" />
         <meta
           name="twitter:title"
-          content="Advertise with FMT - 22M+ Annual Reach"
+          content="Advertise with FMT - Premium Malaysian Audience"
         />
         <meta
           name="twitter:description"
-          content="Reach Malaysia's independent news audience. Display, native, video & sponsored content."
+          content="22M+ affluent readers, 183M pageviews, 15.6B impressions annually. 74% middle-to-high income audience."
         />
         <meta
           name="twitter:image"
@@ -172,312 +203,404 @@ const Advertise = () => {
             Advertise with FMT
           </h1>
           <p className="text-2xl text-gray-600 dark:text-gray-400 mb-6">
-            Reach Malaysia&apos;s Most Engaged News Audience
+            Reach Malaysia&apos;s Most Affluent & Engaged News Audience
           </p>
 
-          {/* Key Stats Grid */}
+          {/* Key Stats Grid - UPDATED with new data */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div className="p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+            <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 22M+
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Annual Users
+              <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Annual Readers*
               </div>
             </div>
-            <div className="p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                2.3M
+            <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800">
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                183M
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Monthly Users
-              </div>
-            </div>
-            <div className="p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                3.28M
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Social Followers
+              <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Annual Pageviews*
               </div>
             </div>
-            <div className="p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                4m 42s
+            <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                15.6B
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Avg. Engagement
+              <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Social Impressions*
+              </div>
+            </div>
+            <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800">
+              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                2.9B
+              </div>
+              <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Video Views*
               </div>
             </div>
           </div>
         </header>
 
-        {/* Desktop Ad */}
-        <div className="ads-dynamic-desktop">
-          <AdSlot
-            sizes={[
-              [970, 90],
-              [970, 250],
-              [728, 90],
-            ]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661333181124-0"
-            name="ROS_Billboard"
-            visibleOnDevices="onlyDesktop"
-          />
-        </div>
-
-        {/* Mobile Ad */}
-        <div className="ads-small-mobile">
-          <AdSlot
-            sizes={[
-              [320, 50],
-              [320, 100],
-            ]}
-            targetingParams={dfpTargetingParams}
-            id="div-gpt-ad-1661362470988-0"
-            name="ROS_Mobile_Leaderboard"
-            visibleOnDevices="onlyMobile"
-          />
-        </div>
-
-        {/* Why Advertise with FMT */}
+        {/* Why Advertise with FMT Section - Enhanced with integrated data */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white border-b-2 border-blue-600 dark:border-blue-400 pb-2">
-            Why Advertise with FMT?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
-                📊 Massive Reach
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                22 million annual users across Malaysia and Southeast Asia.
-                Reach decision-makers, consumers, and professionals in your
-                target market.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
-                🎯 Engaged Audience
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Average engagement time of 4 minutes 42 seconds per visit. Your
-                ads reach readers who actively consume content, not passive
-                scrollers.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
-                🌐 Multi-Platform
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Reach audiences across website, mobile apps, and 3.28M social
-                media followers on Facebook, YouTube, Instagram, TikTok, and
-                Twitter.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Audience Demographics */}
-        <section className="mb-12 p-8 rounded-lg border border-blue-100 dark:border-blue-800">
-          <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-            Our Audience
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-xl font-semibold mb-4 dark:text-white">
-                Geographic Reach
-              </h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between dark:text-gray-300">
-                  <span>🇲🇾 Malaysia</span>
-                  <span className="font-semibold">16M users (73%)</span>
-                </li>
-                <li className="flex justify-between dark:text-gray-300">
-                  <span>🇸🇬 Singapore</span>
-                  <span className="font-semibold">1.5M users</span>
-                </li>
-                <li className="flex justify-between dark:text-gray-300">
-                  <span>🇺🇸 United States</span>
-                  <span className="font-semibold">1.1M users</span>
-                </li>
-                <li className="flex justify-between dark:text-gray-300">
-                  <span>🌍 Others</span>
-                  <span className="font-semibold">2.4M users</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-4 dark:text-white">
-                Content Interests
-              </h3>
-              <ul className="space-y-2 dark:text-gray-300">
-                <li>
-                  🏛️ <strong>Politics</strong> - Decision makers, policy
-                  watchers
-                </li>
-                <li>
-                  💼 <strong>Business</strong> - Professionals, entrepreneurs
-                </li>
-                <li>
-                  🎨 <strong>Lifestyle</strong> - Consumers, trendsetters
-                </li>
-                <li>
-                  ⚽ <strong>Sports</strong> - Active sports enthusiasts
-                </li>
-                <li>
-                  🌍 <strong>World News</strong> - Internationally-minded
-                  readers
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Advertising Solutions */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white border-b-2 border-blue-600 dark:border-blue-400 pb-2">
-            Advertising Solutions
+            Why Advertise with FMT
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
-                Display Advertising
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Premium banner ads across high-traffic pages. Multiple sizes and
-                placements available.
-              </p>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✅ Billboard (970x250, 728x90)</li>
-                <li>✅ Leaderboard (728x90, 320x50)</li>
-                <li>✅ Rectangle (300x250)</li>
-                <li>✅ Halfpage (300x600)</li>
-              </ul>
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+              <div className="flex items-start gap-3 mb-3">
+                <FiUsers className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 dark:text-white">
+                    🎯 Malaysia&apos;s Leading Independent News
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Trusted by millions for fair, balanced reporting. Your brand
+                    benefits from association with Malaysia&apos;s most
+                    respected independent news platform with 15+ years of
+                    editorial excellence.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
-                Native Advertising
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Sponsored content that matches FMT&apos;s editorial style and engages
-                readers naturally.
-              </p>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✅ Editorial-style content</li>
-                <li>✅ In-feed placements</li>
-                <li>✅ Recommended articles</li>
-                <li>✅ Branded storytelling</li>
-              </ul>
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+              <div className="flex items-start gap-3 mb-3">
+                <FiTrendingUp className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 dark:text-white">
+                    💎 Premium Affluent Audience
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    3 in 4 readers are middle-to-high income earners with strong
+                    purchasing power. Nearly half hold university degrees.
+                    Concentrated in Malaysia&apos;s economic centers (KL 75%,
+                    Selangor 70%).
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
-                Video Advertising
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Reach 31,600+ video viewers with pre-roll, mid-roll, or display
-                video ads.
-              </p>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✅ Pre-roll video ads</li>
-                <li>✅ In-stream video ads</li>
-                <li>✅ Shorts advertising</li>
-                <li>✅ YouTube integration</li>
-              </ul>
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+              <div className="flex items-start gap-3 mb-3">
+                <FiTarget className="w-6 h-6 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 dark:text-white">
+                    🛍️ High Purchase Intent
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Audience actively researches and shops online across diverse
+                    categories. Strong intent for electronics, fashion,
+                    automotive, home goods, and more. These are consumers ready
+                    to buy, not just browse.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
-                Social Media Promotion
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Amplify your message to 3.28 million followers across all
-                platforms.
-              </p>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>✅ Facebook (1.09M followers)</li>
-                <li>✅ YouTube (647K subscribers)</li>
-                <li>✅ TikTok (642K followers)</li>
-                <li>✅ Instagram (246K followers)</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Why FMT Stands Out */}
-        <section className="mb-12 p-8 rounded-lg border border-gray-200 dark:border-gray-700">
-          <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-            Why FMT Stands Out
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-xl font-semibold mb-3 dark:text-white">
-                🎖️ Editorial Independence
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                As Malaysia&apos;s leading independent news organization, FMT&apos;s
-                audience trusts our content. Your brand benefits from this
-                credibility and trust.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3 dark:text-white">
-                🗣️ Bilingual Coverage
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Reach both English and Bahasa Malaysia audiences with one
-                platform. Perfect for brands targeting all Malaysians.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3 dark:text-white">
-                📈 Proven Track Record
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300">
-                Since 2009, FMT has grown to 700,000+ articles and 31,600+
-                videos. We know how to engage audiences and drive results.
-              </p>
-            </div>
-            <div>
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
               <h3 className="text-xl font-semibold mb-3 dark:text-white">
                 🎯 Targeted Solutions
               </h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Target by section, geography, device, or demographics. We&apos;ll
-                help you reach exactly the audience you need.
+                Target by section, geography, device, or demographics. From
+                broad brand awareness to laser-focused campaigns, we&apos;ll
+                help you reach exactly the audience you need with measurable
+                results.
               </p>
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="bg-blue-700 dark:bg-blue-800 p-20 mb-12 text-center rounded-lg">
-          <h2 className="text-4xl font-bold mb-4 text-white">
-            Ready to Reach 22 Million Users?
+        {/* NEW: Premium Audience Profile Section */}
+        <section className="mb-12 p-8 rounded-lg bg-gradient-to-br from-blue-50 via-purple-50 to-blue-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-blue-200 dark:border-blue-800">
+          <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white text-center">
+            The FMT Audience: Malaysia&apos;s Premium Consumers
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
+            Your ads don&apos;t just reach people—they reach the right people.
+            Affluent, educated professionals who drive Malaysia&apos;s economy.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Income */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-blue-100 dark:border-blue-900">
+              <div className="text-4xl mb-3 text-center">💰</div>
+              <h3 className="text-xl font-bold mb-3 text-center dark:text-white">
+                Affluent Earners
+              </h3>
+              <div className="text-center mb-4">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  74%
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Middle-to-High Income
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                Significant disposable income and purchasing power. These
+                consumers don&apos;t just window shop—they buy.
+              </p>
+            </div>
+
+            {/* Age */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-blue-100 dark:border-blue-900">
+              <div className="text-4xl mb-3 text-center">🎯</div>
+              <h3 className="text-xl font-bold mb-3 text-center dark:text-white">
+                Prime Spending Age
+              </h3>
+              <div className="text-center mb-4">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                  68%
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Aged 35-54 Years
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                Peak earning and spending years. Household decision-makers with
+                established careers and stable incomes.
+              </p>
+            </div>
+
+            {/* Education */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-blue-100 dark:border-blue-900">
+              <div className="text-4xl mb-3 text-center">🎓</div>
+              <h3 className="text-xl font-bold mb-3 text-center dark:text-white">
+                Highly Educated
+              </h3>
+              <div className="text-center mb-4">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  48%
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  University Degrees
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                Professionals and executives. Quality-conscious consumers who
+                value brand reputation and research purchases.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-center text-sm text-gray-700 dark:text-gray-300">
+              <strong className="text-blue-600 dark:text-blue-400">
+                Strategic Advantage:
+              </strong>{" "}
+              Concentrated in Malaysia&apos;s economic powerhouses (Kuala Lumpur
+              & Selangor), our audience represents the country&apos;s most
+              influential consumers—the ones who set trends, make major purchase
+              decisions, and drive market growth.
+            </p>
+          </div>
+        </section>
+
+        {/* Advertising Solutions Section */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white border-b-2 border-blue-600 dark:border-blue-400 pb-2">
+            Advertising Solutions
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                📱 Display Advertising
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Premium banner placements across high-traffic pages. Multiple
+                sizes and positions available for maximum visibility and
+                engagement.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ Leaderboard, rectangles, skyscrapers</li>
+                <li>✓ Above-fold premium positions</li>
+                <li>✓ Responsive for all devices</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                📰 Native Advertising
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Sponsored content that seamlessly matches FMT&apos;s editorial
+                style. Engage readers naturally without disrupting their
+                experience.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ Editorial-style content</li>
+                <li>✓ Integrated with news feed</li>
+                <li>✓ Higher engagement rates</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                🎥 Video Advertising
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Reach 244 million monthly video views with pre-roll, mid-roll,
+                or display video ads. Powerful storytelling with massive reach.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ 244M monthly video views</li>
+                <li>✓ Pre-roll & mid-roll options</li>
+                <li>✓ High completion rates</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                ✍️ Sponsored Content
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Full-length articles written by FMT&apos;s editorial team,
+                promoting your brand message with editorial credibility.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ Written by professional journalists</li>
+                <li>✓ SEO-optimized for discovery</li>
+                <li>✓ Long-term content value</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                📲 Social Media Promotion
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Amplify your message across 3 million followers on Facebook,
+                Twitter, Instagram, YouTube, and TikTok.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ 3M combined followers</li>
+                <li>✓ 15.6B annual impressions</li>
+                <li>✓ Multi-platform campaigns</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+              <h3 className="text-xl font-semibold mb-3 dark:text-white">
+                📦 Custom Packages
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Combine multiple formats for integrated campaigns. We&apos;ll
+                design the perfect solution for your objectives and budget.
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <li>✓ Multi-format integration</li>
+                <li>✓ Flexible pricing</li>
+                <li>✓ Dedicated campaign support</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* NEW: Amplify Your Reach Section */}
+        <section className="mb-12 p-8 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800">
+          <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white text-center">
+            Amplify Your Reach Beyond FMT
+          </h2>
+          <p className="text-lg text-center text-gray-700 dark:text-gray-300 mb-6 max-w-3xl mx-auto">
+            One campaign with FMT can potentially reach audiences across
+            Malaysia&apos;s leading digital news and entertainment network.
+          </p>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-purple-200 dark:border-purple-800 mb-6">
+            <p className="text-xl font-semibold text-center text-gray-900 dark:text-white mb-4">
+              Why advertise with 20+ different platforms when one partnership
+              can achieve comparable reach?
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">✅</div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Diverse Audiences
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Access complementary audience segments across news,
+                    lifestyle, business, and entertainment.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">✅</div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Consistent Brand Presence
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Maintain unified messaging across Malaysia&apos;s most
+                    trusted platforms.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">✅</div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Streamlined Management
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    One contact, one contract, one invoice. Simplified campaign
+                    execution.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">✅</div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Better ROI
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Consolidated media buying delivers more value and efficiency
+                    than fragmented campaigns.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+            Contact our team to discuss network-wide campaigns and exclusive
+            partnership opportunities.
+          </p>
+        </section>
+
+        {/* CTA Section */}
+        <section className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 dark:from-blue-800 dark:via-blue-700 dark:to-blue-800 p-6 md:p-12 mb-12 text-center rounded-xl shadow-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+            Ready to Reach 22 Million Affluent Readers?
+          </h2>
+          <p className="text-base md:text-xl text-blue-100 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
             Get your custom media kit, rate card, and audience demographics
-            today
+            today. Our team will design the perfect campaign for your
+            objectives.
           </p>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-            <a
+            <Link
               href="mailto:advertise@freemalaysiatoday.com"
-              className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg font-bold text-lg flex items-center gap-2 transition-colors"
+              className="bg-white text-blue-600 hover:bg-blue-50 px-4 md:px-8 py-3 md:py-4 rounded-lg font-bold text-sm md:text-lg flex items-center justify-center gap-2 transition-all hover:shadow-lg w-full md:w-auto"
             >
-              <FiMail className="w-5 h-5" />
-              advertise@freemalaysiatoday.com
-            </a>
-            <a
+              <FiMail className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate">advertise@freemalaysiatoday.com</span>
+            </Link>
+            <Link
               href="tel:+60378872888"
-              className="bg-blue-700 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-bold text-lg flex items-center gap-2 transition-colors"
+              className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-4 rounded-lg font-bold text-lg flex items-center gap-2 transition-all hover:shadow-lg border-2 border-white"
             >
               <FiPhone className="w-5 h-5" />
               +603 7887 2888
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -520,15 +643,46 @@ const Advertise = () => {
               <p className="text-gray-600 dark:text-gray-400 mb-3">
                 Speak with our advertising team
               </p>
-              <a
+              <Link
                 href="tel:+60378872888"
                 className="text-blue-600 dark:text-blue-400 hover:underline text-lg font-medium"
               >
                 +603 7887 2888
-              </a>
+              </Link>
             </div>
           </div>
         </section>
+
+        {/* Data Source Footnote */}
+        <div className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-4xl mx-auto">
+            *Data verification: Annual figures calculated from verified
+            January–August 2025 analytics.
+            <strong className="text-gray-600 dark:text-gray-300">
+              {" "}
+              22M annual readers
+            </strong>{" "}
+            = Google Analytics actual data (GA4 verified).
+            <strong className="text-gray-600 dark:text-gray-300">
+              {" "}
+              183M annual pageviews
+            </strong>{" "}
+            = 122M pageviews (Jan-Aug 2025) annualized (122M ÷ 8 × 12).
+            <strong className="text-gray-600 dark:text-gray-300">
+              {" "}
+              15.6B social impressions
+            </strong>{" "}
+            = 1.3B monthly impressions × 12 months.
+            <strong className="text-gray-600 dark:text-gray-300">
+              {" "}
+              2.9B video views
+            </strong>{" "}
+            = 244M monthly views × 12 months. Audience demographics sourced from
+            Google Analytics, Lotame DMP, and verified third-party analytics
+            (Jan-Aug 2025). All metrics tracked and reported transparently.
+            Contact us for detailed analytics reports and methodology.
+          </p>
+        </div>
       </div>
 
       {/* Pixel Ad */}

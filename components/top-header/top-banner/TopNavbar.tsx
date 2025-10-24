@@ -52,7 +52,7 @@ const TopNavbar = ({ navigation }: Props) => {
               <Link
                 href={item.href}
                 aria-label={`View more ${item.title} articles`}
-                className={`py-1 px-2.5 rounded-md font-semibold flex items-center ${
+                className={`py-1 px-2.5 rounded-md font-semibold inline-flex items-center gap-1 relative ${
                   isParentActive(item)
                     ? "bg-accent-blue text-white"
                     : "hover:bg-accent-blue hover:text-white"

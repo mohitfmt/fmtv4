@@ -171,7 +171,7 @@ export default function DesktopShortsView({
             <div>
               <h1 className="text-3xl font-bold">Shorts</h1>
               <p className="text-muted-foreground">
-                Quick videos under 60 seconds
+                Quick videos
               </p>
             </div>
           </div>
