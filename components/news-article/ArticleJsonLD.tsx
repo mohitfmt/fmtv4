@@ -1,9 +1,10 @@
 import React from "react";
 import siteConfig from "@/constants/site-config";
 import { stripHTML } from "@/lib/utils";
-import { OrgJsonLD, WebPageJsonLD } from "@/constants/jsonlds/org";
+import { OrgJsonLD } from "@/constants/jsonlds/org";
 import { ArticleData } from "@/types/global";
 import { generateStructuredDataImages } from "@/lib/image-utils";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 const extractFirstParagraph = (htmlContent: string): string | null => {
   const paragraphPattern = /<p>(.*?)<\/p>/;
@@ -207,7 +208,7 @@ const ArticleJsonLD: React.FC<{ data: ArticleData; relatedData: any }> = ({
   const relatedNode = getRelatedNewsJsonLd(relatedData);
 
   // WebPage
-  const { "@context": _ctx, ...webPageNode } = WebPageJsonLD;
+  const { ...webPageNode } = getWebPageSchema();
 
   // Assemble @graph
   const graph = [

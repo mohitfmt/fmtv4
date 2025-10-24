@@ -1,5 +1,11 @@
+// constants/jsonlds/org.ts
+
 import siteConfig from "../site-config";
 
+/**
+ * OrgJsonLD - Lightweight organization schema
+ * SINGLE SOURCE OF TRUTH for basic organization data
+ */
 export const OrgJsonLD = {
   "@context": "https://www.schema.org",
   "@type": "NewsMediaOrganization",
@@ -33,16 +39,38 @@ export const OrgJsonLD = {
   },
   isAccessibleForFree: true,
   sameAs: [
-    "https://www.facebook.com/freemalaysiatoday/",
-    "https://www.instagram.com/freemalaysiatoday",
-    "https://x.com/fmtoday",
-    "https://t.me/FreeMalaysiaToday",
-    "https://www.youtube.com/@FreeMalaysiaToday",
-    "https://www.linkedin.com/company/fmt-news/",
-    "https://www.tiktok.com/@freemalaysiatoday",
+    // Facebook Profiles
+    "https://www.facebook.com/freemalaysiatoday", // Main English
+    "https://www.facebook.com/beritafmt", // Bahasa Malaysia
+    "https://www.facebook.com/fmtlifestyle", // Lifestyle section
+
+    // Twitter/X
+    "https://x.com/fmtoday", // Rebranded from Twitter
+
+    // Instagram
+    "https://www.instagram.com/freemalaysiatoday", // Main
+    "https://www.instagram.com/fmtlifestyle", // Lifestyle
+
+    // YouTube
+    "https://www.youtube.com/@FreeMalaysiaToday", // Modern handle format
+
+    // Professional Networks
+    "https://www.linkedin.com/company/fmt-news",
+
+    // TikTok (3 channels)
+    "https://www.tiktok.com/@freemalaysiatoday", // Main English
+    "https://www.tiktok.com/@berita.fmt", // Bahasa Malaysia
+    "https://www.tiktok.com/@fmt.lifestyle", // Lifestyle
+
+    // Messaging Platforms
+    "https://t.me/FreeMalaysiaToday", // Telegram
+    "https://www.whatsapp.com/channel/0029Va78sJa96H4VaQu6580F", // WhatsApp Channel
+
+    // Wikipedia
     "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
     "https://ms.wikipedia.org/wiki/Free_Malaysia_Today",
   ],
+
   logo: {
     "@context": "https://schema.org",
     "@type": "ImageObject",
@@ -106,65 +134,118 @@ export const OrgJsonLD = {
   ].join(", "),
 };
 
-export const websiteJSONLD = {
-  "@context": "https://schema.org",
-  "@type": ["WebSite", "CreativeWork"],
-  name: "Free Malaysia Today Website",
-  description:
-    "Explore 24/7 news on politics, economy, and more with Free Malaysia Today. Your source for unbiased Malaysian news in English & Malay since 2009.",
-  url: `${siteConfig.baseUrl}`,
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${siteConfig.baseUrl}search/?term={search_term_string}&category=all`,
+export const FullOrgJsonLD = {
+  ...OrgJsonLD, // Start with lightweight base
+
+  // ✅ Enhanced contact points (5 different types)
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      contactType: "editorial",
+      email: "editor@freemalaysiatoday.com",
+      availableLanguage: ["English", "Bahasa Malaysia"],
+      description: "For news tips and editorial queries",
     },
-    "query-input": "required name=search_term_string",
-  },
-};
-
-export const WebPageJsonLD = {
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  additionalType: "News_Website",
-  url: `${siteConfig.baseUrl}`,
-  name: `${siteConfig.baseUrl}`,
-  inLanguage: [
-    "en-MY",
-    "en-US",
-    "en-GB",
-    "en-AU",
-    "en-CA",
-    "en-NZ",
-    "en-IE",
-    "en-IN",
-    "en-SG",
-    "en-ZA",
-    "en-PH",
-    "en-HK",
-    "en-PK",
-    "ms-MY",
-    "id-ID",
-    "jv-ID",
-    "su-ID",
-    "ms-BN",
-    "ms-SG",
+    {
+      "@type": "ContactPoint",
+      contactType: "advertising sales",
+      email: "advertise@freemalaysiatoday.com",
+      availableLanguage: ["English", "Bahasa Malaysia"],
+      description: "For advertising rates and queries",
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "admin@freemalaysiatoday.com",
+      telephone: "+60378872888",
+      availableLanguage: ["English", "Bahasa Malaysia"],
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "public engagement",
+      email: "letters@freemalaysiatoday.com",
+      availableLanguage: ["English", "Bahasa Malaysia"],
+      description: "For letters to the editor and public submissions",
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "recruitment",
+      email: "career@freemalaysiatoday.com",
+      availableLanguage: ["English", "Bahasa Malaysia"],
+      description: "For career opportunities at FMT",
+    },
   ],
-  publisher: OrgJsonLD,
-  isPartOf: websiteJSONLD,
-  breadcrumb: {
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        item: {
-          "@id": "https://www.freemalaysiatoday.com/",
-          name: "Home",
-        },
-      },
-    ],
+
+  areaServed: [
+    // Primary Market
+    { "@type": "Country", name: "Malaysia" },
+
+    // Southeast Asia (ASEAN Countries)
+    { "@type": "Country", name: "Singapore" },
+    { "@type": "Country", name: "Indonesia" },
+    { "@type": "Country", name: "Thailand" },
+    { "@type": "Country", name: "Vietnam" },
+    { "@type": "Country", name: "Philippines" },
+    { "@type": "Country", name: "Brunei" },
+    { "@type": "Country", name: "Myanmar" },
+    { "@type": "Country", name: "Cambodia" },
+    { "@type": "Country", name: "Laos" },
+
+    // Major English-Speaking Markets
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "Canada" },
+    { "@type": "Country", name: "New Zealand" },
+
+    // Other Significant Markets
+    { "@type": "Country", name: "India" },
+    { "@type": "Country", name: "Hong Kong" },
+    { "@type": "Country", name: "United Arab Emirates" },
+  ],
+
+  // ✅ NEW: E-E-A-T Policies (Critical for Google Trust Signals)
+  publishingPrinciples: `${siteConfig.baseUrl}/about#editorial-policy`,
+  ethicsPolicy: `${siteConfig.baseUrl}/about#ethics-standards`,
+  correctionsPolicy: `${siteConfig.baseUrl}/about#corrections`,
+  diversityPolicy: `${siteConfig.baseUrl}/about#diversity`,
+  ownershipFundingInfo: `${siteConfig.baseUrl}/about#ownership`,
+
+  // ✅ NEW: Founder information
+  founder: {
+    "@type": "Person",
+    name: "Dato' Nelson Fernandez",
+    jobTitle: "Executive Chairman & CEO",
+    worksFor: {
+      "@id": `${siteConfig.baseUrl}#organization`,
+    },
+  },
+
+  knowsAbout: [
+    "Malaysian Politics",
+    "Southeast Asian News",
+    "Business & Economy",
+    "Technology",
+    "Sports",
+    "Lifestyle",
+    "Entertainment",
+    "International Affairs",
+    "Breaking News",
+    "Investigative Journalism",
+  ],
+
+  // ✅ NEW: Awards and achievements (E-E-A-T signals)
+  award: [
+    "Leading Independent News Portal in Malaysia",
+    "22 Million Annual Users",
+    "700,000+ Published Articles",
+    "31,600+ Published Videos",
+  ],
+
+  // ✅ NEW: Detailed employee count
+  numberOfEmployees: {
+    "@type": "QuantitativeValue",
+    value: 100,
+    unitText: "employees",
   },
 };
-
-

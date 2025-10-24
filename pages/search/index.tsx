@@ -1,9 +1,10 @@
 import Head from "next/head";
-import { WebPageJsonLD } from "@/constants/jsonlds/org";
+// import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import SearchLayout from "@/components/search-page/SearchLayout";
 import siteConfig from "@/constants/site-config";
 import { useRouter } from "next/router";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 const DEFAULT_KEYWORDS = [
   "Free Malaysia Today Search",
@@ -132,7 +133,9 @@ const Search = () => {
           content="Latest News | Free Malaysia Today"
         />
         <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(getWebPageSchema()),
+          }}
           type="application/ld+json"
         />
         <script

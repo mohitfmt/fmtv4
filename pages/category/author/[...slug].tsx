@@ -5,8 +5,9 @@ import AuthorLayout from "@/components/author-page/AuthorLayout";
 import { getAuthor } from "@/lib/gql-queries/get-user";
 import siteConfig from "@/constants/site-config";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
-import { WebPageJsonLD } from "@/constants/jsonlds/org";
+// import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 interface Author {
   name: string;
@@ -150,7 +151,9 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(getWebPageSchema()),
+          }}
           type="application/ld+json"
         />
       </Head>

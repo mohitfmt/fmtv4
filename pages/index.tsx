@@ -8,7 +8,7 @@ import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPrevie
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
-import { WebPageJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
+// import { WebPageJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { getColumnists } from "@/lib/gql-queries/get-columnists";
@@ -25,6 +25,10 @@ import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { prisma } from "@/lib/prisma";
+import {
+  getWebPageSchema,
+  getWebsiteSchema,
+} from "@/constants/jsonlds/shared-schemas";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -422,11 +426,11 @@ export default function Home({
 
       {/* EXISTING structured data scripts (UNCHANGED) */}
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebsiteSchema()) }}
         type="application/ld+json"
       />
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebPageSchema()) }}
         type="application/ld+json"
       />
       <script

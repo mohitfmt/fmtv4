@@ -2,7 +2,7 @@
 import Head from "next/head";
 // import { generatedJsonLd } from "@/constants/jsonlds/json-ld-generator";
 import { generateCategoryJsonLD } from "@/constants/jsonlds/category-json-ld";
-import { WebPageJsonLD } from "@/constants/jsonlds/org";
+// import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { fbPageIds } from "@/constants/social";
 import {
@@ -13,6 +13,7 @@ import {
   getCanonicalUrl,
   getAlternateUrls,
 } from "@/constants/canonical-url-mappings";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 interface MetadataConfig {
   title: string;
@@ -275,7 +276,7 @@ export const CategoryJsonLD = ({
   return (
     <section>
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebPageSchema()) }}
         type="application/ld+json"
       />
       <script

@@ -2,13 +2,14 @@ import { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import siteConfig from "@/constants/site-config";
-import { websiteJSONLD } from "@/constants/jsonlds/org";
+// import { websiteJSONLD } from "@/constants/jsonlds/org";
 import { getAllPostsWithSlug } from "@/lib/gql-queries/get-all-posts-with-slug";
 import { getSafeTags, stripHTML } from "@/lib/utils";
 import { getMoreStories, getRelatedPosts } from "@/lib/api";
 import PhotoDetail from "@/components/gallery/PhotoDetials";
 import GalleryLayout from "@/components/gallery/GalleryLayout";
 import { getPostAndMorePosts } from "@/lib/gql-queries/get-post-and-more-posts";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 // Default categories if none are provided
 const DEFAULT_CATEGORIES = ["Photos", "Gallery"];
@@ -491,7 +492,7 @@ const NewsArticlePost = ({
 
       {/* JSON-LD Structured Data */}
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJSONLD) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebPageSchema()) }}
         type="application/ld+json"
       />
       <script

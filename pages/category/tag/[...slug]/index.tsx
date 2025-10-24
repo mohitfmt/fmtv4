@@ -7,8 +7,9 @@ import Head from "next/head";
 import siteConfig from "@/constants/site-config";
 import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
-import { WebPageJsonLD } from "@/constants/jsonlds/org";
+// import { WebPageJsonLD } from "@/constants/jsonlds/org";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
+import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 
 interface TagNode {
   uri: string;
@@ -186,7 +187,9 @@ export default function TagPage({ tag, posts }: TagPageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <script
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WebPageJsonLD) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(getWebPageSchema()),
+          }}
           type="application/ld+json"
         />
       </Head>
