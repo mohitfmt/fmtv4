@@ -1,3 +1,6 @@
+// lib/gql-queries/gql-fetch-api.ts
+// ✅ UPDATED: Added timeout + better error handling
+
 const API_URL =
   process.env.WORDPRESS_API_URL || "https://cms.freemalaysiatoday.com/graphql";
 
@@ -6,11 +9,17 @@ export async function gqlFetchAPI(
   {
     variables,
     headers = {},
+    timeout = 8000, // ✅ NEW: 8-second timeout
   }: {
     variables?: any;
     headers?: Record<string, string>;
+    timeout?: number; // ✅ NEW: Configurable timeout
   } = {}
 ) {
+  // ✅ NEW: Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
     const baseHeaders: Record<string, string> = {
       "Content-Type": "application/json",
@@ -26,38 +35,63 @@ export async function gqlFetchAPI(
         variables,
       }),
       cache: "no-store",
+      signal: controller.signal, // ✅ NEW: Abort on timeout
     });
+
+    // ✅ NEW: Clear timeout if request completes
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error(
-        "[Network response error]",
-        JSON.stringify({
-          status: res.status,
-          statusText: res.statusText,
-          body: errorText,
-        })
+
+      // ✅ IMPROVED: More detailed error logging
+      console.error("[gqlFetchAPI] HTTP Error:", {
+        status: res.status,
+        statusText: res.statusText,
+        body: errorText.substring(0, 200),
+        query: query.substring(0, 100), // First 100 chars of query
+        variables: JSON.stringify(variables || {}).substring(0, 200),
+      });
+
+      throw new Error(
+        `GraphQL HTTP ${res.status}: ${errorText.substring(0, 100)}`
       );
-      throw new Error(`Network response was not ok: ${res.status}`);
     }
 
     const json = await res.json();
 
     if (json.errors) {
-      console.error("GraphQL Errors:", json.errors);
-      throw new Error(json.errors[0]?.message || "Failed to fetch API");
+      // ✅ IMPROVED: Log GraphQL errors with context
+      console.error("[gqlFetchAPI] GraphQL Errors:", {
+        errors: json.errors,
+        query: query.substring(0, 100),
+        variables: JSON.stringify(variables || {}).substring(0, 200),
+      });
+
+      throw new Error(json.errors[0]?.message || "GraphQL query failed");
     }
 
     return json.data;
-  } catch (error) {
-    console.error(
-      "[API Call Error]",
-      JSON.stringify({
-        error,
-        query,
-        variables,
-      })
-    );
+  } catch (error: any) {
+    // ✅ NEW: Handle timeout specifically
+    if (error.name === "AbortError") {
+      console.error(`[gqlFetchAPI] ⏱️  Timeout after ${timeout}ms:`, {
+        query: query.substring(0, 100),
+        variables: JSON.stringify(variables || {}).substring(0, 200),
+      });
+      throw new Error(`WordPress query timeout (>${timeout}ms)`);
+    }
+
+    // ✅ IMPROVED: Better error context
+    console.error("[gqlFetchAPI] Request failed:", {
+      error: error.message,
+      query: query.substring(0, 100),
+      variables: JSON.stringify(variables || {}).substring(0, 200),
+    });
+
     throw error;
+  } finally {
+    // ✅ NEW: Always clear timeout
+    clearTimeout(timeoutId);
   }
 }

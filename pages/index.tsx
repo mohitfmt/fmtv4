@@ -8,7 +8,6 @@ import TTBNewsPreview from "@/components/common/news-preview-cards/TTBNewsPrevie
 import ColumnistCredits from "@/components/landing-pages/ColumnistCredits";
 import LatestVideosOnHomePage from "@/components/landing-pages/LatestVideosOnHomePage";
 import SuperNewsPreview from "@/components/landing-pages/SuperNewsPreview";
-// import { WebPageJsonLD, websiteJSONLD } from "@/constants/jsonlds/org";
 import siteConfig from "@/constants/site-config";
 import { getCategoryNews } from "@/lib/gql-queries/get-category-news";
 import { getColumnists } from "@/lib/gql-queries/get-columnists";
@@ -18,8 +17,6 @@ import Head from "next/head";
 import Link from "next/link";
 import CategorySidebar from "@/components/common/CategorySidebar";
 import HomeFooter from "@/components/landing-pages/HomeFooter";
-import { useSectionData } from "@/hooks/useSectionData";
-import { BusinessSectionSkeleton } from "@/components/skeletons/HomePageSkeletons";
 import HomeCommonSections from "@/components/landing-pages/HomeCommonSections";
 import HomeTopNewsOpinion from "@/components/landing-pages/HomeTopNewsOpinion";
 import { fbPageIds } from "@/constants/social";
@@ -81,8 +78,6 @@ function extractKeywordsFromPosts(
         }
       });
     }
-    console.log(actualPost, actualPost?.tags);
-
     if (keywords.length >= maxKeywords) break;
   }
 
@@ -244,38 +239,8 @@ export default function Home({
   videoPosts = [],
   columnists = [],
   trendingTags = [],
+  _buildError = false,
 }: any) {
-  // EXISTING hooks (UNCHANGED)
-  const { posts: currentBusinessPosts, loading: businessLoading } =
-    useSectionData(businessPosts, "business", 3);
-
-  const { posts: currentWorldPosts, loading: worldLoading } = useSectionData(
-    worldPosts,
-    "world",
-    5
-  );
-
-  const { posts: currentSportsPosts, loading: sportsLoading } = useSectionData(
-    sportsPosts,
-    "sports",
-    5
-  );
-
-  const { posts: currentTopNewsPosts, loading: topNewsLoading } =
-    useSectionData(topNewsPosts, "top-news", 6);
-
-  const { posts: currentOpinionPosts, loading: opinionLoading } =
-    useSectionData(opinionPosts, "opinion", 6);
-
-  const { posts: currentLeisurePosts, loading: leisureLoading } =
-    useSectionData(leisurePosts, "leisure", 5);
-
-  const { posts: currentBeritaPosts, loading: beritaLoading } = useSectionData(
-    beritaPosts,
-    "top-bm",
-    5
-  );
-
   // 🆕 Generate dynamic SEO metadata
   const dynamicKeywords = generateHomePageKeywords(
     trendingTags,
@@ -305,6 +270,25 @@ export default function Home({
 
   return (
     <>
+      {/* ✅ NEW: Show build error banner if sections failed */}
+      {_buildError && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                Some content is temporarily unavailable. We&apos;re working to
+                restore it.
+                <button
+                  onClick={() => window.location.reload()}
+                  className="ml-2 underline font-semibold"
+                >
+                  Refresh page
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 🆕 ENHANCED Head section - ONLY meta tags changed */}
       <Head>
         <title>{`${siteConfig.siteName} | ${siteConfig.tagline}`}</title>
@@ -473,15 +457,11 @@ export default function Home({
             <Link href="/business">
               <SectionHeading sectionName="Business" />
             </Link>
-            {businessLoading ? (
-              <BusinessSectionSkeleton />
-            ) : (
-              <div className="gap-2 sm:block md:grid md:grid-cols-2 md:gap-8 xl:block">
-                {currentBusinessPosts?.map((bizPost: any) => (
-                  <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
-                ))}
-              </div>
-            )}
+            <div className="gap-2 sm:block md:grid md:grid-cols-2 md:gap-8 xl:block">
+              {businessPosts?.map((bizPost: any) => (
+                <LTRNewsPreview key={bizPost?.slug} {...bizPost} />
+              ))}
+            </div>
           </div>
           <div className="order-1 md:col-span-7 xl:order-2 xl:col-span-5">
             <SuperNewsPreview {...heroPosts[0]} />
@@ -529,8 +509,7 @@ export default function Home({
         >
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
-              posts={currentTopNewsPosts}
-              loading={opinionLoading}
+              posts={topNewsPosts}
               categoryRoute="news"
               categoryName="top-news"
               sectionTitle="Top News"
@@ -545,8 +524,7 @@ export default function Home({
         </section>
 
         <HomeCommonSections
-          posts={currentBeritaPosts}
-          loading={beritaLoading}
+          posts={beritaPosts}
           categoryRoute="berita"
           categoryName="top-bm"
           sectionTitle="Berita Utama"
@@ -570,8 +548,7 @@ export default function Home({
         >
           <div className="col-span-3 lg:col-span-2">
             <HomeTopNewsOpinion
-              posts={currentOpinionPosts}
-              loading={topNewsLoading}
+              posts={opinionPosts}
               categoryRoute="opinion"
               categoryName="opinion"
               sectionTitle="Opinion"
@@ -584,8 +561,7 @@ export default function Home({
         </section>
 
         <HomeCommonSections
-          posts={currentWorldPosts}
-          loading={worldLoading}
+          posts={worldPosts}
           categoryRoute="world"
           categoryName="world"
           sectionTitle="World News"
@@ -604,16 +580,14 @@ export default function Home({
           />
         </div>
         <HomeCommonSections
-          posts={currentLeisurePosts}
-          loading={leisureLoading}
+          posts={leisurePosts}
           categoryRoute="lifestyle"
           categoryName="leisure"
           sectionTitle="Lifestyle"
           sectionId="Lifestyle-News"
         />
         <HomeCommonSections
-          posts={currentSportsPosts}
-          loading={sportsLoading}
+          posts={sportsPosts}
           categoryRoute="sports"
           categoryName="sports"
           sectionTitle="Sports News"
@@ -655,6 +629,45 @@ export default function Home({
       />
     </>
   );
+}
+
+// ✅ NEW: Retry helper with exponential backoff
+async function fetchWithRetry<T>(
+  category: string,
+  fetchFn: () => Promise<T>,
+  retries = 2
+): Promise<T> {
+  const startTime = Date.now();
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await fetchFn();
+
+      const duration = Date.now() - startTime;
+      console.log(
+        `[HomePage ISR] ✅ ${category}: Success (${duration}ms, attempt ${attempt + 1})`
+      );
+
+      return result;
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(
+        `[HomePage ISR] ❌ ${category}: Failed (${duration}ms, attempt ${attempt + 1}/${retries + 1}):`,
+        error.message
+      );
+
+      if (attempt < retries) {
+        const delay = 1000 * (attempt + 1); // 1s, 2s
+        console.log(`[HomePage ISR] Retrying ${category} in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error(`${category} failed after ${retries + 1} attempts`);
 }
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
@@ -723,13 +736,69 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       sportsPosts,
       superBmPosts,
     ] = await Promise.all([
-      getFilteredCategoryNews("top-news", 6).catch(() => []),
-      getFilteredCategoryNews("business", 3).catch(() => []),
-      getFilteredCategoryNews("opinion", 6).catch(() => []),
-      getFilteredCategoryNews("world", 5).catch(() => []),
-      getFilteredCategoryNews("leisure", 5).catch(() => []),
-      getFilteredCategoryNews("sports", 5).catch(() => []),
-      getFilteredCategoryNews("super-bm", 1).catch(() => []),
+      fetchWithRetry("top-news", () =>
+        getFilteredCategoryNews("top-news", 6)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ top-news COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
+      fetchWithRetry("business", () =>
+        getFilteredCategoryNews("business", 3)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ business COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
+      fetchWithRetry("opinion", () =>
+        getFilteredCategoryNews("opinion", 6)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ opinion COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
+      fetchWithRetry("world", () => getFilteredCategoryNews("world", 5)).catch(
+        (error) => {
+          console.error(
+            "[HomePage ISR] ❌ world COMPLETELY FAILED:",
+            error.message
+          );
+          return [];
+        }
+      ),
+      fetchWithRetry("leisure", () =>
+        getFilteredCategoryNews("leisure", 5)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ leisure COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
+      fetchWithRetry("sports", () =>
+        getFilteredCategoryNews("sports", 5)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ sports COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
+      fetchWithRetry("super-bm", () =>
+        getFilteredCategoryNews("super-bm", 1)
+      ).catch((error) => {
+        console.error(
+          "[HomePage ISR] ❌ super-bm COMPLETELY FAILED:",
+          error.message
+        );
+        return [];
+      }),
     ]);
 
     const topBmPosts = await getFilteredCategoryNews(
@@ -759,6 +828,41 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     const columnists = await getColumnists(columnistIds, preview);
     const trendingTags = await prisma.trendingTag.findMany();
 
+    // ✅ NEW: Validate sections before caching
+    const criticalSections = [
+      { name: "hero", data: heroPosts },
+      { name: "highlight", data: highlightPosts },
+      { name: "business", data: businessPosts },
+      { name: "world", data: worldPosts },
+      { name: "sports", data: sportsPosts },
+    ];
+
+    const failedSections = criticalSections.filter(
+      (s) => !s.data || s.data.length === 0
+    );
+
+    // If too many sections failed, don't cache this page long-term
+    if (failedSections.length >= 3) {
+      console.error(
+        `[HomePage ISR] 🔴 TOO MANY SECTIONS EMPTY (${failedSections.length}/${criticalSections.length})`
+      );
+      console.error(
+        "[HomePage ISR] Failed sections:",
+        failedSections.map((s) => s.name).join(", ")
+      );
+
+      // Return notFound so Cloudflare doesn't cache broken page
+      return {
+        notFound: true,
+        revalidate: 60, // ✅ Retry in 1 minute, not 25 minutes
+      };
+    }
+
+    // All good - return normally
+    console.log(
+      `[HomePage ISR] ✅ Build successful (${failedSections.length} sections empty, acceptable)`
+    );
+
     return {
       props: {
         heroPosts,
@@ -774,8 +878,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         columnists,
         trendingTags,
         _lastUpdate: Date.now(),
+        _buildError: failedSections.length > 0, // ✅ NEW: Flag for UI
       },
-      revalidate: 1500, // Re-generate every 25 minutes
+      revalidate: 1500, // 25 minutes
     };
   } catch (error) {
     console.error("[HomePage] Error fetching data:", error);
