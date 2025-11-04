@@ -37,6 +37,9 @@ const HomeCommonSections = ({
   const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
     "next"
   );
+  // 🆕 Infinite retry for empty sections
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Add cache and prefetching refs
   const pageCache = useRef<Record<number, HomePost[]>>({});
@@ -54,65 +57,131 @@ const HomeCommonSections = ({
     }
   }, [initialPosts]);
 
+  // 🆕 INFINITE RETRY: Keep fetching until data appears
+  useEffect(() => {
+    let retryInterval: NodeJS.Timeout | null = null;
+
+    const attemptFetch = async () => {
+      // Only retry if section is empty and not already loading
+      if ((!initialPosts || initialPosts.length === 0) && !loading) {
+        setIsRetrying(true);
+
+        try {
+          console.log(
+            `[${sectionId}] Section empty, attempt ${retryCount + 1}...`
+          );
+
+          const response = await fetch(
+            `/api/more-home-posts?page=0&category=${categoryName}`
+          );
+
+          if (!response.ok) {
+            throw new Error(`API returned ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.posts?.edges?.length > 0) {
+            console.log(
+              `[${sectionId}] ✅ Retry successful! Got ${data.posts.edges.length} posts`
+            );
+
+            const posts = data.posts.edges.map((edge: any) => edge.node);
+            setHeroPost(posts[0]);
+            setAllPosts(posts.slice(1));
+            setIsRetrying(false);
+            setRetryCount(0);
+
+            // Stop retrying
+            if (retryInterval) {
+              clearInterval(retryInterval);
+            }
+          } else {
+            throw new Error("Empty response from API");
+          }
+        } catch (error) {
+          console.error(`[${sectionId}] Retry failed:`, error);
+          setRetryCount((prev) => prev + 1);
+        }
+      }
+    };
+
+    // If section is empty, start retrying every 2 seconds
+    if ((!initialPosts || initialPosts.length === 0) && !loading) {
+      // First attempt immediately
+      attemptFetch();
+
+      // Then retry every 2 seconds
+      retryInterval = setInterval(attemptFetch, 2000);
+    }
+
+    // Cleanup
+    return () => {
+      if (retryInterval) {
+        clearInterval(retryInterval);
+      }
+    };
+  }, [initialPosts, loading, categoryName, sectionId, retryCount]);
+
   const prefetchNextPage = useCallback(
     async (pageNumber: number) => {
       // Skip if already cached or currently fetching
-      if (
-        pageCache.current[pageNumber] ||
-        prefetchingPages.current.has(pageNumber) ||
-        pageNumber < 1 // Don't prefetch page 0 or negative pages
-      ) {
-        return;
-      }
+      // if (
+      //   pageCache.current[pageNumber] ||
+      //   prefetchingPages.current.has(pageNumber) ||
+      //   pageNumber < 1 // Don't prefetch page 0 or negative pages
+      // ) {
+      return;
+      // }
 
-      prefetchingPages.current.add(pageNumber);
-      try {
-        // console.log(
-        //   `[Prefetch] Fetching page ${pageNumber} for category ${categoryName}`
-        // );
+      // prefetchingPages.current.add(pageNumber);
+      // try {
+      //   // console.log(
+      //   //   `[Prefetch] Fetching page ${pageNumber} for category ${categoryName}`
+      //   // );
 
-        const response = await fetch(
-          `/api/more-home-posts?page=${pageNumber}&category=${categoryName}`
-        );
+      //   const response = await fetch(
+      //     `/api/more-home-posts?page=${pageNumber}&category=${categoryName}`
+      //   );
 
-        // Log response details for debugging
-        if (!response.ok) {
-          console.error(`[Prefetch] Response not OK:`, {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url,
-          });
+      //   // Log response details for debugging
+      //   if (!response.ok) {
+      //     console.error(`[Prefetch] Response not OK:`, {
+      //       status: response.status,
+      //       statusText: response.statusText,
+      //       url: response.url,
+      //     });
 
-          // Try to get error details
-          try {
-            const errorData = await response.json();
-            console.error(`[Prefetch] Error response:`, errorData);
-          } catch (e) {
-            // Response might not be JSON
-            const errorText = await response.text();
-            console.error(`[Prefetch] Error text:`, errorText);
-          }
+      //     // Try to get error details
+      //     try {
+      //       const errorData = await response.json();
+      //       console.error(`[Prefetch] Error response:`, errorData);
+      //     } catch (e) {
+      //       // Response might not be JSON
+      //       const errorText = await response.text();
+      //       console.error(`[Prefetch] Error text:`, errorText);
+      //     }
 
-          // Don't throw here - just log and return
-          return;
-        }
+      //     // Don't throw here - just log and return
+      //     return;
+      //   }
 
-        const data = await response.json();
-        // console.log(`[Prefetch] Success for page ${pageNumber}:`, {
-        //   postsCount: data.posts?.edges?.length || 0,
-        //   hasMore: data.hasMore,
-        // });
+      //   const data = await response.json();
+      //   // console.log(`[Prefetch] Success for page ${pageNumber}:`, {
+      //   //   postsCount: data.posts?.edges?.length || 0,
+      //   //   hasMore: data.hasMore,
+      //   // });
 
-        if (data.posts?.edges?.length > 0) {
-          const processedPosts = data.posts.edges.map((edge: any) => edge.node);
-          pageCache.current[pageNumber] = processedPosts;
-        }
-      } catch (error) {
-        console.error(`[Prefetch] Error for page ${pageNumber}:`, error);
-        // Don't throw - prefetch failures shouldn't break the UI
-      } finally {
-        prefetchingPages.current.delete(pageNumber);
-      }
+      //   if (data.posts?.edges?.length > 0) {
+      //     const processedPosts = data.posts.edges.map((edge: any) => edge.node);
+      //     pageCache.current[pageNumber] = processedPosts;
+      //   }
+      // } catch (error) {
+      //   console.error(`[Prefetch] Error for page ${pageNumber}:`, error);
+      //   // Don't throw - prefetch failures shouldn't break the UI
+      // } finally {
+      //   prefetchingPages.current.delete(pageNumber);
+      // }
     },
     [categoryName]
   );
@@ -263,6 +332,16 @@ const HomeCommonSections = ({
           <SectionHeading sectionName={sectionTitle} />
         </Link>
         <CommonSectionSkeleton />
+
+        {/* Show retry status */}
+        {isRetrying && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600 animate-pulse">
+              Loading {sectionTitle}...{" "}
+              {retryCount > 0 && `(attempt ${retryCount})`}
+            </p>
+          </div>
+        )}
       </section>
     );
   }

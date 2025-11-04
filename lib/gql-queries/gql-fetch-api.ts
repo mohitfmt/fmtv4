@@ -73,6 +73,7 @@ export async function gqlFetchAPI(
 
     return json.data;
   } catch (error: any) {
+    clearTimeout(timeoutId); // 🆕 Clear timeout on error
     // ✅ NEW: Handle timeout specifically
     if (error.name === "AbortError") {
       console.error(`[gqlFetchAPI] ⏱️  Timeout after ${timeout}ms:`, {

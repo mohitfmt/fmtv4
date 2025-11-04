@@ -631,48 +631,66 @@ export default function Home({
   );
 }
 
-// ✅ NEW: Retry helper with exponential backoff
-async function fetchWithRetry<T>(
+
+async function aggressiveRetry<T>(
   category: string,
   fetchFn: () => Promise<T>,
-  retries = 2
+  maxRetries = 10
 ): Promise<T> {
   const startTime = Date.now();
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const result = await fetchFn();
 
-      const duration = Date.now() - startTime;
-      console.log(
-        `[HomePage ISR] ✅ ${category}: Success (${duration}ms, attempt ${attempt + 1})`
-      );
+      if (!result || (Array.isArray(result) && result.length === 0)) {
+        throw new Error("Empty data received");
+      }
+
+      // ✅ ONLY log if it took multiple attempts (something was wrong)
+      if (attempt > 0) {
+        const duration = Date.now() - startTime;
+        console.warn(
+          `[HomePage ISR] ⚠️ ${category} succeeded after ${attempt + 1} attempts (${duration}ms)`
+        );
+      }
 
       return result;
     } catch (error: any) {
-      const duration = Date.now() - startTime;
-      console.error(
-        `[HomePage ISR] ❌ ${category}: Failed (${duration}ms, attempt ${attempt + 1}/${retries + 1}):`,
-        error.message
-      );
-
-      if (attempt < retries) {
-        const delay = 1000 * (attempt + 1); // 1s, 2s
-        console.log(`[HomePage ISR] Retrying ${category} in ${delay}ms...`);
+      // ✅ ONLY log if we're going to retry or fail
+      if (attempt < maxRetries - 1) {
+        const delay = 500 * (attempt + 1);
+        console.error(
+          `[HomePage ISR] ${category} attempt ${attempt + 1}/${maxRetries} failed, retry in ${delay}ms`
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
+      } else {
+        // ✅ CRITICAL: Final failure after all retries
+        const duration = Date.now() - startTime;
+        console.error(
+          `[HomePage ISR] 💥 ${category} FAILED after ${maxRetries} attempts (${duration}ms):`,
+          error.message
+        );
+        throw error;
       }
-
-      throw error;
     }
   }
 
-  throw new Error(`${category} failed after ${retries + 1} attempts`);
+  throw new Error(`${category} failed after ${maxRetries} attempts`);
 }
 
 export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
+  const buildStartTime = Date.now();
+
   try {
-    const heroPosts = await getCategoryNews("super-highlight", 1, preview);
+    // =====================================
+    // STEP 1: Fetch Hero (super-highlight)
+    // =====================================
+    const heroPosts = await aggressiveRetry(
+      "hero",
+      () => getCategoryNews("super-highlight", 1, preview),
+      10
+    );
 
     const excludeSlugs = Array.isArray(heroPosts)
       ? heroPosts.map((post) => post?.slug).filter(Boolean)
@@ -698,28 +716,20 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           )
           .slice(0, limit);
       } catch (error) {
-        console.error(`Error fetching ${categoryName} posts:`, error);
+        // ✅ Keep error logs
+        console.error(`Error fetching ${categoryName}:`, error);
         return [];
       }
     };
 
-    let highlightPosts = await getFilteredCategoryNews(
-      "highlight",
-      4,
-      excludeSlugs
+    // ========================================
+    // STEP 2: Fetch Highlights (sequential!)
+    // ========================================
+    const highlightPosts = await aggressiveRetry(
+      "highlights",
+      () => getFilteredCategoryNews("highlight", 4, excludeSlugs),
+      15
     );
-    const delay = (ms: number) =>
-      new Promise((resolve) => setTimeout(resolve, ms));
-
-    if (!highlightPosts?.length || highlightPosts.length < 4) {
-      await delay(1000);
-      console.log("[Home] Retrying highlight posts fetch after 1s...");
-      highlightPosts = await getFilteredCategoryNews(
-        "highlight",
-        4,
-        excludeSlugs
-      );
-    }
 
     if (Array.isArray(highlightPosts)) {
       excludeSlugs.push(
@@ -727,6 +737,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       );
     }
 
+    // ============================================
+    // STEP 3: Fetch All Other Sections (parallel)
+    // ============================================
     const [
       topNewsPosts,
       businessPosts,
@@ -736,91 +749,121 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       sportsPosts,
       superBmPosts,
     ] = await Promise.all([
-      fetchWithRetry("top-news", () =>
-        getFilteredCategoryNews("top-news", 6)
+      aggressiveRetry(
+        "top-news",
+        () => getFilteredCategoryNews("top-news", 6),
+        10
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ top-news COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] top-news failed:", error.message);
         return [];
       }),
-      fetchWithRetry("business", () =>
-        getFilteredCategoryNews("business", 3)
+
+      aggressiveRetry(
+        "business",
+        () => getFilteredCategoryNews("business", 3),
+        10
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ business COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] business failed:", error.message);
         return [];
       }),
-      fetchWithRetry("opinion", () =>
-        getFilteredCategoryNews("opinion", 6)
+
+      aggressiveRetry(
+        "opinion",
+        () => getFilteredCategoryNews("opinion", 6),
+        10
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ opinion COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] opinion failed:", error.message);
         return [];
       }),
-      fetchWithRetry("world", () => getFilteredCategoryNews("world", 5)).catch(
-        (error) => {
-          console.error(
-            "[HomePage ISR] ❌ world COMPLETELY FAILED:",
-            error.message
-          );
-          return [];
-        }
-      ),
-      fetchWithRetry("leisure", () =>
-        getFilteredCategoryNews("leisure", 5)
+
+      aggressiveRetry(
+        "world",
+        () => getFilteredCategoryNews("world", 5),
+        8
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ leisure COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] world failed:", error.message);
         return [];
       }),
-      fetchWithRetry("sports", () =>
-        getFilteredCategoryNews("sports", 5)
+
+      aggressiveRetry(
+        "leisure",
+        () => getFilteredCategoryNews("leisure", 5),
+        8
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ sports COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] leisure failed:", error.message);
         return [];
       }),
-      fetchWithRetry("super-bm", () =>
-        getFilteredCategoryNews("super-bm", 1)
+
+      aggressiveRetry(
+        "sports",
+        () => getFilteredCategoryNews("sports", 5),
+        8
       ).catch((error) => {
-        console.error(
-          "[HomePage ISR] ❌ super-bm COMPLETELY FAILED:",
-          error.message
-        );
+        console.error("[HomePage ISR] sports failed:", error.message);
+        return [];
+      }),
+
+      aggressiveRetry(
+        "super-bm",
+        () => getFilteredCategoryNews("super-bm", 1),
+        8
+      ).catch((error) => {
+        console.error("[HomePage ISR] super-bm failed:", error.message);
         return [];
       }),
     ]);
 
-    const topBmPosts = await getFilteredCategoryNews(
+    // ========================================
+    // STEP 4: Fetch Berita posts (sequential)
+    // ========================================
+    const topBmPosts = await aggressiveRetry(
       "top-bm",
-      4,
-      superBmPosts?.map((post: { slug: string }) => post?.slug)
-    );
+      () =>
+        getFilteredCategoryNews(
+          "top-bm",
+          4,
+          superBmPosts?.map((post: { slug: string }) => post?.slug)
+        ),
+      8
+    ).catch((error) => {
+      console.error("[HomePage ISR] top-bm failed:", error.message);
+      return [];
+    });
 
     const beritaPosts = [...superBmPosts, ...topBmPosts]?.slice(0, 5);
 
-    let videoPosts = [];
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/api/homepage`
+    // ✅ Only log if Berita construction fails
+    if (!beritaPosts || beritaPosts.length === 0) {
+      console.error(
+        `[HomePage ISR] ⚠️ Berita empty (SuperBM: ${superBmPosts?.length}, TopBM: ${topBmPosts?.length})`
       );
-      const homepageData = await response.json();
-      videoPosts = homepageData.data.videos ?? [];
-      videoPosts = videoPosts?.slice(0, 5);
-    } catch (error) {
-      console.error("Failed to fetch videos:", error);
     }
 
+    // ========================================
+    // STEP 5: Fetch Videos (with retry)
+    // ========================================
+    let videoPosts = [];
+    try {
+      const response = await aggressiveRetry(
+        "videos",
+        async () => {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL}/api/homepage`
+          );
+          if (!res.ok) throw new Error(`Videos API returned ${res.status}`);
+          const data = await res.json();
+          return data.data.videos ?? [];
+        },
+        5
+      );
+      videoPosts = response?.slice(0, 5);
+    } catch (error) {
+      console.error("[HomePage ISR] Videos failed:", error);
+    }
+
+    // ========================================
+    // STEP 6: Fetch Columnists & Tags
+    // ========================================
     const columnistsIds = await prisma.columnist.findMany({
       select: { userId: true },
     });
@@ -828,39 +871,49 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     const columnists = await getColumnists(columnistIds, preview);
     const trendingTags = await prisma.trendingTag.findMany();
 
-    // ✅ NEW: Validate sections before caching
+    // ========================================
+    // STEP 7: Validate ALL Sections
+    // ========================================
     const criticalSections = [
       { name: "hero", data: heroPosts },
       { name: "highlight", data: highlightPosts },
+      { name: "topNews", data: topNewsPosts },
       { name: "business", data: businessPosts },
+      { name: "opinion", data: opinionPosts },
       { name: "world", data: worldPosts },
+      { name: "leisure", data: leisurePosts },
       { name: "sports", data: sportsPosts },
+      { name: "berita", data: beritaPosts },
+      { name: "videos", data: videoPosts },
+      { name: "columnists", data: columnists },
     ];
 
     const failedSections = criticalSections.filter(
-      (s) => !s.data || s.data.length === 0
+      (s) => !s.data || (Array.isArray(s.data) && s.data.length === 0)
     );
 
-    // If too many sections failed, don't cache this page long-term
-    if (failedSections.length >= 3) {
+    // ✅ ONLY log if something failed
+    if (failedSections.length >= 1) {
       console.error(
-        `[HomePage ISR] 🔴 TOO MANY SECTIONS EMPTY (${failedSections.length}/${criticalSections.length})`
-      );
-      console.error(
-        "[HomePage ISR] Failed sections:",
-        failedSections.map((s) => s.name).join(", ")
+        `[HomePage ISR] 🔴 ${failedSections.length}/${criticalSections.length} sections failed:`,
+        failedSections
+          .map(
+            (s) =>
+              `${s.name}(${Array.isArray(s.data) ? s.data.length : "null"})`
+          )
+          .join(", ")
       );
 
-      // Return notFound so Cloudflare doesn't cache broken page
       return {
         notFound: true,
-        revalidate: 60, // ✅ Retry in 1 minute, not 25 minutes
+        revalidate: 10,
       };
     }
 
-    // All good - return normally
+    // ✅ Single success log with build time
+    const buildTime = Date.now() - buildStartTime;
     console.log(
-      `[HomePage ISR] ✅ Build successful (${failedSections.length} sections empty, acceptable)`
+      `[HomePage ISR] ✅ All sections OK (${buildTime}ms) - Hero:${heroPosts?.length} HL:${highlightPosts?.length} TN:${topNewsPosts?.length} BIZ:${businessPosts?.length} OP:${opinionPosts?.length} WD:${worldPosts?.length} LS:${leisurePosts?.length} SP:${sportsPosts?.length} BR:${beritaPosts?.length} VID:${videoPosts?.length} COL:${columnists?.length}`
     );
 
     return {
@@ -878,15 +931,15 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         columnists,
         trendingTags,
         _lastUpdate: Date.now(),
-        _buildError: failedSections.length > 0, // ✅ NEW: Flag for UI
+        _buildError: false,
       },
-      revalidate: 1500, // 25 minutes
+      revalidate: 1500,
     };
   } catch (error) {
-    console.error("[HomePage] Error fetching data:", error);
+    console.error("[HomePage ISR] FATAL:", error);
     return {
       notFound: true,
-      revalidate: 110, // Try again sooner if there was an error
+      revalidate: 10,
     };
   }
 };
