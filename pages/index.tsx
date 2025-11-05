@@ -270,25 +270,6 @@ export default function Home({
 
   return (
     <>
-      {/* ✅ NEW: Show build error banner if sections failed */}
-      {_buildError && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                Some content is temporarily unavailable. We&apos;re working to
-                restore it.
-                <button
-                  onClick={() => window.location.reload()}
-                  className="ml-2 underline font-semibold"
-                >
-                  Refresh page
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       {/* 🆕 ENHANCED Head section - ONLY meta tags changed */}
       <Head>
         <title>{`${siteConfig.siteName} | ${siteConfig.tagline}`}</title>
@@ -631,7 +612,6 @@ export default function Home({
   );
 }
 
-
 async function aggressiveRetry<T>(
   category: string,
   fetchFn: () => Promise<T>,
@@ -690,7 +670,10 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       "hero",
       () => getCategoryNews("super-highlight", 1, preview),
       10
-    );
+    ).catch((error) => {
+      console.error(`[HomePage ISR] Error fetching super-highlight`, error);
+      return [];
+    });
 
     const excludeSlugs = Array.isArray(heroPosts)
       ? heroPosts.map((post) => post?.slug).filter(Boolean)
@@ -729,7 +712,10 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       "highlights",
       () => getFilteredCategoryNews("highlight", 4, excludeSlugs),
       15
-    );
+    ).catch((error) => {
+      console.error("[HomePage ISR] Error fetching highlight", error.message);
+      return [];
+    });
 
     if (Array.isArray(highlightPosts)) {
       excludeSlugs.push(
