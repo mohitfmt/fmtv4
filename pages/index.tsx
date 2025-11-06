@@ -858,8 +858,9 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
     const trendingTags = await prisma.trendingTag.findMany();
 
     // ========================================
-    // STEP 7: Validate ALL Sections
+    // STEP 7: Check Critical Sections & Determine Revalidation Strategy
     // ========================================
+    // Critical sections: WordPress + Videos (essential for user experience)
     const criticalSections = [
       { name: "hero", data: heroPosts },
       { name: "highlight", data: highlightPosts },
@@ -871,61 +872,121 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
       { name: "sports", data: sportsPosts },
       { name: "berita", data: beritaPosts },
       { name: "videos", data: videoPosts },
-      { name: "columnists", data: columnists },
     ];
 
-    const failedSections = criticalSections.filter(
+    // Non-critical sections: Can fail without impacting page load
+    const nonCriticalSections = [
+      { name: "columnists", data: columnists },
+      { name: "trendingTags", data: trendingTags },
+    ];
+
+    // Count failures
+    const failedCriticalSections = criticalSections.filter(
       (s) => !s.data || (Array.isArray(s.data) && s.data.length === 0)
     );
 
-    // ✅ ONLY log if something failed
-    if (failedSections.length >= 1) {
+    const failedNonCriticalSections = nonCriticalSections.filter(
+      (s) => !s.data || (Array.isArray(s.data) && s.data.length === 0)
+    );
+
+    const totalFailed =
+      failedCriticalSections.length + failedNonCriticalSections.length;
+
+    // Log all failures (for monitoring)
+    if (totalFailed > 0) {
+      const allFailed = [
+        ...failedCriticalSections,
+        ...failedNonCriticalSections,
+      ];
       console.error(
-        `[HomePage ISR] 🔴 ${failedSections.length}/${criticalSections.length} sections failed:`,
-        failedSections
+        `[HomePage ISR] 🔴 ${totalFailed} sections failed (${failedCriticalSections.length} critical, ${failedNonCriticalSections.length} non-critical):`,
+        allFailed
           .map(
             (s) =>
               `${s.name}(${Array.isArray(s.data) ? s.data.length : "null"})`
           )
           .join(", ")
       );
-
-      return {
-        notFound: true,
-        revalidate: 10,
-      };
     }
 
-    // ✅ Single success log with build time
+    // Determine degraded mode: 3+ critical sections failed = WordPress struggling
+    const isDegraded = failedCriticalSections.length >= 3;
+
+    if (isDegraded) {
+      console.error(
+        `[HomePage ISR] ⚠️ DEGRADED MODE: ${failedCriticalSections.length}/${criticalSections.length} critical sections empty. Serving partial content with aggressive revalidation.`
+      );
+    }
+
+    // Build time logging
     const buildTime = Date.now() - buildStartTime;
-    console.log(
-      `[HomePage ISR] ✅ All sections OK (${buildTime}ms) - Hero:${heroPosts?.length} HL:${highlightPosts?.length} TN:${topNewsPosts?.length} BIZ:${businessPosts?.length} OP:${opinionPosts?.length} WD:${worldPosts?.length} LS:${leisurePosts?.length} SP:${sportsPosts?.length} BR:${beritaPosts?.length} VID:${videoPosts?.length} COL:${columnists?.length}`
-    );
+    if (isDegraded) {
+      console.warn(
+        `[HomePage ISR] ⚡ Build complete in DEGRADED mode (${buildTime}ms) - ` +
+          `Hero:${heroPosts?.length} HL:${highlightPosts?.length} TN:${topNewsPosts?.length} ` +
+          `BIZ:${businessPosts?.length} OP:${opinionPosts?.length} WD:${worldPosts?.length} ` +
+          `LS:${leisurePosts?.length} SP:${sportsPosts?.length} BR:${beritaPosts?.length} ` +
+          `VID:${videoPosts?.length} COL:${columnists?.length}`
+      );
+    } else if (totalFailed > 0) {
+      console.log(
+        `[HomePage ISR] ✅ Build complete with minor issues (${buildTime}ms) - ` +
+          `Hero:${heroPosts?.length} HL:${highlightPosts?.length} TN:${topNewsPosts?.length} ` +
+          `BIZ:${businessPosts?.length} OP:${opinionPosts?.length} WD:${worldPosts?.length} ` +
+          `LS:${leisurePosts?.length} SP:${sportsPosts?.length} BR:${beritaPosts?.length} ` +
+          `VID:${videoPosts?.length} COL:${columnists?.length}`
+      );
+    } else {
+      console.log(
+        `[HomePage ISR] ✅ Build complete, all sections OK (${buildTime}ms) - ` +
+          `Hero:${heroPosts?.length} HL:${highlightPosts?.length} TN:${topNewsPosts?.length} ` +
+          `BIZ:${businessPosts?.length} OP:${opinionPosts?.length} WD:${worldPosts?.length} ` +
+          `LS:${leisurePosts?.length} SP:${sportsPosts?.length} BR:${beritaPosts?.length} ` +
+          `VID:${videoPosts?.length} COL:${columnists?.length}`
+      );
+    }
 
     return {
       props: {
-        heroPosts,
-        highlightPosts,
-        topNewsPosts,
-        businessPosts,
-        opinionPosts,
-        worldPosts,
-        leisurePosts,
-        sportsPosts,
-        beritaPosts,
-        videoPosts,
-        columnists,
-        trendingTags,
+        heroPosts: heroPosts ?? [],
+        highlightPosts: highlightPosts ?? [],
+        topNewsPosts: topNewsPosts ?? [],
+        businessPosts: businessPosts ?? [],
+        opinionPosts: opinionPosts ?? [],
+        worldPosts: worldPosts ?? [],
+        leisurePosts: leisurePosts ?? [],
+        sportsPosts: sportsPosts ?? [],
+        beritaPosts: beritaPosts ?? [],
+        videoPosts: videoPosts ?? [],
+        columnists: columnists ?? [],
+        trendingTags: trendingTags ?? [],
         _lastUpdate: Date.now(),
-        _buildError: false,
+        _buildError: isDegraded,
       },
-      revalidate: 1500,
+      revalidate: isDegraded ? 10 : 1500,
     };
   } catch (error) {
-    console.error("[HomePage ISR] FATAL:", error);
+    console.error("[HomePage ISR] FATAL ERROR:", error);
+
+    // Even on fatal error, return empty props instead of 404
     return {
-      notFound: true,
-      revalidate: 10,
+      props: {
+        heroPosts: [],
+        highlightPosts: [],
+        topNewsPosts: [],
+        businessPosts: [],
+        opinionPosts: [],
+        worldPosts: [],
+        leisurePosts: [],
+        sportsPosts: [],
+        beritaPosts: [],
+        videoPosts: [],
+        columnists: [],
+        trendingTags: [],
+        _lastUpdate: Date.now(),
+        _buildError: true, // Flag that this is a fatal error
+      },
+      revalidate: 10, // Retry quickly
     };
   }
 };
