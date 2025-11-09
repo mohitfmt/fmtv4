@@ -72,7 +72,7 @@ const HomeCommonSections = ({
           );
 
           const response = await fetch(
-            `/api/more-home-posts?page=0&category=${categoryName}`
+            `/api/more-home-posts?page=1&category=${categoryName}`
           );
 
           if (!response.ok) {

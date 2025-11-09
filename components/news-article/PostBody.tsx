@@ -321,14 +321,14 @@ const PostBody: React.FC<PostBodyProps> = ({ content, additionalFields }) => {
 
           case "ul":
             return (
-              <ul className="article-list font-bitter">
+              <ul className="article-list font-bitter p-2">
                 {domToReact(domNode.children as DOMNode[], options)}
               </ul>
             );
 
           case "ol":
             return (
-              <ol className="article-list-ol font-bitter">
+              <ol className="article-list-ol font-bitter p-2">
                 {domToReact(domNode.children as DOMNode[], options)}
               </ol>
             );

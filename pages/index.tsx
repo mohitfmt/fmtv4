@@ -963,7 +963,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         _lastUpdate: Date.now(),
         _buildError: isDegraded,
       },
-      revalidate: isDegraded ? 10 : 1500,
+      revalidate: isDegraded ? 10 : 1500, //  25 mins
     };
   } catch (error) {
     console.error("[HomePage ISR] FATAL ERROR:", error);

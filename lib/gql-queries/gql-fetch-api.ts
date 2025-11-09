@@ -21,6 +21,7 @@ export async function gqlFetchAPI(
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
+    // "x-bypass-cache": "1",
     const baseHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate",
