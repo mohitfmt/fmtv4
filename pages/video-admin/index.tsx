@@ -76,7 +76,14 @@ export default function VideoDashboard() {
       }
 
       try {
-        const response = await videoApiJson("/api/video-admin/dashboard/stats");
+        const response = await videoApiJson(
+          "/api/video-admin/dashboard/stats",
+          {
+            timeout: 30000, // 30 seconds (dashboard can take 10-15s on first load)
+            retries: 2, // Retry up to 2 times
+            retryDelay: 2000, // Wait 2s between retries
+          }
+        );
 
         // Check if response exists first
         if (!response) {

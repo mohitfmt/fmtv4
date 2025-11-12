@@ -1,4 +1,5 @@
 // lib/dashboard/queries/engagement-data.ts
+// SIMPLE TIMEZONE SOLUTION - Uses manual UTC+8 offset
 import { PrismaClient } from "@prisma/client";
 import { subDays, format } from "date-fns";
 
@@ -10,12 +11,22 @@ export interface EngagementData {
   engagement: number;
 }
 
+// Malaysia Time is UTC+8
+const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+// Convert UTC to Malaysia Time
+function toMalaysiaTime(date: Date): Date {
+  return new Date(date.getTime() + MALAYSIA_OFFSET_MS);
+}
+
 export async function getEngagementData(
   prisma: PrismaClient,
   days: number = 7
 ): Promise<EngagementData[]> {
   try {
-    const startDate = subDays(new Date(), days - 1);
+    // Get current time in Malaysia timezone
+    const now = toMalaysiaTime(new Date());
+    const startDate = subDays(now, days - 1);
 
     // Fetch videos grouped by day for the last 'days' days
     const videos = await prisma.videos.findMany({
@@ -34,19 +45,23 @@ export async function getEngagementData(
       },
     });
 
-    // Group by date and aggregate stats
+    // Initialize daily stats in Malaysia Time
     const dailyStats = new Map<
       string,
       { views: number; likes: number; comments: number }
     >();
 
     for (let i = days - 1; i >= 0; i--) {
-      const date = format(subDays(new Date(), i), "MMM dd");
+      const date = format(subDays(now, i), "MMM dd");
       dailyStats.set(date, { views: 0, likes: 0, comments: 0 });
     }
 
+    // Aggregate stats by date (in Malaysia Time)
     videos.forEach((video) => {
-      const date = format(new Date(video.publishedAt), "MMM dd");
+      // Convert video date from UTC to Malaysia Time
+      const videoDate = toMalaysiaTime(new Date(video.publishedAt));
+      const date = format(videoDate, "MMM dd");
+
       const existing = dailyStats.get(date) || {
         views: 0,
         likes: 0,

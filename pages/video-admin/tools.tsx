@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { videoApiJson } from "@/lib/videoApi";
 import { useVideoAdminAuth } from "@/hooks/useVideoAdminAuth";
+import { FiLayers } from "react-icons/fi";
 
 // ==================== TYPES ====================
 
@@ -70,6 +71,44 @@ interface VerifyResult {
       corrected: boolean;
       error?: string;
     }>;
+  };
+  traceId?: string;
+  timestamp?: string;
+  error?: string;
+}
+
+interface DiscoveredPlaylist {
+  playlistId: string;
+  title: string;
+  itemCount: number;
+}
+
+interface EnhancedVerifyResult {
+  success: boolean;
+  message?: string;
+  data?: {
+    discovery: {
+      totalOnYouTube: number;
+      existingInDB: number;
+      newDiscovered: number;
+      discoveredPlaylists: DiscoveredPlaylist[];
+    };
+    verification: {
+      totalVerified: number;
+      totalCorrected: number;
+      totalErrors: number;
+      results?: Array<{
+        playlistId: string;
+        title: string;
+        previousCount: number;
+        actualCount: number;
+        difference: number;
+        corrected: boolean;
+        error?: string;
+      }>;
+    };
+    duration: number;
+    apiCallsUsed: number;
   };
   traceId?: string;
   timestamp?: string;
@@ -254,25 +293,40 @@ function ClearCachesCard() {
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{
+    lruCachesCleared: number;
+    isrRevalidated: boolean;
+    cdnPurged: boolean;
+  } | null>(null);
 
   const handleClearCache = async () => {
     setClearing(true);
     setError(null);
     setSuccess(null);
+    setLastResult(null);
 
     try {
       const response = await videoApiJson<{
         success: boolean;
         message: string;
+        details?: {
+          lruCachesCleared: number;
+          isrRevalidated: boolean;
+          cdnPurged: boolean;
+        };
       }>("/api/video-admin/clear-cache", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        timeout: 60000, // 60 seconds - API can take 10-15s with ISR revalidation
       });
 
       if (response?.success) {
         setSuccess(
           response.message || "All video caches cleared successfully!"
         );
+        if (response.details) {
+          setLastResult(response.details);
+        }
       } else {
         throw new Error(response?.message || "Failed to clear caches");
       }
@@ -299,7 +353,7 @@ function ClearCachesCard() {
           <div>
             <h2 className="text-xl font-semibold">Clear Video Caches</h2>
             <p className="text-sm text-muted-foreground">
-              Clear all video-related LRU caches
+              Clear LRU caches, trigger ISR, and purge CDN
             </p>
           </div>
         </div>
@@ -327,6 +381,22 @@ function ClearCachesCard() {
           </Button>
         </div>
 
+        {/* Progress indicator during clearing */}
+        {clearing && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Clearing LRU caches → Revalidating ISR pages → Purging CDN...
+                <br />
+                <span className="text-blue-600 dark:text-blue-400">
+                  This may take 10-15 seconds
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -339,13 +409,39 @@ function ClearCachesCard() {
 
         {/* Success Message */}
         {success && (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                {success}
-              </p>
+          <div className="mt-4 space-y-3">
+            <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  {success}
+                </p>
+              </div>
             </div>
+
+            {/* Details Grid */}
+            {lastResult && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2 bg-muted/50 rounded text-center">
+                  <p className="text-xs text-muted-foreground">LRU Caches</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {lastResult.lruCachesCleared}
+                  </p>
+                </div>
+                <div className="p-2 bg-muted/50 rounded text-center">
+                  <p className="text-xs text-muted-foreground">ISR Pages</p>
+                  <p className="text-lg font-bold">
+                    {lastResult.isrRevalidated ? "✓" : "—"}
+                  </p>
+                </div>
+                <div className="p-2 bg-muted/50 rounded text-center">
+                  <p className="text-xs text-muted-foreground">CDN</p>
+                  <p className="text-lg font-bold">
+                    {lastResult.cdnPurged ? "✓" : "—"}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -361,7 +457,7 @@ function ClearCachesCard() {
                 <li>• Troubleshooting display issues</li>
               </ul>
               <p className="mt-2 text-purple-600 dark:text-purple-400">
-                ✓ Takes only a few seconds
+                ⏱️ Takes 10-15 seconds to complete
               </p>
             </div>
           </div>
@@ -376,28 +472,40 @@ function VerifyCountsCard() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [lastResult, setLastResult] = useState<VerifyResult | null>(null);
+  const [lastResult, setLastResult] = useState<EnhancedVerifyResult | null>(
+    null
+  );
+  const [showDetails, setShowDetails] = useState(false);
 
   const handleVerify = async () => {
     setVerifying(true);
     setError(null);
     setSuccess(null);
     setLastResult(null);
+    setShowDetails(false);
 
     try {
-      const response = await videoApiJson<VerifyResult>(
+      const response = await videoApiJson<EnhancedVerifyResult>(
         "/api/cron/verify-playlist-counts",
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
-          timeout: 180000, // 3 minutes
+          timeout: 300000, // 5 minutes (longer because of discovery)
         }
       );
 
       if (response?.success) {
-        setSuccess(
-          `Verified ${response.data?.totalPlaylists || 0} playlists, corrected ${response.data?.totalCorrected || 0} counts in ${response.data?.duration || 0}s`
-        );
+        const discovery = response.data?.discovery;
+        const verification = response.data?.verification;
+
+        // Build success message
+        let message = "";
+        if (discovery && discovery.newDiscovered > 0) {
+          message += `🎉 Discovered ${discovery.newDiscovered} new playlist${discovery.newDiscovered > 1 ? "s" : ""}! `;
+        }
+        message += `Verified ${verification?.totalVerified || 0} playlists, corrected ${verification?.totalCorrected || 0} counts in ${response.data?.duration || 0}s`;
+
+        setSuccess(message);
         setLastResult(response);
       } else {
         throw new Error(response?.message || "Failed to verify counts");
@@ -423,9 +531,11 @@ function VerifyCountsCard() {
             <Database className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold">Verify Playlist Counts</h2>
+            <h2 className="text-xl font-semibold">
+              Discover & Verify Playlists
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Check and correct video counts for all playlists
+              Find new playlists and correct video counts
             </p>
           </div>
         </div>
@@ -442,12 +552,12 @@ function VerifyCountsCard() {
             {verifying ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Verifying...
+                {verifying ? "Discovering & Verifying..." : "Verify & Discover"}
               </>
             ) : (
               <>
-                <Database className="w-4 h-4 mr-2" />
-                Verify Counts
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Discover & Verify All
               </>
             )}
           </Button>
@@ -463,24 +573,108 @@ function VerifyCountsCard() {
           </div>
         )}
 
-        {lastResult?.data && (
-          <div className="mt-4 p-4 bg-muted rounded-lg">
-            <p className="text-sm">
-              <strong>Playlists Verified:</strong>{" "}
-              {lastResult.data.totalPlaylists}
-            </p>
-            <p className="text-sm">
-              <strong>Counts Corrected:</strong>{" "}
-              {lastResult.data.totalCorrected}
-            </p>
-            {lastResult.data.totalErrors > 0 && (
-              <p className="text-sm text-destructive">
-                <strong>Errors:</strong> {lastResult.data.totalErrors}
-              </p>
+        {/* Success Message */}
+        {success && lastResult?.data && (
+          <div className="mt-4 space-y-3">
+            {/* Main Success Banner */}
+            <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  {success}
+                </p>
+              </div>
+            </div>
+
+            {/* Discovery Results */}
+            {lastResult.data.discovery.newDiscovered > 0 && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <FiLayers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    New Playlists Discovered
+                  </p>
+                </div>
+                <ul className="space-y-1 pl-6">
+                  {lastResult.data.discovery.discoveredPlaylists.map((pl) => (
+                    <li
+                      key={pl.playlistId}
+                      className="text-xs text-blue-700 dark:text-blue-300"
+                    >
+                      • {pl.title} ({pl.itemCount} videos)
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-            <p className="text-sm text-muted-foreground">
-              <strong>Duration:</strong> {lastResult.data.duration}s
-            </p>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">On YouTube</p>
+                <p className="text-lg font-bold">
+                  {lastResult.data.discovery.totalOnYouTube}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">In Database</p>
+                <p className="text-lg font-bold">
+                  {lastResult.data.discovery.existingInDB +
+                    lastResult.data.discovery.newDiscovered}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">Verified</p>
+                <p className="text-lg font-bold">
+                  {lastResult.data.verification.totalVerified}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground">Corrected</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                  {lastResult.data.verification.totalCorrected}
+                </p>
+              </div>
+            </div>
+
+            {/* Show Details Toggle */}
+            {lastResult.data.verification.results &&
+              lastResult.data.verification.results.length > 0 && (
+                <button
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  {showDetails ? "Hide" : "Show"} correction details
+                  <span className="text-xs">{showDetails ? "▲" : "▼"}</span>
+                </button>
+              )}
+
+            {/* Detailed Results (Collapsible) */}
+            {showDetails &&
+              lastResult.data.verification.results &&
+              lastResult.data.verification.results.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {lastResult.data.verification.results.map((result) => (
+                    <div
+                      key={result.playlistId}
+                      className="p-2 bg-muted/30 rounded text-xs"
+                    >
+                      <p className="font-medium">{result.title}</p>
+                      <p className="text-muted-foreground">
+                        {result.previousCount} → {result.actualCount} (
+                        {result.difference > 0 ? "+" : ""}
+                        {result.difference})
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            {/* Performance Stats */}
+            <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border">
+              Completed in {lastResult.data.duration}s • Used{" "}
+              {lastResult.data.apiCallsUsed} API calls
+            </div>
           </div>
         )}
 
@@ -489,14 +683,15 @@ function VerifyCountsCard() {
           <div className="flex gap-2">
             <Info className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-green-700 dark:text-green-300">
-              <p className="font-medium mb-1">When to use:</p>
+              <p className="font-medium mb-1">What this does:</p>
               <ul className="space-y-1">
-                <li>• Playlist counts seem incorrect</li>
-                <li>• After bulk video operations</li>
-                <li>• Weekly maintenance check</li>
+                <li>✓ Discovers new playlists from YouTube</li>
+                <li>✓ Automatically adds them to database</li>
+                <li>✓ Verifies counts for all playlists</li>
+                <li>✓ Updates with correct video numbers</li>
               </ul>
               <p className="mt-2 text-green-600 dark:text-green-400">
-                ✓ Automatically corrects mismatches
+                💡 Run this weekly or when playlists change
               </p>
             </div>
           </div>
@@ -809,8 +1004,7 @@ export default function VideoAdminToolsPage() {
                 <p className="font-medium mb-1">Best Practices:</p>
                 <ul className="space-y-1">
                   <li>
-                    • Use Pull New Videos when videos are missing or out of
-                    sync
+                    • Use Pull New Videos when videos are missing or out of sync
                   </li>
                   <li>• Clear caches after configuration changes</li>
                   <li>• Verify counts weekly or after bulk operations</li>

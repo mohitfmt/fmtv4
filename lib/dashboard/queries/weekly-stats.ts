@@ -1,4 +1,5 @@
 // lib/dashboard/queries/weekly-stats.ts
+// SIMPLE TIMEZONE SOLUTION - Uses manual UTC+8 offset (no extra dependencies)
 import { PrismaClient } from "@prisma/client";
 import {
   startOfWeek,
@@ -37,15 +38,30 @@ export interface WeeklyStats {
   peakDay: string | null;
 }
 
+// Malaysia Time is UTC+8
+const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+// Convert UTC to Malaysia Time
+function toMalaysiaTime(date: Date): Date {
+  return new Date(date.getTime() + MALAYSIA_OFFSET_MS);
+}
+
+// Convert Malaysia Time to UTC (for database queries)
+function toUTC(malaysiaDate: Date): Date {
+  return new Date(malaysiaDate.getTime() - MALAYSIA_OFFSET_MS);
+}
+
 /**
  * Get weekly video statistics with proper Monday-Sunday boundaries
+ * Uses Malaysia Time (UTC+8) for correct date calculations
  */
 export async function getWeeklyVideoStats(
   prisma: PrismaClient
 ): Promise<WeeklyStats> {
-  const now = new Date();
+  // Get current time in Malaysia timezone
+  const now = toMalaysiaTime(new Date());
 
-  // Week boundaries (Monday start)
+  // Week boundaries (Monday start) - in Malaysia Time
   const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
   const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
@@ -55,10 +71,13 @@ export async function getWeeklyVideoStats(
   // Fetch videos from last 2 weeks
   const twoWeeksAgo = startOfWeek(subWeeks(now, 2), { weekStartsOn: 1 });
 
+  // Convert to UTC for database query
+  const twoWeeksAgoUTC = toUTC(twoWeeksAgo);
+
   const videos = await prisma.videos.findMany({
     where: {
       publishedAt: {
-        gte: twoWeeksAgo,
+        gte: twoWeeksAgoUTC,
       },
     },
     select: {
@@ -78,13 +97,14 @@ export async function getWeeklyVideoStats(
   videos.forEach((video) => {
     if (!video.publishedAt) return;
 
-    const videoDate = new Date(video.publishedAt);
+    // Convert video date from UTC to Malaysia Time
+    const videoDate = toMalaysiaTime(new Date(video.publishedAt));
     const dateKey = format(videoDate, "yyyy-MM-dd");
 
     // Increment daily count
     dailyCounts.set(dateKey, (dailyCounts.get(dateKey) || 0) + 1);
 
-    // Count weekly totals
+    // Count weekly totals (compare in Malaysia Time)
     if (videoDate >= thisWeekStart && videoDate <= thisWeekEnd) {
       thisWeekTotal++;
     } else if (videoDate >= lastWeekStart && videoDate <= lastWeekEnd) {
@@ -92,7 +112,7 @@ export async function getWeeklyVideoStats(
     }
   });
 
-  // Build upload history for chart (last 7 days)
+  // Build upload history for chart (last 7 days in Malaysia Time)
   const uploadHistory: UploadHistoryItem[] = [];
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -157,26 +177,34 @@ export async function getWeeklyVideoStats(
 }
 
 /**
- * Get videos added today
+ * Get videos added today (Malaysia Time)
  */
 export async function getVideosAddedToday(
   prisma: PrismaClient
 ): Promise<number> {
-  const todayStart = startOfDay(new Date());
-  const todayEnd = endOfDay(new Date());
+  // Get current time in Malaysia timezone
+  const now = toMalaysiaTime(new Date());
+
+  // Get today's boundaries in Malaysia Time
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+
+  // Convert to UTC for database query
+  const todayStartUTC = toUTC(todayStart);
+  const todayEndUTC = toUTC(todayEnd);
 
   return await prisma.videos.count({
     where: {
       publishedAt: {
-        gte: todayStart,
-        lte: todayEnd,
+        gte: todayStartUTC,
+        lte: todayEndUTC,
       },
     },
   });
 }
 
 /**
- * Get upload frequency analysis
+ * Get upload frequency analysis (Malaysia Time)
  */
 export async function getUploadFrequency(prisma: PrismaClient): Promise<{
   byDayOfWeek: { day: string; count: number; percentage: number }[];
@@ -184,12 +212,14 @@ export async function getUploadFrequency(prisma: PrismaClient): Promise<{
   bestDay: string;
   bestHour: number;
 }> {
-  const thirtyDaysAgo = subDays(new Date(), 30);
+  const now = toMalaysiaTime(new Date());
+  const thirtyDaysAgo = subDays(now, 30);
+  const thirtyDaysAgoUTC = toUTC(thirtyDaysAgo);
 
   const videos = await prisma.videos.findMany({
     where: {
       publishedAt: {
-        gte: thirtyDaysAgo,
+        gte: thirtyDaysAgoUTC,
       },
     },
     select: {
@@ -197,14 +227,15 @@ export async function getUploadFrequency(prisma: PrismaClient): Promise<{
     },
   });
 
-  // Count by day of week
+  // Count by day of week and hour (in Malaysia Time)
   const dayCountMap = new Map<number, number>();
   const hourCountMap = new Map<number, number>();
 
   videos.forEach((video) => {
     if (!video.publishedAt) return;
 
-    const date = new Date(video.publishedAt);
+    // Convert to Malaysia Time for analysis
+    const date = toMalaysiaTime(new Date(video.publishedAt));
     const dayOfWeek = date.getDay();
     const hour = date.getHours();
 
