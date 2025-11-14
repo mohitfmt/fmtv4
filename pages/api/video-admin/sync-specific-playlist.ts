@@ -104,7 +104,7 @@ async function handler(
     // STEP 1: Find playlist by ID or slug
     // ====================================================================
     const trimmed = playlistInput.trim();
-    let playlist = await prisma.playlist.findFirst({
+    const playlist = await prisma.playlist.findFirst({
       where: {
         OR: [{ playlistId: trimmed }, { slug: trimmed }],
       },
