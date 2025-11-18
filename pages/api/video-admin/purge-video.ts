@@ -157,7 +157,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // Call internal revalidation API
         const revalidateUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/internal/revalidate`;
         const revalidateSecret =
-          process.env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET_KEY;
+          process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
 
         if (!revalidateSecret) {
           console.warn(

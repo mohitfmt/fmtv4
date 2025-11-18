@@ -695,7 +695,7 @@ export default async function handler(
 
       // Step 3: Trigger ISR revalidation
       const revalidateSecret =
-        process.env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET_KEY;
+        process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
       const siteUrl =
         process.env.NEXT_PUBLIC_APP_URL ||
         process.env.NEXT_PUBLIC_SITE_URL ||

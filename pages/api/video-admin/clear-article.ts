@@ -340,9 +340,9 @@ export default async function handler(
     try {
       const revalidateKey =
         process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
-      const protocol = req.headers["x-forwarded-proto"] || "https";
-      const host = req.headers.host || process.env.NEXT_PUBLIC_DOMAIN;
-      const baseUrl = `${protocol}://${host}`;
+      const productionDomain =
+        process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
+      const baseUrl = `https://${productionDomain}`;
 
       // Build revalidation items for each path
       const revalidationPromises = Array.from(affectedPaths).map(
@@ -421,9 +421,9 @@ export default async function handler(
     // 9. CLEAR /api/top-news IF HOMEPAGE AFFECTED
     if (updateHomepage) {
       try {
-        const protocol = req.headers["x-forwarded-proto"] || "https";
-        const host = req.headers.host || process.env.NEXT_PUBLIC_DOMAIN;
-        const baseUrl = `${protocol}://${host}`;
+        const productionDomain =
+          process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
+        const baseUrl = `https://${productionDomain}`;
 
         await fetch(`${baseUrl}/api/top-news`, { method: "POST" });
         console.log(`[${traceId}] ✅ /api/top-news cleared`);

@@ -665,7 +665,8 @@ async function performRevalidation(
             headers: {
               "Content-Type": "application/json",
               "x-revalidate-key":
-                process.env.REVALIDATE_SECRET_KEY || "default-secret",
+                process.env.REVALIDATE_SECRET ||
+                "ia389oidns98odisd2309qdoi2930",
             },
             body: JSON.stringify({
               type,

@@ -72,9 +72,7 @@ export default async function handler(
   // Our sync helpers send the header "x-revalidate-secret".
   const provided = (req.headers["x-revalidate-secret"] as string) || "";
   const expected =
-    process.env.REVALIDATE_SECRET ||
-    process.env.REVALIDATE_SECRET_KEY || // fall back if you reuse the site key
-    "";
+    process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
 
   if (!timingSafeEqual(provided, expected)) {
     return res.status(401).json({ success: false, error: "Unauthorized" });

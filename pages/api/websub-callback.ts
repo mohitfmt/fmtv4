@@ -672,12 +672,11 @@ async function processWebSubNotification(req: NextApiRequest): Promise<void> {
       process.env.NEXT_PUBLIC_CMS_URL || "https://cms.freemalaysiatoday.com";
     const frontendDomain =
       process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
-    const revalidateKey = process.env.REVALIDATE_SECRET_KEY || "default-secret";
+    const revalidateKey =
+      process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
 
     // Set up base URL
-    const protocol = req.headers["x-forwarded-proto"] || "https";
-    const host = req.headers.host || frontendDomain;
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = `https://${frontendDomain}`;
 
     // Get recently modified articles
     const modifiedArticles = await getRecentlyModifiedArticles(wpDomain);
