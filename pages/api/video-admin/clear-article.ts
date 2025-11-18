@@ -339,48 +339,75 @@ export default async function handler(
 
     try {
       const revalidateKey =
-        process.env.REVALIDATE_SECRET_KEY || "default-secret";
+        process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
       const protocol = req.headers["x-forwarded-proto"] || "https";
       const host = req.headers.host || process.env.NEXT_PUBLIC_DOMAIN;
       const baseUrl = `${protocol}://${host}`;
 
       // Build revalidation items for each path
-      const revalidationPromises = Array.from(affectedPaths).map((pathItem) => {
-        const pathWithoutSlash = pathItem.startsWith("/")
-          ? pathItem.substring(1)
-          : pathItem;
+      const revalidationPromises = Array.from(affectedPaths).map(
+        async (pathItem) => {
+          const pathWithoutSlash = pathItem.startsWith("/")
+            ? pathItem.substring(1)
+            : pathItem;
 
-        let type = "category";
-        if (pathItem === "/") {
-          type = "homepage";
-        } else if (pathItem.includes("/20") && pathItem.split("/").length > 4) {
-          type = "post";
+          let type = "category";
+          if (pathItem === "/") {
+            type = "homepage";
+          } else if (
+            pathItem.includes("/20") &&
+            pathItem.split("/").length > 4
+          ) {
+            type = "post";
+          }
+
+          const response = await fetch(`${baseUrl}/api/revalidate`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-revalidate-key": revalidateKey,
+            },
+            body: JSON.stringify({
+              type,
+              slug: pathWithoutSlash || "",
+              path: pathWithoutSlash || "/",
+              categories: categories,
+            }),
+          });
+
+          // Validate response status
+          if (!response.ok) {
+            const errorText = await response
+              .text()
+              .catch(() => "Unknown error");
+            console.error(
+              `[${traceId}] ❌ Revalidation failed for ${pathItem}: ${response.status} - ${errorText}`
+            );
+            throw new Error(
+              `Revalidation failed for ${pathItem}: ${response.status}`
+            );
+          }
+
+          return response;
         }
-
-        return fetch(`${baseUrl}/api/revalidate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-revalidate-key": revalidateKey,
-          },
-          body: JSON.stringify({
-            type,
-            slug: pathWithoutSlash || "",
-            path: pathWithoutSlash || "/",
-            categories: categories,
-          }),
-        });
-      });
+      );
 
       const results = await Promise.allSettled(revalidationPromises);
       const successCount = results.filter(
         (r) => r.status === "fulfilled"
       ).length;
+      const failCount = results.length - successCount;
+
+      if (failCount > 0) {
+        console.warn(
+          `[${traceId}] ⚠️ ${failCount}/${affectedPaths.size} paths failed revalidation`
+        );
+      }
 
       console.log(
         `[${traceId}] ✅ ISR revalidated: ${successCount}/${affectedPaths.size} paths`
       );
-      isrRevalidated = true;
+      isrRevalidated = successCount > 0;
     } catch (error: any) {
       console.error(`[${traceId}] ⚠️ ISR revalidation failed:`, error.message);
       return res.status(500).json({
@@ -436,6 +463,12 @@ export default async function handler(
 
     console.log(`[${traceId}] ========================================`);
     console.log(`[${traceId}] Clear Article Completed Successfully`);
+
+    // Wait briefly for first ISR rebuild to start
+    console.log(
+      `[${traceId}] Waiting 2 seconds for ISR rebuild to initialize...`
+    );
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // 11. RETURN SUCCESS
     return res.status(200).json({

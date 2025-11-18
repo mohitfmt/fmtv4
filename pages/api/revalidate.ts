@@ -134,7 +134,8 @@ export default async function handler(
 
   // Security check
   const revalidateKey = req.headers["x-revalidate-key"];
-  const expectedKey = process.env.REVALIDATE_SECRET_KEY || "default-secret";
+  const expectedKey =
+    process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
 
   if (revalidateKey !== expectedKey) {
     console.error("[Revalidate] Invalid revalidate key");

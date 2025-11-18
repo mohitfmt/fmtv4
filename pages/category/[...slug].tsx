@@ -353,12 +353,7 @@ export const getStaticProps: GetStaticProps = async ({
 
     const data = await getPostAndMorePosts(slug, preview, previewData);
 
-    if (
-      !data?.post ||
-      data.post.status === "draft" ||
-      data.post.status === "private" ||
-      data.post.status === "trash"
-    ) {
+    if (!data?.post || data.post.status !== "publish") {
       return { notFound: true, revalidate: 60 };
     }
 
