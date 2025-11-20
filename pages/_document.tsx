@@ -46,6 +46,50 @@ export default function Document() {
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         />
+        {/* ============================================== */}
+        {/* Antsomi CDP Web Insight Script                */}
+        {/* ⚠️ CHANGE _propId BEFORE PRODUCTION DEPLOY ⚠️ */}
+        {/* Staging: 565041059                            */}
+        {/* Production: 565041291                         */}
+        {/* ============================================== */}
+        <script
+          type="text/javascript"
+          dangerouslySetInnerHTML={{
+            __html: `
+              var _portalId = "564892845";
+              var _propId = "565041059"; // ⚠️ STAGING - Change to 565041291 for PRODUCTION
+              var _AP_REGION = 'ap2';
+              var _ATM_TRACKING_ASSOCIATE_UTM = 0;
+              var _CDP_GA_ACCOUNT_TRACKING_ID = "G-1BXSGEDPNV";
+              var _cdpEnableDomainBridge = true;
+              var _cdp365Analytics = {
+                default_event: 0,
+                first_party_domain: ".freemalaysiatoday.com",
+                dims: {
+                  users: {
+                    origin_source: "freemalaysiatoday.com"
+                  }
+                }
+              };
+              (function() {
+                var w = window;
+                if (w.web_event) return;
+                var a = window.web_event = function() {
+                  a.queue.push(arguments);
+                };
+                a.propId = _propId;
+                a.track = a;
+                a.queue = [];
+                var e = document.createElement("script");
+                e.type = "text/javascript";
+                e.async = true;
+                e.src = "//st-a.cdp.asia/insight.js";
+                var t = document.getElementsByTagName("script")[0];
+                t.parentNode.insertBefore(e, t);
+              })();
+            `,
+          }}
+        />
       </Head>
       <body className={bodyClasses}>
         <Main />
