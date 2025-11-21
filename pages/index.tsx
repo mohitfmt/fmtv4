@@ -691,6 +691,15 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           preview
         );
 
+        // ✅ DEFENSIVE: Ensure allPosts is actually an array
+        if (!Array.isArray(allPosts)) {
+          console.error(
+            `[HomePage ISR] ${categoryName} returned non-array:`,
+            typeof allPosts
+          );
+          return [];
+        }
+
         return allPosts
           .filter(
             (post: { slug: string }) =>
@@ -699,7 +708,6 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
           )
           .slice(0, limit);
       } catch (error) {
-        // ✅ Keep error logs
         console.error(`Error fetching ${categoryName}:`, error);
         return [];
       }

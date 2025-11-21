@@ -89,7 +89,7 @@ async function rawGetCategoryNews(
     return data?.posts?.edges?.map((edge: any) => edge.node) || [];
   } catch (error) {
     console.error(`Error fetching posts for category ${categoryName}:`, error);
-    return { edges: [] };
+    return [];
   }
 }
 
