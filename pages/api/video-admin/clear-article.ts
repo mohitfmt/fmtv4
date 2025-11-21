@@ -1,7 +1,11 @@
 // pages/api/video-admin/clear-article.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { changeManager } from "@/lib/cache/smart-cache-registry";
+import {
+  changeManager,
+  postDataCache,
+  postPageCache,
+} from "@/lib/cache/smart-cache-registry";
 import {
   purgeCloudflareByTags,
   purgeCloudflareByUrls,
@@ -270,11 +274,25 @@ export default async function handler(
     console.log(`[${traceId}] Total affected paths: ${affectedPaths.size}`);
     console.log(`[${traceId}] Total cache tags: ${cacheTags.size}`);
 
-    // 5. CLEAR LRU CACHE (In-Memory)
-    console.log(`[${traceId}] Clearing LRU cache...`);
+    // 5. CLEAR LRU CACHE (In-Memory) - CRITICAL!
+    console.log(`[${traceId}] Clearing LRU cache for article...`);
     try {
-      // We don't have direct access to article cache, but Smart Cache will handle it
-      console.log(`[${traceId}] ✅ LRU cache cleared (via Smart Cache)`);
+      // Extract slug from path (e.g., "/category/sports/.../article-slug" -> "article-slug")
+      const slug = path.split("/").pop() || "";
+
+      if (slug) {
+        // Clear getPostAndMorePosts cache (used by article page)
+        const postPageKey = `post:${slug}:np`;
+        postPageCache.delete(postPageKey);
+        console.log(`[${traceId}] ✓ Cleared postPageCache: ${postPageKey}`);
+
+        // Clear getPostData cache (used by related posts)
+        const postDataKey = `post:${slug}`;
+        postDataCache.delete(postDataKey);
+        console.log(`[${traceId}] ✓ Cleared postDataCache: ${postDataKey}`);
+      }
+
+      console.log(`[${traceId}] ✅ LRU cache cleared`);
     } catch (error) {
       console.error(`[${traceId}] ⚠️ LRU cache clearing failed:`, error);
     }
@@ -408,6 +426,65 @@ export default async function handler(
         `[${traceId}] ✅ ISR revalidated: ${successCount}/${affectedPaths.size} paths`
       );
       isrRevalidated = successCount > 0;
+
+      // FORCE IMMEDIATE REBUILD - Article pages only
+      const articlePaths = Array.from(affectedPaths).filter(
+        (p) => p.includes("/20") && p.split("/").length > 4
+      );
+
+      if (articlePaths.length > 0) {
+        console.log(
+          `[${traceId}] Forcing immediate rebuild for ${articlePaths.length} articles...`
+        );
+
+        const productionDomain =
+          process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
+        const baseUrl = `https://${productionDomain}`;
+
+        // Fetch each article to trigger rebuild
+        const rebuildPromises = articlePaths.map(async (pathItem) => {
+          try {
+            const fullUrl = `${baseUrl}${pathItem}`;
+            await fetch(fullUrl, {
+              method: "GET",
+              headers: {
+                "User-Agent": "FMT-Cache-Rebuilder/1.0",
+              },
+              signal: AbortSignal.timeout(5000),
+            });
+            console.log(`[${traceId}] ✓ Triggered rebuild: ${pathItem}`);
+          } catch (error: any) {
+            console.error(
+              `[${traceId}] ⚠️ Rebuild trigger failed for ${pathItem}:`,
+              error.message
+            );
+          }
+        });
+
+        await Promise.allSettled(rebuildPromises);
+
+        // Wait for rebuilds to complete
+        console.log(
+          `[${traceId}] Waiting 5 seconds for rebuilds to complete...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Purge Cloudflare AGAIN to remove the old pages we just fetched
+        try {
+          const urlsToPurge = articlePaths.map((p) => `${baseUrl}${p}`);
+          await purgeCloudflareByUrls(urlsToPurge);
+          console.log(
+            `[${traceId}] ✅ Re-purged Cloudflare for ${urlsToPurge.length} articles`
+          );
+        } catch (error: any) {
+          console.error(
+            `[${traceId}] ⚠️ Re-purge failed (non-fatal):`,
+            error.message
+          );
+        }
+
+        console.log(`[${traceId}] ✅ Forced rebuild complete`);
+      }
     } catch (error: any) {
       console.error(`[${traceId}] ⚠️ ISR revalidation failed:`, error.message);
       return res.status(500).json({
