@@ -57,7 +57,7 @@ export default function Document() {
           dangerouslySetInnerHTML={{
             __html: `
               var _portalId = "564892845";
-              var _propId = "565041059"; // ⚠️ STAGING - Change to 565041291 for PRODUCTION
+              var _propId = "565041291"; // ⚠️ STAGING - Change to 565041291 for PRODUCTION
               var _AP_REGION = 'ap2';
               var _ATM_TRACKING_ASSOCIATE_UTM = 0;
               var _CDP_GA_ACCOUNT_TRACKING_ID = "G-1BXSGEDPNV";

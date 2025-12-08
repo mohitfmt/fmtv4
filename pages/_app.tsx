@@ -59,6 +59,9 @@ const roboto = Roboto_Slab({
   fallback: ["system-ui", "arial"],
 });
 
+const STABLE_BODY_AD_SLOTS = {};
+const STABLE_DFP_TARGETING_PARAMS = {};
+
 export default function App({
   Component,
   pageProps: { session, ...pageProps },
@@ -264,8 +267,8 @@ export default function App({
               <GPTProvider
                 prefix="FMT"
                 networkId="1009103"
-                bodyAdSlots={{}}
-                dfpTargetingParams={{}}
+                bodyAdSlots={STABLE_BODY_AD_SLOTS}
+                dfpTargetingParams={STABLE_DFP_TARGETING_PARAMS}
                 asPath="/"
               >
                 {finalContent}

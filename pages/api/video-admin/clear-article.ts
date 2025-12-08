@@ -427,63 +427,87 @@ export default async function handler(
       );
       isrRevalidated = successCount > 0;
 
-      // FORCE IMMEDIATE REBUILD - Article pages only
+      // FORCE IMMEDIATE REBUILD - Hit ALL 90 instances
       const articlePaths = Array.from(affectedPaths).filter(
         (p) => p.includes("/20") && p.split("/").length > 4
       );
 
       if (articlePaths.length > 0) {
-        console.log(
-          `[${traceId}] Forcing immediate rebuild for ${articlePaths.length} articles...`
-        );
-
         const productionDomain =
           process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
         const baseUrl = `https://${productionDomain}`;
 
-        // Fetch each article to trigger rebuild
-        const rebuildPromises = articlePaths.map(async (pathItem) => {
-          try {
-            const fullUrl = `${baseUrl}${pathItem}`;
-            await fetch(fullUrl, {
-              method: "GET",
-              headers: {
-                "User-Agent": "FMT-Cache-Rebuilder/1.0",
-              },
-              signal: AbortSignal.timeout(5000),
-            });
-            console.log(`[${traceId}] ✓ Triggered rebuild: ${pathItem}`);
-          } catch (error: any) {
-            console.error(
-              `[${traceId}] ⚠️ Rebuild trigger failed for ${pathItem}:`,
-              error.message
-            );
-          }
-        });
-
-        await Promise.allSettled(rebuildPromises);
-
-        // Wait for rebuilds to complete
         console.log(
-          `[${traceId}] Waiting 5 seconds for rebuilds to complete...`
+          `[${traceId}] 🔥 Aggressive cache busting: Hitting 90 instances...`
         );
-        await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        // Purge Cloudflare AGAIN to remove the old pages we just fetched
+        // Make 90 requests to hit all potential Cloud Run instances
+        const INSTANCE_COUNT = 90;
+        const burstPromises = [];
+
+        for (let i = 0; i < INSTANCE_COUNT; i++) {
+          for (const pathItem of articlePaths) {
+            const promise = (async () => {
+              try {
+                const fullUrl = `${baseUrl}${pathItem}`;
+
+                // Add random query param to bypass Cloudflare cache
+                const bustUrl = `${fullUrl}?_cb=${Date.now()}-${i}`;
+
+                await fetch(bustUrl, {
+                  method: "GET",
+                  headers: {
+                    "User-Agent": `FMT-Cache-Rebuilder/1.0-Instance-${i}`,
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    Pragma: "no-cache",
+                  },
+                  signal: AbortSignal.timeout(5000),
+                });
+
+                if (i === 0 || i === 29 || i === 59 || i === 89) {
+                  console.log(`[${traceId}] ✓ Hit instance ${i + 1}/90`);
+                }
+              } catch (error: any) {
+                // Silent fail - some requests will timeout, that's OK
+              }
+            })();
+
+            burstPromises.push(promise);
+          }
+        }
+
+        // Run all requests in parallel (batched to avoid overwhelming)
+        const BATCH_SIZE = 10;
+        for (let i = 0; i < burstPromises.length; i += BATCH_SIZE) {
+          const batch = burstPromises.slice(i, i + BATCH_SIZE);
+          await Promise.allSettled(batch);
+        }
+
+        console.log(
+          `[${traceId}] ✅ Sent ${INSTANCE_COUNT} requests to each article`
+        );
+
+        // Wait for all rebuilds to complete
+        console.log(
+          `[${traceId}] Waiting 8 seconds for all instances to rebuild...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 8000));
+
+        // Purge Cloudflare to remove all the cache-busted URLs
         try {
           const urlsToPurge = articlePaths.map((p) => `${baseUrl}${p}`);
           await purgeCloudflareByUrls(urlsToPurge);
           console.log(
-            `[${traceId}] ✅ Re-purged Cloudflare for ${urlsToPurge.length} articles`
+            `[${traceId}] ✅ Final Cloudflare purge for ${urlsToPurge.length} articles`
           );
         } catch (error: any) {
           console.error(
-            `[${traceId}] ⚠️ Re-purge failed (non-fatal):`,
+            `[${traceId}] ⚠️ Final purge failed (non-fatal):`,
             error.message
           );
         }
 
-        console.log(`[${traceId}] ✅ Forced rebuild complete`);
+        console.log(`[${traceId}] ✅ All instances cleared!`);
       }
     } catch (error: any) {
       console.error(`[${traceId}] ⚠️ ISR revalidation failed:`, error.message);

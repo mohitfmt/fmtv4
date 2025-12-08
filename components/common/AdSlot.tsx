@@ -1,5 +1,13 @@
 import { GPTContext } from "@/contexts/GPTProvider";
-import React, { useEffect, useRef, useContext, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
+
 interface AdSlotProps {
   name: string;
   sizes: googletag.GeneralSize;
@@ -21,33 +29,46 @@ const AdSlot: React.FC<AdSlotProps> = ({
   isInterstitial = false,
   additionalStyle,
 }) => {
-  const finalTargetingParams = {
-    site: "fmt",
-    ...targetingParams,
-  };
+  // Stable keys for memoization
+  const sizesKey = JSON.stringify(sizes);
+  const targetingParamsKey = JSON.stringify(targetingParams);
+
+  const stableSizes = useMemo(() => sizes, [sizesKey]);
+  const finalTargetingParams = useMemo(
+    () => ({
+      site: "fmt",
+      ...targetingParams,
+    }),
+    [targetingParamsKey]
+  );
 
   const adRef = useRef<HTMLDivElement>(null);
-  const { definePageAdSlot, softRemovePageAdSlot, removeAdSlots } =
-    useContext(GPTContext);
-  const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const { definePageAdSlot, softRemovePageAdSlot } = useContext(GPTContext);
+
   const [isVisible, setIsVisible] = useState(false);
   const [isFirstRefresh, setIsFirstRefresh] = useState(true);
 
+  // Store references for proper cleanup
+  const slotRef = useRef<googletag.Slot | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSlotDisplayedRef = useRef(false);
+  const eventListenerRef = useRef<
+    ((event: googletag.events.SlotRenderEndedEvent) => void) | null
+  >(null);
 
+  // Visibility effect
   useEffect(() => {
     const updateVisibility = () => {
       const width = window.innerWidth;
-      if (
-        (visibleOnDevices === "onlyMobile" && width <= 768) ||
-        (visibleOnDevices === "onlyDesktop" && width > 768)
-      ) {
+      if (visibleOnDevices === "both") {
+        setIsVisible(true);
+      } else if (visibleOnDevices === "onlyMobile" && width <= 768) {
+        setIsVisible(true);
+      } else if (visibleOnDevices === "onlyDesktop" && width > 768) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
-      }
-      if (visibleOnDevices === "both") {
-        setIsVisible(true);
       }
     };
 
@@ -58,7 +79,8 @@ const AdSlot: React.FC<AdSlotProps> = ({
     };
   }, [visibleOnDevices]);
 
-  const refreshAd = () => {
+  // Memoized refresh function
+  const refreshAd = useCallback(() => {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
@@ -66,105 +88,140 @@ const AdSlot: React.FC<AdSlotProps> = ({
     const delay = isFirstRefresh ? 1000 : 45000;
 
     refreshTimeoutRef.current = setTimeout(() => {
-      window.googletag.cmd.push(() => {
+      if (!slotRef.current) return;
+
+      window.googletag?.cmd.push(() => {
         const foundSlot = window.googletag
           .pubads()
           .getSlots()
-          .find((slot: any) => slot.getSlotElementId() === id);
+          .find((slot: googletag.Slot) => slot.getSlotElementId() === id);
 
-        if (foundSlot) {
+        if (foundSlot && slotRef.current) {
           window.googletag.pubads().refresh([foundSlot]);
         }
       });
       setIsFirstRefresh(false);
     }, delay);
-  };
+  }, [id, isFirstRefresh]);
 
+  // Main ad slot effect
   useEffect(() => {
     if (!isVisible) return;
 
     const slotParams = {
       name,
       id,
-      sizes,
+      sizes: stableSizes,
       outOfPage,
       isInterstitial,
       customDfpTargetingParams: finalTargetingParams,
       displayNow: false,
     };
 
-    const handleSlotRenderEnded = (
-      event: googletag.events.SlotRenderEndedEvent
-    ) => {
-      if (event.slot.getSlotElementId() === id) {
-        setIsAdLoaded(true);
-      }
-    };
-
     definePageAdSlot(slotParams, ({ slot }) => {
-      if (slot) {
-        window.googletag.cmd.push(() => {
-          const pubads = window.googletag.pubads();
-          // Clear old targeting
-          slot.clearTargeting();
-          // Set targeting parameters
-          Object.entries(finalTargetingParams).forEach(([key, value]) => {
-            slot.setTargeting(key, value);
-          });
+      if (!slot) return;
 
-          pubads.addEventListener("slotRenderEnded", handleSlotRenderEnded);
+      // Store the slot reference for cleanup
+      slotRef.current = slot;
 
-          // Enable SRA if not already enabled
+      window.googletag?.cmd.push(() => {
+        const pubads = window.googletag.pubads();
+
+        // Clear old targeting and set new
+        slot.clearTargeting();
+        Object.entries(finalTargetingParams).forEach(([key, value]) => {
+          slot.setTargeting(key, value);
+        });
+
+        // Create and store the event listener for cleanup
+        const handleSlotRenderEnded = (
+          event: googletag.events.SlotRenderEndedEvent
+        ) => {
+          if (event.slot.getSlotElementId() === id) {
+            // Ad loaded successfully
+          }
+        };
+        eventListenerRef.current = handleSlotRenderEnded;
+        pubads.addEventListener("slotRenderEnded", handleSlotRenderEnded);
+
+        // Only call display() ONCE per slot lifecycle
+        if (!isSlotDisplayedRef.current) {
           pubads.enableSingleRequest();
-
-          // Enable lazy loading
           pubads.enableLazyLoad({
             fetchMarginPercent: 500,
             renderMarginPercent: 200,
             mobileScaling: 2.0,
           });
 
-          // Display the ad
           window.googletag.display(id);
+          isSlotDisplayedRef.current = true;
 
-          // Initial refresh
+          // Initial refresh only on first display
           refreshAd();
-        });
 
-        // Set up a periodic refresh (e.g., every 60 seconds)
-        const refreshInterval = setInterval(refreshAd, 60000);
-
-        return () => {
-          clearInterval(refreshInterval);
-          window.googletag.cmd.push(() => {
-            const pubads = window.googletag.pubads();
-            pubads.removeEventListener(
-              "slotRenderEnded",
-              handleSlotRenderEnded
-            );
-          });
-        };
-      }
+          // Set up periodic refresh - store reference for cleanup
+          refreshIntervalRef.current = setInterval(() => {
+            if (slotRef.current) {
+              refreshAd();
+            }
+          }, 60000);
+        }
+      });
     });
 
+    // Cleanup function
     return () => {
+      // Clear timeout
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
       }
+
+      // Clear interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+
+      // Remove event listener
+      if (eventListenerRef.current) {
+        window.googletag?.cmd.push(() => {
+          window.googletag
+            .pubads()
+            .removeEventListener("slotRenderEnded", eventListenerRef.current!);
+        });
+        eventListenerRef.current = null;
+      }
+
+      // Destroy the actual slot
+      if (slotRef.current) {
+        window.googletag?.cmd.push(() => {
+          if (slotRef.current) {
+            window.googletag.destroySlots([slotRef.current]);
+          }
+        });
+        slotRef.current = null;
+      }
+
+      // Reset display flag for next mount
+      isSlotDisplayedRef.current = false;
+
+      // Clean up internal tracking
       softRemovePageAdSlot(id);
-      removeAdSlots([{ ...slotParams }]);
     };
   }, [
     isVisible,
     name,
-    sizes,
+    stableSizes,
+    sizesKey,
     id,
     finalTargetingParams,
+    targetingParamsKey,
     outOfPage,
     isInterstitial,
     definePageAdSlot,
     softRemovePageAdSlot,
-    removeAdSlots,
+    refreshAd,
   ]);
 
   if (!isVisible) {
