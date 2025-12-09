@@ -667,7 +667,7 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
         </section>
 
         {/* FAQ Section - Accordion Style */}
-        <section id="faq" className="mb-12">
+        <section id="faq" className="mb-12 sr-only">
           <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white border-b-2 border-blue-600 dark:border-blue-400 pb-2">
             Frequently Asked Questions
           </h2>

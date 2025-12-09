@@ -741,27 +741,53 @@ const VideosPage = ({
         {/* Playlists */}
         {!searchResults &&
           data.playlists &&
-          Object.entries(data.playlists).map(([playlistId, playlist]) => (
-            <section key={playlistId} className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">{playlist.name}</h2>
-                <Link
-                  href={`/videos/playlist/${playlistId}`}
-                  className="text-primary hover:underline flex items-center gap-1"
-                >
-                  View All
-                  <FaChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {playlist.videos
-                  .slice(0, playlist.maxVideos || 6)
-                  .map((video) => (
-                    <VideoCard key={video.videoId} video={video} />
-                  ))}
-              </div>
-            </section>
-          ))}
+          Object.entries(data.playlists).map(
+            ([playlistId, playlist], index, arr) => (
+              <section key={playlistId} className="mb-14">
+                {/* Cohesive Header Block with Accent */}
+                <div className="flex items-center justify-between mb-5 px-4 py-3 bg-accent/5 border-l-4 border-accent-foreground rounded-r-lg">
+                  <h2 className="text-xl md:text-2xl font-bold">
+                    {playlist.name}
+                  </h2>
+                  {/* Desktop: Show link in header */}
+                  <Link
+                    href={`/videos/playlist/${playlistId}`}
+                    className="hidden md:flex text-primary hover:underline items-center gap-1.5 text-sm font-medium"
+                    aria-label={`View all ${playlist.name} videos`}
+                  >
+                    More {playlist.name} Videos
+                    <FaChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                {/* Video Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {playlist.videos
+                    .slice(0, playlist.maxVideos || 6)
+                    .map((video) => (
+                      <VideoCard key={video.videoId} video={video} />
+                    ))}
+                </div>
+
+                {/* Mobile: Bottom CTA button */}
+                <div className="mt-4 md:hidden">
+                  <Link
+                    href={`/videos/playlist/${playlistId}`}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-accent/10 hover:bg-accent/20 text-accent-foreground font-medium rounded-lg transition-colors"
+                    aria-label={`View all ${playlist.name} videos`}
+                  >
+                    More {playlist.name} Videos
+                    <FaChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                {/* Subtle divider between playlists */}
+                {index < arr.length - 1 && (
+                  <hr className="mt-14 border-border/50" />
+                )}
+              </section>
+            )
+          )}
 
         {/* Bottom Desktop Ad */}
         <div className="ads-medium-desktop mt-8">
