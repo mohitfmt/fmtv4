@@ -172,7 +172,7 @@ const GalleryLayout: React.FC<GalleryLayoutProps> = ({
       />
 
       {/* OutOfPage Ad */}
-      <AdSlot
+      {/* <AdSlot
         id="div-gpt-ad-1661362765847-0"
         name="OutOfPage"
         sizes={[1, 1]}
@@ -185,7 +185,7 @@ const GalleryLayout: React.FC<GalleryLayoutProps> = ({
           backgroundColor: "var(--muted)",
           height: 0,
         }}
-      />
+      /> */}
     </>
   );
 };

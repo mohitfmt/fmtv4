@@ -234,7 +234,7 @@ const AcceleratorPage: React.FC<AcceleratorPageProps> = ({ posts }) => {
         />
 
         {/* OutOfPage Ad */}
-        <AdSlot
+        {/* <AdSlot
           id="div-gpt-ad-1661362765847-0"
           name="OutOfPage"
           sizes={[1, 1]}
@@ -247,7 +247,7 @@ const AcceleratorPage: React.FC<AcceleratorPageProps> = ({ posts }) => {
             backgroundColor: "var(--muted)",
             height: 0,
           }}
-        />
+        /> */}
       </div>
     </>
   );

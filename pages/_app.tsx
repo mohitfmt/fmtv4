@@ -78,6 +78,68 @@ export default function App({
     }
   }, []);
 
+  // Add this import at the top (if not already present)
+
+  // Inside the App component, add this useEffect after the existing one:
+
+  // Cleanup orphaned OutOfPage creative HTML on route change
+  useEffect(() => {
+    const cleanupOutOfPageCreatives = () => {
+      // Common patterns used by OutOfPage creatives
+      // These inject fixed-position divs outside React's control
+
+      // Pattern 1: Divs with id="myads" (very common in creatives)
+      document.querySelectorAll('div[id="myads"]').forEach((el) => {
+        el.remove();
+      });
+
+      // Pattern 2: Fixed position ad containers injected at body level
+      // Be careful to only target ad-related elements
+      document
+        .querySelectorAll('body > div[style*="position: fixed"]')
+        .forEach((el) => {
+          const style = el.getAttribute("style") || "";
+          const innerHTML = el.innerHTML || "";
+
+          // Only remove if it looks like an ad container
+          // (has ad-related URLs or specific z-index patterns)
+          if (
+            style.includes("z-index: 9999") ||
+            style.includes("z-index:9999") ||
+            innerHTML.includes("doubleclick.net") ||
+            innerHTML.includes("googlesyndication") ||
+            innerHTML.includes("adclick") ||
+            el.id === "myads"
+          ) {
+            el.remove();
+          }
+        });
+
+      // Pattern 3: GPT-generated containers that weren't cleaned up
+      document
+        .querySelectorAll('div[id*="google_ads_iframe"]')
+        .forEach((el) => {
+          // Only remove orphaned iframes (not ones inside our AdSlot containers)
+          if (
+            !el.closest('[class*="ads-"]') &&
+            !el.closest('[id^="div-gpt-ad-"]')
+          ) {
+            el.remove();
+          }
+        });
+    };
+
+    // Run cleanup on route change start (before new page renders)
+    router.events.on("routeChangeStart", cleanupOutOfPageCreatives);
+
+    // Also run on initial mount to clean any stale elements
+    cleanupOutOfPageCreatives();
+
+    return () => {
+      router.events.off("routeChangeStart", cleanupOutOfPageCreatives);
+    };
+  }, [router.events]);
+
   const content = (
     <div className={`${bitter.variable} ${rhd.variable} ${roboto.variable}`}>
       <div className="min-h-screen bg-background text-foreground">

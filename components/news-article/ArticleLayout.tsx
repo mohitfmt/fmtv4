@@ -291,14 +291,14 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
         </div>
 
         {/* Our of Page Ad */}
-        <AdSlot
+        {/* <AdSlot
           id="div-gpt-ad-1661362871446-0"
           name="1x1_Programmatic"
           sizes={[1, 1]}
           targetingParams={dfpTargetingParams}
           visibleOnDevices="onlyDesktop"
           outOfPage={true}
-        />
+        /> */}
 
         {/* Pixel Ad */}
         <AdSlot
@@ -316,7 +316,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
         />
 
         {/* OutOfPage Ad */}
-        <AdSlot
+        {/* <AdSlot
           id="div-gpt-ad-1661362765847-0"
           name="OutOfPage"
           sizes={[1, 1]}
@@ -329,7 +329,7 @@ const ArticleLayout: React.FC<ArticleLayoutProps> = ({
             backgroundColor: "var(--muted)",
             height: 0,
           }}
-        />
+        /> */}
       </section>
     </>
   );

@@ -72,7 +72,7 @@ export default function SearchLayout() {
         />
 
         {/* OutOfPage Ad */}
-        <AdSlot
+        {/* <AdSlot
           id="div-gpt-ad-1661362765847-0"
           name="OutOfPage"
           sizes={[1, 1]}
@@ -85,7 +85,7 @@ export default function SearchLayout() {
             backgroundColor: "var(--muted)",
             height: 0,
           }}
-        />
+        /> */}
       </section>
     </>
   );

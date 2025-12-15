@@ -480,7 +480,7 @@ const PrivacyPolicyPage = () => {
       />
 
       {/* OutOfPage Ad */}
-      <AdSlot
+      {/* <AdSlot
         id="div-gpt-ad-1661362765847-0"
         name="OutOfPage"
         sizes={[1, 1]}
@@ -493,7 +493,7 @@ const PrivacyPolicyPage = () => {
           backgroundColor: "var(--muted)",
           height: 0,
         }}
-      />
+      /> */}
     </>
   );
 };

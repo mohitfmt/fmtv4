@@ -735,7 +735,7 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
       />
 
       {/* OutOfPage Ad */}
-      <AdSlot
+      {/* <AdSlot
         id="div-gpt-ad-1661362765847-0"
         name="OutOfPage"
         sizes={[1, 1]}
@@ -748,7 +748,7 @@ const AboutPage: NextPage<PageProps> = ({ pageData, error }) => {
           backgroundColor: "var(--muted)",
           height: 0,
         }}
-      />
+      /> */}
     </>
   );
 };

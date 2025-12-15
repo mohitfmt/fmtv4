@@ -120,7 +120,7 @@ export default function MainLayout({
       />
 
       {/* OutOfPage Ad */}
-      <AdSlot
+      {/* <AdSlot
         id="div-gpt-ad-1661362765847-0"
         name="OutOfPage"
         sizes={[1, 1]}
@@ -133,7 +133,7 @@ export default function MainLayout({
           backgroundColor: "var(--muted)",
           height: 0,
         }}
-      />
+      /> */}
     </div>
   );
 }
