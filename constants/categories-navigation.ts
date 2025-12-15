@@ -108,7 +108,7 @@ export const categoriesNavigation = [
     path: "opinion",
     subCategories: [
       {
-        title: "Editorial",
+        title: "Behind the Bylines",
         slug: "editorial",
         href: "/category/category/opinion/editorial/",
       },

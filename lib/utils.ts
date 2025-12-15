@@ -22,7 +22,7 @@ interface CategoryEdge {
 const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   "Simple Stories": "Everyday Heroes",
   "simple-stories": "Everyday Heroes",
-  // Add more mappings here if needed in future
+  editorial: "behind the bylines",
 };
 
 export const getPreferredCategory = (

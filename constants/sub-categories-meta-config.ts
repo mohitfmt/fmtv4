@@ -90,7 +90,7 @@ export const seoSubCategories = {
 
   // Editorial
   editorial: {
-    h1Title: "FMT Editorial & Analysis",
+    h1Title: "Behind the Bylines",
     metaTitle: "Editorial Opinion, News Analysis & FMT Views",
     description:
       "Read Free Malaysia Today's editorial stance on current issues, in-depth analysis of national events, and expert perspectives on Malaysia's future.",

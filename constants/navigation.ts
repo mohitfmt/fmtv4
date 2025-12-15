@@ -124,7 +124,7 @@ export const navigation = [
       },
       {
         id: 62,
-        title: "Editorial",
+        title: "Behind the Bylines",
         href: "/category/category/opinion/editorial/",
       },
       {

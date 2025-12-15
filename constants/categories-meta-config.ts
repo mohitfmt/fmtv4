@@ -155,7 +155,6 @@ export const categoriesMetadataConfigs = {
       "global insights",
       "political analysis",
       "societal trends",
-      "expert editorials",
       "news columns",
       "reader letters",
       "international affairs",
