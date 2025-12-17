@@ -60,6 +60,7 @@ export const getStaticProps: GetStaticProps = async () => {
         },
       },
     };
+
     const variables4Posts = {
       first: 4,
       where: {
@@ -93,44 +94,88 @@ export const getStaticProps: GetStaticProps = async () => {
         ],
       },
     };
+
     const topResponse = await getFilteredCategoryPosts(variablesTopResponse);
     const leisureResponse = await getFilteredCategoryPosts(variables4Posts);
 
+    // ✅ DEFENSIVE: Validate both responses before combining
+    const topEdges = topResponse?.posts?.edges || [];
+    const leisureEdges = leisureResponse?.posts?.edges || [];
+
+    if (topEdges.length === 0 && leisureEdges.length === 0) {
+      console.warn(
+        `[${pathName}] Both top-lifestyle and leisure returned no posts`
+      );
+    }
+
     const combinedPosts = {
-      edges: [...topResponse.posts.edges, ...leisureResponse.posts.edges],
+      edges: [...topEdges, ...leisureEdges],
     };
 
     const currentPage = categoriesNavigation.find(
       (p) => p.path === pathName.replaceAll("/", "")
     );
 
+    // ✅ DEFENSIVE: Fetch subcategory posts with error handling
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const variables = {
-          first: 6,
-          where: {
-            offsetPagination: { offset: 0, size: 6 },
-            taxQuery: {
-              relation: "AND",
-              taxArray: [
-                {
-                  field: "SLUG",
-                  operator: "AND",
-                  taxonomy: "CATEGORY",
-                  terms: [category.slug],
-                },
-              ],
+        try {
+          const variables = {
+            first: 6,
+            where: {
+              offsetPagination: { offset: 0, size: 6 },
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: [category.slug],
+                  },
+                ],
+              },
+              excludeQuery: excludeVariables,
             },
-            excludeQuery: excludeVariables,
-          },
-        };
-        const posts = await getFilteredCategoryPosts(variables);
+          };
 
-        return {
-          slug: category.slug,
-          posts: { edges: posts.posts.edges },
-          bigImage: true,
-        };
+          const posts = await getFilteredCategoryPosts(variables);
+
+          // ✅ DEFENSIVE: Validate data structure
+          if (!posts || !posts.posts || !Array.isArray(posts.posts.edges)) {
+            console.warn(
+              `[${pathName}] Subcategory "${category.slug}" returned invalid data structure:`,
+              {
+                hasPost: !!posts,
+                hasPosts: !!posts?.posts,
+                edgesType: typeof posts?.posts?.edges,
+              }
+            );
+
+            return {
+              slug: category.slug,
+              posts: { edges: [] },
+              bigImage: true,
+            };
+          }
+
+          return {
+            slug: category.slug,
+            posts: { edges: posts.posts.edges },
+            bigImage: true,
+          };
+        } catch (error) {
+          console.error(
+            `[${pathName}] Failed to fetch subcategory "${category.slug}":`,
+            error
+          );
+
+          return {
+            slug: category.slug,
+            posts: { edges: [] },
+            bigImage: true,
+          };
+        }
       })
     );
 

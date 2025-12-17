@@ -64,11 +64,56 @@ function generateCacheKey(variables: PostsVariables | any): string {
 async function rawGetFilteredCategoryPosts(
   variables: PostsVariables | any
 ): Promise<PostsResponse | any> {
+  const categorySlug =
+    variables?.where?.taxQuery?.taxArray?.[0]?.terms?.[0] || "unknown";
+
   try {
     const data = await gqlFetchAPI(GET_FILTERED_CATEGORY, { variables });
+
+    // ✅ DEFENSIVE: Validate response structure
+    if (!data || typeof data !== "object") {
+      console.error(
+        `[getFilteredCategoryPosts] Invalid response type for category "${categorySlug}":`,
+        typeof data
+      );
+      return { posts: { edges: [] } };
+    }
+
+    if (!data.posts) {
+      console.error(
+        `[getFilteredCategoryPosts] Missing 'posts' in response for category "${categorySlug}":`,
+        Object.keys(data)
+      );
+      return { posts: { edges: [] } };
+    }
+
+    if (!Array.isArray(data.posts.edges)) {
+      console.error(
+        `[getFilteredCategoryPosts] posts.edges is not an array for category "${categorySlug}":`,
+        typeof data.posts.edges,
+        data.posts.edges
+      );
+      return { posts: { edges: [] } };
+    }
+
+    // ✅ LOG SUCCESS (only in development or if empty)
+    if (
+      process.env.NODE_ENV === "development" ||
+      data.posts.edges.length === 0
+    ) {
+      console.log(
+        `[getFilteredCategoryPosts] Category "${categorySlug}": ${data.posts.edges.length} posts`
+      );
+    }
+
     return data?.posts ? data : { posts: { edges: [] } };
-  } catch (error) {
-    console.error("[getFilteredCategoryPosts] Error:", error);
+  } catch (error: any) {
+    console.error(
+      `[getFilteredCategoryPosts] Error fetching category "${categorySlug}":`,
+      error.message
+    );
+
+    // ✅ RETURN SAFE FALLBACK instead of throwing
     return { posts: { edges: [] } };
   }
 }

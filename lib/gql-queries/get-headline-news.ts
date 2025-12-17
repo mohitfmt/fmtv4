@@ -56,9 +56,37 @@ async function rawGetHeadlineNews(
       }
     );
 
-    return data?.posts?.edges.map((edge: any) => edge.node) || [];
-  } catch (error) {
-    console.error(`[getHeadlineNews] Error for ${categoryName}:`, error);
+    // ✅ DEFENSIVE: Validate structure
+    if (!data || typeof data !== "object") {
+      console.error(
+        `[getHeadlineNews] Invalid response for "${categoryName}":`,
+        typeof data
+      );
+      return [];
+    }
+
+    if (!data.posts) {
+      console.error(
+        `[getHeadlineNews] Missing 'posts' for "${categoryName}":`,
+        Object.keys(data)
+      );
+      return [];
+    }
+
+    if (!Array.isArray(data.posts.edges)) {
+      console.error(
+        `[getHeadlineNews] edges not array for "${categoryName}":`,
+        typeof data.posts.edges
+      );
+      return [];
+    }
+
+    return data.posts.edges.map((edge: any) => edge.node);
+  } catch (error: any) {
+    console.error(
+      `[getHeadlineNews] Error for "${categoryName}":`,
+      error.message || error
+    );
     return [];
   }
 }

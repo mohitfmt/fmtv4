@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   images: {
     loader: "custom",
     loaderFile: "./lib/cloudflare-loader.js",
+    unoptimized: false,
     remotePatterns: [
       {
         protocol: protocol.slice(0, -1) as "https" | "http",

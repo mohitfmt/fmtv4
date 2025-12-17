@@ -86,9 +86,52 @@ async function rawGetCategoryNews(
       }
     );
 
-    return data?.posts?.edges?.map((edge: any) => edge.node) || [];
-  } catch (error) {
-    console.error(`Error fetching posts for category ${categoryName}:`, error);
+    // ✅ DEFENSIVE: Validate response structure BEFORE accessing
+    if (!data || typeof data !== "object") {
+      console.error(
+        `[getCategoryNews] Invalid response type for category "${categoryName}":`,
+        typeof data
+      );
+      return [];
+    }
+
+    if (!data.posts) {
+      console.error(
+        `[getCategoryNews] Missing 'posts' in response for category "${categoryName}":`,
+        Object.keys(data)
+      );
+      return [];
+    }
+
+    if (!Array.isArray(data.posts.edges)) {
+      console.error(
+        `[getCategoryNews] posts.edges is not an array for category "${categoryName}":`,
+        typeof data.posts.edges,
+        data.posts.edges
+      );
+      return [];
+    }
+
+    // ✅ SAFE: Now we know structure is valid
+    const posts = data.posts.edges.map((edge: any) => edge.node);
+
+    // ✅ LOG: Success or empty result
+    if (posts.length === 0) {
+      console.warn(
+        `[getCategoryNews] Category "${categoryName}" returned 0 posts (limit: ${limit})`
+      );
+    } else if (process.env.NODE_ENV === "development") {
+      console.log(
+        `[getCategoryNews] Category "${categoryName}": ${posts.length} posts`
+      );
+    }
+
+    return posts;
+  } catch (error: any) {
+    console.error(
+      `[getCategoryNews] Error fetching category "${categoryName}":`,
+      error.message || error
+    );
     return [];
   }
 }

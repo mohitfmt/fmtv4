@@ -89,8 +89,30 @@ export const CategoryPostsLayout = ({
           (p) => p.slug === category.slug
         );
 
-        // Skip rendering if no posts found for category
-        if (!categoryPosts?.posts) return null;
+        // ✅ DEFENSIVE: Check structure at multiple levels
+        if (
+          !categoryPosts ||
+          !categoryPosts.posts ||
+          !categoryPosts.posts.edges
+        ) {
+          console.warn(
+            `[CategoryPostsLayout] Missing or invalid posts for subcategory "${category.slug}"`,
+            {
+              hasCategoryPosts: !!categoryPosts,
+              hasPosts: !!categoryPosts?.posts,
+              hasEdges: !!categoryPosts?.posts?.edges,
+            }
+          );
+          return null;
+        }
+
+        // ✅ Additional check: Don't render if no actual posts
+        if (categoryPosts.posts.edges.length === 0) {
+          console.warn(
+            `[CategoryPostsLayout] No posts in edges for subcategory "${category.slug}"`
+          );
+          return null;
+        }
 
         return (
           <div key={category?.title ?? "CategoryTitle" + index}>

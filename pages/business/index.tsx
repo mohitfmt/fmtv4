@@ -69,36 +69,68 @@ export const getStaticProps: GetStaticProps = async () => {
       (p) => p.path === pathName.replaceAll("/", "")
     );
 
-    // Fetch initial posts for each subcategory
+    // ✅ DEFENSIVE: Fetch initial posts for each subcategory with error handling
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const variables4Posts = {
-          first: 6,
-          where: {
-            offsetPagination: { offset: 0, size: 6 },
-            taxQuery: {
-              relation: "AND",
-              taxArray: [
-                {
-                  field: "SLUG",
-                  operator: "AND",
-                  taxonomy: "CATEGORY",
-                  terms: [category.slug],
-                },
-              ],
+        try {
+          const variables4Posts = {
+            first: 6,
+            where: {
+              offsetPagination: { offset: 0, size: 6 },
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: [category.slug],
+                  },
+                ],
+              },
+              excludeQuery: excludeVariables,
             },
-            excludeQuery: excludeVariables,
-          },
-        };
-        const posts = await getFilteredCategoryPosts(variables4Posts);
+          };
 
-        return {
-          slug: category.slug,
-          posts: {
-            edges: posts.posts.edges,
-          },
-          bigImage: true,
-        };
+          const posts = await getFilteredCategoryPosts(variables4Posts);
+
+          // ✅ DEFENSIVE: Validate data structure before accessing
+          if (!posts || !posts.posts || !Array.isArray(posts.posts.edges)) {
+            console.warn(
+              `[${pathName}] Subcategory "${category.slug}" returned invalid data structure:`,
+              {
+                hasPost: !!posts,
+                hasPosts: !!posts?.posts,
+                edgesType: typeof posts?.posts?.edges,
+              }
+            );
+
+            return {
+              slug: category.slug,
+              posts: { edges: [] },
+              bigImage: true,
+            };
+          }
+
+          return {
+            slug: category.slug,
+            posts: {
+              edges: posts.posts.edges,
+            },
+            bigImage: true,
+          };
+        } catch (error) {
+          console.error(
+            `[${pathName}] Failed to fetch subcategory "${category.slug}":`,
+            error
+          );
+
+          return {
+            slug: category.slug,
+            posts: { edges: [] },
+            bigImage: true,
+          };
+        }
       })
     );
 
@@ -119,11 +151,11 @@ export const getStaticProps: GetStaticProps = async () => {
         posts: { edges: [] },
         currentPage: null,
         subCategoryPosts: [],
-
         error: "Failed to load content",
       },
       revalidate: 110,
     };
   }
 };
+
 export default HomeBusiness;

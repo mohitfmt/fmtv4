@@ -44,7 +44,7 @@ const HomeBerita = ({
 
 export const getStaticProps: GetStaticProps = async () => {
   try {
-    // Get super-news post
+    // Get super-bm post
     const variables = {
       first: 1,
       where: {
@@ -61,6 +61,7 @@ export const getStaticProps: GetStaticProps = async () => {
         },
       },
     };
+
     const variablesTopResponse = {
       first: 4,
       where: {
@@ -94,12 +95,21 @@ export const getStaticProps: GetStaticProps = async () => {
         ],
       },
     };
+
     const superResponse = await getFilteredCategoryPosts(variables);
     const topResponse = await getFilteredCategoryPosts(variablesTopResponse);
 
+    // ✅ DEFENSIVE: Validate both responses before combining
+    const superEdges = superResponse?.posts?.edges || [];
+    const topEdges = topResponse?.posts?.edges || [];
+
+    if (superEdges.length === 0 && topEdges.length === 0) {
+      console.warn(`[${pathName}] Both super-bm and top-bm returned no posts`);
+    }
+
     // Combine posts
     const combinedPosts = {
-      edges: [...superResponse.posts.edges, ...topResponse.posts.edges],
+      edges: [...superEdges, ...topEdges],
     };
 
     // Find current page config
@@ -107,34 +117,66 @@ export const getStaticProps: GetStaticProps = async () => {
       (p) => p.path === pathName.replaceAll("/", "")
     );
 
-    // Get subcategory posts with exclude variables
+    // ✅ DEFENSIVE: Get subcategory posts with exclude variables
     const initialSubCategoryPosts = await Promise.all(
       (currentPage?.subCategories || []).map(async (category) => {
-        const variables4Posts = {
-          first: 6,
-          where: {
-            offsetPagination: { offset: 0, size: 6 },
-            taxQuery: {
-              relation: "AND",
-              taxArray: [
-                {
-                  field: "SLUG",
-                  operator: "AND",
-                  taxonomy: "CATEGORY",
-                  terms: [category.slug],
-                },
-              ],
+        try {
+          const variables4Posts = {
+            first: 6,
+            where: {
+              offsetPagination: { offset: 0, size: 6 },
+              taxQuery: {
+                relation: "AND",
+                taxArray: [
+                  {
+                    field: "SLUG",
+                    operator: "AND",
+                    taxonomy: "CATEGORY",
+                    terms: [category.slug],
+                  },
+                ],
+              },
+              excludeQuery: excludeVariables,
             },
-            excludeQuery: excludeVariables,
-          },
-        };
-        const posts = await getFilteredCategoryPosts(variables4Posts);
+          };
 
-        return {
-          slug: category.slug,
-          posts: { edges: posts.posts.edges },
-          bigImage: true,
-        };
+          const posts = await getFilteredCategoryPosts(variables4Posts);
+
+          // ✅ DEFENSIVE: Validate data structure
+          if (!posts || !posts.posts || !Array.isArray(posts.posts.edges)) {
+            console.warn(
+              `[${pathName}] Subcategory "${category.slug}" returned invalid data structure:`,
+              {
+                hasPost: !!posts,
+                hasPosts: !!posts?.posts,
+                edgesType: typeof posts?.posts?.edges,
+              }
+            );
+
+            return {
+              slug: category.slug,
+              posts: { edges: [] },
+              bigImage: true,
+            };
+          }
+
+          return {
+            slug: category.slug,
+            posts: { edges: posts.posts.edges },
+            bigImage: true,
+          };
+        } catch (error) {
+          console.error(
+            `[${pathName}] Failed to fetch subcategory "${category.slug}":`,
+            error
+          );
+
+          return {
+            slug: category.slug,
+            posts: { edges: [] },
+            bigImage: true,
+          };
+        }
       })
     );
 
