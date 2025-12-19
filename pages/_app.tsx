@@ -288,8 +288,7 @@ export default function App({
           sizes="180x180"
           href="/apple-touch-icon.png"
         />
-        <link rel="manifest" href="/manifest.json" />
-
+        <link rel="manifest" href="/site.webmanifest" />
         {/* RSS Feeds - Global */}
         <link
           rel="alternate"

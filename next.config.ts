@@ -318,6 +318,12 @@ const nextConfig: NextConfig = {
           "https://pagead2.googlesyndication.com/pagead/js/r20240101/r20110914/mraid2.js",
         permanent: true,
       },
+      {
+        source: "/:path*/mraid.js",
+        destination:
+          "https://pagead2.googlesyndication.com/pagead/js/r20240101/r20110914/mraid2.js",
+        permanent: true,
+      },
 
       // 6. Date-only archive URLs → point at the section archive
       {
