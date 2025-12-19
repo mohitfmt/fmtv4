@@ -1,0 +1,153 @@
+{
+  "name": "Free Malaysia Today (FMT) - Independent News",
+  "short_name": "FMT News",
+  "description": "Malaysia's leading independent news source providing breaking news, in-depth analysis, and comprehensive coverage of Malaysian and international affairs. Available in English and Bahasa Malaysia.",
+  "start_url": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en-MY",
+  "dir": "ltr",
+  "categories": ["news", "magazines", "business"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.fmtmedia.fmt",
+      "id": "com.fmtmedia.fmt"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-homepage.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "FMT Homepage - Desktop View"
+    },
+    {
+      "src": "/screenshots/mobile-homepage.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "FMT Homepage - Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Latest News",
+      "short_name": "News",
+      "description": "View latest Malaysian news",
+      "url": "/news",
+      "icons": [
+        {
+          "src": "/favicon-256x256.png",
+          "sizes": "256x256",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Berita Terkini",
+      "short_name": "Berita",
+      "description": "Lihat berita terkini dalam Bahasa Malaysia",
+      "url": "/berita",
+      "icons": [
+        {
+          "src": "/favicon-256x256.png",
+          "sizes": "256x256",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Business News",
+      "short_name": "Business",
+      "description": "Latest business and economic news",
+      "url": "/business",
+      "icons": [
+        {
+          "src": "/favicon-256x256.png",
+          "sizes": "256x256",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "short_name": "Videos",
+      "description": "Watch FMT video content",
+      "url": "/videos",
+      "icons": [
+        {
+          "src": "/favicon-256x256.png",
+          "sizes": "256x256",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+fmt",
+      "url": "/article?url=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
+}

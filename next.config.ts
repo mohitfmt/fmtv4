@@ -242,6 +242,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
   async redirects() {
     return [
       // 0a. Redirect any http:// request to https://www
@@ -259,17 +260,20 @@ const nextConfig: NextConfig = {
         destination: "https://www.freemalaysiatoday.com/:path*",
         permanent: true,
       },
+
       // 1. Double-domain typo → strip the duplicate
       {
         source: "/www.freemalaysiatoday.com/:path*",
         destination: "/:path*",
         permanent: true,
       },
+
       {
         source: "/:path+/", // catch ANY path with a trailing slash
         destination: "/:path+", // drop the slash
         permanent: true,
       },
+
       // 2. AMP variants → drop the /amp prefix
       {
         source: "/amp/:path*",
@@ -277,35 +281,59 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
-      // 3. Legacy “/tag/slug” → canonical /category/tag/slug
+      // 3. Legacy "/tag/slug" → canonical /category/tag/slug
       {
         source: "/tag/:tag",
         destination: "/category/tag/:tag",
         permanent: true,
       },
 
-      // 4. Legacy “/author/slug” → canonical /category/author/slug
+      // 4. Legacy "/author/slug" → canonical /category/author/slug
       {
         source: "/author/:author",
         destination: "/category/author/:author",
         permanent: true,
       },
 
-      // 5. Date-only archive URLs → point at the section archive
+      // 5. 🆕 CRITICAL FIX: Legacy /bahasa → redirect to /berita (URL migration)
+      //    This fixes the 12.85k cached 404s issue
+      {
+        source: "/bahasa",
+        destination: "/berita",
+        permanent: true,
+      },
+      {
+        source: "/bahasa/:path*",
+        destination: "/berita/:path*",
+        permanent: true,
+      },
+      {
+        source: "/netcore-sw.js",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/mraid.js",
+        destination:
+          "https://pagead2.googlesyndication.com/pagead/js/r20240101/r20110914/mraid2.js",
+        permanent: true,
+      },
+
+      // 6. Date-only archive URLs → point at the section archive
       {
         source: "/category/:section/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})",
         destination: "/category/:section",
         permanent: true,
       },
 
-      // 6. Attachment links → strip off “/attachment/…”
+      // 7. Attachment links → strip off "/attachment/…"
       {
         source: "/:path*/attachment/:rest*",
         destination: "/:path*",
         permanent: true,
       },
 
-      // 7. Staging subdomain → redirect to production host
+      // 8. Staging subdomain → redirect to production host
       {
         source: "/:path*",
         has: [
@@ -320,9 +348,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
   webpack(config, { isServer }) {
     if (isServer) {
-      // don’t try to bundle these native modules into the client
+      // don't try to bundle these native modules into the client
       config.externals = [
         ...(config.externals as any[]),
         "heapdump",

@@ -612,11 +612,23 @@ export default function Home({
   );
 }
 
+let wordpressFailureCount = 0;
+let wordpressCircuitOpen = false;
+let circuitOpenUntil = 0;
+
 async function aggressiveRetry<T>(
   category: string,
   fetchFn: () => Promise<T>,
-  maxRetries = 10
+  maxRetries = 5
 ): Promise<T> {
+  // ✅ CHECK CIRCUIT BREAKER
+  if (wordpressCircuitOpen && Date.now() < circuitOpenUntil) {
+    console.warn(
+      `[HomePage ISR] ⚡ Circuit breaker open for WordPress, using cache/empty data for ${category}`
+    );
+    throw new Error("Circuit breaker open");
+  }
+
   const startTime = Date.now();
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -627,7 +639,15 @@ async function aggressiveRetry<T>(
         throw new Error("Empty data received");
       }
 
-      // ✅ ONLY log if it took multiple attempts (something was wrong)
+      // ✅ SUCCESS - RESET FAILURE COUNT
+      if (wordpressFailureCount > 0) {
+        console.info(
+          `[HomePage ISR] WordPress recovered, resetting circuit breaker`
+        );
+        wordpressFailureCount = 0;
+        wordpressCircuitOpen = false;
+      }
+
       if (attempt > 0) {
         const duration = Date.now() - startTime;
         console.warn(
@@ -637,22 +657,54 @@ async function aggressiveRetry<T>(
 
       return result;
     } catch (error: any) {
-      // ✅ ONLY log if we're going to retry or fail
-      if (attempt < maxRetries - 1) {
-        const delay = 500 * (attempt + 1);
+      const errorMsg = error.message || String(error);
+
+      const isRetriable =
+        errorMsg.includes("502") ||
+        errorMsg.includes("503") ||
+        errorMsg.includes("504") ||
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("ECONNRESET") ||
+        errorMsg.includes("ETIMEDOUT") ||
+        errorMsg.includes("upstream connect error") ||
+        errorMsg.includes("Empty data received");
+
+      if (!isRetriable) {
         console.error(
-          `[HomePage ISR] ${category} attempt ${attempt + 1}/${maxRetries} failed, retry in ${delay}ms`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        // ✅ CRITICAL: Final failure after all retries
-        const duration = Date.now() - startTime;
-        console.error(
-          `[HomePage ISR] 💥 ${category} FAILED after ${maxRetries} attempts (${duration}ms):`,
-          error.message
+          `[HomePage ISR] ❌ ${category} non-retriable error, giving up`
         );
         throw error;
       }
+
+      if (attempt >= maxRetries - 1) {
+        // ✅ INCREMENT FAILURE COUNT
+        wordpressFailureCount++;
+
+        // ✅ OPEN CIRCUIT BREAKER IF TOO MANY FAILURES
+        if (wordpressFailureCount >= 5) {
+          wordpressCircuitOpen = true;
+          circuitOpenUntil = Date.now() + 60000; // Open for 1 minute
+          console.error(
+            `[HomePage ISR] ⚡ WordPress failing repeatedly, opening circuit breaker for 60s`
+          );
+        }
+
+        const duration = Date.now() - startTime;
+        console.error(
+          `[HomePage ISR] 💥 ${category} FAILED after ${maxRetries} attempts (${duration}ms)`
+        );
+        throw error;
+      }
+
+      const baseDelay = Math.min(1000 * Math.pow(2, attempt), 8000);
+      const jitter = Math.random() * 500;
+      const delay = baseDelay + jitter;
+
+      console.error(
+        `[HomePage ISR] ${category} attempt ${attempt + 1}/${maxRetries} failed, retry in ${Math.round(delay)}ms`
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
