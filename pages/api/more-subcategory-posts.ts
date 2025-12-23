@@ -116,6 +116,7 @@ export default async function handler(
       first: POSTS_PER_PAGE,
       where: {
         offsetPagination: { offset, size: POSTS_PER_PAGE },
+        status: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [

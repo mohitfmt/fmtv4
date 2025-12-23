@@ -71,6 +71,7 @@ export default async function handler(
           offset,
           size: POSTS_PER_PAGE,
         },
+        staus: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [

@@ -48,6 +48,7 @@ export const getStaticProps: GetStaticProps = async () => {
     const variables = {
       first: 1,
       where: {
+        status: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [

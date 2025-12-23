@@ -48,6 +48,7 @@ export const getStaticProps: GetStaticProps = async () => {
       first: 5,
       where: {
         offsetPagination: { offset: 0, size: 5 },
+        status: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [
@@ -76,6 +77,7 @@ export const getStaticProps: GetStaticProps = async () => {
             first: 6,
             where: {
               offsetPagination: { offset: 0, size: 6 },
+              status: "PUBLISH",
               taxQuery: {
                 relation: "AND",
                 taxArray: [

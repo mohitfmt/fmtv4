@@ -73,6 +73,7 @@ export default async function handler(
           offset: parsedOffset,
           size: POSTS_PER_PAGE,
         },
+        status: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [

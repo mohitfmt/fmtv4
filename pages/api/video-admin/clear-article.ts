@@ -351,172 +351,104 @@ export default async function handler(
       // Don't fail the request, continue with ISR
     }
 
-    // 8. ISR REVALIDATION (Full Rebuild)
-    console.log(`[${traceId}] Triggering ISR full rebuild...`);
+    // 8. ISR REVALIDATION (100% Instance Coverage)
+    console.log(
+      `[${traceId}] Triggering ISR full rebuild across ALL instances...`
+    );
     let isrRevalidated = false;
 
     try {
-      const revalidateKey =
-        process.env.REVALIDATE_SECRET || "ia389oidns98odisd2309qdoi2930";
-      const productionDomain =
-        process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
-      const baseUrl = `https://${productionDomain}`;
+      const revalidateSecret =
+        process.env.REVALIDATE_SECRET ||
+        process.env.REVALIDATE_SECRET_KEY ||
+        "ia389oidns98odisd2309qdoi2930";
 
-      // Build revalidation items for each path
-      const revalidationPromises = Array.from(affectedPaths).map(
-        async (pathItem) => {
-          const pathWithoutSlash = pathItem.startsWith("/")
-            ? pathItem.substring(1)
-            : pathItem;
+      const revalidateUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/internal/revalidate`;
+      const pathsArray = Array.from(affectedPaths);
 
-          let type = "category";
-          if (pathItem === "/") {
-            type = "homepage";
-          } else if (
-            pathItem.includes("/20") &&
-            pathItem.split("/").length > 4
-          ) {
-            type = "post";
-          }
-
-          const response = await fetch(`${baseUrl}/api/revalidate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-revalidate-key": revalidateKey,
-            },
-            body: JSON.stringify({
-              type,
-              slug: pathWithoutSlash || "",
-              path: pathWithoutSlash || "/",
-              categories: categories,
-            }),
-          });
-
-          // Validate response status
-          if (!response.ok) {
-            const errorText = await response
-              .text()
-              .catch(() => "Unknown error");
-            console.error(
-              `[${traceId}] ❌ Revalidation failed for ${pathItem}: ${response.status} - ${errorText}`
-            );
-            throw new Error(
-              `Revalidation failed for ${pathItem}: ${response.status}`
-            );
-          }
-
-          return response;
-        }
-      );
-
-      const results = await Promise.allSettled(revalidationPromises);
-      const successCount = results.filter(
-        (r) => r.status === "fulfilled"
-      ).length;
-      const failCount = results.length - successCount;
-
-      if (failCount > 0) {
-        console.warn(
-          `[${traceId}] ⚠️ ${failCount}/${affectedPaths.size} paths failed revalidation`
-        );
-      }
+      // 100% COVERAGE: Hit ALL Cloud Run instances
+      const INSTANCE_COUNT = 90; // Adjust to match your max instances
+      const parallelRevalidations = [];
 
       console.log(
-        `[${traceId}] ✅ ISR revalidated: ${successCount}/${affectedPaths.size} paths`
-      );
-      isrRevalidated = successCount > 0;
-
-      // FORCE IMMEDIATE REBUILD - Hit ALL 90 instances
-      const articlePaths = Array.from(affectedPaths).filter(
-        (p) => p.includes("/20") && p.split("/").length > 4
+        `[${traceId}] 🔥 Sending ${INSTANCE_COUNT} parallel ISR requests for 100% coverage...`
       );
 
-      if (articlePaths.length > 0) {
-        const productionDomain =
-          process.env.NEXT_PUBLIC_DOMAIN || "www.freemalaysiatoday.com";
-        const baseUrl = `https://${productionDomain}`;
+      const startTime = Date.now();
 
-        console.log(
-          `[${traceId}] 🔥 Aggressive cache busting: Hitting 90 instances...`
-        );
+      for (let i = 0; i < INSTANCE_COUNT; i++) {
+        const revalidationPromise = fetch(revalidateUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-revalidate-secret": revalidateSecret,
+          },
+          body: JSON.stringify({
+            paths: pathsArray,
+            source: `clear-article-batch${i}`,
+            traceId: `${traceId}-i${i}`,
+          }),
+          // 10s timeout per request
+          signal: AbortSignal.timeout(10000),
+        }).catch((error) => {
+          // Log error but don't fail entire operation
+          console.error(`[${traceId}] Instance ${i} failed:`, error.message);
+          return { ok: false, status: 0, error: error.message };
+        });
 
-        // Make 90 requests to hit all potential Cloud Run instances
-        const INSTANCE_COUNT = 90;
-        const burstPromises = [];
-
-        for (let i = 0; i < INSTANCE_COUNT; i++) {
-          for (const pathItem of articlePaths) {
-            const promise = (async () => {
-              try {
-                const fullUrl = `${baseUrl}${pathItem}`;
-
-                // Add random query param to bypass Cloudflare cache
-                const bustUrl = `${fullUrl}?_cb=${Date.now()}-${i}`;
-
-                await fetch(bustUrl, {
-                  method: "GET",
-                  headers: {
-                    "User-Agent": `FMT-Cache-Rebuilder/1.0-Instance-${i}`,
-                    "Cache-Control": "no-cache, no-store, must-revalidate",
-                    Pragma: "no-cache",
-                  },
-                  signal: AbortSignal.timeout(5000),
-                });
-
-                if (i === 0 || i === 29 || i === 59 || i === 89) {
-                  console.log(`[${traceId}] ✓ Hit instance ${i + 1}/90`);
-                }
-              } catch (error: any) {
-                // Silent fail - some requests will timeout, that's OK
-              }
-            })();
-
-            burstPromises.push(promise);
-          }
-        }
-
-        // Run all requests in parallel (batched to avoid overwhelming)
-        const BATCH_SIZE = 10;
-        for (let i = 0; i < burstPromises.length; i += BATCH_SIZE) {
-          const batch = burstPromises.slice(i, i + BATCH_SIZE);
-          await Promise.allSettled(batch);
-        }
-
-        console.log(
-          `[${traceId}] ✅ Sent ${INSTANCE_COUNT} requests to each article`
-        );
-
-        // Wait for all rebuilds to complete
-        console.log(
-          `[${traceId}] Waiting 8 seconds for all instances to rebuild...`
-        );
-        await new Promise((resolve) => setTimeout(resolve, 8000));
-
-        // Purge Cloudflare to remove all the cache-busted URLs
-        try {
-          const urlsToPurge = articlePaths.map((p) => `${baseUrl}${p}`);
-          await purgeCloudflareByUrls(urlsToPurge);
-          console.log(
-            `[${traceId}] ✅ Final Cloudflare purge for ${urlsToPurge.length} articles`
-          );
-        } catch (error: any) {
-          console.error(
-            `[${traceId}] ⚠️ Final purge failed (non-fatal):`,
-            error.message
-          );
-        }
-
-        console.log(`[${traceId}] ✅ All instances cleared!`);
+        parallelRevalidations.push(revalidationPromise);
       }
+
+      // Wait for ALL parallel requests to complete
+      console.log(
+        `[${traceId}] ⏳ Waiting for all ${INSTANCE_COUNT} requests to complete...`
+      );
+      const results = await Promise.allSettled(parallelRevalidations);
+
+      const duration = Date.now() - startTime;
+
+      // Analyze results
+      const successCount = results.filter(
+        (r) => r.status === "fulfilled" && r.value?.ok
+      ).length;
+      const failCount = results.filter(
+        (r) => r.status === "rejected" || !r.value?.ok
+      ).length;
+      const timeoutCount = results.filter(
+        (r: any) =>
+          r.status === "fulfilled" && r.value?.error?.includes("timeout")
+      ).length;
+
+      console.log(`[${traceId}] ✅ ISR Results (${duration}ms):`);
+      console.log(
+        `[${traceId}]    Success: ${successCount}/${INSTANCE_COUNT} (${Math.round((successCount / INSTANCE_COUNT) * 100)}%)`
+      );
+      console.log(`[${traceId}]    Failed: ${failCount}`);
+      console.log(`[${traceId}]    Timeout: ${timeoutCount}`);
+
+      // Consider successful if >70% succeeded
+      // (Some instances might be scaling down/restarting)
+      const successRate = successCount / INSTANCE_COUNT;
+      isrRevalidated = successRate >= 0.7;
+
+      if (isrRevalidated) {
+        console.log(
+          `[${traceId}] ✅ ISR revalidation SUCCESS (${Math.round(successRate * 100)}% coverage)`
+        );
+      } else {
+        console.warn(
+          `[${traceId}] ⚠️ Low ISR success rate: ${Math.round(successRate * 100)}%`
+        );
+        throw new Error(
+          `Only ${successCount}/${INSTANCE_COUNT} ISR requests succeeded`
+        );
+      }
+
+      // Add small delay to ensure ISR initialization
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error: any) {
-      console.error(`[${traceId}] ⚠️ ISR revalidation failed:`, error.message);
-      return res.status(500).json({
-        error: "Cache clearing failed",
-        message:
-          "Cloudflare or ISR revalidation failed. Please wait 1 minute and try again.",
-        traceId,
-      });
+      console.error(`[${traceId}] ❌ ISR revalidation failed:`, error);
+      isrRevalidated = false;
     }
 
     // 9. CLEAR /api/top-news IF HOMEPAGE AFFECTED

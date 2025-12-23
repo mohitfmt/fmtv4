@@ -47,6 +47,7 @@ export const getStaticProps: GetStaticProps = async () => {
     const variablesTopResponse = {
       first: 1,
       where: {
+        status: "PUBLISH",
         taxQuery: {
           relation: "AND",
           taxArray: [
@@ -124,6 +125,7 @@ export const getStaticProps: GetStaticProps = async () => {
             first: 6,
             where: {
               offsetPagination: { offset: 0, size: 6 },
+              status: "PUBLISH",
               taxQuery: {
                 relation: "AND",
                 taxArray: [

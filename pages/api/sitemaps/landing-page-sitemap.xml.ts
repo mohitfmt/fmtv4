@@ -304,6 +304,7 @@ async function getCategoryLastModified(
     const variables = {
       first: 1,
       where: {
+        status: "PUBLISH",
         taxQuery: {
           taxArray: [
             {

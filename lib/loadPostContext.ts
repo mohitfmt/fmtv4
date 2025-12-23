@@ -21,6 +21,7 @@ export async function loadPostContext(postId: string) {
   const relatedPostsPromise = await getFilteredCategoryPosts({
     first: 6,
     where: {
+      status: "PUBLISH",
       taxQuery: {
         taxArray: [
           {
@@ -40,6 +41,7 @@ export async function loadPostContext(postId: string) {
     first: 3,
     where: {
       categoryName: "highlight",
+      status: "PUBLISH",
       notIn: [post.databaseId],
     },
   });

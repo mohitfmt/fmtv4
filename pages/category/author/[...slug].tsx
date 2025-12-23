@@ -196,6 +196,7 @@ export const getStaticProps: GetStaticProps<AuthorPageProps> = async ({
       first: 24,
       where: {
         author: userData.user.databaseId,
+        status: "PUBLISH",
       },
     };
     const postsData = await getFilteredCategoryPosts(variables);

@@ -57,6 +57,7 @@ export async function getRelatedPosts(postId: string) {
       first: 6,
       where: {
         notIn: [postData.post.databaseId],
+        status: "PUBLISH",
         taxQuery: {
           taxArray: [
             {
@@ -90,6 +91,7 @@ export async function getMoreStories(postId: string) {
       first: 3,
       where: {
         notIn: [postData.post.databaseId],
+        status: "PUBLISH",
         categoryName: "highlight",
       },
     });
