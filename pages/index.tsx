@@ -894,7 +894,7 @@ export const getStaticProps: GetStaticProps = async ({ preview = false }) => {
         "videos",
         async () => {
           const res = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/homepage`
+            `${process.env.NEXT_PUBLIC_APP_URL}/api/homepage?fresh=true&t=${Date.now()}`
           );
           if (!res.ok) throw new Error(`Videos API returned ${res.status}`);
           const data = await res.json();

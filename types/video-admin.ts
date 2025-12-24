@@ -231,3 +231,29 @@ export interface ErrorResponse {
   traceId?: string;
   timestamp?: string;
 }
+
+// Add to existing interfaces or create new section
+
+export interface HomepageConfig {
+  playlistId: string;
+  fallbackPlaylistId: string;
+  usePinnedHero?: boolean;
+  pinnedHeroVideoId?: string;
+}
+
+export interface VideoPageConfig {
+  heroPlaylistId: string;
+  shortsPlaylistId: string;
+  displayedPlaylists: DisplayedPlaylist[];
+}
+
+export interface VideoConfigData {
+  homepage: HomepageConfig;
+  videoPage: VideoPageConfig;
+}
+
+export interface DisplayedPlaylist {
+  playlistId: string;
+  position: number;
+  maxVideos: number;
+}

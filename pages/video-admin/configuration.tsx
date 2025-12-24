@@ -49,6 +49,8 @@ import { Tooltip } from "@/components/ui/tooltip";
 interface VideoConfig {
   homepage: {
     playlistId: string;
+    usePinnedHero?: boolean;
+    pinnedHeroVideoId?: string;
   };
   videoPage: {
     heroPlaylistId: string;
@@ -578,7 +580,9 @@ function ConfigurationPageContent() {
     }
 
     setSaving(true);
+
     try {
+      console.log("🔍 Saving config:", JSON.stringify(config, null, 2)); // 🆕 ADD THIS LINE
       const response = await videoApiJson<{ data: VideoConfig }>(
         "/api/video-admin/config",
         {
@@ -909,7 +913,202 @@ function ConfigurationPageContent() {
                     helper="First 5 videos will be displayed. If fewer than 5 videos, the system will auto-supplement with latest videos."
                   />
                 </motion.div>
+                {/* 🆕 PINNED HERO VIDEO SECTION */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card rounded-lg border p-6 space-y-4"
+                >
+                  {/* Header */}
+                  <div className="flex items-center gap-3 pb-4 border-b border-border">
+                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                      <FiStar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">
+                        Pinned Hero Video
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Override homepage hero with a specific video
+                      </p>
+                    </div>
+                  </div>
 
+                  {/* Enable Checkbox */}
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={config.homepage.usePinnedHero || false}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          homepage: {
+                            ...config.homepage,
+                            usePinnedHero: e.target.checked,
+                            // Clear video ID if unchecking
+                            pinnedHeroVideoId: e.target.checked
+                              ? config.homepage.pinnedHeroVideoId
+                              : "",
+                          },
+                        })
+                      }
+                      className="mt-1 w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                        Pin a specific video as homepage hero
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        When enabled, the selected video will always appear as
+                        the main hero on the homepage
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Video ID Input (only shown when checkbox enabled) */}
+                  {config.homepage.usePinnedHero && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 pt-2"
+                    >
+                      {/* Input Field */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium">
+                          YouTube Video ID
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={config.homepage.pinnedHeroVideoId || ""}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              homepage: {
+                                ...config.homepage,
+                                pinnedHeroVideoId: e.target.value.trim(),
+                              },
+                            })
+                          }
+                          placeholder="e.g., dQw4w9WgXcQ"
+                          className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        />
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <FiInfo className="w-3 h-3" />
+                          Enter the 11-character video ID from
+                          youtube.com/watch?v=
+                          <span className="font-mono font-semibold">
+                            VIDEO_ID
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Video Preview */}
+                      {config.homepage.pinnedHeroVideoId &&
+                        config.homepage.pinnedHeroVideoId.length === 11 && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-accent/50 rounded-lg p-4 border border-border"
+                          >
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              Video Preview
+                            </p>
+                            <div className="relative aspect-video w-full max-w-md rounded overflow-hidden border border-border">
+                              <img
+                                src={`https://i.ytimg.com/vi/${config.homepage.pinnedHeroVideoId}/hqdefault.jpg`}
+                                alt="Video thumbnail preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.src = "/images/fmt-video-default.jpg";
+                                  target.onerror = null;
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                                <FiPlayCircle className="w-12 h-12 text-white drop-shadow-lg" />
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Video ID:{" "}
+                              <span className="font-mono">
+                                {config.homepage.pinnedHeroVideoId}
+                              </span>
+                            </p>
+                          </motion.div>
+                        )}
+                    </motion.div>
+                  )}
+
+                  {/* Information Box */}
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex gap-3">
+                      <FiInfo className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+                        <p className="font-medium">How Pinned Hero Works:</p>
+                        <ul className="space-y-1.5 text-xs">
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">•</span>
+                            <span>
+                              <strong>When enabled:</strong> The specified video
+                              becomes the main homepage hero (first video)
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">•</span>
+                            <span>
+                              <strong>Other videos:</strong> The next 4 videos
+                              are taken from the homepage playlist (newest
+                              first)
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">•</span>
+                            <span>
+                              <strong>No duplicates:</strong> The pinned video
+                              is automatically excluded from the other 4 slots
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">•</span>
+                            <span>
+                              <strong>When disabled:</strong> Uses the first
+                              video from the homepage playlist (current default
+                              behavior)
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-0.5">•</span>
+                            <span>
+                              <strong>Fallback:</strong> If the pinned video is
+                              deleted or not found, automatically falls back to
+                              playlist order
+                            </span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Warning if enabled but no video ID */}
+                  {config.homepage.usePinnedHero &&
+                    (!config.homepage.pinnedHeroVideoId ||
+                      config.homepage.pinnedHeroVideoId.length !== 11) && (
+                      <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                        <div className="flex gap-3">
+                          <FiAlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                            <p className="font-medium">Action Required</p>
+                            <p className="text-xs mt-1">
+                              Please enter a valid 11-character YouTube video ID
+                              to use the pinned hero feature.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                </motion.div>
                 {/* Video Page Configuration */}
                 <motion.div className="bg-card rounded-lg border p-6 space-y-6">
                   <div className="flex items-center gap-3 mb-4">

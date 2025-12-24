@@ -1,4 +1,4 @@
-// pages/api/homepage.ts - OPTIMIZED VERSION WITH AUTO-FALLBACK
+// pages/api/homepage.ts - WITH PINNED HERO VIDEO SUPPORT
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { LRUCache } from "lru-cache";
@@ -25,26 +25,33 @@ export default async function handler(
   try {
     // Check cache first
     const cacheKey = "homepage-videos";
-    const cached = homepageCache.get(cacheKey);
 
-    if (cached) {
-      res.setHeader("X-Cache", "HIT");
-      res.setHeader(
-        "Cache-Control",
-        "public, max-age=10, s-maxage=30, stale-while-revalidate=60"
-      );
-      return res.status(200).json({
-        success: true,
-        data: cached,
-        cached: true,
-        traceId,
-      });
+    const skipCache = req.query.fresh === "true";
+
+    if (!skipCache) {
+      const cached = homepageCache.get(cacheKey);
+
+      if (cached) {
+        res.setHeader("X-Cache", "HIT");
+        res.setHeader(
+          "Cache-Control",
+          "public, max-age=10, s-maxage=30, stale-while-revalidate=60"
+        );
+        return res.status(200).json({
+          success: true,
+          data: cached,
+          cached: true,
+          traceId,
+        });
+      }
     }
 
-    // Get video configuration
+    // Get video configuration (including pinned hero settings)
     const config = await prisma.videoConfig.findFirst({
       select: {
         homepagePlaylist: true,
+        usePinnedHero: true,
+        pinnedHeroVideoId: true,
       },
     });
 
@@ -53,7 +60,7 @@ export default async function handler(
       const latestVideos = await getLatestVideos(MINIMUM_HOMEPAGE_VIDEOS);
 
       const responseData = {
-        videos: latestVideos,
+        videos: latestVideos.map(formatVideo),
         source: "latest",
         message: "No homepage playlist configured, showing latest videos",
       };
@@ -71,44 +78,132 @@ export default async function handler(
       });
     }
 
-    // Get videos from the configured playlist
-    const playlistVideos = await prisma.videos.findMany({
-      where: {
-        playlists: {
-          has: config.homepagePlaylist,
-        },
-        isActive: true,
-      },
-      orderBy: [{ publishedAt: "desc" }],
-      take: MINIMUM_HOMEPAGE_VIDEOS,
-      select: {
-        id: true,
-        videoId: true,
-        title: true,
-        description: true,
-        thumbnails: true,
-        channelTitle: true,
-        publishedAt: true,
-        statistics: true,
-        contentDetails: true,
-        isShort: true,
-        videoType: true,
-      },
-    });
-
-    let finalVideos = playlistVideos;
+    // ========================================================================
+    // PINNED HERO VIDEO LOGIC
+    // ========================================================================
+    let finalVideos: any[] = [];
     let supplementCount = 0;
     let source = "playlist";
+    let usedPinnedHero = false;
 
-    // Check if we need to supplement with latest videos
-    if (playlistVideos.length < MINIMUM_HOMEPAGE_VIDEOS) {
-      const needed = MINIMUM_HOMEPAGE_VIDEOS - playlistVideos.length;
+    // Check if pinned hero is enabled and configured
+    if (config.usePinnedHero && config.pinnedHeroVideoId) {
       console.log(
-        `[${traceId}] Homepage playlist has only ${playlistVideos.length} videos, supplementing with ${needed} latest videos`
+        `[${traceId}] Pinned hero enabled, fetching video: ${config.pinnedHeroVideoId}`
       );
 
-      // Get video IDs we already have
-      const existingVideoIds = new Set(playlistVideos.map((v) => v.videoId));
+      try {
+        // Fetch the pinned hero video
+        const pinnedVideo = await prisma.videos.findFirst({
+          where: {
+            videoId: config.pinnedHeroVideoId,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            videoId: true,
+            title: true,
+            description: true,
+            thumbnails: true,
+            channelTitle: true,
+            publishedAt: true,
+            statistics: true,
+            contentDetails: true,
+            isShort: true,
+            videoType: true,
+          },
+        });
+
+        if (pinnedVideo) {
+          // Get 4 more videos from playlist EXCLUDING the pinned one
+          const otherVideos = await prisma.videos.findMany({
+            where: {
+              playlists: { has: config.homepagePlaylist },
+              isActive: true,
+              videoId: { not: config.pinnedHeroVideoId }, // 🔥 No duplicates
+            },
+            orderBy: [{ publishedAt: "desc" }],
+            take: 4,
+            select: {
+              id: true,
+              videoId: true,
+              title: true,
+              description: true,
+              thumbnails: true,
+              channelTitle: true,
+              publishedAt: true,
+              statistics: true,
+              contentDetails: true,
+              isShort: true,
+              videoType: true,
+            },
+          });
+
+          // Combine: pinned video first, then other 4
+          finalVideos = [pinnedVideo, ...otherVideos];
+          source = "pinned";
+          usedPinnedHero = true;
+
+          console.log(
+            `[${traceId}] Using pinned hero: "${pinnedVideo.title}" + ${otherVideos.length} other videos`
+          );
+        } else {
+          console.warn(
+            `[${traceId}] Pinned video ${config.pinnedHeroVideoId} not found or inactive, falling back to playlist`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[${traceId}] Error fetching pinned video, falling back to playlist:`,
+          error
+        );
+      }
+    }
+
+    // ========================================================================
+    // FALLBACK: Use regular playlist logic if pinned hero not used/failed
+    // ========================================================================
+    if (finalVideos.length === 0) {
+      console.log(`[${traceId}] Using regular playlist logic`);
+
+      const playlistVideos = await prisma.videos.findMany({
+        where: {
+          playlists: { has: config.homepagePlaylist },
+          isActive: true,
+        },
+        orderBy: [{ publishedAt: "desc" }],
+        take: MINIMUM_HOMEPAGE_VIDEOS,
+        select: {
+          id: true,
+          videoId: true,
+          title: true,
+          description: true,
+          thumbnails: true,
+          channelTitle: true,
+          publishedAt: true,
+          statistics: true,
+          contentDetails: true,
+          isShort: true,
+          videoType: true,
+        },
+      });
+
+      finalVideos = playlistVideos;
+    }
+
+    // ========================================================================
+    // SUPPLEMENT: Add more videos if less than minimum
+    // ========================================================================
+    const originalCount = finalVideos.length;
+
+    if (finalVideos.length < MINIMUM_HOMEPAGE_VIDEOS) {
+      const needed = MINIMUM_HOMEPAGE_VIDEOS - finalVideos.length;
+      console.log(
+        `[${traceId}] Only ${finalVideos.length} videos, supplementing with ${needed} latest videos`
+      );
+
+      // Get video IDs we already have (including pinned hero if used)
+      const existingVideoIds = new Set(finalVideos.map((v) => v.videoId));
 
       // Get latest videos that aren't already in our list
       const supplementalVideos = await getLatestVideos(
@@ -120,9 +215,15 @@ export default async function handler(
       const videosToAdd = supplementalVideos.slice(0, needed);
       supplementCount = videosToAdd.length;
 
-      // Combine playlist videos with supplemental videos
-      finalVideos = [...playlistVideos, ...videosToAdd];
-      source = "mixed";
+      // Combine with supplemental videos
+      finalVideos = [...finalVideos, ...videosToAdd];
+
+      // Update source
+      if (source === "pinned") {
+        source = "pinned+supplement";
+      } else {
+        source = "mixed";
+      }
 
       // Log the supplementation
       await prisma.admin_activity_logs
@@ -133,9 +234,11 @@ export default async function handler(
             userId: "system",
             metadata: {
               playlistId: config.homepagePlaylist,
-              playlistVideoCount: playlistVideos.length,
+              playlistVideoCount: originalCount,
               supplementedCount: supplementCount,
               totalVideos: finalVideos.length,
+              usedPinnedHero: usedPinnedHero,
+              pinnedVideoId: config.pinnedHeroVideoId || null,
             },
           },
         })
@@ -147,11 +250,13 @@ export default async function handler(
       videos: finalVideos.map(formatVideo),
       source,
       playlistId: config.homepagePlaylist,
-      playlistVideoCount: playlistVideos.length,
+      playlistVideoCount: originalCount,
       supplementedVideoCount: supplementCount,
       totalVideos: finalVideos.length,
+      usedPinnedHero: usedPinnedHero,
+      pinnedVideoId: usedPinnedHero ? config.pinnedHeroVideoId : null,
       ...(supplementCount > 0 && {
-        message: `Showing ${playlistVideos.length} playlist videos + ${supplementCount} latest videos`,
+        message: `Showing ${originalCount} ${source.includes("pinned") ? "pinned+playlist" : "playlist"} videos + ${supplementCount} latest videos`,
       }),
     };
 

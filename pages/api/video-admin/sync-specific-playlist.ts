@@ -251,7 +251,7 @@ async function handler(
       data: {
         action: "PLAYLIST_SYNC",
         entityType: "playlist",
-        id: playlist.playlistId,
+        // id: playlist.playlistId,
         userId: userEmail,
         metadata: {
           playlistId: playlist.playlistId,

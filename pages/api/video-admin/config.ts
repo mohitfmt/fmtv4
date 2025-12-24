@@ -1,5 +1,5 @@
 // pages/api/video-admin/config.ts
-// FIXED VERSION - Proper change detection (OLD vs NEW comparison)
+// FIXED VERSION - With pinned hero video support
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +11,7 @@ import {
   playlistCache,
 } from "@/lib/cache/video-cache-registry";
 
-// Validation schema
+// Validation schema - WITH PINNED HERO FIELDS
 const playlistConfigSchema = z.object({
   playlistId: z.string().min(1),
   position: z.number().int().min(0),
@@ -22,6 +22,8 @@ const configSchema = z.object({
   homepage: z.object({
     playlistId: z.string().min(1),
     fallbackPlaylistId: z.string().optional(),
+    usePinnedHero: z.boolean().optional(), // 🆕 NEW
+    pinnedHeroVideoId: z.string().optional(), // 🆕 NEW
   }),
   videoPage: z.object({
     heroPlaylistId: z.string().min(1),
@@ -50,7 +52,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // ============================================================================
-// GET CONFIGURATION
+// GET CONFIGURATION - WITH PINNED HERO FIELDS
 // ============================================================================
 async function handleGetConfig(
   req: NextApiRequest,
@@ -78,6 +80,8 @@ async function handleGetConfig(
         homepage: {
           playlistId: "",
           fallbackPlaylistId: "",
+          usePinnedHero: false, // 🆕 NEW
+          pinnedHeroVideoId: "", // 🆕 NEW
         },
         videoPage: {
           heroPlaylistId: "",
@@ -93,11 +97,13 @@ async function handleGetConfig(
       });
     }
 
-    // Transform to API format
+    // Transform to API format - WITH PINNED HERO FIELDS
     const configData = {
       homepage: {
         playlistId: config.homepagePlaylist || "",
         fallbackPlaylistId: config.fallbackPlaylist || "",
+        usePinnedHero: config.usePinnedHero || false, // 🆕 NEW
+        pinnedHeroVideoId: config.pinnedHeroVideoId || "", // 🆕 NEW
       },
       videoPage: {
         heroPlaylistId: config.heroPlaylist || "",
@@ -124,7 +130,7 @@ async function handleGetConfig(
 }
 
 // ============================================================================
-// UPDATE CONFIGURATION - WITH PROPER CHANGE DETECTION
+// UPDATE CONFIGURATION - WITH PINNED HERO FIELDS
 // ============================================================================
 async function handleUpdateConfig(
   req: NextApiRequest,
@@ -169,9 +175,7 @@ async function handleUpdateConfig(
       });
     }
 
-    // ========================================================================
-    // 🔥 CRITICAL FIX: Fetch OLD config BEFORE updating
-    // ========================================================================
+    // Fetch OLD config BEFORE updating
     const oldConfig = await prisma.videoConfig.findFirst();
 
     console.log(`[${traceId}] Old config:`, {
@@ -181,6 +185,8 @@ async function handleUpdateConfig(
       displayed: oldConfig?.displayedPlaylists
         ? JSON.stringify(oldConfig.displayedPlaylists).substring(0, 50) + "..."
         : "none",
+      usePinnedHero: oldConfig?.usePinnedHero || false, // 🆕 NEW
+      pinnedHeroVideoId: oldConfig?.pinnedHeroVideoId || "none", // 🆕 NEW
     });
 
     console.log(`[${traceId}] New config:`, {
@@ -189,20 +195,27 @@ async function handleUpdateConfig(
       shorts: videoPage.shortsPlaylistId,
       displayed:
         JSON.stringify(videoPage.displayedPlaylists).substring(0, 50) + "...",
+      usePinnedHero: homepage.usePinnedHero || false, // 🆕 NEW
+      pinnedHeroVideoId: homepage.pinnedHeroVideoId || "none", // 🆕 NEW
     });
 
     // ========================================================================
-    // STEP 1: Update database with NEW values
+    // STEP 1: Update database with NEW values - INCLUDING PINNED HERO
     // ========================================================================
     const result = await prisma.$transaction(async (tx) => {
       let config;
       if (oldConfig) {
-        // Update existing config
+        // Update existing config - WITH PINNED HERO FIELDS
         config = await tx.videoConfig.update({
           where: { id: oldConfig.id },
           data: {
             homepagePlaylist: homepage.playlistId,
-            fallbackPlaylist: homepage.fallbackPlaylistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId || null,
+            usePinnedHero: homepage.usePinnedHero || false, // 🆕 NEW
+            pinnedHeroVideoId:
+              homepage.usePinnedHero && homepage.pinnedHeroVideoId
+                ? homepage.pinnedHeroVideoId
+                : null, // 🆕 NEW
             heroPlaylist: videoPage.heroPlaylistId,
             shortsPlaylist: videoPage.shortsPlaylistId,
             displayedPlaylists: videoPage.displayedPlaylists,
@@ -210,11 +223,16 @@ async function handleUpdateConfig(
           },
         });
       } else {
-        // Create new config (first time setup)
+        // Create new config (first time setup) - WITH PINNED HERO FIELDS
         config = await tx.videoConfig.create({
           data: {
             homepagePlaylist: homepage.playlistId,
-            fallbackPlaylist: homepage.fallbackPlaylistId,
+            fallbackPlaylist: homepage.fallbackPlaylistId || null,
+            usePinnedHero: homepage.usePinnedHero || false, // 🆕 NEW
+            pinnedHeroVideoId:
+              homepage.usePinnedHero && homepage.pinnedHeroVideoId
+                ? homepage.pinnedHeroVideoId
+                : null, // 🆕 NEW
             heroPlaylist: videoPage.heroPlaylistId,
             shortsPlaylist: videoPage.shortsPlaylistId,
             displayedPlaylists: videoPage.displayedPlaylists,
@@ -235,6 +253,8 @@ async function handleUpdateConfig(
             shorts: videoPage.shortsPlaylistId,
             displayedCount: videoPage.displayedPlaylists.length,
             displayLimits: videoPage.displayedPlaylists.map((p) => p.maxVideos),
+            usePinnedHero: homepage.usePinnedHero || false, // 🆕 NEW
+            pinnedHeroVideoId: homepage.pinnedHeroVideoId || null, // 🆕 NEW
           },
           ipAddress:
             (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
@@ -286,12 +306,13 @@ async function handleUpdateConfig(
       const paths = new Set<string>();
       const urlsToPurge: string[] = [];
 
-      // 🔥 FIXED: Compare NEW vs OLD (not NEW vs NEW)
       const isFirstTimeSetup = !oldConfig;
 
       const homepageChanged =
         isFirstTimeSetup ||
-        homepage.playlistId !== (oldConfig?.homepagePlaylist || "");
+        homepage.playlistId !== (oldConfig?.homepagePlaylist || "") ||
+        homepage.usePinnedHero !== (oldConfig?.usePinnedHero || false) || // 🆕 NEW
+        homepage.pinnedHeroVideoId !== (oldConfig?.pinnedHeroVideoId || ""); // 🆕 NEW
 
       const heroChanged =
         isFirstTimeSetup ||
@@ -325,7 +346,7 @@ async function handleUpdateConfig(
         paths.add("/");
         urlsToPurge.push(`${siteUrl}/`, `${siteUrl}/api/homepage`);
         console.log(
-          `[${traceId}] Homepage playlist changed (${oldConfig?.homepagePlaylist || "none"} → ${homepage.playlistId}) - will revalidate / and purge CDN`
+          `[${traceId}] Homepage config changed - will revalidate / and purge CDN`
         );
       }
 
@@ -343,7 +364,7 @@ async function handleUpdateConfig(
         paths.add("/videos/shorts");
         urlsToPurge.push(`${siteUrl}/videos/shorts`);
         console.log(
-          `[${traceId}] Shorts playlist changed (${oldConfig?.shortsPlaylist || "none"} → ${videoPage.shortsPlaylistId}) - will revalidate /videos/shorts and purge CDN`
+          `[${traceId}] Shorts playlist changed - will revalidate /videos/shorts and purge CDN`
         );
       }
 
@@ -353,10 +374,10 @@ async function handleUpdateConfig(
         console.log(`[${traceId}] No pages affected by config changes`);
       } else {
         console.log(
-          `[${traceId}] Triggering ISR revalidation for ${pathsArray.length} paths: ${pathsArray.join(", ")}`
+          `[${traceId}] Starting ISR revalidation for ${pathsArray.length} page(s)`
         );
 
-        // STEP 3A: Trigger ISR revalidation
+        // Trigger ISR revalidation
         try {
           const revalidateResponse = await fetch(
             `${siteUrl}/api/internal/revalidate`,
@@ -364,25 +385,23 @@ async function handleUpdateConfig(
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "x-revalidate-secret": revalidateSecret,
+                Authorization: `Bearer ${revalidateSecret}`,
               },
               body: JSON.stringify({ paths: pathsArray }),
-              signal: AbortSignal.timeout(10000), // 10s timeout
             }
           );
 
-          if (revalidateResponse.ok) {
-            const result = await revalidateResponse.json();
+          const revalidateData = await revalidateResponse.json();
+
+          if (revalidateData.revalidated) {
             console.log(
-              `[${traceId}] ✅ ISR revalidation successful:`,
-              result.revalidated?.length || 0,
-              "paths"
+              `[${traceId}] ✅ ISR revalidated successfully:`,
+              pathsArray
             );
           } else {
-            const errorText = await revalidateResponse.text();
             console.error(
-              `[${traceId}] ❌ ISR revalidation failed (${revalidateResponse.status}):`,
-              errorText
+              `[${traceId}] ❌ ISR revalidation failed:`,
+              revalidateData
             );
           }
         } catch (revalidateError: any) {
@@ -392,50 +411,52 @@ async function handleUpdateConfig(
           );
         }
 
-        // STEP 3B: Immediate Cloudflare CDN purge
-        const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
-        const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+        // Purge Cloudflare CDN
+        if (urlsToPurge.length > 0) {
+          const CF_ZONE_ID = process.env.CF_ZONE_ID;
+          const CF_API_TOKEN = process.env.CF_API_TOKEN;
 
-        if (CF_ZONE_ID && CF_API_TOKEN && urlsToPurge.length > 0) {
-          console.log(
-            `[${traceId}] Purging ${urlsToPurge.length} URLs from Cloudflare:`,
-            urlsToPurge
-          );
-
-          // BLOCKING: Wait for Cloudflare purge to complete
-          try {
-            const cfResponse = await fetch(
-              `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${CF_API_TOKEN}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ files: urlsToPurge }),
-              }
+          if (CF_ZONE_ID && CF_API_TOKEN) {
+            console.log(
+              `[${traceId}] Purging ${urlsToPurge.length} URL(s) from Cloudflare CDN`
             );
 
-            const cfData = await cfResponse.json();
+            try {
+              const cfResponse = await fetch(
+                `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${CF_API_TOKEN}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ files: urlsToPurge }),
+                }
+              );
 
-            if (cfData.success) {
-              console.log(`[${traceId}] ✅ Cloudflare CDN purged successfully`);
-            } else {
+              const cfData = await cfResponse.json();
+
+              if (cfData.success) {
+                console.log(
+                  `[${traceId}] ✅ Cloudflare CDN purged successfully`
+                );
+              } else {
+                console.error(
+                  `[${traceId}] ❌ Cloudflare CDN purge failed:`,
+                  cfData.errors
+                );
+              }
+            } catch (cfError: any) {
               console.error(
-                `[${traceId}] ❌ Cloudflare CDN purge failed:`,
-                cfData.errors
+                `[${traceId}] ⚠️ Cloudflare CDN purge error (non-fatal):`,
+                cfError.message
               );
             }
-          } catch (cfError: any) {
-            console.error(
-              `[${traceId}] ⚠️ Cloudflare CDN purge error (non-fatal):`,
-              cfError.message
+          } else if (urlsToPurge.length > 0) {
+            console.warn(
+              `[${traceId}] ⚠️ Cloudflare credentials not configured - CDN purge skipped`
             );
           }
-        } else if (urlsToPurge.length > 0) {
-          console.warn(
-            `[${traceId}] ⚠️ Cloudflare credentials not configured - CDN purge skipped`
-          );
         }
       }
     }
@@ -443,11 +464,13 @@ async function handleUpdateConfig(
     console.log(`[${traceId}] ✅ Config update complete`);
     console.log(`[${traceId}] ========================================`);
 
-    // Return updated configuration
+    // Return updated configuration - WITH PINNED HERO FIELDS
     const updatedConfig = {
       homepage: {
         playlistId: result.homepagePlaylist || "",
         fallbackPlaylistId: result.fallbackPlaylist || "",
+        usePinnedHero: result.usePinnedHero || false, // 🆕 NEW
+        pinnedHeroVideoId: result.pinnedHeroVideoId || "", // 🆕 NEW
       },
       videoPage: {
         heroPlaylistId: result.heroPlaylist || "",
