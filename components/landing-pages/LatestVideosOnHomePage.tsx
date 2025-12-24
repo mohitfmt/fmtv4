@@ -198,17 +198,6 @@ const LatestVideosOnHomePage = ({ videos }: any) => {
     return null;
   }
 
-  // Sort videos by publishedAt (most recent first) - defensive sorting
-  // const sortedVideos = [...videos].sort((a, b) => {
-  //   const dateA = new Date(a.publishedAt || 0).getTime();
-  //   const dateB = new Date(b.publishedAt || 0).getTime();
-  //   return dateB - dateA; // Descending order (newest first)
-  // });
-
-  // // First video is featured, next 4 are secondary
-  // const featuredVideo = sortedVideos[0];
-  // const secondaryVideos = sortedVideos.slice(1, 5);
-
   const featuredVideo = videos[0];
   const secondaryVideos = videos.slice(1, 5);
 
