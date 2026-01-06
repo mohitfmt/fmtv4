@@ -11,923 +11,920 @@ import {
  * Generate comprehensive AboutPage JSON-LD with team members and FAQs
  * Uses shared-schemas for organization, website, and breadcrumb to avoid duplication
  */
+
+// Team Members Array (kept separate - about page specific)
+const baseUrl = siteConfig.baseUrl;
+export const teamMembers = [
+  // Executive Leadership
+  {
+    "@type": "Person",
+    name: "Dato' Nelson Fernandez",
+    jobTitle: "Executive Chairman/CEO",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Azeem Abu Bakar",
+    jobTitle: "Managing Director",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://www.linkedin.com/in/azeem-abu-bakar-a6067b30/",
+      "https://www.instagram.com/azeem360/",
+      "https://x.com/azeem360",
+    ],
+  },
+  {
+    "@type": "Person",
+    name: "Jenn Ngan",
+    jobTitle: "Chief Operating Officer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://www.linkedin.com/in/jennngan/",
+      "https://www.instagram.com/jenn.ngan/",
+      "https://www.tiktok.com/@jennngan",
+      "https://www.facebook.com/jenn.ngan.2025/",
+    ],
+  },
+  {
+    "@type": "Person",
+    name: "Amir Razman",
+    jobTitle: "Chief Financial Officer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/amir-razman-462b29206/"],
+  },
+  {
+    "@type": "Person",
+    name: "Shahnon Azeem",
+    jobTitle: "Special Officer to CEO & COO",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/shahnon-azeem-6b2b85247/"],
+  },
+  {
+    "@type": "Person",
+    name: "Paul Richard",
+    jobTitle: "Human Resources Manager",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/paulrichard2025/"],
+  },
+  {
+    "@type": "Person",
+    name: "Aisyah Azmi",
+    jobTitle: "Senior Finance Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Saereen Francies",
+    jobTitle: "Human Resources Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Shahrul Hisham",
+    jobTitle: "Finance & Admin Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Yunus Abd Rani",
+    jobTitle: "Company Driver",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Mohit Shrivastava",
+    jobTitle: "Head of Information Technology",
+    email: "mohit@freemalaysiatoday.com",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://www.linkedin.com/in/iamohit/",
+      "https://github.com/iam-rohid",
+      "https://twitter.com/iamohitdotcom",
+      "https://www.facebook.com/iiamohit",
+      "https://www.instagram.com/iamohit.in/",
+      "https://www.youtube.com/@iamohit",
+      "https://in.pinterest.com/iiamohit/",
+      "https://iamohit.com/",
+    ],
+  },
+
+  // English Desk - Executive Editors
+  {
+    "@type": "Person",
+    name: "Clement Lopez",
+    jobTitle: "Executive Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "A. Kathiresan",
+    jobTitle: "Executive Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "K. Parkaran",
+    jobTitle: "Executive Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // English Desk - Chief News Editors
+  {
+    "@type": "Person",
+    name: "Sean Augustin",
+    jobTitle: "Chief News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nicholas Chung",
+    jobTitle: "Chief News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/nicholas-chung-53ab501b1/"],
+  },
+
+  // English Desk - News Editors
+  {
+    "@type": "Person",
+    name: "'Ainin Wan Salleh",
+    jobTitle: "News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Mikha Chan",
+    jobTitle: "News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/mikha-chan-97149834/"],
+  },
+  {
+    "@type": "Person",
+    name: "Jason Thomas",
+    jobTitle: "News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/jason-t-ba2262164/"],
+  },
+
+  // English Desk - Other Editors
+  {
+    "@type": "Person",
+    name: "Lee Min Keong",
+    jobTitle: "Business Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Lynelle Tham",
+    jobTitle: "Assistant News Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/lynelletham/"],
+  },
+  {
+    "@type": "Person",
+    name: "Yasodha",
+    jobTitle: "Editorial Coordinator",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Afiqah Laili",
+    jobTitle: "Chief Copy Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Predeep Nambiar",
+    jobTitle: "Northern Bureau Chief",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://x.com/predeepnambiar",
+      "https://www.instagram.com/predeepatwork/",
+      "https://www.linkedin.com/in/predeepn/",
+    ],
+  },
+  {
+    "@type": "Person",
+    name: "K.Anandaraja",
+    jobTitle: "Copy Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // English Desk - Lead Writers
+  {
+    "@type": "Person",
+    name: "V. Anbalagan",
+    jobTitle: "Lead Writer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Yeoh Guan Jin",
+    jobTitle: "Lead Writer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/guan-jin-yeoh-795a01236/"],
+  },
+
+  // English Desk - Sub-Editors
+  {
+    "@type": "Person",
+    name: "Michelle Chen",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/michelle-chen-3607031ab/"],
+  },
+  {
+    "@type": "Person",
+    name: "Patrick Choo",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Vijiyan Nambiar",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Anandha Vale",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Chan Cheng Tuan",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // English Desk - Senior Journalist
+  {
+    "@type": "Person",
+    name: "Minderjeet Kaur",
+    jobTitle: "Senior Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // English Desk - Journalists
+  {
+    "@type": "Person",
+    name: "Elill Easwaran",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/elill-easwaran-4a4389180/"],
+  },
+  {
+    "@type": "Person",
+    name: "Rex Tan",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Ho Kit Yen",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Faisal Asyraf",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Pan Eu Joe",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/eu-joe-pan-70412b156/"],
+  },
+
+  // BM Desk - Editors
+  {
+    "@type": "Person",
+    name: "Amin Ridzuan",
+    jobTitle: "BM Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Mohd Hafiizh",
+    jobTitle: "BM Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Mohd Fauzi",
+    jobTitle: "BM Deputy Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/mohd-fauzi-abdullah-17b6321aa/"],
+  },
+
+  // BM Desk - Sub-Editors
+  {
+    "@type": "Person",
+    name: "Mas Ainun",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Siti Fatimah",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Teh Kean Kiat",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Amirul Faiz",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Syed Ahmad",
+    jobTitle: "Sub-Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // BM Desk - Senior Journalist
+  {
+    "@type": "Person",
+    name: "Nasriah Muhammad",
+    jobTitle: "Senior Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // BM Desk - Journalists
+  {
+    "@type": "Person",
+    name: "Mohamad Fadhli",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Raja Mohamad Faiz",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Chia Wan Rou",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nora Mahpar",
+    jobTitle: "Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Wires Desk - Sub-Editors
+  {
+    "@type": "Person",
+    name: "Shyla Sangaran",
+    jobTitle: "Sub-Editor - Wires Desk",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Izhar Shazly",
+    jobTitle: "Sub-Editor - Wires Desk",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Faiz Adnan",
+    jobTitle: "Sub-Editor - Wires Desk",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/faiz-adnan-aa474160/"],
+  },
+  {
+    "@type": "Person",
+    name: "Shirin Rekabdar – Xavier",
+    jobTitle: "Sub-Editor - Wires Desk",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Shazie Zaini",
+    jobTitle: "Sub-Editor - Wires Desk",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Lifestyle Desk
+  {
+    "@type": "Person",
+    name: "Sandra John",
+    jobTitle: "Executive Editor - Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nick Choo",
+    jobTitle: "Head of Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/nick-choo-37872714/"],
+  },
+  {
+    "@type": "Person",
+    name: "Terence Toh",
+    jobTitle: "Senior Journalist - Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Theevya Ragu",
+    jobTitle: "Journalist - Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/theevya-ragu/"],
+  },
+  {
+    "@type": "Person",
+    name: "Sheela Vijayan",
+    jobTitle: "Journalist - Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Dinesh Kumar",
+    jobTitle: "Journalist - Lifestyle",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Broadcast Desk
+  {
+    "@type": "Person",
+    name: "Raja Mohd Danish",
+    jobTitle: "Broadcast Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/danishrajareza/"],
+  },
+  {
+    "@type": "Person",
+    name: "Natasha Busst",
+    jobTitle: "Broadcast Journalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://www.linkedin.com/in/natasha-muhammad-azman-busst-b34725232/",
+    ],
+  },
+
+  // Video Unit
+  {
+    "@type": "Person",
+    name: "Zahrul Alam Yahya Shahir",
+    jobTitle: "Head of Bahasa Malaysia & Video Unit",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Dinesh Pushparani",
+    jobTitle: "Video Director",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Khairul Taufiek",
+    jobTitle: "Senior Videographer/Visual Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Muhammad Akif Irfan",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Hemaviknesh",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Fathul Ilham",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/fathul-illham-3409361b5/"],
+  },
+  {
+    "@type": "Person",
+    name: "Nor Shaqira",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Maheshan",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Ahmad Nujaid",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Syaiful Adly",
+    jobTitle: "Video Editor",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Moganraj Villavan",
+    jobTitle: "Photojournalist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: [
+      "https://www.instagram.com/moganraja/",
+      "https://www.linkedin.com/in/moganrajvillavan/",
+      "https://www.facebook.com/moganrajvillavan/",
+      "https://www.moganraj.com/",
+    ],
+  },
+  {
+    "@type": "Person",
+    name: "Mohd Afizi",
+    jobTitle: "Videographer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Muhammad Fauzi",
+    jobTitle: "Videographer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Muhammad Rabbani",
+    jobTitle: "Videographer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Hizami Safri",
+    jobTitle: "Videographer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Andrea Edmonds",
+    jobTitle: "Videographer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/andrearhiannonedmonds/"],
+  },
+  {
+    "@type": "Person",
+    name: "Hyeley Izzati",
+    jobTitle: "Presenter & Client Affairs",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Zeanaaima Mohd Yusof",
+    jobTitle: "Senior Journalist - Video",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Yasmin Latif",
+    jobTitle: "Journalist - Video",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/yasmin-latif-168769170/"],
+  },
+  {
+    "@type": "Person",
+    name: "Azureen Zainal",
+    jobTitle: "Journalist - Video",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Uploaders Unit
+  {
+    "@type": "Person",
+    name: "Nadia Masturah",
+    jobTitle: "Team Leader – Graphic Designer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Muhammad Izzat",
+    jobTitle: "Deputy Team Leader - Uploaders",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/muhammad-izzat-ali-0b4409258/"],
+  },
+  {
+    "@type": "Person",
+    name: "Siti Nur Syamimi",
+    jobTitle: "Graphic Designer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nor Ain Nabilah",
+    jobTitle: "Graphic Designer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Zaira Marlia",
+    jobTitle: "Graphic Designer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nurul Amalina",
+    jobTitle: "Graphic Designer",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Social Media Unit
+  {
+    "@type": "Person",
+    name: "Shalini Rajendran",
+    jobTitle: "Social Media Specialist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/shalini-rajendran-477640105/"],
+  },
+  {
+    "@type": "Person",
+    name: "Radin Naurahkamar",
+    jobTitle: "Social Media Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/radinnaurahkamar/"],
+  },
+  {
+    "@type": "Person",
+    name: "Santhiavathi",
+    jobTitle: "Social Media Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Nurfarhana Yasmin",
+    jobTitle: "Social Media Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+
+  // Business Development Unit
+  {
+    "@type": "Person",
+    name: "Aisha Rafiqa",
+    jobTitle: "Strategic Communications and Partnership, Lead",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Selven Razz",
+    jobTitle: "Head of Content Strategy",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/selven-razz-60a441114/"],
+  },
+  {
+    "@type": "Person",
+    name: "Kishwannath Gunasagaran",
+    jobTitle: "Campaign Specialist",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/kishwannath-gunasagaran-3181a0242/"],
+  },
+  {
+    "@type": "Person",
+    name: "Sharafina",
+    jobTitle: "Business Development Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+    sameAs: ["https://www.linkedin.com/in/sharafinashaifulizam/"],
+  },
+  {
+    "@type": "Person",
+    name: "Lauren Lopez",
+    jobTitle: "Strategic Communications Analyst",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Siti Khadijah",
+    jobTitle: "Project Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+  {
+    "@type": "Person",
+    name: "Edrina Lisa",
+    jobTitle: "Project Executive",
+    worksFor: {
+      "@id": `${baseUrl}#organization`,
+    },
+  },
+];
 export const generateAboutPageJsonLD = () => {
-  const baseUrl = siteConfig.baseUrl;
-
-  // Team Members Array (kept separate - about page specific)
-  const teamMembers = [
-    // Executive Leadership
-    {
-      "@type": "Person",
-      name: "Dato' Nelson Fernandez",
-      jobTitle: "Executive Chairman/CEO",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Azeem Abu Bakar",
-      jobTitle: "Managing Director",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.linkedin.com/in/azeem-abu-bakar-a6067b30/",
-        "https://www.instagram.com/azeem360/",
-        "https://x.com/azeem360",
-      ],
-    },
-    {
-      "@type": "Person",
-      name: "Jenn Ngan",
-      jobTitle: "Chief Operating Officer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.linkedin.com/in/jennngan/",
-        "https://www.instagram.com/jenn.ngan/",
-        "https://www.tiktok.com/@jennngan",
-        "https://www.facebook.com/jenn.ngan.2025/",
-      ],
-    },
-    {
-      "@type": "Person",
-      name: "Amir Razman",
-      jobTitle: "Chief Financial Officer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/amir-razman-462b29206/"],
-    },
-    {
-      "@type": "Person",
-      name: "Shahnon Azeem",
-      jobTitle: "Special Officer to CEO & COO",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/shahnon-azeem-6b2b85247/"],
-    },
-    {
-      "@type": "Person",
-      name: "Paul Richard",
-      jobTitle: "Human Resources Manager",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/paulrichard2025/"],
-    },
-    {
-      "@type": "Person",
-      name: "Aisyah Azmi",
-      jobTitle: "Senior Finance Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Saereen Francies",
-      jobTitle: "Human Resources Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Shahrul Hisham",
-      jobTitle: "Finance & Admin Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Yunus Abd Rani",
-      jobTitle: "Company Driver",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Mohit Shrivastava",
-      jobTitle: "Head of Information Technology",
-      email: "mohit@freemalaysiatoday.com",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.linkedin.com/in/iamohit/",
-        "https://github.com/iam-rohid",
-        "https://twitter.com/iamohitdotcom",
-        "https://www.facebook.com/iiamohit",
-        "https://www.instagram.com/iamohit.in/",
-        "https://www.youtube.com/@iamohit",
-        "https://in.pinterest.com/iiamohit/",
-        "https://iamohit.com/",
-      ],
-    },
-
-    // English Desk - Executive Editors
-    {
-      "@type": "Person",
-      name: "Clement Lopez",
-      jobTitle: "Executive Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "A. Kathiresan",
-      jobTitle: "Executive Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "K. Parkaran",
-      jobTitle: "Executive Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // English Desk - Chief News Editors
-    {
-      "@type": "Person",
-      name: "Sean Augustin",
-      jobTitle: "Chief News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nicholas Chung",
-      jobTitle: "Chief News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/nicholas-chung-53ab501b1/"],
-    },
-
-    // English Desk - News Editors
-    {
-      "@type": "Person",
-      name: "'Ainin Wan Salleh",
-      jobTitle: "News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Mikha Chan",
-      jobTitle: "News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/mikha-chan-97149834/"],
-    },
-    {
-      "@type": "Person",
-      name: "Jason Thomas",
-      jobTitle: "News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/jason-t-ba2262164/"],
-    },
-
-    // English Desk - Other Editors
-    {
-      "@type": "Person",
-      name: "Lee Min Keong",
-      jobTitle: "Business Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Lynelle Tham",
-      jobTitle: "Assistant News Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/lynelletham/"],
-    },
-    {
-      "@type": "Person",
-      name: "Yasodha",
-      jobTitle: "Editorial Coordinator",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Afiqah Laili",
-      jobTitle: "Chief Copy Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Predeep Nambiar",
-      jobTitle: "Northern Bureau Chief",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://x.com/predeepnambiar",
-        "https://www.instagram.com/predeepatwork/",
-        "https://www.linkedin.com/in/predeepn/",
-      ],
-    },
-    {
-      "@type": "Person",
-      name: "K.Anandaraja",
-      jobTitle: "Copy Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // English Desk - Lead Writers
-    {
-      "@type": "Person",
-      name: "V. Anbalagan",
-      jobTitle: "Lead Writer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Yeoh Guan Jin",
-      jobTitle: "Lead Writer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/guan-jin-yeoh-795a01236/"],
-    },
-
-    // English Desk - Sub-Editors
-    {
-      "@type": "Person",
-      name: "Michelle Chen",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/michelle-chen-3607031ab/"],
-    },
-    {
-      "@type": "Person",
-      name: "Patrick Choo",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Vijiyan Nambiar",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Anandha Vale",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Chan Cheng Tuan",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // English Desk - Senior Journalist
-    {
-      "@type": "Person",
-      name: "Minderjeet Kaur",
-      jobTitle: "Senior Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // English Desk - Journalists
-    {
-      "@type": "Person",
-      name: "Elill Easwaran",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/elill-easwaran-4a4389180/"],
-    },
-    {
-      "@type": "Person",
-      name: "Rex Tan",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Ho Kit Yen",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Faisal Asyraf",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Pan Eu Joe",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/eu-joe-pan-70412b156/"],
-    },
-
-    // BM Desk - Editors
-    {
-      "@type": "Person",
-      name: "Amin Ridzuan",
-      jobTitle: "BM Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Mohd Hafiizh",
-      jobTitle: "BM Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Mohd Fauzi",
-      jobTitle: "BM Deputy Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/mohd-fauzi-abdullah-17b6321aa/"],
-    },
-
-    // BM Desk - Sub-Editors
-    {
-      "@type": "Person",
-      name: "Mas Ainun",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Siti Fatimah",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Teh Kean Kiat",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Amirul Faiz",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Syed Ahmad",
-      jobTitle: "Sub-Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // BM Desk - Senior Journalist
-    {
-      "@type": "Person",
-      name: "Nasriah Muhammad",
-      jobTitle: "Senior Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // BM Desk - Journalists
-    {
-      "@type": "Person",
-      name: "Mohamad Fadhli",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Raja Mohamad Faiz",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Chia Wan Rou",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nora Mahpar",
-      jobTitle: "Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Wires Desk - Sub-Editors
-    {
-      "@type": "Person",
-      name: "Shyla Sangaran",
-      jobTitle: "Sub-Editor - Wires Desk",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Izhar Shazly",
-      jobTitle: "Sub-Editor - Wires Desk",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Faiz Adnan",
-      jobTitle: "Sub-Editor - Wires Desk",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/faiz-adnan-aa474160/"],
-    },
-    {
-      "@type": "Person",
-      name: "Shirin Rekabdar – Xavier",
-      jobTitle: "Sub-Editor - Wires Desk",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Shazie Zaini",
-      jobTitle: "Sub-Editor - Wires Desk",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Lifestyle Desk
-    {
-      "@type": "Person",
-      name: "Sandra John",
-      jobTitle: "Executive Editor - Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nick Choo",
-      jobTitle: "Head of Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/nick-choo-37872714/"],
-    },
-    {
-      "@type": "Person",
-      name: "Terence Toh",
-      jobTitle: "Senior Journalist - Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Theevya Ragu",
-      jobTitle: "Journalist - Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/theevya-ragu/"],
-    },
-    {
-      "@type": "Person",
-      name: "Sheela Vijayan",
-      jobTitle: "Journalist - Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Dinesh Kumar",
-      jobTitle: "Journalist - Lifestyle",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Broadcast Desk
-    {
-      "@type": "Person",
-      name: "Raja Mohd Danish",
-      jobTitle: "Broadcast Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/danishrajareza/"],
-    },
-    {
-      "@type": "Person",
-      name: "Natasha Busst",
-      jobTitle: "Broadcast Journalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.linkedin.com/in/natasha-muhammad-azman-busst-b34725232/",
-      ],
-    },
-
-    // Video Unit
-    {
-      "@type": "Person",
-      name: "Zahrul Alam Yahya Shahir",
-      jobTitle: "Head of Bahasa Malaysia & Video Unit",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Dinesh Pushparani",
-      jobTitle: "Video Director",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Khairul Taufiek",
-      jobTitle: "Senior Videographer/Visual Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Muhammad Akif Irfan",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Hemaviknesh",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Fathul Ilham",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/fathul-illham-3409361b5/"],
-    },
-    {
-      "@type": "Person",
-      name: "Nor Shaqira",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Maheshan",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Ahmad Nujaid",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Syaiful Adly",
-      jobTitle: "Video Editor",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Moganraj Villavan",
-      jobTitle: "Photojournalist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.instagram.com/moganraja/",
-        "https://www.linkedin.com/in/moganrajvillavan/",
-        "https://www.facebook.com/moganrajvillavan/",
-        "https://www.moganraj.com/",
-      ],
-    },
-    {
-      "@type": "Person",
-      name: "Mohd Afizi",
-      jobTitle: "Videographer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Muhammad Fauzi",
-      jobTitle: "Videographer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Muhammad Rabbani",
-      jobTitle: "Videographer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Hizami Safri",
-      jobTitle: "Videographer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Andrea Edmonds",
-      jobTitle: "Videographer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/andrearhiannonedmonds/"],
-    },
-    {
-      "@type": "Person",
-      name: "Hyeley Izzati",
-      jobTitle: "Presenter & Client Affairs",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Zeanaaima Mohd Yusof",
-      jobTitle: "Senior Journalist - Video",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Yasmin Latif",
-      jobTitle: "Journalist - Video",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/yasmin-latif-168769170/"],
-    },
-    {
-      "@type": "Person",
-      name: "Azureen Zainal",
-      jobTitle: "Journalist - Video",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Uploaders Unit
-    {
-      "@type": "Person",
-      name: "Nadia Masturah",
-      jobTitle: "Team Leader – Graphic Designer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Muhammad Izzat",
-      jobTitle: "Deputy Team Leader - Uploaders",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/muhammad-izzat-ali-0b4409258/"],
-    },
-    {
-      "@type": "Person",
-      name: "Siti Nur Syamimi",
-      jobTitle: "Graphic Designer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nor Ain Nabilah",
-      jobTitle: "Graphic Designer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Zaira Marlia",
-      jobTitle: "Graphic Designer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nurul Amalina",
-      jobTitle: "Graphic Designer",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Social Media Unit
-    {
-      "@type": "Person",
-      name: "Shalini Rajendran",
-      jobTitle: "Social Media Specialist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/shalini-rajendran-477640105/"],
-    },
-    {
-      "@type": "Person",
-      name: "Radin Naurahkamar",
-      jobTitle: "Social Media Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/radinnaurahkamar/"],
-    },
-    {
-      "@type": "Person",
-      name: "Santhiavathi",
-      jobTitle: "Social Media Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Nurfarhana Yasmin",
-      jobTitle: "Social Media Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-
-    // Business Development Unit
-    {
-      "@type": "Person",
-      name: "Aisha Rafiqa",
-      jobTitle: "Strategic Communications and Partnership, Lead",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Selven Razz",
-      jobTitle: "Head of Content Strategy",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/selven-razz-60a441114/"],
-    },
-    {
-      "@type": "Person",
-      name: "Kishwannath Gunasagaran",
-      jobTitle: "Campaign Specialist",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: [
-        "https://www.linkedin.com/in/kishwannath-gunasagaran-3181a0242/",
-      ],
-    },
-    {
-      "@type": "Person",
-      name: "Sharafina",
-      jobTitle: "Business Development Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-      sameAs: ["https://www.linkedin.com/in/sharafinashaifulizam/"],
-    },
-    {
-      "@type": "Person",
-      name: "Lauren Lopez",
-      jobTitle: "Strategic Communications Analyst",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Siti Khadijah",
-      jobTitle: "Project Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-    {
-      "@type": "Person",
-      name: "Edrina Lisa",
-      jobTitle: "Project Executive",
-      worksFor: {
-        "@id": `${baseUrl}#organization`,
-      },
-    },
-  ];
-
   // Get full organization with employee array added
   const fullOrganization = {
     ...getFullOrganization(),
