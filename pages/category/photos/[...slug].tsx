@@ -321,41 +321,54 @@ const NewsArticlePost = ({
   const safeExcerpt = stripHTML(rawExcerpt);
   const metaDescription = safeExcerpt.substring(0, 160);
 
-  // Extract gallery images for structured data (pass featured image as fallback)
+  // Extract gallery images for structured data
   const galleryImages = extractGalleryImages(
     post?.content || "",
     post?.featuredImage
   );
-  const primaryImage = galleryImages[0] || post?.featuredImage?.node;
-  const safeFeaturedImage = primaryImage?.url || siteConfig.iconPath;
 
-  // Generate multiple featured images for better social sharing
-  const socialImages = galleryImages.slice(0, 4).map((img) => img.url);
+  // ✅ FIX: Featured image ALWAYS takes priority
+  const featuredImageNode = post?.featuredImage?.node;
+  const featuredImageUrl = featuredImageNode?.sourceUrl;
+  const featuredImageWidth = featuredImageNode?.mediaDetails?.width || 1600;
+  const featuredImageHeight = featuredImageNode?.mediaDetails?.height || 1000;
 
-  // Tags and keywords
-  const safeTags = getSafeTags(post) || [];
+  // Use featured image first, fallback to first gallery image, then site icon
+  const safeFeaturedImage =
+    featuredImageUrl || galleryImages[0]?.url || siteConfig.iconPath;
+
+  const imageAltText =
+    featuredImageNode?.altText || featuredImageNode?.caption || safeTitle;
+
+  // ✅ FIX: Properly handle tags array - filter and map to strings
+  const rawTags = getSafeTags(post) || [];
+  const safeTags = rawTags
+    .filter((tag: any) => tag && typeof tag === "object" && tag.name)
+    .map((tag: any) => tag.name);
+
   const tagsWithSlug =
     post?.tags?.edges?.map((edge: any) => ({
       name: edge?.node?.name,
       slug: edge?.node?.slug,
     })) || [];
 
-  // Enhanced keywords including photo-specific terms
-  const keywords = [
+  // ✅ FIX: Properly format keywords as string
+  const keywordsList = [
     ...safeTags,
     "photo gallery",
     "news photos",
     "image gallery",
     "visual news",
     "photojournalism",
-    ...getSafeCategories(post).map((cat: any) => `${cat} photos`),
-  ].join(", ");
+    ...getSafeCategories(post).map((cat: string) => `${cat} photos`),
+  ];
+  const keywords = keywordsList.join(", ");
 
   // Ad targeting parameters
   const dfpTargetingParams = getAdTargeting(post, safeTags);
 
   // Author data
-  const authorName = post?.author?.node?.name || "FMT Photographers";
+  const authorName = post?.author?.node?.name || "FMT Reporters";
   const authorUrl = `${siteConfig.baseUrl}${post?.author?.node?.uri || "/category/author/fmtreporters/"}`;
 
   // Dates
@@ -393,6 +406,8 @@ const NewsArticlePost = ({
         <meta property="article:published_time" content={publishedDate} />
         <meta property="article:modified_time" content={modifiedDate} />
         <meta property="article:section" content="Photos" />
+
+        {/* ✅ FIX: Properly render article tags - no more [object Object] */}
         {safeTags.map((tag: string) => (
           <meta key={tag} property="article:tag" content={tag} />
         ))}
@@ -415,30 +430,38 @@ const NewsArticlePost = ({
         <meta property="og:site_name" content={siteConfig.siteName} />
         <meta property="og:locale" content="en_MY" />
 
-        {/* Multiple OG Images for better gallery preview */}
-        {socialImages.length > 0 ? (
-          socialImages.map((imgUrl, index) => (
-            <meta key={index} property="og:image" content={imgUrl} />
-          ))
-        ) : (
-          <meta property="og:image" content={safeFeaturedImage} />
-        )}
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={safeTitle} />
+        {/* ✅ FIX: Featured image ONLY for og:image - always renders */}
+        <meta property="og:image" content={safeFeaturedImage} />
+        <meta property="og:image:secure_url" content={safeFeaturedImage} />
+        <meta
+          property="og:image:width"
+          content={featuredImageWidth.toString()}
+        />
+        <meta
+          property="og:image:height"
+          content={featuredImageHeight.toString()}
+        />
+        <meta property="og:image:type" content="image/webp" />
+        <meta property="og:image:alt" content={imageAltText} />
 
-        {/* Twitter Card Tags - Gallery Card */}
-        <meta name="twitter:card" content="gallery" />
+        {/* Facebook Specific Tags */}
+        <meta property="fb:app_id" content="193538481218906" />
+        <meta property="fb:pages" content="144916735576536" />
+        <meta
+          property="article:publisher"
+          content="https://www.facebook.com/FreeMalaysiaToday"
+        />
+
+        {/* ✅ FIX: Twitter Card - summary_large_image with explicit twitter:image */}
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@fmtoday" />
         <meta name="twitter:creator" content="@fmtoday" />
         <meta name="twitter:url" content={fullUrl} />
         <meta name="twitter:title" content={`${safeTitle} - Photo Gallery`} />
         <meta name="twitter:description" content={metaDescription} />
-
-        {/* Twitter Gallery Images */}
-        {socialImages.slice(0, 4).map((imgUrl, index) => (
-          <meta key={index} name={`twitter:image${index}`} content={imgUrl} />
-        ))}
+        <meta name="twitter:image" content={safeFeaturedImage} />
+        <meta name="twitter:image:alt" content={imageAltText} />
+        <meta name="twitter:domain" content="freemalaysiatoday.com" />
 
         {/* Pinterest Rich Pins */}
         <meta property="og:see_also" content={fullUrl} />
@@ -461,6 +484,13 @@ const NewsArticlePost = ({
         <meta name="geo.region" content="MY" />
         <meta name="geo.placename" content="Malaysia" />
 
+        {/* Publisher Information */}
+        <meta name="publisher" content={siteConfig.siteName} />
+        <meta
+          name="copyright"
+          content={`© ${new Date().getFullYear()} ${siteConfig.siteName}`}
+        />
+
         {/* Prefetch and Preconnect for Performance */}
         <link rel="dns-prefetch" href="https://media.freemalaysiatoday.com" />
         <link
@@ -469,17 +499,16 @@ const NewsArticlePost = ({
           crossOrigin="anonymous"
         />
 
-        {/* Preload critical images */}
-        {galleryImages.slice(0, 3).map((img, index) => (
+        {/* Preload featured image */}
+        {featuredImageUrl && (
           <link
-            key={index}
             rel="preload"
             as="image"
-            href={img.url}
-            imageSrcSet={`${img.url} 1x`}
+            href={featuredImageUrl}
+            imageSrcSet={`${featuredImageUrl} 1x`}
             imageSizes="(max-width: 768px) 100vw, 50vw"
           />
-        ))}
+        )}
 
         {/* RSS Feed for Photos */}
         <link
