@@ -6,7 +6,7 @@ const CopyrightSection: React.FC = () => (
     </p>
     <p>
       Copyright &copy; 2009 - {new Date().getFullYear()} FMT Media Sdn Bhd
-      (1235453-U) All Rights Reserved. A part of Media Prima Group.
+      (1235453-U) All Rights Reserved.
     </p>
   </div>
 );

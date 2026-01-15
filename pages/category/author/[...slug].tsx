@@ -8,7 +8,8 @@ import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { getFilteredCategoryPosts } from "@/lib/gql-queries/get-filtered-category-posts";
 import { getWebPageSchema } from "@/constants/jsonlds/shared-schemas";
 import { fbPageIds } from "@/constants/social";
-import { getAuthorCredentials } from "@/constants/author-credentials"; // ✅ NEW
+import { getAuthorCredentials } from "@/constants/author-credentials";
+import { OrgJsonLD } from "@/constants/jsonlds/org";
 
 interface Author {
   name: string;
@@ -57,8 +58,8 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
     siteConfig.iconPath;
 
   // ✅ Image dimensions with proper handling
-  const imageWidth = 400;
-  const imageHeight = 400;
+  const imageWidth = author?.avatar?.url ? 400 : 1200;
+  const imageHeight = author?.avatar?.url ? 400 : 630;
   const imageAlt = `${author.name}${credentials?.jobTitle ? ` - ${credentials.jobTitle}` : ""} | Free Malaysia Today`;
 
   // Meta title with credentials
@@ -82,7 +83,18 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
 
   const topicsCovered = getTopicsCovered();
 
-  // ✅ Enhanced JSON-LD with E-E-A-T
+  // ✅ FIX #2: Build author's sameAs array (includes their own profile URL + social links)
+  const authorSameAs = [];
+
+  // Add social links from credentials
+  if (credentials?.sameAs && credentials.sameAs.length > 0) {
+    authorSameAs.push(...credentials.sameAs);
+  }
+
+  // ✅ CRITICAL: Add author's own FMT profile URL to sameAs
+  authorSameAs.push(fullUrl);
+
+  // ✅ Enhanced JSON-LD with all fixes
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -122,10 +134,12 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
 
         // ✅ E-E-A-T Enhancement from credentials
         ...(credentials?.jobTitle && { jobTitle: credentials.jobTitle }),
-        ...(credentials?.sameAs &&
-          credentials.sameAs.length > 0 && {
-            sameAs: credentials.sameAs,
-          }),
+
+        // ✅ FIX #2: Use enhanced sameAs that includes author's own URL
+        ...(authorSameAs.length > 0 && {
+          sameAs: authorSameAs,
+        }),
+
         ...(credentials?.email && { email: credentials.email }),
 
         // Image as ImageObject
@@ -141,17 +155,9 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
         ...(credentials?.firstName && { givenName: credentials.firstName }),
         ...(credentials?.lastName && { familyName: credentials.lastName }),
 
-        // Professional affiliation
+        // ✅ FIX #1: Reference organization by @id only (no inline definition)
         worksFor: {
-          "@type": "NewsMediaOrganization",
           "@id": `${domainUrl}#organization`,
-          name: "Free Malaysia Today",
-          url: domainUrl,
-          sameAs: [
-            "https://www.facebook.com/FreeMalaysiaToday",
-            "https://twitter.com/fmtoday",
-            "https://www.linkedin.com/company/free-malaysia-today",
-          ],
         },
 
         // ✅ Topics of expertise
@@ -185,7 +191,6 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           "@id": `${domainUrl}#website`,
         },
         publisher: {
-          "@type": "NewsMediaOrganization",
           "@id": `${domainUrl}#organization`,
         },
       },
@@ -209,9 +214,7 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
             image: node.featuredImage?.node
               ? {
                   "@type": "ImageObject",
-                  url:
-                    node.featuredImage?.node?.sourceUrl ||
-                    `${domainUrl}/icon-512x512.png`,
+                  url: node.featuredImage.node.sourceUrl || siteConfig.iconPath,
                 }
               : {
                   "@type": "ImageObject",
@@ -221,11 +224,25 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
               "@id": `${fullUrl}#person`,
             },
             publisher: {
-              "@type": "NewsMediaOrganization",
               "@id": `${domainUrl}#organization`,
             },
           },
         })),
+      },
+
+      // ✅ FIX #1, #3, #4: Organization defined ONCE with correct structure
+      {
+        "@type": "NewsMediaOrganization",
+        "@id": `${domainUrl}#organization`,
+        name: "Free Malaysia Today",
+        url: domainUrl,
+        sameAs: OrgJsonLD.sameAs, // ✅ Import from SINGLE SOURCE OF TRUTH (15+ profiles!)
+        logo: {
+          "@type": "ImageObject",
+          url: `${domainUrl}/PreviewLinkImage.png`,
+          width: 512,
+          height: 512,
+        },
       },
 
       // WebPage
@@ -247,7 +264,6 @@ export default function AuthorPage({ author, posts }: AuthorPageProps) {
           "@id": `${fullUrl}#breadcrumb`,
         },
         publisher: {
-          "@type": "NewsMediaOrganization",
           "@id": `${domainUrl}#organization`,
         },
       },

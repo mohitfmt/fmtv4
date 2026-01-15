@@ -287,7 +287,7 @@ export default function Home({
         <link rel="alternate" hrefLang="x-default" href={siteConfig.baseUrl} />
         <meta
           name="copyright"
-          content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved. A part of Media Prima Group."
+          content="© 2009 - 2025 FMT Media Sdn Bhd (1235453-U). All Rights Reserved."
         />
         <meta name="category" content="homepage, landing"></meta>
 
