@@ -37,7 +37,13 @@ export default async function handler(
       rssFeedUrl = "https://cms.freemalaysiatoday.com/category/world/feed/";
       break;
     default:
-      rssFeedUrl = "https://cms.freemalaysiatoday.com/feed/";
+      res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60");
+      res.setHeader("Content-Type", "application/json");
+      return res.status(404).json({
+        error: "Feed not found",
+        message:
+          "Valid feeds: nation, business, headlines, lifestyle, opinion, sports, world, berita",
+      });
   }
 
   try {

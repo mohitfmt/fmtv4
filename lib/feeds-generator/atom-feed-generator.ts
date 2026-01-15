@@ -265,17 +265,7 @@ export const fetchATOMFeedPayloads = async (slugStr: string) => {
       };
       break;
     default:
-      payloadObj = {
-        rssUrl:
-          "https://cms.freemalaysiatoday.com/feed/?orderby=modified&order=desc",
-        link: "https://www.freemalaysiatoday.com",
-        title: "Free Malaysia Today",
-        subtitle:
-          "Free Malaysia Today (FMT) | Current Affairs, Business, Economy, Lifestyle, News and Analysis",
-        selfLink: `https://www.freemalaysiatoday.com/feeds/atom/${slugStr}`,
-        categories:
-          '<category term="FMT" scheme="https://www.freemalaysiatoday.com" label="Free Malaysia Today"/>',
-      };
+      return null;
   }
   return payloadObj;
 };
