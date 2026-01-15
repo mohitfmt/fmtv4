@@ -2,6 +2,8 @@
 
 import { stripHTML } from "@/lib/utils";
 import siteConfig from "@/constants/site-config";
+import { OrgJsonLD } from "./org";
+import { getLightweightOrganization } from "./shared-schemas";
 // import { PostCardProps } from "@/types/global";
 
 interface CategoryJsonLDProps {
@@ -186,56 +188,7 @@ export const generateCategoryJsonLD = ({
   };
 
   // Generate Organization schema
-  const organization = {
-    "@type": "NewsMediaOrganization",
-    "@id": `${siteConfig.baseUrl}#organization`,
-    name: siteConfig.siteName,
-    alternateName: ["FMT", "FreeMalaysiaToday", "FMT News"],
-    url: siteConfig.baseUrl,
-    logo: {
-      "@type": "ImageObject",
-      url: `${siteConfig.baseUrl}/icon-512x512.png`,
-      width: 512,
-      height: 512,
-      caption: siteConfig.siteName,
-    },
-    image: {
-      "@type": "ImageObject",
-      url: siteConfig.iconPath,
-      width: 1200,
-      height: 630,
-    },
-    sameAs: [
-      "https://www.facebook.com/FreeMalaysiaToday",
-      "https://twitter.com/fmtoday",
-      "https://www.instagram.com/freemalaysiatoday",
-      "https://www.youtube.com/user/FreeMalaysiaTodayFMT",
-      "https://www.linkedin.com/company/free-malaysia-today",
-      "https://en.wikipedia.org/wiki/Free_Malaysia_Today",
-    ],
-    address: {
-      "@type": "PostalAddress",
-      streetAddress:
-        "The West Wing, Menara Axis, Ground Floor, Quattro West, 4, Persiaran Barat",
-      addressLocality: "Petaling Jaya",
-      addressRegion: "Selangor",
-      postalCode: "46200",
-      addressCountry: "MY",
-    },
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "customer service",
-      email: "editor@freemalaysiatoday.com",
-      availableLanguage: ["en", "ms"],
-    },
-    foundingDate: "2009",
-    foundingLocation: "Malaysia",
-    areaServed: {
-      "@type": "Country",
-      name: "Malaysia",
-    },
-    knowsLanguage: ["en-MY", "ms-MY"],
-  };
+  const organization = getLightweightOrganization();
 
   // Main CollectionPage schema with all enhancements
   const collectionPage = {

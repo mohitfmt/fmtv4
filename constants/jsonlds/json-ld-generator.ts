@@ -81,27 +81,20 @@ export const generatedJsonLd = (
               {
                 "@type": "ListItem",
                 position: 1,
-                item: {
-                  "@id": "https://www.freemalaysiatoday.com/",
-                  name: "Home",
-                },
+                item: "https://www.freemalaysiatoday.com/",
+                name: "Home",
               },
               {
                 "@type": "ListItem",
                 position: 2,
-                item: {
-                  "@id": pathURi,
-                  name: pageName,
-                },
+                item: pathURi,
+                name: pageName,
               },
               {
                 "@type": "ListItem",
                 position: 3,
                 name: node?.title ?? "Article",
-                item: {
-                  "@id": articleUrl,
-                  name: node?.title ?? "Article",
-                },
+                item: articleUrl,
               },
             ],
           },
@@ -160,18 +153,14 @@ export const generatedJsonLd = (
         {
           "@type": "ListItem",
           position: 1,
-          item: {
-            "@id": "https://www.freemalaysiatoday.com/",
-            name: "Home",
-          },
+          item: "https://www.freemalaysiatoday.com/",
+          name: "Home",
         },
         {
           "@type": "ListItem",
           position: 2,
-          item: {
-            "@id": pathURi,
-            name: pageName,
-          },
+          item: pathURi,
+          name: pageName,
         },
       ],
     },

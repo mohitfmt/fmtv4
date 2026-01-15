@@ -63,7 +63,9 @@ export const getWebsiteSchema = () => {
     url: siteConfig.baseUrl,
     name: siteConfig.siteName,
     description: siteConfig.siteDescription,
-    publisher: getLightweightOrganization(),
+    publisher: {
+      "@id": `${siteConfig.baseUrl}#organization`,
+    },
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -94,7 +96,9 @@ export const getWebPageSchema = (options?: {
     name: options?.name || siteConfig.siteName,
     ...(options?.description && { description: options.description }),
     inLanguage: options?.inLanguage || ["en-MY", "ms-MY"],
-    publisher: getLightweightOrganization(),
+    publisher: {
+      "@id": `${siteConfig.baseUrl}#organization`,
+    },
     isPartOf: {
       "@id": `${siteConfig.baseUrl}#website`,
     },

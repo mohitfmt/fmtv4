@@ -82,9 +82,7 @@ export const OrgJsonLD = {
     license: `${siteConfig.baseUrl}/privacy-policy/`,
     acquireLicensePage: `${siteConfig.baseUrl}/privacy-policy/`,
     creator: {
-      "@type": "Organization",
-      name: "Free Malaysia Today",
-      url: `${siteConfig.baseUrl}`,
+      "@id": `${siteConfig.baseUrl}#organization`,
     },
     copyrightNotice: `© ${siteConfig.siteName}, ${new Date().getFullYear()}`,
   },

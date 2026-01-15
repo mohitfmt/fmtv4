@@ -131,9 +131,7 @@ export const generateCollectionPageJsonLD = ({
         copyrightNotice: "© Free Malaysia Today, since 2009",
         acquireLicensePage: `${baseUrl}/disclaimers-copyright`,
         creator: {
-          "@type": "Organization",
-          name: "Free Malaysia Today",
-          url: baseUrl,
+          "@id": `${baseUrl}#organization`,
         },
         license: "https://creativecommons.org/licenses/by/4.0/",
       },

@@ -23,9 +23,11 @@ import { fbPageIds } from "@/constants/social";
 import { defaultAlternateLocale } from "@/constants/alternate-locales";
 import { prisma } from "@/lib/prisma";
 import {
+  getFullOrganization,
   getWebPageSchema,
   getWebsiteSchema,
 } from "@/constants/jsonlds/shared-schemas";
+import { teamMembers } from "@/constants/jsonlds/about-page-json-ld";
 
 const dfpTargetingParams = {
   pos: "listing",
@@ -268,6 +270,11 @@ export default function Home({
   // 🆕 Generate structured data
   const trendingTopicsJsonLD = generateTrendingTopicsJsonLD(trendingTags);
 
+  const fullOrganization = {
+    ...getFullOrganization(),
+    employee: teamMembers, // Add team members to organization
+  };
+
   return (
     <>
       {/* 🆕 ENHANCED Head section - ONLY meta tags changed */}
@@ -389,44 +396,73 @@ export default function Home({
         <meta name="twitter:creator" content="@fmtoday" />
       </Head>
 
-      {/* EXISTING structured data scripts (UNCHANGED) */}
+      {/* 🆕 UNIFIED JSON-LD @graph - Single source of truth */}
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebsiteSchema()) }}
         type="application/ld+json"
-      />
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(getWebPageSchema()) }}
-        type="application/ld+json"
-      />
-      <script
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            generateCollectionPageJsonLD({
-              heroPosts: heroPosts || [],
-              highlightPosts: highlightPosts || [],
-              topNewsPosts: topNewsPosts || [],
-              businessPosts: businessPosts || [],
-              opinionPosts: opinionPosts || [],
-              worldPosts: worldPosts || [],
-              leisurePosts: leisurePosts || [],
-              sportsPosts: sportsPosts || [],
-              beritaPosts: beritaPosts || [],
-              videoPosts: videoPosts || [],
-              columnists: columnists || [],
-            })
-          ),
-        }}
-        type="application/ld+json"
-      />
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              // 1. Full Organization with employees (appears ONCE)
+              fullOrganization,
 
-      {trendingTopicsJsonLD && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(trendingTopicsJsonLD),
-          }}
-        />
-      )}
+              // 2. Website schema (publisher uses @id reference)
+              {
+                "@type": "WebSite",
+                "@id": `${siteConfig.baseUrl}#website`,
+                url: siteConfig.baseUrl,
+                name: siteConfig.siteName,
+                description: siteConfig.siteDescription,
+                publisher: {
+                  "@id": `${siteConfig.baseUrl}#organization`,
+                },
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: {
+                    "@type": "EntryPoint",
+                    urlTemplate: `${siteConfig.baseUrl}/search/?term={search_term_string}`,
+                  },
+                  "query-input": "required name=search_term_string",
+                },
+                inLanguage: ["en-MY", "ms-MY"],
+              },
+
+              // 3. WebPage schema (publisher uses @id reference)
+              {
+                "@type": "WebPage",
+                "@id": siteConfig.baseUrl,
+                url: siteConfig.baseUrl,
+                name: "Free Malaysia Today | Homepage",
+                inLanguage: ["en-MY", "ms-MY"],
+                publisher: {
+                  "@id": `${siteConfig.baseUrl}#organization`,
+                },
+                isPartOf: {
+                  "@id": `${siteConfig.baseUrl}#website`,
+                },
+              },
+
+              // 4. CollectionPage with article listings
+              generateCollectionPageJsonLD({
+                heroPosts: heroPosts || [],
+                highlightPosts: highlightPosts || [],
+                topNewsPosts: topNewsPosts || [],
+                businessPosts: businessPosts || [],
+                opinionPosts: opinionPosts || [],
+                worldPosts: worldPosts || [],
+                leisurePosts: leisurePosts || [],
+                sportsPosts: sportsPosts || [],
+                beritaPosts: beritaPosts || [],
+                videoPosts: videoPosts || [],
+                columnists: columnists || [],
+              }),
+
+              // 5. Trending topics (if available)
+              ...(trendingTopicsJsonLD ? [trendingTopicsJsonLD] : []),
+            ].filter(Boolean),
+          }),
+        }}
+      />
 
       <main>
         <TrendingNSubCategoriesList items={trendingTags} variant="trending" />
