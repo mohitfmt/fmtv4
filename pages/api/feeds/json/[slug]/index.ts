@@ -56,16 +56,19 @@ export default async function handler(
     };
 
     res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400"
+    );
+    res.setHeader("CDN-Cache-Control", "public, max-age=3600");
     res.status(200).json(jsonFeed);
   } catch (error) {
     console.error(
       "[FEEDS_API_ERROR] Failed to fetch or parse JSON feed:",
       error
     );
-    res
-      .status(500)
-      .json({
-        error: `[FEEDS_API_ERROR] Failed to fetch or parse JSON feed : ${error}`,
-      });
+    res.status(500).json({
+      error: `[FEEDS_API_ERROR] Failed to fetch or parse JSON feed : ${error}`,
+    });
   }
 }

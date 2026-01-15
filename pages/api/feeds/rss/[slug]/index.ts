@@ -31,6 +31,11 @@ export default async function handler(
       fullPath: slugPayload.fullPath,
     });
     res.setHeader("Content-Type", "application/rss+xml");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400"
+    );
+    res.setHeader("CDN-Cache-Control", "public, max-age=3600");
     res.status(200).send(updatedFeed);
   } catch (err) {
     console.error(`[FEEDS_API_ERROR] RSS fetching error :`, err);

@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { Clock, Eye, ThumbsUp, MessageSquare, Play } from "lucide-react";
+import { Clock, Eye, ThumbsUp, Play } from "lucide-react";
 import SectionHeading from "../common/SectionHeading";
 import Link from "next/link";
 import {
@@ -71,76 +71,51 @@ const FeaturedVideoCard = ({ video }: any) => {
       : video.publishedAt?.toISOString() || new Date().toISOString();
 
   return (
-    <div className="relative group overflow-hidden rounded-lg h-[400px] xl:h-[460px]">
-      {/* Thumbnail */}
-      <div className="relative h-full">
+    <div className="group h-full flex flex-col">
+      <div className="relative overflow-hidden rounded-lg aspect-video">
         <Image
           src={thumbnailUrl}
           alt={video.title}
           width={640}
-          height={480}
+          height={360}
           className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
           priority
         />
 
-        {/* Play Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-black/50 rounded-full p-3 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
+          <div className="bg-black/50 rounded-full p-4 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
             <Play className="text-white w-8 h-8" />
           </div>
         </div>
 
-        {/* Duration Badge */}
-        <div className="absolute top-3 right-3 bg-black/90 text-white px-2.5 py-1.5 rounded-md flex items-center gap-1.5 font-medium shadow-lg">
-          <Clock size={14} />
-          {formatDuration(video.duration)}
+        <div className="absolute bottom-2 left-2 flex items-center gap-4 bg-black/80 px-3 py-1.5 rounded-full text-white text-sm font-medium shadow-lg">
+          <span className="flex items-center gap-1">
+            <Eye size={14} />
+            {formatViewCount(video.viewCount || 0)}
+          </span>
+          <span className="flex items-center gap-1">
+            <ThumbsUp size={14} />
+            {formatViewCount(video.likeCount || 0)}
+          </span>
         </div>
+
+        <time
+          dateTime={formatMalaysianDate(dateGmt, false)}
+          className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/80 px-3 py-1.5 rounded-full text-white text-sm font-medium shadow-lg"
+        >
+          <Clock size={14} />
+          {formatMalaysianTime24h(dateGmt)}
+        </time>
       </div>
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-5">
-        <h2
-          className="text-pretty text-2xl md:text-4xl font-extrabold font-bitter mb-3 text-white"
-          style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
-          title={video.title}
-        >
+      {/* Content Below Thumbnail */}
+      <div className="mt-3">
+        <h2 className="font-bitter text-2xl md:text-3xl font-bold leading-tight line-clamp-2 transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
           {video.title}
         </h2>
-        <p
-          className="line-clamp-2 mb-3 text-gray-100"
-          style={{ textShadow: "1px 1px 2px rgba(0, 0, 0, 0.5)" }}
-        >
+        <p className="mt-2 text-base text-gray-600 dark:text-gray-300 leading-snug line-clamp-2">
           {description.replace(/\n/g, " ").replace(/Read More:.*$/, "")}
         </p>
-
-        <div className="flex items-center justify-between text-gray-200">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5">
-              <Eye size={16} />
-              {formatViewCount(video.viewCount || 0)}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <ThumbsUp size={16} />
-              {formatViewCount(video.likeCount || 0)}
-            </span>
-            {video.commentCount && parseInt(String(video.commentCount)) > 0 && (
-              <span className="flex items-center gap-1.5">
-                <MessageSquare size={16} />
-                {formatViewCount(video.commentCount)}
-              </span>
-            )}
-          </div>
-
-          <time
-            className="flex items-center gap-1.5 bg-black/80 text-white px-1.5 py-1 rounded-md"
-            dateTime={formatMalaysianDate(dateGmt, false)}
-          >
-            {formatMalaysianTime24h(dateGmt)}
-          </time>
-        </div>
       </div>
     </div>
   );
@@ -149,13 +124,14 @@ const FeaturedVideoCard = ({ video }: any) => {
 // Secondary Video Card (Small - Grid Videos)
 const SecondaryVideoCard = ({ video }: any) => {
   const thumbnailUrl = getThumbnailUrl(video);
+  const description = video.description || "";
   const dateGmt =
     typeof video.publishedAt === "string"
       ? video.publishedAt
       : video.publishedAt?.toISOString() || new Date().toISOString();
 
   return (
-    <div className="group px-1 h-full flex flex-col border-b transition-shadow border-stone-200 dark:border-stone-600 hover:shadow-xl dark:hover:shadow-stone-600 dark:hover:shadow-md">
+    <div className="group h-full flex flex-col">
       {/* Thumbnail Container */}
       <div className="relative overflow-hidden rounded-lg aspect-video">
         <Image
@@ -168,25 +144,38 @@ const SecondaryVideoCard = ({ video }: any) => {
 
         {/* Play Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-black/50 rounded-full p-3 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
-            <Play className="text-white w-6 h-6" />
+          <div className="bg-black/50 rounded-full p-2 transition-all duration-300 group-hover:bg-black/70 group-hover:scale-110">
+            <Play className="text-white w-5 h-5" />
           </div>
         </div>
 
-        {/* Time Badge */}
-        <div className="absolute bottom-2 right-2">
-          <time
-            className="flex items-center gap-1.5 bg-black/80 text-white px-1 py-0.5 rounded-md"
-            dateTime={formatMalaysianDate(dateGmt, false)}
-          >
-            {formatMalaysianTime24h(dateGmt)}
-          </time>
+        {/* Stats Pills - Left and Right */}
+        {/* Left Pill: Views */}
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 px-2 py-1 rounded-full text-white text-xs font-medium shadow-lg">
+          <Eye size={12} />
+          {formatViewCount(video.viewCount || 0)}
         </div>
+
+        {/* Right Pill: Duration */}
+        <time
+          dateTime={formatMalaysianDate(dateGmt, false)}
+          className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 px-2 py-1 rounded-full text-white text-xs font-medium shadow-lg"
+        >
+          <Clock size={12} />
+          {formatMalaysianTime24h(dateGmt)}
+        </time>
       </div>
 
-      {/* Content */}
-      <div className="my-2 text-lg font-bitter font-semibold leading-snug transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
-        <h3 className="line-clamp-2">{video.title}</h3>
+      {/* Content Below Thumbnail */}
+      <div className="mt-2">
+        <h3 className="font-bitter text-base font-semibold leading-tight line-clamp-2 transition-colors hover:text-blue-700 dark:hover:text-cyan-300">
+          {video.title}
+        </h3>
+        {description && (
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 leading-snug line-clamp-2">
+            {description.replace(/\n/g, " ").replace(/Read More:.*$/, "")}
+          </p>
+        )}
       </div>
     </div>
   );

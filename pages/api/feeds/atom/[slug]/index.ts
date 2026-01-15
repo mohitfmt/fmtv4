@@ -34,6 +34,11 @@ export default async function handler(
       categories: slugPayload.categories,
     });
     res.setHeader("Content-Type", "application/atom+xml");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400"
+    );
+    res.setHeader("CDN-Cache-Control", "public, max-age=3600");
     res.status(200).send(atomFeed);
   } catch (err) {
     console.error("[FEEDS_API_ERROR] Atom feeds fetching error:", err);
